@@ -1,65 +1,26 @@
-# =============================================================================
-# Kita Game Backend - .gitignore
-# =============================================================================
-
-# Large Databases and Solvers (MUST NOT BE PUSHED TO GITHUB)
-kita_solver.db
-*.db
-*.sqlite
-*.sqlite3
-
-# Solver module & CLI (Heavy retrograde analysis, not needed for game backend)
-solver/
-solver_cli.py
-tests/test_solver_sqlite.py
-export_first_4_layers.py
-
-# Temporary scripts, simulations and analysis notes
-scratch/
-new_starting_state_analysis.md
-state_*.md
-
-# Python cache & build files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Testing & Linting
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing & coverage
 .pytest_cache/
 .coverage
 htmlcov/
-.mypy_cache/
 
-# Virtual Environments
-venv/
-.venv/
-env/
-ENV/
+# Environments & local configs
+.env
+*.local
 
-# IDE and Editor configs
+# IDEs & editors
 .vscode/
 .idea/
-*.swp
-*.swo
-.DS_Store
 
-# AI / IDE metadata
-.gemini/
-.agents/
+# OS generated files
+.DS_Store
+Thumbs.db
