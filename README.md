@@ -1,63 +1,63 @@
-# Kita Board Game - Core Backend Engine
+# Kita Fullstack
 
-Pure Python implementation of the **Kita** board game rules, state management, and move generator.
+Welcome to the **Kita** repository! This project is a complete fullstack implementation of the "Kita" board game. It separates the core game engine from the user interface, utilizing a modern, scalable architecture.
 
-This repository contains the standalone game engine. It has **zero external dependencies** (runs on standard Python 3.10+) and is ready to be integrated into any frontend or web framework (FastAPI, Flask, Django, React, Vue, Electron, etc.).
+## Project Structure
 
----
+This repository is split into two main components:
 
-## 🚀 Quick Start
+### 1. Backend (`kita_backend`)
+- **Language**: Go
+- **Description**: Contains the core game engine ported from the original Python implementation. It includes all the game logic, board state management, rule enforcement, and a terminal-based CLI for local testing.
+- **Future Plans**: Will be expanded to include a WebSocket or REST API server to communicate with the frontend.
+- **Running locally**:
+  ```bash
+  cd kita_backend
+  go run cmd/cli/main.go play
+  ```
 
-No installation or `pip install` required!
+### 2. Frontend (`kita_frontend`)
+- **Framework**: Flutter
+- **Description**: The cross-platform user interface for the Kita game. Currently initialized as a template, this project will provide a rich, interactive, and aesthetic UI for playing the game across Web, Desktop, and Mobile devices.
+- **Future Plans**: Will connect to the Go backend via WebSockets to synchronize game state in real-time.
 
-### View Board & Engine Info
-```bash
-python main.py
+### 📁 Repository Structure
+
+```text
+Kita_Fullstack/
+├── README.md                   # Project documentation & overview
+├── kita_backend/               # Go backend game engine & CLI
+│   ├── cmd/
+│   │   └── cli/
+│   │       └── main.go         # Terminal-based CLI game entry point
+│   ├── pkg/
+│   │   └── game/
+│   │       ├── board.go        # Board representation & ASCII rendering
+│   │       ├── game.go         # Core game loop & turn-based mechanics
+│   │       ├── pieces.go       # Piece types, identifiers & definitions
+│   │       ├── rules.go        # Move calculation, jump rules & validation
+│   │       └── state.go        # Game state tracking & position snapshots
+│   └── go.mod                  # Go module definition
+└── kita_frontend/              # Flutter cross-platform user interface
+    ├── lib/
+    │   └── main.dart           # Flutter application entry point
+    ├── test/
+    │   └── widget_test.dart    # Frontend widget & unit tests
+    ├── pubspec.yaml            # Flutter packages & build configuration
+    ├── android/                # Android platform runner
+    ├── ios/                    # iOS platform runner
+    ├── linux/                  # Linux desktop runner
+    ├── macos/                  # macOS desktop runner
+    ├── web/                    # Web platform runner
+    └── windows/                # Windows desktop runner
 ```
 
-### Play 2-Player Match in Terminal
-Test the rules and moves directly in your console:
-```bash
-python main.py play
-```
+## Prerequisites
+- **Go**: Version 1.21 or higher.
+- **Flutter**: Latest stable release (Ensure `flutter/bin` is added to your system PATH).
 
----
 
-## 💻 How to Use in Code (Frontend Integration)
-
-The frontend can interact with the game engine via the `Game` class:
-
-```python
-from game import Game, Move
-
-# 1. Start a new game
-game = Game.new_game()
-
-# 2. Inspect game state
-print("Current turn :", game.turn)             # 'white' or 'black'
-print("Game status  :", game.get_status())       # 'ongoing', 'white_wins', 'black_wins', 'draw'
-print("Move count   :", game.move_count)
-
-# 3. Piece positions on the board
-# Maps piece_id to (col, row) tuple, or None if captured
-for piece_id, pos in game.positions.items():
-    print(f"{piece_id}: {pos}")
-
-# 4. Get all legal moves for the current player
-legal_moves = game.get_legal_moves()
-for m in legal_moves:
-    print(f"Move {m.piece_id} from {m.from_pos} to {m.to_pos}")
-
-# 5. Apply a move (returns a brand new immutable Game instance)
-if legal_moves:
-    next_game = game.apply_move(legal_moves[0])
-    print(next_game.display())               # Detailed mode (default: turn, ply, pieces, steps)
-    print(next_game.display(mode="simple"))  # Simple mode (board grid only)
-```
-
----
-
-## 🧩 Game Overview & Pieces
+## Game Overview & Pieces
 
 * **Board**: 4 rows × 7 columns grid.
 * **Pieces**:
@@ -69,35 +69,3 @@ if legal_moves:
   * Threefold repetition results in a draw.
 
 ---
-
-## 🧪 Tests
-
-To run the unit test suite:
-```bash
-pytest tests/test_board.py tests/test_game.py tests/test_rules.py
-```
-*(Or using Python's built-in test runner without pytest)*:
-```bash
-python -m unittest discover tests
-```
-
----
-
-## 📁 Repository Structure
-
-```text
-├── game/                    # Core Kita game engine package
-│   ├── __init__.py          # Public exports (Game, Move, GameState)
-│   ├── board.py             # Board grid representation & symmetries
-│   ├── pieces.py            # Pieces, colors, move data structures
-│   ├── rules.py             # Kita rule-set and legal move generator
-│   ├── state.py             # State encoding & hashing
-│   └── game.py              # Main Game class & turn management
-├── tests/                   # Engine unit tests
-│   ├── test_board.py
-│   ├── test_game.py
-│   └── test_rules.py
-├── main.py                  # Entry point & terminal 2-player game
-├── .gitignore               # Ignores databases, solver, and caches
-└── README.md                # Documentation & API reference
-```
