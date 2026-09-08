@@ -299,20 +299,62 @@ class Game:
     # Terminal display
     # ------------------------------------------------------------------ #
 
-    def display(self) -> str:
+    def display(self, mode: str = "detailed", *, simple: Optional[bool] = None) -> str:
         """
         Return a human-readable board string for terminal output.
+
+        Parameters
+        ----------
+        mode : str
+            - ``"detailed"`` (default): includes turn, ply count, pieces list,
+              move distances, state repetition counter, and status.
+            - ``"simple"``: renders ONLY the board grid (coordinates and pieces).
+        simple : bool | None, optional
+            Shortcut flag. If True, forces simple mode. If False, forces detailed mode.
 
         Each cell shows:
           - The piece symbol (e.g. "BK", "Wp") if occupied
           - " .  " for an empty board square
           - "    " if there is no tile (empty cell in the grid)
         """
+        if simple is not None:
+            is_simple = bool(simple)
+        else:
+            m = mode.strip().lower()
+            if m in ("simple", "s"):
+                is_simple = True
+            elif m in ("detailed", "detail", "d"):
+                is_simple = False
+            else:
+                raise ValueError(
+                    f"Unknown display mode: {mode!r}. Expected 'detailed' or 'simple'."
+                )
+
         # Build pos->symbol map
         pos_map: dict[tuple[int, int], str] = {}
         for pid, pos in self.positions.items():
             if pos is not None:
                 pos_map[pos] = _SYMBOLS[pid]
+
+        # Board grid lines
+        board_lines: list[str] = []
+        board_lines.append("        " + "  ".join(f"c{c}" for c in range(_COLS)))
+        board_lines.append("       +" + "-" * (_COLS * 4 + 1))
+
+        for row in range(_ROWS):
+            row_str = f"  r{row}  |"
+            for col in range(_COLS):
+                p = (col, row)
+                if p in _EMPTY_CELLS:
+                    row_str += "    "
+                elif p in pos_map:
+                    row_str += f" {pos_map[p]} "
+                else:
+                    row_str += " .  "
+            board_lines.append(row_str)
+
+        if is_simple:
+            return "\n".join(board_lines)
 
         lines: list[str] = []
 
@@ -331,22 +373,7 @@ class Game:
             )
 
         lines.append("")
-        # Column header
-        lines.append("        " + "  ".join(f"c{c}" for c in range(_COLS)))
-        lines.append("       +" + "-" * (_COLS * 4 + 1))
-
-        for row in range(_ROWS):
-            row_str = f"  r{row}  |"
-            for col in range(_COLS):
-                p = (col, row)
-                if p in _EMPTY_CELLS:
-                    row_str += "    "
-                elif p in pos_map:
-                    row_str += f" {pos_map[p]} "
-                else:
-                    row_str += " .  "
-            lines.append(row_str)
-
+        lines.extend(board_lines)
         lines.append("")
 
         # Piece positions
@@ -372,6 +399,10 @@ class Game:
 
         lines.append("=" * 46)
         return "\n".join(lines)
+
+    def display_simple(self) -> str:
+        """Convenience alias for self.display(mode='simple')."""
+        return self.display(mode="simple")
 
     # ------------------------------------------------------------------ #
     # Utility

@@ -51,7 +51,8 @@ for m in legal_moves:
 # 5. Apply a move (returns a brand new immutable Game instance)
 if legal_moves:
     next_game = game.apply_move(legal_moves[0])
-    print(next_game.display())
+    print(next_game.display())               # Detailed mode (default: turn, ply, pieces, steps)
+    print(next_game.display(mode="simple"))  # Simple mode (board grid only)
 ```
 
 ---

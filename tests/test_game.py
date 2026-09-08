@@ -239,6 +239,47 @@ class TestDisplay:
                 assert " G " not in line
                 assert " B " not in line
 
+    def test_display_detailed_mode(self):
+        g = Game.new_game()
+        out_default = g.display()
+        out_detailed = g.display(mode="detailed")
+        assert out_default == out_detailed
+        # Contains metadata
+        assert "Ply #" in out_detailed
+        assert "Turn:" in out_detailed
+        assert "Pieces:" in out_detailed
+        assert "Move distance:" in out_detailed
+        assert "State seen:" in out_detailed
+
+    def test_display_simple_mode(self):
+        g = Game.new_game()
+        out_simple = g.display(mode="simple")
+        # Contains board grid and pieces
+        assert "BK" in out_simple
+        assert "WK" in out_simple
+        assert "c0" in out_simple
+        assert "r0" in out_simple
+        assert " . " in out_simple
+        # Does NOT contain metadata
+        assert "Ply #" not in out_simple
+        assert "Turn:" not in out_simple
+        assert "Pieces:" not in out_simple
+        assert "Move distance:" not in out_simple
+        assert "State seen:" not in out_simple
+        assert "===" not in out_simple
+
+    def test_display_simple_alias_and_kwarg(self):
+        g = Game.new_game()
+        assert g.display(simple=True) == g.display(mode="simple")
+        assert g.display_simple() == g.display(mode="simple")
+        assert g.display(simple=False) == g.display(mode="detailed")
+
+    def test_display_invalid_mode(self):
+        import pytest
+        g = Game.new_game()
+        with pytest.raises(ValueError, match="Unknown display mode"):
+            g.display(mode="non_existent")
+
     def test_repr(self):
         g = Game.new_game()
         r = repr(g)

@@ -18,9 +18,9 @@ from game.game import Game
 from game.pieces import Move
 
 
-def print_board(game: Game) -> None:
-    """Print the current board state to stdout."""
-    print("\n" + game.display())
+def print_board(game: Game, mode: str = "detailed") -> None:
+    """Print the current board state to stdout in simple or detailed mode."""
+    print("\n" + game.display(mode=mode))
 
 
 def print_moves(moves: list[Move]) -> None:
@@ -29,15 +29,16 @@ def print_moves(moves: list[Move]) -> None:
         print(f"  [{idx:>2d}] {move}")
 
 
-def play_terminal() -> None:
+def play_terminal(display_mode: str = "detailed") -> None:
     """2-Player local hotseat game directly in terminal."""
     print("=" * 50)
     print("  KITA - 2-PLAYER TERMINAL MODE")
     print("  White moves first. Players take turns.")
+    print(f"  Current display mode: {display_mode.upper()}")
     print("=" * 50)
 
     game = Game.new_game()
-    print_board(game)
+    print_board(game, mode=display_mode)
 
     while True:
         status = game.get_status()
@@ -58,7 +59,7 @@ def play_terminal() -> None:
 
         while True:
             try:
-                cmd = input("\nEnter move index ('d'=display, 'q'=quit): ").strip().lower()
+                cmd = input("\nEnter move index ('d'=detailed, 's'=simple, 'q'=quit): ").strip().lower()
             except (KeyboardInterrupt, EOFError):
                 print("\nQuit.")
                 return
@@ -67,7 +68,12 @@ def play_terminal() -> None:
                 print("Exiting.")
                 return
             if cmd == "d":
-                print_board(game)
+                display_mode = "detailed"
+                print_board(game, mode=display_mode)
+                continue
+            if cmd == "s":
+                display_mode = "simple"
+                print_board(game, mode=display_mode)
                 continue
 
             try:
@@ -77,10 +83,10 @@ def play_terminal() -> None:
                     break
                 print(f"Invalid index. Enter a number between 0 and {len(moves) - 1}.")
             except ValueError:
-                print("Invalid input. Enter a move index number, 'd', or 'q'.")
+                print("Invalid input. Enter a move index number, 'd', 's', or 'q'.")
 
         game = game.apply_move(chosen)
-        print_board(game)
+        print_board(game, mode=display_mode)
 
 
 def show_info() -> None:
@@ -100,17 +106,26 @@ def show_info() -> None:
     print("    game = Game.new_game()")
     print("    moves = game.get_legal_moves()")
     print("    game = game.apply_move(moves[0])")
+    print("    # Display options:")
+    print("    game.display(mode='detailed')  # full details")
+    print("    game.display(mode='simple')    # board only")
     print("=" * 55)
     print_board(game)
     print("\nCommands:")
-    print("  python main.py play   -> Play 2-player game in terminal")
-    print("  python main.py info   -> Show this overview")
+    print("  python main.py play          -> Play 2-player game (detailed mode)")
+    print("  python main.py play simple   -> Play 2-player game (simple mode)")
+    print("  python main.py info          -> Show this overview")
 
 
 if __name__ == "__main__":
     mode = sys.argv[1].lower() if len(sys.argv) > 1 else "info"
 
     if mode == "play":
-        play_terminal()
+        display_mode = (
+            "simple"
+            if len(sys.argv) > 2 and sys.argv[2].lower() in ("simple", "--simple", "-s")
+            else "detailed"
+        )
+        play_terminal(display_mode=display_mode)
     else:
         show_info()
