@@ -14,3 +14,6 @@
 
 ## 3. Communication & Language
 - Support dual-language awareness (TR / EN) for in-game terms, error messages, and documentation where applicable. Use EN for in-game text as default.
+
+## 4. Rule Precedence & Conflict Resolution
+- **Developer Prompt Overrides**: If an instruction from the developer conflicts with predefined guidelines in `AGENTS.md`, `TODO.md`, or architecture documents, briefly inform the developer of the conflict. If the developer confirms or directs to proceed, prioritize the developer's explicit prompts over predefined rules.
