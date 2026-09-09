@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/oguzhancelik/kita/internal/core/errors"
 )
 
 const (
@@ -60,7 +61,7 @@ func (c *Client) ReadPump() {
 
 		var wsMsg WSMessage
 		if err := json.Unmarshal(message, &wsMsg); err != nil {
-			c.SendError("Invalid message format")
+			c.SendError(errors.ErrInvalidMessage, "Invalid message format")
 			continue
 		}
 
@@ -136,6 +137,6 @@ func (c *Client) SendJSON(msgType string, payload any) {
 	}
 }
 
-func (c *Client) SendError(msg string) {
-	c.SendJSON(TypeError, ErrorDTO{Message: msg})
+func (c *Client) SendError(code errors.ErrorCode, msg string) {
+	c.SendJSON(TypeError, ErrorDTO{Code: code, Message: msg})
 }

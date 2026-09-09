@@ -11,6 +11,10 @@ const (
 	ResultDraw      MatchResult = "draw"
 	ResultResigned  MatchResult = "resigned"
 	ResultAbandoned MatchResult = "abandoned"
+
+	ReasonNormal       = "reason_normal"
+	ReasonResigned     = "reason_resigned"
+	ReasonDisconnected = "reason_disconnected"
 )
 
 type Match struct {

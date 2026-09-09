@@ -1,0 +1,25 @@
+{
+    "@@locale": "tr",
+    "appTitle": "Kita Fullstack",
+    
+    "errValidationFailed": "Doğrulama başarısız.",
+    "errMissingField": "Gerekli bir alan eksik.",
+    "errInvalidFormat": "Geçersiz format.",
+    "errUnauthorized": "Yetkisiz erişim.",
+    "errInvalidCredentials": "Geçersiz kimlik bilgileri.",
+    "errTokenExpired": "Oturum süresi doldu.",
+    "errUserAlreadyExists": "Kullanıcı zaten mevcut.",
+    "errNotFound": "Bulunamadı.",
+    "errMatchNotFound": "Maç bulunamadı.",
+    "errAlreadyInMatch": "Zaten aktif bir maçtasınız.",
+    "errAlreadyInQueue": "Zaten sıradasınız.",
+    "errInvalidMove": "Geçersiz hamle.",
+    "errNotYourTurn": "Sıra sizde değil.",
+    "errInvalidMessage": "Geçersiz mesaj formatı.",
+    "errInternalServer": "Sunucu hatası.",
+    "errUnknownMessage": "Bilinmeyen mesaj tipi.",
+
+    "reasonNormal": "Oyun kurallara uygun olarak sona erdi.",
+    "reasonResigned": "Oyuncu çekildi.",
+    "reasonDisconnected": "Rakip bağlantıyı kopardı."
+}

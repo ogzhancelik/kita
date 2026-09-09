@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 	"github.com/oguzhancelik/kita/internal/service"
 )
@@ -34,17 +35,17 @@ type LoginRequest struct {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, err.Error())
 		return
 	}
 
 	user, token, err := h.authService.Register(c.Request.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
 		if err == service.ErrUserAlreadyExists {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			SendError(c, http.StatusConflict, errors.ErrUserAlreadyExists, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
 	}
 
@@ -58,17 +59,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, err.Error())
 		return
 	}
 
 	user, token, err := h.authService.Login(c.Request.Context(), req.UsernameOrEmail, req.Password)
 	if err != nil {
 		if err == service.ErrInvalidCredentials {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			SendError(c, http.StatusUnauthorized, errors.ErrInvalidCredentials, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
 	}
 
@@ -82,13 +83,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		SendError(c, http.StatusUnauthorized, errors.ErrUnauthorized, "Unauthorized")
 		return
 	}
 
 	profile, err := h.userService.GetProfile(c.Request.Context(), userID.(string))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		SendError(c, http.StatusNotFound, errors.ErrNotFound, err.Error())
 		return
 	}
 

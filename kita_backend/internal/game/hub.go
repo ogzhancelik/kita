@@ -4,16 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 )
 
 type Hub struct {
 	clients          map[string]*Client
 	rooms            map[string]*Room
+	roomCodes        map[string]string
 	matchmakingQueue []*Client
 
 	Register   chan *Client
@@ -29,6 +32,7 @@ func NewHub(matchService ports.MatchService, messageService ports.MessageService
 	return &Hub{
 		clients:          make(map[string]*Client),
 		rooms:            make(map[string]*Room),
+		roomCodes:        make(map[string]string),
 		matchmakingQueue: make([]*Client, 0),
 		Register:         make(chan *Client),
 		Unregister:       make(chan *Client),
@@ -92,8 +96,14 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 	case TypeResign:
 		h.handleResign(client)
 
+	case TypeCreateRoom:
+		h.handleCreateRoom(client, msg.Payload)
+
+	case TypeJoinRoom:
+		h.handleJoinRoom(client, msg.Payload)
+
 	default:
-		client.SendError("Unknown message type: " + msg.Type)
+		client.SendError(errors.ErrUnknownMessage, "Unknown message type: "+msg.Type)
 	}
 }
 
@@ -102,13 +112,13 @@ func (h *Hub) handleJoinQueue(client *Client) {
 	defer h.mu.Unlock()
 
 	if client.CurrentMatchID != "" {
-		client.SendError("You are already in an active match")
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 		return
 	}
 
 	for _, queued := range h.matchmakingQueue {
 		if queued.UserID == client.UserID {
-			client.SendError("You are already in queue")
+			client.SendError(errors.ErrAlreadyInQueue, "You are already in queue")
 			return
 		}
 	}
@@ -148,6 +158,72 @@ func (h *Hub) removeFromQueueLocked(client *Client) {
 	}
 }
 
+func (h *Hub) handleCreateRoom(client *Client, rawPayload json.RawMessage) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if client.CurrentMatchID != "" {
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+		return
+	}
+
+	var dto CreateRoomDTO
+	if err := json.Unmarshal(rawPayload, &dto); err != nil {
+		client.SendError(errors.ErrInvalidMessage, "Invalid payload")
+		return
+	}
+
+	const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 6)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	roomCode := string(b)
+	matchID := uuid.New().String()
+
+	room := NewCustomRoom(matchID, roomCode, client, dto.IsPrivate, h.matchService, h)
+	h.rooms[matchID] = room
+	h.roomCodes[roomCode] = matchID
+
+	client.SendJSON(TypeRoomCreated, RoomCreatedDTO{RoomCode: roomCode})
+	log.Printf("[Hub] Custom room created: %s (Code: %s) by %s", matchID, roomCode, client.Username)
+}
+
+func (h *Hub) handleJoinRoom(client *Client, rawPayload json.RawMessage) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if client.CurrentMatchID != "" {
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+		return
+	}
+
+	var dto JoinRoomDTO
+	if err := json.Unmarshal(rawPayload, &dto); err != nil {
+		client.SendError(errors.ErrInvalidMessage, "Invalid payload")
+		return
+	}
+
+	matchID, exists := h.roomCodes[dto.RoomCode]
+	if !exists {
+		client.SendError(errors.ErrMatchNotFound, "Invalid room code")
+		return
+	}
+
+	room, rExists := h.rooms[matchID]
+	if !rExists || room.Status != "waiting" {
+		client.SendError(errors.ErrMatchNotFound, "Room is not available")
+		return
+	}
+
+	if err := room.Join(client); err != nil {
+		client.SendError(errors.ErrValidationFailed, err.Error())
+		return
+	}
+	client.SendJSON(TypeRoomJoined, map[string]string{"status": "joined"})
+	log.Printf("[Hub] Client %s joined custom room %s", client.Username, dto.RoomCode)
+}
+
 func (h *Hub) handleMakeMove(client *Client, rawPayload json.RawMessage) {
 	h.mu.RLock()
 	matchID := client.CurrentMatchID
@@ -155,18 +231,18 @@ func (h *Hub) handleMakeMove(client *Client, rawPayload json.RawMessage) {
 	h.mu.RUnlock()
 
 	if !exists || room == nil {
-		client.SendError("No active match found")
+		client.SendError(errors.ErrMatchNotFound, "No active match found")
 		return
 	}
 
 	var moveDTO MoveDTO
 	if err := json.Unmarshal(rawPayload, &moveDTO); err != nil {
-		client.SendError("Invalid move payload")
+		client.SendError(errors.ErrInvalidMessage, "Invalid move payload")
 		return
 	}
 
 	if err := room.MakeMove(client.UserID, moveDTO); err != nil {
-		client.SendError(err.Error())
+		client.SendError(errors.ErrInvalidMove, err.Error())
 	}
 }
 
@@ -177,7 +253,7 @@ func (h *Hub) handleChatMessage(client *Client, rawPayload json.RawMessage) {
 	h.mu.RUnlock()
 
 	if !exists || room == nil {
-		client.SendError("No active match found")
+		client.SendError(errors.ErrMatchNotFound, "No active match found")
 		return
 	}
 
@@ -185,7 +261,7 @@ func (h *Hub) handleChatMessage(client *Client, rawPayload json.RawMessage) {
 		Content string `json:"content"`
 	}
 	if err := json.Unmarshal(rawPayload, &payload); err != nil || payload.Content == "" {
-		client.SendError("Invalid chat message content")
+		client.SendError(errors.ErrInvalidMessage, "Invalid chat message content")
 		return
 	}
 
@@ -207,12 +283,12 @@ func (h *Hub) handleResign(client *Client) {
 	h.mu.RUnlock()
 
 	if !exists || room == nil {
-		client.SendError("No active match found")
+		client.SendError(errors.ErrMatchNotFound, "No active match found")
 		return
 	}
 
 	if err := room.Resign(client.UserID); err != nil {
-		client.SendError(err.Error())
+		client.SendError(errors.ErrValidationFailed, err.Error())
 	}
 }
 
@@ -226,6 +302,9 @@ func (h *Hub) CloseRoom(matchID string) {
 		}
 		if room.BlackPlayer != nil {
 			room.BlackPlayer.CurrentMatchID = ""
+		}
+		if room.RoomCode != "" {
+			delete(h.roomCodes, room.RoomCode)
 		}
 		delete(h.rooms, matchID)
 		log.Printf("[Hub] Room %s closed and removed from memory", matchID)

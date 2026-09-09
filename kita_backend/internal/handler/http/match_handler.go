@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 )
 
@@ -19,17 +20,17 @@ func NewMatchHandler(matchService ports.MatchService) *MatchHandler {
 func (h *MatchHandler) GetMatch(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Match ID is required"})
+		SendError(c, http.StatusBadRequest, errors.ErrMissingField, "Match ID is required")
 		return
 	}
 
 	match, err := h.matchService.GetMatchDetails(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
 	}
 	if match == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Match not found"})
+		SendError(c, http.StatusNotFound, errors.ErrMatchNotFound, "Match not found")
 		return
 	}
 
@@ -41,13 +42,13 @@ func (h *MatchHandler) GetMatch(c *gin.Context) {
 func (h *MatchHandler) GetMatchMoves(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Match ID is required"})
+		SendError(c, http.StatusBadRequest, errors.ErrMissingField, "Match ID is required")
 		return
 	}
 
 	moves, err := h.matchService.GetMatchMoves(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
 	}
 
@@ -61,7 +62,7 @@ func (h *MatchHandler) GetMatchMoves(c *gin.Context) {
 func (h *MatchHandler) GetUserMatches(c *gin.Context) {
 	userID := c.Param("userId")
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+		SendError(c, http.StatusBadRequest, errors.ErrMissingField, "User ID is required")
 		return
 	}
 
@@ -79,7 +80,7 @@ func (h *MatchHandler) GetUserMatches(c *gin.Context) {
 
 	matches, err := h.matchService.GetUserMatches(c.Request.Context(), userID, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
 	}
 

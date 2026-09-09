@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 )
 
@@ -29,14 +30,14 @@ func AuthMiddleware(authService ports.AuthService) gin.HandlerFunc {
 		}
 
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"code": errors.ErrUnauthorized, "message": "Authorization token required"})
 			c.Abort()
 			return
 		}
 
 		userID, err := authService.ValidateToken(token)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"code": errors.ErrTokenExpired, "message": "Invalid or expired token"})
 			c.Abort()
 			return
 		}

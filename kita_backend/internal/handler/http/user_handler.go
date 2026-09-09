@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 )
 
@@ -19,13 +20,13 @@ func NewUserHandler(userService ports.UserService) *UserHandler {
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+		SendError(c, http.StatusBadRequest, errors.ErrMissingField, "User ID is required")
 		return
 	}
 
 	profile, err := h.userService.GetProfile(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		SendError(c, http.StatusNotFound, errors.ErrNotFound, err.Error())
 		return
 	}
 
@@ -41,7 +42,7 @@ func (h *UserHandler) GetLeaderboard(c *gin.Context) {
 
 	leaderboard, err := h.userService.GetLeaderboard(c.Request.Context(), limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
 	}
 

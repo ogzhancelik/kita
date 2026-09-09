@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/oguzhancelik/kita/internal/core/errors"
 	kitagame "github.com/oguzhancelik/kita/pkg/game"
 )
 
@@ -15,11 +16,15 @@ const (
 	TypeMakeMove    = "make_move"
 	TypeChatMessage = "chat_message"
 	TypeResign      = "resign"
+	TypeCreateRoom  = "create_room"
+	TypeJoinRoom    = "join_room"
 
 	// Server -> Client
 	TypeConnected     = "connected"
 	TypeQueueJoined   = "queue_joined"
 	TypeMatchFound    = "match_found"
+	TypeRoomCreated   = "room_created"
+	TypeRoomJoined    = "room_joined"
 	TypeGameState     = "game_state"
 	TypeOpponentMoved = "opponent_moved"
 	TypeGameOver      = "game_over"
@@ -100,5 +105,18 @@ type ChatBroadcastDTO struct {
 }
 
 type ErrorDTO struct {
-	Message string `json:"message"`
+	Code    errors.ErrorCode `json:"code"`
+	Message string           `json:"message"`
+}
+
+type CreateRoomDTO struct {
+	IsPrivate bool `json:"is_private"`
+}
+
+type JoinRoomDTO struct {
+	RoomCode string `json:"room_code"`
+}
+
+type RoomCreatedDTO struct {
+	RoomCode string `json:"room_code"`
 }

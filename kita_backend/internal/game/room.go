@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -21,6 +22,10 @@ var (
 
 type Room struct {
 	ID           string
+	RoomCode     string
+	IsPrivate    bool
+	Host         *Client
+	Status       string // "waiting", "in_game", "finished"
 	WhitePlayer  *Client
 	BlackPlayer  *Client
 	Spectators   map[string]*Client
@@ -41,6 +46,7 @@ type Room struct {
 func NewRoom(id string, white, black *Client, matchService ports.MatchService, hub *Hub) *Room {
 	r := &Room{
 		ID:           id,
+		Status:       "in_game",
 		WhitePlayer:  white,
 		BlackPlayer:  black,
 		Spectators:   make(map[string]*Client),
@@ -57,9 +63,55 @@ func NewRoom(id string, white, black *Client, matchService ports.MatchService, h
 	return r
 }
 
+func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, matchService ports.MatchService, hub *Hub) *Room {
+	r := &Room{
+		ID:           id,
+		RoomCode:     roomCode,
+		IsPrivate:    isPrivate,
+		Host:         host,
+		Status:       "waiting",
+		Spectators:   make(map[string]*Client),
+		Game:         kitagame.NewGame(),
+		MovesBuffer:  make([]domain.MatchMove, 0, 64),
+		StartedAt:    time.Now(),
+		matchService: matchService,
+		hub:          hub,
+	}
+
+	host.CurrentMatchID = id
+	return r
+}
+
+func (r *Room) Join(client *Client) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.Status != "waiting" {
+		return errors.New("room is not waiting for players")
+	}
+
+	client.CurrentMatchID = r.ID
+
+	if rand.Intn(2) == 0 {
+		r.WhitePlayer = r.Host
+		r.BlackPlayer = client
+	} else {
+		r.WhitePlayer = client
+		r.BlackPlayer = r.Host
+	}
+
+	r.Status = "in_game"
+	r.startLocked()
+	return nil
+}
+
 func (r *Room) Start() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.startLocked()
+}
+
+func (r *Room) startLocked() {
 
 	// 1. Oyunculara maç bulundu ve takımları bildirilir
 	r.WhitePlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
@@ -88,6 +140,9 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 
 	if r.isFinished {
 		return ErrGameFinished
+	}
+	if r.Status != "in_game" {
+		return errors.New("game has not started yet")
 	}
 
 	// 1. Sıranın bu oyuncuda olduğunu doğrula
@@ -139,7 +194,7 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 	// 6. Oyun bitti mi kontrol et
 	status := r.Game.GetStatus()
 	if status != "ongoing" {
-		r.finishGameLocked(status, "Game finished normally by rules")
+		r.finishGameLocked(status, domain.ReasonNormal)
 	}
 
 	return nil
@@ -166,7 +221,7 @@ func (r *Room) Resign(playerID string) error {
 		winnerID = &r.WhitePlayer.UserID
 	}
 
-	r.finishWithExplicitWinnerLocked(winnerID, string(result), "Player resigned")
+	r.finishWithExplicitWinnerLocked(winnerID, string(result), domain.ReasonResigned)
 	return nil
 }
 
@@ -175,6 +230,11 @@ func (r *Room) HandleDisconnect(playerID string) {
 	defer r.mu.Unlock()
 
 	if r.isFinished {
+		return
+	}
+
+	if r.Status == "waiting" {
+		r.hub.CloseRoom(r.ID)
 		return
 	}
 
@@ -187,7 +247,7 @@ func (r *Room) HandleDisconnect(playerID string) {
 		return
 	}
 
-	r.finishWithExplicitWinnerLocked(winnerID, string(domain.ResultAbandoned), "Opponent disconnected")
+	r.finishWithExplicitWinnerLocked(winnerID, string(domain.ResultAbandoned), domain.ReasonDisconnected)
 }
 
 func (r *Room) finishGameLocked(status, reason string) {
@@ -280,6 +340,10 @@ func (r *Room) broadcastStateLocked() {
 func (r *Room) BroadcastChat(senderID, senderName, content string) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
+	if r.Status == "waiting" {
+		return
+	}
 
 	chatDTO := ChatBroadcastDTO{
 		MatchID:   r.ID,

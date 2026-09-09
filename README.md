@@ -8,13 +8,19 @@ This repository is split into two main components:
 
 ### 1. Backend (`kita_backend`)
 - **Language**: Go
-- **Description**: Contains the core game engine ported from the original Python implementation. It includes all the game logic, board state management, rule enforcement, and a terminal-based CLI for local testing.
-- **Future Plans**: Will be expanded to include a WebSocket or REST API server to communicate with the frontend.
-- **Running locally**:
+- **Description**: Contains the core game engine, REST API, WebSocket hub for real-time multiplayer, and PostgreSQL repository layer.
+- **Running the API & WebSocket server**:
   ```bash
   cd kita_backend
-  go run cmd/cli/main.go play
+  go run cmd/api/main.go
   ```
+- **Running tests**:
+  ```bash
+  cd kita_backend
+  go test -v ./...
+  ```
+- **Testing via Bruno / WebSockets**:
+  Collection available in `kita_backend/bruno`. Connect to `ws://localhost:8080/ws?token=<JWT>`.
 
 ### 2. Frontend (`kita_frontend`)
 - **Framework**: Flutter
@@ -26,17 +32,21 @@ This repository is split into two main components:
 ```text
 Kita_Fullstack/
 ├── README.md                   # Project documentation & overview
-├── kita_backend/               # Go backend game engine & CLI
+├── kita_backend/               # Go backend game engine, REST API & WebSocket server
 │   ├── cmd/
+│   │   ├── api/
+│   │   │   └── main.go         # HTTP & WebSocket API server entry point
 │   │   └── cli/
 │   │       └── main.go         # Terminal-based CLI game entry point
+│   ├── internal/
+│   │   ├── core/               # Domain models and repository ports
+│   │   ├── game/               # Real-time Hub, Room, and Client managers
+│   │   ├── handler/            # HTTP and WebSocket controllers
+│   │   ├── repository/         # PostgreSQL persistence layer with GORM
+│   │   └── service/            # Auth, User, Match, and Message business logic
 │   ├── pkg/
-│   │   └── game/
-│   │       ├── board.go        # Board representation & ASCII rendering
-│   │       ├── game.go         # Core game loop & turn-based mechanics
-│   │       ├── pieces.go       # Piece types, identifiers & definitions
-│   │       ├── rules.go        # Move calculation, jump rules & validation
-│   │       └── state.go        # Game state tracking & position snapshots
+│   │   └── game/               # Core board rules, pieces, and move validation
+│   ├── bruno/                  # Bruno API & WebSocket test collection
 │   └── go.mod                  # Go module definition
 └── kita_frontend/              # Flutter cross-platform user interface
     ├── lib/

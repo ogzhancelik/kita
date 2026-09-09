@@ -1,0 +1,28 @@
+{
+    "@@locale": "en",
+    "appTitle": "Kita Fullstack",
+    "@appTitle": {
+        "description": "The title of the application"
+    },
+    
+    "errValidationFailed": "Validation failed.",
+    "errMissingField": "A required field is missing.",
+    "errInvalidFormat": "Invalid format.",
+    "errUnauthorized": "Unauthorized.",
+    "errInvalidCredentials": "Invalid credentials.",
+    "errTokenExpired": "Token has expired.",
+    "errUserAlreadyExists": "User already exists.",
+    "errNotFound": "Not found.",
+    "errMatchNotFound": "Match not found.",
+    "errAlreadyInMatch": "You are already in an active match.",
+    "errAlreadyInQueue": "You are already in queue.",
+    "errInvalidMove": "Invalid move.",
+    "errNotYourTurn": "It is not your turn.",
+    "errInvalidMessage": "Invalid message format.",
+    "errInternalServer": "Internal server error.",
+    "errUnknownMessage": "Unknown message type.",
+
+    "reasonNormal": "Game finished normally by rules.",
+    "reasonResigned": "Player resigned.",
+    "reasonDisconnected": "Opponent disconnected."
+}
