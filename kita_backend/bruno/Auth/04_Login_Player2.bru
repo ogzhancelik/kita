@@ -1,0 +1,23 @@
+meta {
+  name: 04 Login Player 2
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username_or_email": "oyuncu2",
+    "password": "password123"
+  }
+}
+
+vars:post-response {
+  token2: res.body.token
+  userId2: res.body.user.id
+}

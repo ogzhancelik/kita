@@ -1,0 +1,24 @@
+meta {
+  name: 02 Register Player 2
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "oyuncu2",
+    "email": "oyuncu2@kita.com",
+    "password": "password123"
+  }
+}
+
+vars:post-response {
+  token2: res.body.token
+  userId2: res.body.user.id
+}

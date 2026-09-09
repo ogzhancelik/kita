@@ -1,0 +1,11 @@
+meta {
+  name: 03 Get User Match History
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/matches/user/{{userId1}}?limit=10&offset=0
+  body: none
+  auth: none
+}
