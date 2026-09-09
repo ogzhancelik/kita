@@ -17,7 +17,14 @@ body:json {
   }
 }
 
-vars:post-response {
-  token1: res.body.token
-  userId1: res.body.user.id
+script:post-response {
+  const body = res.getBody();
+  if (body && body.token) {
+    bru.setVar("token1", body.token);
+  }
+  if (body && body.user && body.user.id) {
+    bru.setVar("userId1", body.user.id);
+  }
 }
+
+

@@ -14,9 +14,12 @@ func AuthMiddleware(authService ports.AuthService) gin.HandlerFunc {
 		token := ""
 
 		if authHeader != "" {
-			parts := strings.Split(authHeader, " ")
-			if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-				token = parts[1]
+			authHeader = strings.TrimSpace(authHeader)
+			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+				token = strings.TrimSpace(authHeader[7:])
+				if idx := strings.Index(token, ","); idx != -1 {
+					token = strings.TrimSpace(token[:idx])
+				}
 			}
 		}
 

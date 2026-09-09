@@ -32,8 +32,12 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func main() {
-	// 1. .env dosyasını yükle (varsa)
-	_ = godotenv.Load()
+	// 1. .env dosyasını proje kökünden yükle
+	if err := godotenv.Load(); err != nil {
+		log.Println("[Config] .env dosyası bulunamadı, sistem çevre değişkenleri kullanılıyor")
+	} else {
+		log.Println("[Config] .env dosyası kök dizinden başarıyla yüklendi")
+	}
 
 	log.Println("==================================================")
 	log.Println("  KITA - ONLINE GAME BACKEND SERVER")
