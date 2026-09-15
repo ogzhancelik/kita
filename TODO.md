@@ -23,8 +23,8 @@ This document outlines the planned features and development milestones for the M
 Foundational systems to establish early so game strings and rules are never hardcoded.
 
 ### 1. Localization (i18n / l10n) — TR & EN
-- [ ] **Frontend**: Configure Flutter localization setup (`flutter_localizations`, `.arb` or JSON translation files).
-- [ ] **Frontend**: Implement language switcher (English / Türkçe) with persistence (`shared_preferences`).
+- [x] **Frontend**: Configure Flutter localization setup (`easy_localization`, JSON translation files `en.json`, `tr.json`).
+- [x] **Frontend**: Implement language switcher (English / Türkçe) with runtime toggle & persistence.
 - [x] **Backend**: Standardize error and status messages with language-agnostic error codes.
 - [ ] **Content**: Translate all in-game terminology (King/Şah, Pawn/Piyon, Jump/Sıçrama, Repetition/Tekrar, etc.).
 
@@ -39,11 +39,11 @@ Foundational systems to establish early so game strings and rules are never hard
 
 ## 👤 Phase 2: User Identity & Profiles
 
-- [ ] **Auth / Guest System**:
+- [x] **Auth / Guest System**:
   - [x] Support Guest/Anonymous play (zero barrier to entry)
   - [x] User registration & login (email/password or OAuth)
 - [ ] **User Profile**:
-  - [ ] Custom display name and avatar selection
+  - [x] Custom display name and avatar selection (Guest profile onboarding & avatar picker)
   - [x] Player statistics (total matches, wins, losses, win rate, current streak)
   - [x] Match history summary list (recent opponents, results, dates)
 
@@ -54,9 +54,11 @@ Foundational systems to establish early so game strings and rules are never hard
 Allows instant gameplay without relying on active server matchmaking, and serves as an engine testing harness.
 
 - [x] **Backend AI Logic**:
-- [ ] **Game Mode Integration**:
-  - [ ] "Play vs Computer" game option
-  - [ ] Turn delay simulation for natural AI pacing
+- [x] **Game Mode Integration**:
+  - [x] "Play vs Computer" game option (Easy 800, Medium 1200, Hard 1800 ELO)
+  - [x] Turn delay simulation for natural AI pacing
+  - [x] Local 2-Player Pass & Play (Co-op/PvP) on single device with auto-rotate option
+  - [x] Complete rule enforcement: reversal prevention, Last-Stand revenge draw condition, stalemate win condition.
 
 ---
 
@@ -95,8 +97,8 @@ Allows instant gameplay without relying on active server matchmaking, and serves
 - [x] **Rating System**:
   - [x] ELO or Glicko rating calculation on match completion (Backend)
   - [x] Rating adjustment rules for draws, resignations, and disconnects
-- [ ] **Leaderboards**:
-  - [x] Global top players ranking (All-time and Seasonal/Monthly)
+- [x] **Leaderboards**:
+  - [x] Global top players ranking (Backend API & Frontend Leaderboard Screen with Top 3 Podium)
   - [ ] User rank tier badges (e.g., Bronze, Silver, Gold, Grandmaster)
   - [ ] Filter by friends or regional leaderboard
 
@@ -117,4 +119,5 @@ Allows instant gameplay without relying on active server matchmaking, and serves
 
 ## 🎨 UI & Design Systems
 
-*(Note: UI tasks, styling specifications, animations, sound design, and component breakdown will be updated later.)*
+- [x] **Modular Kita Board Component**: Responsive board widget supporting responsive scaling (`LayoutBuilder`), horizontal (7x4) and vertical (4x7) orientations, transparent non-playable hole cells, custom themes (Classic, Dark Slate, Wood), dynamic tile values, and piece movement handlers.
+- [x] **Tactile UI System**: Chess.com-style 3D buttons, floating toast notifications, and dark/light mode theming.

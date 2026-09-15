@@ -121,10 +121,7 @@ func (g *Game) ApplyMove(move Move) *Game {
 		newLmb = &m
 	}
 
-	oppKingId := WhiteKing
-	if g.Turn == "black" {
-		oppKingId = BlackKing
-	}
+	oppKingId := getOpponentKingID(g.Turn)
 
 	oppKingPos := g.Positions[oppKingId]
 	if oppKingPos != nil && move.ToPos == *oppKingPos {

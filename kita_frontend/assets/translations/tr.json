@@ -1,0 +1,146 @@
+{
+  "appTitle": "Kita Fullstack",
+  "appTagline": "4x7 taktiksel mücadeleye hükmet",
+
+  "errValidationFailed": "Doğrulama başarısız.",
+  "errMissingField": "Gerekli bir alan eksik.",
+  "errInvalidFormat": "Geçersiz format.",
+  "errUnauthorized": "Yetkisiz erişim.",
+  "errInvalidCredentials": "Hatalı kullanıcı adı veya şifre.",
+  "errTokenExpired": "Oturum süresi doldu.",
+  "errUserAlreadyExists": "Bu kullanıcı adı veya e-posta ile kayıtlı bir hesap var.",
+  "errNotFound": "Kaynak bulunamadı.",
+  "errMatchNotFound": "Maç bulunamadı.",
+  "errAlreadyInMatch": "Zaten aktif bir maçtasınız.",
+  "errAlreadyInQueue": "Zaten sıradasınız.",
+  "errInvalidMove": "Geçersiz hamle.",
+  "errNotYourTurn": "Sıra sizde değil.",
+  "errInvalidMessage": "Geçersiz mesaj formatı.",
+  "errInternalServer": "Sunucu hatası.",
+  "errUnknownMessage": "Bilinmeyen mesaj tipi.",
+  "errNetworkError": "Bağlantı kurulamadı. Lütfen ağınızı kontrol edin.",
+  "errUnknown": "Beklenmeyen bir hata oluştu.",
+
+  "reasonNormal": "Oyun kurallara uygun olarak sona erdi.",
+  "reasonResigned": "Oyuncu çekildi.",
+  "reasonDisconnected": "Rakip bağlantıyı kopardı.",
+
+  "auth": {
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "logout": "Çıkış Yap",
+    "continueAsGuest": "Misafir Olarak Devam Et",
+    "username": "Kullanıcı Adı",
+    "usernameOrEmail": "Kullanıcı Adı veya E-posta",
+    "email": "E-posta",
+    "password": "Şifre",
+    "confirmPassword": "Şifre Tekrar",
+    "usernameHint": "ör. UstaOyuncu",
+    "usernameOrEmailHint": "Kullanıcı adı veya e-posta girin",
+    "emailHint": "oyuncu@kita.gg",
+    "passwordHint": "En az 6 karakter",
+    "dontHaveAccount": "Hesabınız yok mu?",
+    "alreadyHaveAccount": "Zaten hesabınız var mı?",
+    "fillDemoPlayer": "Demo Oyuncu Doldur",
+    "passwordsDoNotMatch": "Şifreler eşleşmiyor.",
+    "usernameTooShort": "Kullanıcı adı en az 3 karakter olmalıdır.",
+    "passwordTooShort": "Şifre en az 6 karakter olmalıdır.",
+    "invalidEmail": "Lütfen geçerli bir e-posta adresi girin.",
+    "loggingIn": "Giriş yapılıyor...",
+    "registering": "Hesap oluşturuluyor...",
+    "loginSuccess": "Tekrar hoş geldin, {}!",
+    "registerSuccess": "Hesap oluşturuldu! Hoş geldin, {}!"
+  },
+
+  "guest": {
+    "title": "Misafir Profili",
+    "subtitle": "Avatarını ve savaş adını belirle",
+    "chooseAvatar": "Avatar Seç",
+    "nickname": "Rumuz (Takma Ad)",
+    "nicknameHint": "ör. KitaSavascisi",
+    "startPlaying": "Oyuna Başla",
+    "badge": "MİSAFİR",
+    "guestNameEmpty": "Lütfen bir takma ad girin",
+    "restrictionTitle": "Kayıtlı Hesap Gerekli",
+    "restrictionDesc": "Bu özellik yalnızca kayıtlı oyuncular içindir. Arkadaş eklemek, doğrudan maç daveti göndermek ve sıralama puanı kazanmak için kaydolun veya giriş yapın!",
+    "unlockAccount": "Kayıt Ol / Giriş Yap",
+    "stayGuest": "Misafir Olarak Kal"
+  },
+
+  "network": {
+    "offlineTitle": "Çevrimdışı Mod",
+    "offlineDesc": "İnternet bağlantısı algılanamadı. Doğrudan lokal yapay zeka motoruna karşı oynayabilirsiniz!",
+    "playOfflineAI": "Çevrimdışı AI'a Karşı Oyna",
+    "retryConnection": "Bağlantıyı Yeniden Dene",
+    "checking": "Bağlantı kontrol ediliyor..."
+  },
+
+  "dashboard": {
+    "welcome": "Hoş geldin",
+    "playOnline": "Çevrimiçi Oyna",
+    "playAI": "Bilgisayara Karşı",
+    "createRoom": "Oda Kur",
+    "joinRoom": "Kodla Katıl",
+    "findMatch": "Hızlı Eşleşme",
+    "friends": "Arkadaşlar",
+    "leaderboard": "Lider Tablosu",
+    "matchHistory": "Maç Geçmişi",
+    "stats": "Oyuncu İstatistikleri",
+    "rating": "Puan",
+    "winRate": "Kazanma Oranı",
+    "totalGames": "Toplam",
+    "wins": "Galibiyet",
+    "draws": "Beraberlik",
+    "losses": "Mağlubiyet",
+    "quickActions": "Hızlı Oyun",
+    "guestNotice": "Misafir olarak oynuyorsunuz. İstatistikleriniz sunucuya kaydedilmez.",
+    "onlinePlayers": "Çevrimiçi Oyuncu"
+  },
+
+  "game": {
+    "offlineAITitle": "Kita vs AI Motoru",
+    "offlineAIDesc": "Tek oyunculu lokal karşılaşma. 4x7 tahta üzerinde AI hamle motoru.",
+    "returnToMenu": "Menüye Dön",
+    "difficulty": "Zorluk",
+    "easy": "Başlangıç",
+    "medium": "Orta Seviye",
+    "hard": "Büyük Usta",
+    "newGame": "Yeni Oyun",
+    "inDevelopment": "Oyun tahtası sonraki aşama olan maç motoru için hazırlandı!"
+  },
+
+  "leaderboard": {
+    "title": "Lider Tablosu",
+    "topPlayers": "En İyiler",
+    "rank": "Sıra",
+    "player": "Oyuncu",
+    "rating": "Puan",
+    "winRate": "Kazanma",
+    "games": "Maç",
+    "wins": "G",
+    "losses": "M",
+    "draws": "B",
+    "empty": "Henüz lider tablosunda oyuncu bulunmuyor.",
+    "error": "Lider tablosu yüklenirken bir hata oluştu.",
+    "retry": "Yeniden Dene",
+    "refresh": "Yenile"
+  },
+
+  "settings": {
+    "language": "Dil",
+    "theme": "Tema",
+    "dark": "Koyu",
+    "light": "Açık",
+    "system": "Sistem"
+  },
+
+  "common": {
+    "cancel": "İptal",
+    "confirm": "Onayla",
+    "close": "Kapat",
+    "back": "Geri",
+    "loading": "Yükleniyor...",
+    "success": "Başarılı",
+    "error": "Hata"
+  }
+}

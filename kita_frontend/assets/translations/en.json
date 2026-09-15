@@ -1,0 +1,146 @@
+{
+  "appTitle": "Kita Fullstack",
+  "appTagline": "Master the 4x7 tactical battle",
+
+  "errValidationFailed": "Validation failed.",
+  "errMissingField": "A required field is missing.",
+  "errInvalidFormat": "Invalid format.",
+  "errUnauthorized": "Unauthorized.",
+  "errInvalidCredentials": "Invalid username or password.",
+  "errTokenExpired": "Your session has expired.",
+  "errUserAlreadyExists": "User already exists with this username or email.",
+  "errNotFound": "Resource not found.",
+  "errMatchNotFound": "Match not found.",
+  "errAlreadyInMatch": "You are already in an active match.",
+  "errAlreadyInQueue": "You are already in queue.",
+  "errInvalidMove": "Invalid move.",
+  "errNotYourTurn": "It is not your turn.",
+  "errInvalidMessage": "Invalid message format.",
+  "errInternalServer": "Internal server error.",
+  "errUnknownMessage": "Unknown message type.",
+  "errNetworkError": "Connection failed. Please check your network.",
+  "errUnknown": "An unexpected error occurred.",
+
+  "reasonNormal": "Game finished normally by rules.",
+  "reasonResigned": "Player resigned.",
+  "reasonDisconnected": "Opponent disconnected.",
+
+  "auth": {
+    "login": "Log In",
+    "register": "Sign Up",
+    "logout": "Log Out",
+    "continueAsGuest": "Continue as Guest",
+    "username": "Username",
+    "usernameOrEmail": "Username or Email",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "usernameHint": "e.g. Grandmaster",
+    "usernameOrEmailHint": "Enter username or email",
+    "emailHint": "player@kita.gg",
+    "passwordHint": "At least 6 characters",
+    "dontHaveAccount": "Don't have an account?",
+    "alreadyHaveAccount": "Already have an account?",
+    "fillDemoPlayer": "Quick Fill Demo Player",
+    "passwordsDoNotMatch": "Passwords do not match.",
+    "usernameTooShort": "Username must be at least 3 characters.",
+    "passwordTooShort": "Password must be at least 6 characters.",
+    "invalidEmail": "Please enter a valid email address.",
+    "loggingIn": "Logging in...",
+    "registering": "Creating account...",
+    "loginSuccess": "Welcome back, {}!",
+    "registerSuccess": "Account created! Welcome, {}!"
+  },
+
+  "guest": {
+    "title": "Guest Profile",
+    "subtitle": "Choose your avatar and battle name",
+    "chooseAvatar": "Choose Avatar",
+    "nickname": "Nickname",
+    "nicknameHint": "e.g. KitaWarrior",
+    "startPlaying": "Enter Game",
+    "badge": "GUEST",
+    "guestNameEmpty": "Please enter a nickname",
+    "restrictionTitle": "Account Required",
+    "restrictionDesc": "This feature is only available for registered players. Sign up or log in to unlock friends, direct match challenges, and rating tracking!",
+    "unlockAccount": "Sign Up / Log In",
+    "stayGuest": "Continue as Guest"
+  },
+
+  "network": {
+    "offlineTitle": "Offline Mode",
+    "offlineDesc": "No internet connection detected. You can play directly against the local AI engine!",
+    "playOfflineAI": "Play Offline vs AI",
+    "retryConnection": "Retry Connection",
+    "checking": "Checking connection..."
+  },
+
+  "dashboard": {
+    "welcome": "Welcome",
+    "playOnline": "Play Online",
+    "playAI": "Play vs Computer",
+    "createRoom": "Create Room",
+    "joinRoom": "Join with Code",
+    "findMatch": "Find Match",
+    "friends": "Friends",
+    "leaderboard": "Leaderboard",
+    "matchHistory": "Match History",
+    "stats": "Player Statistics",
+    "rating": "Rating",
+    "winRate": "Win Rate",
+    "totalGames": "Total",
+    "wins": "Wins",
+    "draws": "Draws",
+    "losses": "Losses",
+    "quickActions": "Quick Play",
+    "guestNotice": "You are playing as Guest. Your stats will not be saved globally.",
+    "onlinePlayers": "Players Online"
+  },
+
+  "game": {
+    "offlineAITitle": "Kita vs AI Engine",
+    "offlineAIDesc": "Single-player local match. AI engine runs on 4x7 grid.",
+    "returnToMenu": "Return to Menu",
+    "difficulty": "Difficulty",
+    "easy": "Beginner",
+    "medium": "Intermediate",
+    "hard": "Grandmaster",
+    "newGame": "New Game",
+    "inDevelopment": "Game board is ready for the upcoming match engine phase!"
+  },
+
+  "leaderboard": {
+    "title": "Leaderboard",
+    "topPlayers": "Top Players",
+    "rank": "Rank",
+    "player": "Player",
+    "rating": "Rating",
+    "winRate": "Win Rate",
+    "games": "Games",
+    "wins": "W",
+    "losses": "L",
+    "draws": "D",
+    "empty": "No players on the leaderboard yet.",
+    "error": "Failed to load leaderboard.",
+    "retry": "Retry",
+    "refresh": "Refresh"
+  },
+
+  "settings": {
+    "language": "Language",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System"
+  },
+
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error"
+  }
+}
