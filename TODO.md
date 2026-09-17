@@ -51,14 +51,25 @@ Foundational systems to establish early so game strings and rules are never hard
 
 ## 🤖 Phase 3: Single Player & AI Engine
 
-Allows instant gameplay without relying on active server matchmaking, and serves as an engine testing harness.
+Allows instant gameplay without relying on active server matchmaking, serves as an engine testing harness, and provides intelligent sparring partners.
 
-- [x] **Backend AI Logic**:
-- [x] **Game Mode Integration**:
-  - [x] "Play vs Computer" game option (Easy 800, Medium 1200, Hard 1800 ELO)
-  - [x] Turn delay simulation for natural AI pacing
-  - [x] Local 2-Player Pass & Play (Co-op/PvP) on single device with auto-rotate option
-  - [x] Complete rule enforcement: reversal prevention, Last-Stand revenge draw condition, stalemate win condition.
+### 1. Offline Engine (Local Play)
+- [x] **Local Pass & Play**: Single device 2-player pass-and-play with board flipping and theme controls.
+- [x] **Rule Enforcement**: Reversal prevention, Last-Stand revenge draw condition, and stalemate checks.
+
+### 2. AI Engine Integration
+- [x] **Inference Engine (Pure Dart Forward Pass)**:
+  - [x] Export PyTorch weights to flat JSON (`export_weights.py`).
+  - [x] Implement pure-Dart neural network forward pass (`kita_neural_net.dart`) — matrix multiply, LayerNorm, ReLU, Tanh.
+- [x] **State Encoding & Action Space Representation**:
+  - [x] Serialize Kita board state into 7-channel × 20-tile feature tensor matching training pipeline (`kita_ai.dart`).
+  - [x] Map model output value + negamax search back to valid `KitaMove` actions via legal move ranking.
+  - [x] Legal move masking guaranteed by evaluating only `getLegalMoves()` candidates.
+- [x] **Difficulty & Sparring Configuration**:
+  - [x] Three AI difficulty tiers (Easy: depth=1/temp=0.5, Medium: depth=2/temp=0.2, Hard: depth=3/temp=0.1) in `offline_ai_screen.dart`.
+- [x] **Frontend Integration (Offline)**:
+  - [x] AI Bot integrated into `offline_ai_screen.dart` as unified Easy / Medium / Hard difficulty options.
+  - [x] Opening book (923 positions) bundled as Flutter asset for instant lookup.
 
 ---
 

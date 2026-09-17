@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
+import '../../../data/models/kita_ai.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/kita_card.dart';
@@ -36,6 +37,10 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   String? _selectedPieceId;
   Set<KitaPos> _validMoves = {};
   bool _isAiThinking = false;
+
+  // AI Player (lazy-loaded)
+  KitaAI? _ai;
+  bool _aiLoading = false;
 
   @override
   void initState() {
@@ -147,29 +152,43 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     });
   }
 
-  void _triggerAiMove() {
+  Future<void> _triggerAiMove() async {
     setState(() => _isAiThinking = true);
 
-    Timer(const Duration(milliseconds: 550), () {
-      if (!mounted || _engine.isGameOver) {
-        setState(() => _isAiThinking = false);
-        return;
-      }
+    // Lazy-load AI model on first use
+    if (_ai == null && !_aiLoading) {
+      _aiLoading = true;
+      _ai = KitaAI();
+      await _ai!.initialize();
+      _aiLoading = false;
+    }
 
-      final aiMove = _engine.getBestAiMove(difficulty: _selectedDifficulty);
-      if (aiMove != null) {
-        setState(() {
-          _engine = _engine.applyMove(aiMove);
-          _isAiThinking = false;
-        });
+    if (!mounted || _engine.isGameOver || _ai == null) {
+      setState(() => _isAiThinking = false);
+      return;
+    }
 
-        if (_engine.isGameOver) {
-          _showGameOverDialog();
-        }
-      } else {
-        setState(() => _isAiThinking = false);
+    // Map difficulty index 0/1/2 → Easy/Medium/Hard
+    final difficulty = AIDifficulty.all[_selectedDifficulty.clamp(0, AIDifficulty.all.length - 1)];
+
+    // Small delay to let the UI update with "thinking" indicator
+    await Future.delayed(const Duration(milliseconds: 150));
+
+    final aiMove = _ai!.chooseMoveWithDifficulty(_engine, difficulty);
+    if (!mounted) return;
+
+    if (aiMove != null) {
+      setState(() {
+        _engine = _engine.applyMove(aiMove);
+        _isAiThinking = false;
+      });
+
+      if (_engine.isGameOver) {
+        _showGameOverDialog();
       }
-    });
+    } else {
+      setState(() => _isAiThinking = false);
+    }
   }
 
   void _showGameOverDialog() {
@@ -388,9 +407,39 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                           underline: const SizedBox(),
                                           dropdownColor: isDark ? AppColors.darkCard : AppColors.lightCard,
                                           items: [
-                                            DropdownMenuItem(value: 0, child: Text('800 ELO (${'game.easy'.tr()})', style: const TextStyle(fontSize: 11, color: AppColors.ratingGold, fontWeight: FontWeight.w700))),
-                                            DropdownMenuItem(value: 1, child: Text('1200 ELO (${'game.medium'.tr()})', style: const TextStyle(fontSize: 11, color: AppColors.ratingGold, fontWeight: FontWeight.w700))),
-                                            DropdownMenuItem(value: 2, child: Text('1800 ELO (${'game.hard'.tr()})', style: const TextStyle(fontSize: 11, color: AppColors.ratingGold, fontWeight: FontWeight.w700))),
+                                            DropdownMenuItem(
+                                              value: 0,
+                                              child: Text(
+                                                'game.easy'.tr(),
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.primaryGreen,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: 1,
+                                              child: Text(
+                                                'game.medium'.tr(),
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.ratingGold,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: 2,
+                                              child: Text(
+                                                'game.hard'.tr(),
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.deepOrangeAccent,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
                                           ],
                                           onChanged: (val) {
                                             if (val != null) setState(() => _selectedDifficulty = val);
