@@ -191,7 +191,47 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 	// 5. Durumu oyunculara bildir
 	r.broadcastStateLocked()
 
-	// 6. Oyun bitti mi kontrol et
+	// 6. Otomatik karşı misilleme kontrolü (Last-Stand Defense Auto Retaliation)
+	retaliationMove := r.Game.GetKingRetaliationMove()
+	if retaliationMove != nil {
+		go func(rm *Room, autoMove kitagame.Move) {
+			time.Sleep(400 * time.Millisecond)
+			rm.mu.Lock()
+			defer rm.mu.Unlock()
+			if rm.isFinished || rm.Status != "in_game" {
+				return
+			}
+			rm.Game = rm.Game.ApplyMove(autoMove)
+
+			var retaliatorID string
+			if rm.Game.Turn == "white" { // Turn flipped after applyMove
+				retaliatorID = rm.BlackPlayer.UserID
+			} else {
+				retaliatorID = rm.WhitePlayer.UserID
+			}
+
+			rm.MovesBuffer = append(rm.MovesBuffer, domain.MatchMove{
+				MatchID:   rm.ID,
+				PlyIndex:  rm.Game.MoveCount,
+				PlayerID:  retaliatorID,
+				PieceID:   autoMove.PieceID,
+				FromCol:   autoMove.FromPos.Col,
+				FromRow:   autoMove.FromPos.Row,
+				ToCol:     autoMove.ToPos.Col,
+				ToRow:     autoMove.ToPos.Row,
+				CreatedAt: time.Now(),
+			})
+
+			rm.broadcastStateLocked()
+			status := rm.Game.GetStatus()
+			if status != "ongoing" {
+				rm.finishGameLocked(status, domain.ReasonNormal)
+			}
+		}(r, *retaliationMove)
+		return nil
+	}
+
+	// 7. Oyun bitti mi kontrol et (Karşı kral avlanamadıysa anında win/loss)
 	status := r.Game.GetStatus()
 	if status != "ongoing" {
 		r.finishGameLocked(status, domain.ReasonNormal)

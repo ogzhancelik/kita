@@ -51,6 +51,28 @@ func (g *Game) ToGameState() GameState {
 	}
 }
 
+// GetKingRetaliationMove checks if the current player whose king was eaten has a legal move
+// that can capture the opponent's king in retaliation. Returns the move or nil.
+func (g *Game) GetKingRetaliationMove() *Move {
+	if g.KingEatenBy == "" || g.KingEatenBy == "both" {
+		return nil
+	}
+	oppKingID := getOpponentKingID(g.Turn)
+	oppKingPos := g.Positions[oppKingID]
+	if oppKingPos == nil {
+		return nil
+	}
+
+	rawMoves := GetLegalMoves(g.Positions, g.Turn, g.LastMoveBlack, g.LastMoveWhite)
+	for _, m := range rawMoves {
+		if m.ToPos == *oppKingPos {
+			moveCopy := m
+			return &moveCopy
+		}
+	}
+	return nil
+}
+
 func (g *Game) kingEndStatus() string {
 	if g.KingEatenBy == "both" {
 		return "draw"
@@ -61,7 +83,36 @@ func (g *Game) kingEndStatus() string {
 	if g.KingEatenBy == "black" && g.Turn == "black" {
 		return "black_wins"
 	}
+	// If one king is eaten and it's the victim's turn:
+	// If victim cannot retaliate by capturing the opposing king, attacker wins immediately!
+	if g.KingEatenBy != "" && g.KingEatenBy != "both" {
+		if g.GetKingRetaliationMove() == nil {
+			if g.KingEatenBy == "white" {
+				return "white_wins"
+			}
+			return "black_wins"
+		}
+	}
 	return ""
+}
+
+func (g *Game) getValidMoves() []Move {
+	allMoves := GetLegalMoves(g.Positions, g.Turn, g.LastMoveBlack, g.LastMoveWhite)
+	if g.KingEatenBy != "" && g.KingEatenBy != "both" {
+		oppKingID := getOpponentKingID(g.Turn)
+		oppKingPos := g.Positions[oppKingID]
+		if oppKingPos == nil {
+			return []Move{}
+		}
+		var captureMoves []Move
+		for _, m := range allMoves {
+			if m.ToPos == *oppKingPos {
+				captureMoves = append(captureMoves, m)
+			}
+		}
+		return captureMoves
+	}
+	return allMoves
 }
 
 func (g *Game) GetStatus() string {
@@ -71,7 +122,7 @@ func (g *Game) GetStatus() string {
 	if g.StateHistory[g.ToGameState()] >= 3 {
 		return "draw"
 	}
-	rawMoves := GetLegalMoves(g.Positions, g.Turn, g.LastMoveBlack, g.LastMoveWhite)
+	rawMoves := g.getValidMoves()
 	if len(rawMoves) == 0 {
 		if g.Turn == "black" {
 			return "white_wins"
@@ -85,7 +136,7 @@ func (g *Game) GetLegalMoves() []Move {
 	if g.GetStatus() != "ongoing" {
 		return []Move{}
 	}
-	return GetLegalMoves(g.Positions, g.Turn, g.LastMoveBlack, g.LastMoveWhite)
+	return g.getValidMoves()
 }
 
 func (g *Game) ApplyMove(move Move) *Game {

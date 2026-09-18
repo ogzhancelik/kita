@@ -27,16 +27,19 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
 
   // Settings
   PlayMode _playMode = PlayMode.localCoop;
+  PieceTeam _playerTeam = PieceTeam.white; // Human player's side in VS AI mode
   int _selectedDifficulty = 1; // 0: Easy, 1: Medium, 2: Hard
   bool _isHorizontal = true;
   bool _flipBoard = false;
   int _themeIndex = 0; // 0: Emerald, 1: Amber, 2: Ocean, 3: Purple, 4: Slate
+  int _gameSessionId = 0;
 
   // UI Selection State
   KitaPos? _selectedPos;
   String? _selectedPieceId;
   Set<KitaPos> _validMoves = {};
   bool _isAiThinking = false;
+  bool _isAutoRetaliating = false;
 
   // AI Player (lazy-loaded)
   KitaAI? _ai;
@@ -49,13 +52,169 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   }
 
   void _resetGame() {
+    _gameSessionId++;
+    final session = _gameSessionId;
     setState(() {
       _engine = KitaGameEngine();
       _selectedPos = null;
       _selectedPieceId = null;
       _validMoves = {};
       _isAiThinking = false;
+      _isAutoRetaliating = false;
     });
+
+    // In VS AI mode, if human plays Black, Bot is White and moves first!
+    if (_playMode == PlayMode.vsAi && _playerTeam == PieceTeam.black) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            _gameSessionId == session &&
+            _playMode == PlayMode.vsAi &&
+            _playerTeam == PieceTeam.black &&
+            _engine.turn == PieceTeam.white) {
+          _triggerAiMove();
+        }
+      });
+    }
+  }
+
+  void _selectPlayerTeam(PieceTeam team) {
+    if (_playerTeam == team) return;
+    setState(() {
+      _playerTeam = team;
+      // Auto-flip board when playing Black so player's pieces are at the bottom
+      _flipBoard = (team == PieceTeam.black);
+    });
+    _resetGame();
+    KitaToast.info(team == PieceTeam.white
+        ? 'game.sideSelectedWhite'.tr()
+        : 'game.sideSelectedBlack'.tr());
+  }
+
+  void _loadScenario(Map<String, KitaPos?> positions, String label) {
+    _gameSessionId++;
+    setState(() {
+      _engine = KitaGameEngine.custom(
+        positions: positions,
+        turn: PieceTeam.white,
+      );
+      _playerTeam = PieceTeam.white;
+      _flipBoard = false;
+      _selectedPos = null;
+      _selectedPieceId = null;
+      _validMoves = {};
+      _isAiThinking = false;
+      _isAutoRetaliating = false;
+    });
+    KitaToast.info('Senaryo Yüklendi: $label');
+  }
+
+  void _showTestScenariosDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.science_rounded, color: Colors.orangeAccent, size: 22),
+            SizedBox(width: 8),
+            Text(
+              'Test Senaryoları',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Son Şans mekanizmasını test etmek için bir pozisyon seçin:',
+              style: TextStyle(fontSize: 12.5),
+            ),
+            const SizedBox(height: 14),
+            ListTile(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: AppColors.primaryGreen.withValues(alpha: 0.4)),
+              ),
+              tileColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+              leading: const Icon(Icons.auto_mode_rounded, color: AppColors.primaryGreen),
+              title: const Text(
+                '1. Otomatik Misilleme (Draw)',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              subtitle: const Text(
+                'Beyaz WP1 ile BK\'yı yer -> Siyah BP1 otomatik misilleme yapar -> Berabere biter.',
+                style: TextStyle(fontSize: 11.5),
+              ),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _loadScenario({
+                  'BK': const KitaPos(3, 0),  // tile value 2
+                  'WK': const KitaPos(3, 3),  // tile value 2
+                  'WP1': const KitaPos(1, 0), // 2 steps to reach BK at (3,0)
+                  'BP1': const KitaPos(5, 3), // 2 steps to reach WK at (3,3)
+                  'BP2': const KitaPos(0, 1),
+                  'WP2': const KitaPos(6, 2),
+                }, 'Otomatik Misilleme (Draw)');
+              },
+            ),
+            const SizedBox(height: 10),
+            ListTile(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Colors.amber.withValues(alpha: 0.4)),
+              ),
+              tileColor: Colors.amber.withValues(alpha: 0.1),
+              leading: const Icon(Icons.emoji_events_outlined, color: Colors.amber),
+              title: const Text(
+                '2. Anında Bitiş (Immediate Win)',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              subtitle: const Text(
+                'Beyaz WP1 ile BK\'yı yer -> Siyah karşı kralı avlayamadığı için Beyaz anında kazanır.',
+                style: TextStyle(fontSize: 11.5),
+              ),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _loadScenario({
+                  'BK': const KitaPos(3, 0),  // tile value 2
+                  'WK': const KitaPos(3, 3),  // tile value 2
+                  'WP1': const KitaPos(1, 0), // Can capture BK at (3,0)
+                  'BP1': const KitaPos(0, 1), // Far from WK
+                  'BP2': const KitaPos(0, 2), // Far from WK
+                  'WP2': const KitaPos(6, 2),
+                }, 'Anında Kazanma (Immediate Win)');
+              },
+            ),
+            const SizedBox(height: 10),
+            ListTile(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+              ),
+              leading: const Icon(Icons.refresh_rounded, color: Colors.grey),
+              title: const Text(
+                'Varsayılan Tahta (Standart)',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _resetGame();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
   }
 
   KitaBoardTheme _getTheme(bool isDark) {
@@ -91,13 +250,13 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   }
 
   void _onTileTap(KitaPos pos) {
-    if (_engine.isGameOver || _isAiThinking) {
+    if (_engine.isGameOver || _isAiThinking || _isAutoRetaliating) {
       if (_engine.isGameOver) _showGameOverDialog();
       return;
     }
 
-    // In VS AI mode, human plays White, AI plays Black
-    if (_playMode == PlayMode.vsAi && _engine.turn != PieceTeam.white) {
+    // In VS AI mode, only allow moves on human player's turn
+    if (_playMode == PlayMode.vsAi && _engine.turn != _playerTeam) {
       return;
     }
 
@@ -112,14 +271,21 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         _selectedPieceId = null;
         _validMoves = {};
 
-        // Check if game ended
+        // Check if game ended immediately (king captured without retaliation, or no moves left)
         if (_engine.isGameOver) {
           _showGameOverDialog();
           return;
         }
 
-        // Trigger AI move if in VS AI mode
-        if (_playMode == PlayMode.vsAi && _engine.turn == PieceTeam.black) {
+        // If opposing king is in reach, trigger automatic retaliation sequence
+        if (_engine.hasKingRetaliation) {
+          _handleAutoRetaliation();
+          return;
+        }
+
+        // Trigger AI move if in VS AI mode and turn passed to the bot
+        final aiTeam = _playerTeam == PieceTeam.white ? PieceTeam.black : PieceTeam.white;
+        if (_playMode == PlayMode.vsAi && _engine.turn == aiTeam) {
           _triggerAiMove();
         }
         return;
@@ -152,7 +318,37 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     });
   }
 
+  Future<void> _handleAutoRetaliation() async {
+    final retaliationMove = _engine.getKingRetaliationMove();
+    if (retaliationMove == null) return;
+
+    setState(() {
+      _isAutoRetaliating = true;
+      _selectedPos = null;
+      _selectedPieceId = null;
+      _validMoves = {};
+    });
+
+    // Short visual pause (400ms) so players see the first move
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+
+    setState(() {
+      _engine = _engine.applyMove(retaliationMove);
+      _isAutoRetaliating = false;
+    });
+
+    // Brief pause (200ms) before displaying Draw dialog
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+
+    if (_engine.isGameOver) {
+      _showGameOverDialog();
+    }
+  }
+
   Future<void> _triggerAiMove() async {
+    final session = _gameSessionId;
     setState(() => _isAiThinking = true);
 
     // Lazy-load AI model on first use
@@ -163,8 +359,10 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       _aiLoading = false;
     }
 
-    if (!mounted || _engine.isGameOver || _ai == null) {
-      setState(() => _isAiThinking = false);
+    if (!mounted || _gameSessionId != session || _engine.isGameOver || _ai == null) {
+      if (mounted && _gameSessionId == session) {
+        setState(() => _isAiThinking = false);
+      }
       return;
     }
 
@@ -173,9 +371,10 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
 
     // Small delay to let the UI update with "thinking" indicator
     await Future.delayed(const Duration(milliseconds: 150));
+    if (!mounted || _gameSessionId != session) return;
 
     final aiMove = _ai!.chooseMoveWithDifficulty(_engine, difficulty);
-    if (!mounted) return;
+    if (!mounted || _gameSessionId != session) return;
 
     if (aiMove != null) {
       setState(() {
@@ -185,10 +384,34 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
 
       if (_engine.isGameOver) {
         _showGameOverDialog();
+        return;
+      }
+
+      // If opposing king is in reach, trigger automatic retaliation sequence
+      if (_engine.hasKingRetaliation) {
+        _handleAutoRetaliation();
+        return;
       }
     } else {
       setState(() => _isAiThinking = false);
     }
+  }
+
+  String _getTurnText() {
+    final isWhite = _engine.turn == PieceTeam.white;
+    if (_playMode == PlayMode.vsAi) {
+      final isPlayerTurn = _engine.turn == _playerTeam;
+      if (isPlayerTurn) {
+        return isWhite
+            ? "${'game.whiteTurn'.tr()} (${'game.yourTurn'.tr()})"
+            : "${'game.blackTurn'.tr()} (${'game.yourTurn'.tr()})";
+      } else {
+        return isWhite
+            ? "${'game.whiteTurn'.tr()} (${'game.botThinking'.tr()})"
+            : "${'game.blackTurn'.tr()} (${'game.botThinking'.tr()})";
+      }
+    }
+    return isWhite ? 'game.whiteTurn'.tr() : 'game.blackTurn'.tr();
   }
 
   void _showGameOverDialog() {
@@ -200,21 +423,40 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     Color iconColor;
 
     final endReason = _engine.getEndReason();
-    switch (_engine.getStatus()) {
+    final status = _engine.getStatus();
+    final isVsAi = _playMode == PlayMode.vsAi;
+    final isPlayerWinner = isVsAi && (
+      (status == GameStatus.whiteWins && _playerTeam == PieceTeam.white) ||
+      (status == GameStatus.blackWins && _playerTeam == PieceTeam.black)
+    );
+
+    switch (status) {
       case GameStatus.whiteWins:
-        title = 'Beyaz Kazandı! (White Wins)';
-        icon = Icons.emoji_events_rounded;
-        iconColor = AppColors.ratingGold;
+        if (isVsAi) {
+          title = isPlayerWinner ? 'game.youWon'.tr() : 'game.aiWon'.tr();
+          icon = isPlayerWinner ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded;
+          iconColor = isPlayerWinner ? AppColors.ratingGold : Colors.redAccent;
+        } else {
+          title = 'Beyaz Kazandı! (White Wins)';
+          icon = Icons.emoji_events_rounded;
+          iconColor = AppColors.ratingGold;
+        }
         subtitle = endReason == EndReason.kingCaptured
-            ? 'Beyaz, Siyah kralı güvenli şekilde avladı (Siyah hemen karşı kralı avlayamadı)!'
+            ? 'Beyaz, Siyah kralı avladı! Karşı kral avlanamadığı için oyun hemen sona erdi.'
             : 'Siyah oyuncunun yapacak hiçbir yasal hamlesi kalmadı!';
         break;
       case GameStatus.blackWins:
-        title = 'Siyah Kazandı! (Black Wins)';
-        icon = Icons.emoji_events_rounded;
-        iconColor = AppColors.ratingGold;
+        if (isVsAi) {
+          title = isPlayerWinner ? 'game.youWon'.tr() : 'game.aiWon'.tr();
+          icon = isPlayerWinner ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded;
+          iconColor = isPlayerWinner ? AppColors.ratingGold : Colors.redAccent;
+        } else {
+          title = 'Siyah Kazandı! (Black Wins)';
+          icon = Icons.emoji_events_rounded;
+          iconColor = AppColors.ratingGold;
+        }
         subtitle = endReason == EndReason.kingCaptured
-            ? 'Siyah, Beyaz kralı güvenli şekilde avladı (Beyaz hemen karşı kralı avlayamadı)!'
+            ? 'Siyah, Beyaz kralı avladı! Karşı kral avlanamadığı için oyun hemen sona erdi.'
             : 'Beyaz oyuncunun yapacak hiçbir yasal hamlesi kalmadı!';
         break;
       case GameStatus.draw:
@@ -222,7 +464,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         icon = Icons.handshake_rounded;
         iconColor = AppColors.drawGray;
         subtitle = endReason == EndReason.doubleKingCaptured
-            ? 'Karşı tarafın kralı yendi ancak hemen ardından kendi kralı da savunmasız kaldığı için kural gereği maç BERABERE bitti!'
+            ? 'Kral yendi ancak hemen ardından karşı kral da avlandığı için kural gereği maç otomatik olarak BERABERE bitti!'
             : endReason == EndReason.threefoldRepetition
             ? 'Aynı pozisyon 3 kez tekrarlandı — kural gereği maç berabere!'
             : 'Oyun berabere sonuçlandı!';
@@ -357,6 +599,66 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                // 1.1 Side Selection (Only in VS AI mode)
+                if (_playMode == PlayMode.vsAi) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, right: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.shield_outlined,
+                                size: 14,
+                                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${'game.side'.tr()}:',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildSideOption(
+                            team: PieceTeam.white,
+                            label: 'game.playWhite'.tr(),
+                            tooltip: 'game.whiteFirstDesc'.tr(),
+                            isWhite: true,
+                            isSelected: _playerTeam == PieceTeam.white,
+                            isDark: isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildSideOption(
+                            team: PieceTeam.black,
+                            label: 'game.playBlack'.tr(),
+                            tooltip: 'game.blackSecondDesc'.tr(),
+                            isWhite: false,
+                            isSelected: _playerTeam == PieceTeam.black,
+                            isDark: isDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
 
                 // 2. Info & Controls Card
                 KitaCard(
@@ -502,6 +804,15 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                   KitaToast.info('Heatmap: ${_getThemeName()}');
                                 },
                               ),
+                              // Test Scenarios Button
+                              IconButton(
+                                tooltip: 'Test Senaryoları',
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.all(5),
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                icon: const Icon(Icons.science_outlined, size: 18, color: Colors.orangeAccent),
+                                onPressed: _showTestScenariosDialog,
+                              ),
                             ],
                           ),
                         ],
@@ -527,7 +838,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                isWhiteTurn ? "Beyaz'ın Sırası" : "Siyah'ın Sırası",
+                                _getTurnText(),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
@@ -568,35 +879,6 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                           ),
                         ],
                       ),
-                      // Last Stand Warning Banner
-                      if (_engine.isLastStand && !_engine.isGameOver)
-                        Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFEF5350), width: 1),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF5350), size: 18),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _engine.kingEatenBy == 'white'
-                                      ? "Beyaz kralı yedi! Siyah'ın son şansı — kralı avla ya da kaybet!"
-                                      : "Siyah kralı yedi! Beyaz'ın son şansı — kralı avla ya da kaybet!",
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFFEF5350),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -734,6 +1016,86 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSideOption({
+    required PieceTeam team,
+    required String label,
+    required String tooltip,
+    required bool isWhite,
+    required bool isSelected,
+    required bool isDark,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: () => _selectPlayerTeam(team),
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.22 : 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: isWhite ? Colors.white : Colors.black,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isWhite ? Colors.grey.shade400 : Colors.grey.shade700,
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected
+                        ? (isDark ? AppColors.primaryGreen : const Color(0xFF1B5E20))
+                        : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                  ),
+                ),
+              ),
+              if (isSelected) ...[
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 13,
+                  color: AppColors.primaryGreen,
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

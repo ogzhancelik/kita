@@ -35,8 +35,17 @@ class KitaNeuralNet {
   /// Load weights from a JSON asset file.
   Future<void> loadWeights(String assetPath) async {
     final jsonStr = await rootBundle.loadString(assetPath);
-    final Map<String, dynamic> data = json.decode(jsonStr);
+    loadWeightsFromJson(jsonStr);
+  }
 
+  /// Load weights directly from a JSON string.
+  void loadWeightsFromJson(String jsonStr) {
+    final Map<String, dynamic> data = json.decode(jsonStr);
+    loadWeightsFromMap(data);
+  }
+
+  /// Load weights from a pre-parsed map.
+  void loadWeightsFromMap(Map<String, dynamic> data) {
     _fc0w = _parseMatrix(data['fc0_weight']);
     _fc0b = _parseVector(data['fc0_bias']);
     _ln0w = _parseVector(data['ln0_weight']);

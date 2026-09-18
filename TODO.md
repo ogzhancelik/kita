@@ -55,7 +55,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 
 ### 1. Offline Engine (Local Play)
 - [x] **Local Pass & Play**: Single device 2-player pass-and-play with board flipping and theme controls.
-- [x] **Rule Enforcement**: Reversal prevention, Last-Stand revenge draw condition, and stalemate checks.
+- [x] **Rule Enforcement**: Reversal prevention, Last-Stand auto-retaliation draw & immediate win/loss condition, and stalemate checks.
 
 ### 2. AI Engine Integration
 - [x] **Inference Engine (Pure Dart Forward Pass)**:
@@ -70,6 +70,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **Frontend Integration (Offline)**:
   - [x] AI Bot integrated into `offline_ai_screen.dart` as unified Easy / Medium / Hard difficulty options.
   - [x] Opening book (923 positions) bundled as Flutter asset for instant lookup.
+  - [x] Player side selection (White / Black) with auto-opening move for AI when playing as White, perspective board flipping, and dynamic turn indicators.
 
 ---
 

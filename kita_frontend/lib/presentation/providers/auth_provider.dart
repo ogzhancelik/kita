@@ -97,7 +97,18 @@ class AuthProvider extends ChangeNotifier {
       }
     }
 
-    // 3. No active token -> Welcome screen (Sign in / Register / Guest)
+    // 3. Guest profile check
+    try {
+      final savedGuest = await _storage.getGuestProfile();
+      if (savedGuest != null) {
+        _guestProfile = savedGuest;
+        _state = AuthState.guest;
+        notifyListeners();
+        return;
+      }
+    } catch (_) {}
+
+    // 4. No active token or guest -> Welcome screen (Sign in / Register / Guest)
     _state = AuthState.unauthenticated;
     notifyListeners();
   }
@@ -160,7 +171,9 @@ class AuthProvider extends ChangeNotifier {
     _guestProfile = guest;
     _currentUser = null;
     _token = null;
-    await _storage.saveGuestProfile(guest.nickname, guest.avatarIndex);
+    try {
+      await _storage.saveGuestProfile(guest.nickname, guest.avatarIndex);
+    } catch (_) {}
     _state = AuthState.guest;
     notifyListeners();
   }

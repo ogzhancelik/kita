@@ -107,6 +107,21 @@ class KitaAI {
     _initialized = true;
   }
 
+  /// Initialize the AI directly with JSON strings (useful for unit tests & offline bundles).
+  void initializeWithStrings(String weightsJson, [String? openingBookJson]) {
+    _net.loadWeightsFromJson(weightsJson);
+    if (openingBookJson != null) {
+      try {
+        final Map<String, dynamic> bookData = json.decode(openingBookJson);
+        _openingBook =
+            bookData.map((key, value) => MapEntry(key, value as String));
+      } catch (_) {
+        _openingBook = {};
+      }
+    }
+    _initialized = true;
+  }
+
   // ─── Feature Encoding ──────────────────────────────────────────────
 
   /// Convert a KitaGameEngine state into a 140-element feature vector.

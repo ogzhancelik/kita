@@ -147,13 +147,15 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
                   text: 'guest.startPlaying'.tr(),
                   icon: Icons.play_arrow_rounded,
                   variant: KitaButtonVariant.primary,
-                  onPressed: () {
+                  onPressed: () async {
                     final name = _nameController.text.trim();
-                    context.read<AuthProvider>().continueAsGuest(
+                    await context.read<AuthProvider>().continueAsGuest(
                           name.isEmpty ? 'Guest' : name,
                           _selectedAvatarIndex,
                         );
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    if (context.mounted) {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    }
                   },
                 ),
                 const SizedBox(height: 20),

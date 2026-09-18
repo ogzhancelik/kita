@@ -314,23 +314,23 @@ func TestLastStandDraw(t *testing.T) {
 		t.Fatalf("Expected turn = 'black' (Last Stand), got '%s'", g2.Turn)
 	}
 
-	// Step 2: Black captures WK with BP1 (Last Stand revenge)
-	retaliationMove := Move{PieceID: "BP1", FromPos: bp1Pos, ToPos: wkPos}
+	// Step 2: Black can capture WK with BP1 (Last Stand auto-retaliation)
+	retaliationMove := g2.GetKingRetaliationMove()
+	if retaliationMove == nil {
+		t.Fatalf("Expected GetKingRetaliationMove to return a move, got nil")
+	}
+	expectedMove := Move{PieceID: "BP1", FromPos: bp1Pos, ToPos: wkPos}
+	if *retaliationMove != expectedMove {
+		t.Fatalf("Expected retaliation move %v, got %v", expectedMove, *retaliationMove)
+	}
 
-	// Verify legal
+	// Verify legal moves only contains the retaliation move
 	legalMoves2 := g2.GetLegalMoves()
-	found = false
-	for _, m := range legalMoves2 {
-		if m == retaliationMove {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("BP1 capturing WK should be legal (Last Stand). Legal moves: %v", legalMoves2)
+	if len(legalMoves2) != 1 || legalMoves2[0] != expectedMove {
+		t.Fatalf("Expected legal moves to only contain %v, got %v", expectedMove, legalMoves2)
 	}
 
-	g3 := g2.ApplyMove(retaliationMove)
+	g3 := g2.ApplyMove(*retaliationMove)
 
 	if g3.KingEatenBy != "both" {
 		t.Errorf("Expected kingEatenBy = 'both' after double capture, got '%s'", g3.KingEatenBy)
@@ -341,7 +341,7 @@ func TestLastStandDraw(t *testing.T) {
 }
 
 func TestLastStandWin(t *testing.T) {
-	// White captures BK, Black cannot capture WK → white wins
+	// White captures BK, Black cannot capture WK → White wins immediately!
 	positions := make(map[string]*Pos)
 	bkPos := Pos{3, 0}  // tile value 2
 	wkPos := Pos{3, 3}  // tile value 2
@@ -376,33 +376,18 @@ func TestLastStandWin(t *testing.T) {
 		t.Fatalf("Expected kingEatenBy = 'white', got '%s'", g2.KingEatenBy)
 	}
 
-	// Black makes a move (not capturing WK)
+	// Black cannot retaliate against WK -> Game ends immediately!
+	if g2.GetKingRetaliationMove() != nil {
+		t.Fatalf("Expected no retaliation move for Black, got %v", g2.GetKingRetaliationMove())
+	}
+
+	if status := g2.GetStatus(); status != "white_wins" {
+		t.Errorf("Expected status = 'white_wins' immediately after BK captured without retaliation, got '%s'", status)
+	}
+
 	blackMoves := g2.GetLegalMoves()
-	if len(blackMoves) == 0 {
-		// No moves for black → white wins immediately
-		status := g2.GetStatus()
-		if status != "white_wins" {
-			t.Errorf("Expected white_wins when black has no moves, got %s", status)
-		}
-		return
-	}
-
-	// Play any black move that doesn't capture WK
-	var nonCaptureMove *Move
-	for _, m := range blackMoves {
-		if m.ToPos != wkPos {
-			mc := m
-			nonCaptureMove = &mc
-			break
-		}
-	}
-
-	if nonCaptureMove != nil {
-		g3 := g2.ApplyMove(*nonCaptureMove)
-		// Now it's white's turn, and kingEatenBy = "white", turn = "white" → white wins
-		if g3.GetStatus() != "white_wins" {
-			t.Errorf("Expected white_wins after Last Stand (black didn't capture), got '%s'", g3.GetStatus())
-		}
+	if len(blackMoves) != 0 {
+		t.Errorf("Expected 0 legal moves for Black when game is won, got %d moves", len(blackMoves))
 	}
 }
 

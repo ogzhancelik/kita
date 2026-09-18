@@ -479,6 +479,32 @@ class KitaGameEngine {
     return engine;
   }
 
+  /// Creates a custom game configuration (useful for testing and puzzles)
+  factory KitaGameEngine.custom({
+    required Map<String, KitaPos?> positions,
+    PieceTeam turn = PieceTeam.white,
+    KitaMove? lastMoveWhite,
+    KitaMove? lastMoveBlack,
+    String kingEatenBy = '',
+    Map<KitaGameState, int>? stateHistory,
+    int moveCount = 0,
+  }) {
+    final history = stateHistory ?? <KitaGameState, int>{};
+    final engine = KitaGameEngine._(
+      positions: positions,
+      turn: turn,
+      lastMoveWhite: lastMoveWhite,
+      lastMoveBlack: lastMoveBlack,
+      kingEatenBy: kingEatenBy,
+      stateHistory: history,
+      moveCount: moveCount,
+    );
+    if (history.isEmpty) {
+      history[engine.toGameState()] = 1;
+    }
+    return engine;
+  }
+
   // ─── Computed Properties ────────────────────────────────────────────
 
   bool get isGameOver => getStatus() != GameStatus.ongoing;
@@ -519,6 +545,27 @@ class KitaGameEngine {
     );
   }
 
+  /// When one king has been eaten, checks if the current player has a move that can capture
+  /// the opposing king in retaliation. Returns the first capturing move, or null if none.
+  KitaMove? getKingRetaliationMove() {
+    if (!isLastStand) return null;
+    final oppKingId = _getOpponentKingId(turn);
+    final oppKingPos = positions[oppKingId];
+    if (oppKingPos == null) return null;
+
+    final rawMoves = _getLegalMovesStatic(
+      positions, turn, lastMoveBlack, lastMoveWhite,
+    );
+    for (final m in rawMoves) {
+      if (m.toPos == oppKingPos) {
+        return m;
+      }
+    }
+    return null;
+  }
+
+  bool get hasKingRetaliation => getKingRetaliationMove() != null;
+
   // ─── Status — matches backend GetStatus() ───────────────────────────
 
   /// Matches backend kingEndStatus()
@@ -529,6 +576,13 @@ class KitaGameEngine {
     }
     if (kingEatenBy == 'black' && turn == PieceTeam.black) {
       return GameStatus.blackWins;
+    }
+    // If one king is eaten and it's the victim's turn:
+    // If victim cannot retaliate by capturing the opposing king, attacker wins immediately!
+    if (isLastStand) {
+      if (!hasKingRetaliation) {
+        return kingEatenBy == 'white' ? GameStatus.whiteWins : GameStatus.blackWins;
+      }
     }
     return null;
   }
@@ -570,7 +624,14 @@ class KitaGameEngine {
 
   List<KitaMove> getLegalMoves() {
     if (getStatus() != GameStatus.ongoing) return [];
-    return _getLegalMovesStatic(positions, turn, lastMoveBlack, lastMoveWhite);
+    final allMoves = _getLegalMovesStatic(positions, turn, lastMoveBlack, lastMoveWhite);
+    if (isLastStand) {
+      final oppKingId = _getOpponentKingId(turn);
+      final oppKingPos = positions[oppKingId];
+      if (oppKingPos == null) return [];
+      return allMoves.where((m) => m.toPos == oppKingPos).toList();
+    }
+    return allMoves;
   }
 
   /// Gets legal destination positions for a single piece
