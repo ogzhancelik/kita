@@ -28,18 +28,17 @@ type Match struct {
 	TotalMoves    int          `json:"total_moves" gorm:"default:0"`
 	StartedAt     time.Time    `json:"started_at"`
 	EndedAt       *time.Time   `json:"ended_at"`
-	Moves         []MatchMove  `json:"moves,omitempty" gorm:"foreignKey:MatchID;references:ID"`
+	Moves         []MoveRecord `json:"moves" gorm:"type:jsonb;serializer:json"`
 }
 
-type MatchMove struct {
-	ID        uint      `json:"id" gorm:"primaryKey;autoIncrement"`
-	MatchID   string    `json:"match_id" gorm:"type:uuid;index;not null"`
-	PlyIndex  int       `json:"ply_index" gorm:"not null"`
-	PlayerID  string    `json:"player_id" gorm:"type:uuid;not null"`
-	PieceID   string    `json:"piece_id" gorm:"type:varchar(10);not null"`
-	FromCol   int       `json:"from_col" gorm:"not null"`
-	FromRow   int       `json:"from_row" gorm:"not null"`
-	ToCol     int       `json:"to_col" gorm:"not null"`
-	ToRow     int       `json:"to_row" gorm:"not null"`
-	CreatedAt time.Time `json:"created_at"`
+type MoveRecord struct {
+	PlyIndex int       `json:"ply"`
+	PlayerID string    `json:"player_id"`
+	PieceID  string    `json:"piece"`
+	FromCol  int       `json:"from_col"`
+	FromRow  int       `json:"from_row"`
+	ToCol    int       `json:"to_col"`
+	ToRow    int       `json:"to_row"`
+	TimeMs   int       `json:"time_ms,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
 }

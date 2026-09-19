@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 )
@@ -63,6 +65,15 @@ func (h *MatchHandler) GetUserMatches(c *gin.Context) {
 	userID := c.Param("userId")
 	if userID == "" {
 		SendError(c, http.StatusBadRequest, errors.ErrMissingField, "User ID is required")
+		return
+	}
+
+	if _, err := uuid.Parse(userID); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"user_id": userID,
+			"count":   0,
+			"matches": []domain.Match{},
+		})
 		return
 	}
 

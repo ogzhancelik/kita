@@ -33,8 +33,9 @@ type Room struct {
 	// Mevcut Oyun Motoru (pkg/game - dokunulmadan kullanılıyor)
 	Game         *kitagame.Game
 
-	// Bellekte biriken tüm hamleler (Deferred Persistence Buffer)
-	MovesBuffer  []domain.MatchMove
+	// Bellekte biriken tüm hamleler (Deferred Persistence Buffer - JSONB)
+	MovesBuffer  []domain.MoveRecord
+	lastMoveTime time.Time
 
 	StartedAt    time.Time
 	mu           sync.RWMutex
@@ -44,6 +45,7 @@ type Room struct {
 }
 
 func NewRoom(id string, white, black *Client, matchService ports.MatchService, hub *Hub) *Room {
+	now := time.Now()
 	r := &Room{
 		ID:           id,
 		Status:       "in_game",
@@ -51,8 +53,9 @@ func NewRoom(id string, white, black *Client, matchService ports.MatchService, h
 		BlackPlayer:  black,
 		Spectators:   make(map[string]*Client),
 		Game:         kitagame.NewGame(),
-		MovesBuffer:  make([]domain.MatchMove, 0, 64),
-		StartedAt:    time.Now(),
+		MovesBuffer:  make([]domain.MoveRecord, 0, 64),
+		lastMoveTime: now,
+		StartedAt:    now,
 		matchService: matchService,
 		hub:          hub,
 	}
@@ -64,6 +67,7 @@ func NewRoom(id string, white, black *Client, matchService ports.MatchService, h
 }
 
 func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, matchService ports.MatchService, hub *Hub) *Room {
+	now := time.Now()
 	r := &Room{
 		ID:           id,
 		RoomCode:     roomCode,
@@ -72,8 +76,9 @@ func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, matchServi
 		Status:       "waiting",
 		Spectators:   make(map[string]*Client),
 		Game:         kitagame.NewGame(),
-		MovesBuffer:  make([]domain.MatchMove, 0, 64),
-		StartedAt:    time.Now(),
+		MovesBuffer:  make([]domain.MoveRecord, 0, 64),
+		lastMoveTime: now,
+		StartedAt:    now,
 		matchService: matchService,
 		hub:          hub,
 	}
@@ -101,6 +106,8 @@ func (r *Room) Join(client *Client) error {
 	}
 
 	r.Status = "in_game"
+	r.lastMoveTime = time.Now()
+	r.StartedAt = time.Now()
 	r.startLocked()
 	return nil
 }
@@ -174,9 +181,12 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 	// 3. Hamleyi oyuna uygula (Mevcut engine metodu: pure transition)
 	r.Game = r.Game.ApplyMove(candidateMove)
 
-	// 4. Hamleyi veritabanına değil, bellekteki buffer'a ekle
-	matchMove := domain.MatchMove{
-		MatchID:   r.ID,
+	// 4. Hamleyi veritabanına değil, bellekteki buffer'a ekle (JSONB MoveRecord)
+	now := time.Now()
+	durationMs := int(now.Sub(r.lastMoveTime).Milliseconds())
+	r.lastMoveTime = now
+
+	matchMove := domain.MoveRecord{
 		PlyIndex:  r.Game.MoveCount,
 		PlayerID:  playerID,
 		PieceID:   candidateMove.PieceID,
@@ -184,7 +194,8 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 		FromRow:   candidateMove.FromPos.Row,
 		ToCol:     candidateMove.ToPos.Col,
 		ToRow:     candidateMove.ToPos.Row,
-		CreatedAt: time.Now(),
+		TimeMs:    durationMs,
+		CreatedAt: now,
 	}
 	r.MovesBuffer = append(r.MovesBuffer, matchMove)
 
@@ -210,8 +221,9 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 				retaliatorID = rm.WhitePlayer.UserID
 			}
 
-			rm.MovesBuffer = append(rm.MovesBuffer, domain.MatchMove{
-				MatchID:   rm.ID,
+			retaliationTime := time.Now()
+			rm.lastMoveTime = retaliationTime
+			rm.MovesBuffer = append(rm.MovesBuffer, domain.MoveRecord{
 				PlyIndex:  rm.Game.MoveCount,
 				PlayerID:  retaliatorID,
 				PieceID:   autoMove.PieceID,
@@ -219,7 +231,8 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 				FromRow:   autoMove.FromPos.Row,
 				ToCol:     autoMove.ToPos.Col,
 				ToRow:     autoMove.ToPos.Row,
-				CreatedAt: time.Now(),
+				TimeMs:    400,
+				CreatedAt: retaliationTime,
 			})
 
 			rm.broadcastStateLocked()

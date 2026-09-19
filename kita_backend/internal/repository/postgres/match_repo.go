@@ -22,7 +22,7 @@ func NewMatchRepository(db *gorm.DB) ports.MatchRepository {
 func (r *matchRepo) SaveFinishedMatchWithMoves(
 	ctx context.Context,
 	match *domain.Match,
-	whiteRatingChange, blackRatingChange int,
+	whiteRating, whiteRD, whiteVol, blackRating, blackRD, blackVol float64,
 ) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 1. Maç ve ilişkili tüm hamleleri kaydet (GORM match.Moves'u otomatik topluca insert eder)
@@ -33,7 +33,9 @@ func (r *matchRepo) SaveFinishedMatchWithMoves(
 		// 2. Beyaz oyuncunun istatistiklerini güncelle
 		var whiteUser domain.User
 		if err := tx.First(&whiteUser, "id = ?", match.WhitePlayerID).Error; err == nil {
-			whiteUser.Rating += whiteRatingChange
+			whiteUser.Rating = whiteRating
+			whiteUser.RatingDeviation = whiteRD
+			whiteUser.Volatility = whiteVol
 			if whiteUser.Rating < 100 {
 				whiteUser.Rating = 100 // Taban puan sınırı
 			}
@@ -54,7 +56,9 @@ func (r *matchRepo) SaveFinishedMatchWithMoves(
 		// 3. Siyah oyuncunun istatistiklerini güncelle
 		var blackUser domain.User
 		if err := tx.First(&blackUser, "id = ?", match.BlackPlayerID).Error; err == nil {
-			blackUser.Rating += blackRatingChange
+			blackUser.Rating = blackRating
+			blackUser.RatingDeviation = blackRD
+			blackUser.Volatility = blackVol
 			if blackUser.Rating < 100 {
 				blackUser.Rating = 100
 			}
@@ -81,9 +85,6 @@ func (r *matchRepo) FindByID(ctx context.Context, id string) (*domain.Match, err
 	err := r.db.WithContext(ctx).
 		Preload("WhitePlayer").
 		Preload("BlackPlayer").
-		Preload("Moves", func(db *gorm.DB) *gorm.DB {
-			return db.Order("match_moves.ply_index ASC")
-		}).
 		First(&match, "id = ?", id).Error
 
 	if err != nil {
@@ -98,6 +99,7 @@ func (r *matchRepo) FindByID(ctx context.Context, id string) (*domain.Match, err
 func (r *matchRepo) FindUserMatches(ctx context.Context, userID string, limit, offset int) ([]domain.Match, error) {
 	var matches []domain.Match
 	err := r.db.WithContext(ctx).
+		Omit("moves").
 		Preload("WhitePlayer").
 		Preload("BlackPlayer").
 		Where("white_player_id = ? OR black_player_id = ?", userID, userID).
@@ -112,15 +114,14 @@ func (r *matchRepo) FindUserMatches(ctx context.Context, userID string, limit, o
 	return matches, nil
 }
 
-func (r *matchRepo) GetMovesByMatchID(ctx context.Context, matchID string) ([]domain.MatchMove, error) {
-	var moves []domain.MatchMove
+func (r *matchRepo) GetMovesByMatchID(ctx context.Context, matchID string) ([]domain.MoveRecord, error) {
+	var match domain.Match
 	err := r.db.WithContext(ctx).
-		Where("match_id = ?", matchID).
-		Order("ply_index ASC").
-		Find(&moves).Error
+		Select("id", "moves").
+		First(&match, "id = ?", matchID).Error
 
 	if err != nil {
 		return nil, err
 	}
-	return moves, nil
+	return match.Moves, nil
 }

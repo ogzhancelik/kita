@@ -11,6 +11,7 @@ import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/common/stat_badge.dart';
 import '../game/offline_ai_screen.dart';
 import 'leaderboard_screen.dart';
+import 'match_history_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -221,6 +222,21 @@ class DashboardScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                // Mode 6: Match History & Replay
+                _buildModeCard(
+                  context: context,
+                  title: 'dashboard.matchHistory'.tr(),
+                  subtitle: 'dashboard.matchHistoryDesc'.tr(),
+                  icon: Icons.history_edu_rounded,
+                  iconBg: const Color(0xFF16A085),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const MatchHistoryScreen()),
                     );
                   },
                 ),

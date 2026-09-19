@@ -30,6 +30,11 @@ class ApiConstants {
   static const String leaderboard = '/api/users/leaderboard';
   static String userProfile(String id) => '/api/users/profile/$id';
 
+  // Matches & Replay
+  static String userMatches(String userId) => '/api/matches/user/$userId';
+  static String matchDetails(String matchId) => '/api/matches/$matchId';
+  static String matchMoves(String matchId) => '/api/matches/$matchId/moves';
+
   // WebSocket
   static String get wsUrl {
     final uri = Uri.parse(baseUrl);

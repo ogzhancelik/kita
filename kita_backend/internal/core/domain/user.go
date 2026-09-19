@@ -1,18 +1,23 @@
 package domain
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 type User struct {
-	ID           string    `json:"id" gorm:"primaryKey;type:uuid"`
-	Username     string    `json:"username" gorm:"uniqueIndex;not null"`
-	Email        string    `json:"email" gorm:"uniqueIndex;not null"`
-	PasswordHash string    `json:"-" gorm:"not null"`
-	Rating       int       `json:"rating" gorm:"default:1200;index"`
-	Wins         int       `json:"wins" gorm:"default:0"`
-	Losses       int       `json:"losses" gorm:"default:0"`
-	Draws        int       `json:"draws" gorm:"default:0"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID              string    `json:"id" gorm:"primaryKey;type:uuid"`
+	Username        string    `json:"username" gorm:"uniqueIndex;not null"`
+	Email           string    `json:"email" gorm:"uniqueIndex;not null"`
+	PasswordHash    string    `json:"-" gorm:"not null"`
+	Rating          float64   `json:"rating" gorm:"default:1500;index"`
+	RatingDeviation float64   `json:"rating_deviation" gorm:"default:350"`
+	Volatility      float64   `json:"volatility" gorm:"default:0.06"`
+	Wins            int       `json:"wins" gorm:"default:0"`
+	Losses          int       `json:"losses" gorm:"default:0"`
+	Draws           int       `json:"draws" gorm:"default:0"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type UserProfile struct {
@@ -36,7 +41,7 @@ func (u *User) ToProfile() UserProfile {
 	return UserProfile{
 		ID:        u.ID,
 		Username:  u.Username,
-		Rating:    u.Rating,
+		Rating:    int(math.Round(u.Rating)),
 		Wins:      u.Wins,
 		Losses:    u.Losses,
 		Draws:     u.Draws,

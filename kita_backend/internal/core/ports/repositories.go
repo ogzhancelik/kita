@@ -16,10 +16,10 @@ type UserRepository interface {
 }
 
 type MatchRepository interface {
-	SaveFinishedMatchWithMoves(ctx context.Context, match *domain.Match, whiteRatingChange, blackRatingChange int) error
+	SaveFinishedMatchWithMoves(ctx context.Context, match *domain.Match, whiteRating, whiteRD, whiteVol, blackRating, blackRD, blackVol float64) error
 	FindByID(ctx context.Context, id string) (*domain.Match, error)
 	FindUserMatches(ctx context.Context, userID string, limit, offset int) ([]domain.Match, error)
-	GetMovesByMatchID(ctx context.Context, matchID string) ([]domain.MatchMove, error)
+	GetMovesByMatchID(ctx context.Context, matchID string) ([]domain.MoveRecord, error)
 }
 
 type MessageRepository interface {
