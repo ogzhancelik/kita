@@ -157,7 +157,7 @@ class DashboardScreen extends StatelessWidget {
                   subtitle: 'game.offlineAIDesc'.tr(),
                   icon: Icons.smart_toy_rounded,
                   iconBg: AppColors.primaryGreen,
-                  badgeText: 'OFFLINE READY',
+                  badgeText: 'dashboard.badgeOffline'.tr(),
                   badgeColor: AppColors.primaryGreen,
                   onTap: () {
                     Navigator.of(context).push(
@@ -171,13 +171,13 @@ class DashboardScreen extends StatelessWidget {
                 _buildModeCard(
                   context: context,
                   title: 'dashboard.findMatch'.tr(),
-                  subtitle: 'Queue pool for active players (Guest & Registered)',
+                  subtitle: 'dashboard.findMatchDesc'.tr(),
                   icon: Icons.bolt_rounded,
                   iconBg: const Color(0xFFE67E22),
-                  badgeText: 'ONLINE',
+                  badgeText: 'dashboard.badgeOnline'.tr(),
                   badgeColor: const Color(0xFFE67E22),
                   onTap: () {
-                    KitaToast.info('Matchmaking queue will connect via WebSocket in Phase 4.');
+                    KitaToast.info('dashboard.toastMatchmaking'.tr());
                   },
                 ),
                 const SizedBox(height: 10),
@@ -186,11 +186,11 @@ class DashboardScreen extends StatelessWidget {
                 _buildModeCard(
                   context: context,
                   title: 'dashboard.createRoom'.tr(),
-                  subtitle: 'Custom room with short code & invite links',
+                  subtitle: 'dashboard.createRoomDesc'.tr(),
                   icon: Icons.meeting_room_rounded,
                   iconBg: const Color(0xFF9B59B6),
                   onTap: () {
-                    KitaToast.info('Room creation API ready on backend!');
+                    KitaToast.info('dashboard.toastCreateRoom'.tr());
                   },
                 ),
                 const SizedBox(height: 10),
@@ -199,13 +199,13 @@ class DashboardScreen extends StatelessWidget {
                 _buildModeCard(
                   context: context,
                   title: 'dashboard.friends'.tr(),
-                  subtitle: 'Direct match invites & friend lists',
+                  subtitle: 'dashboard.friendsDesc'.tr(),
                   icon: Icons.people_alt_rounded,
                   iconBg: const Color(0xFF3498DB),
                   isGated: isGuest,
                   onTap: () {
                     authProv.guardAction(context, () {
-                      KitaToast.info('Friends list and challenges loaded.');
+                      KitaToast.info('dashboard.toastFriends'.tr());
                     });
                   },
                 ),
@@ -215,7 +215,7 @@ class DashboardScreen extends StatelessWidget {
                 _buildModeCard(
                   context: context,
                   title: 'dashboard.leaderboard'.tr(),
-                  subtitle: 'Global rankings & top Kita players',
+                  subtitle: 'dashboard.leaderboardDesc'.tr(),
                   icon: Icons.leaderboard_rounded,
                   iconBg: AppColors.ratingGold,
                   onTap: () {

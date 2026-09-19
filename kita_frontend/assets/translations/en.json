@@ -1,7 +1,6 @@
 {
   "appTitle": "Kita Fullstack",
   "appTagline": "Master the 4x7 tactical battle",
-
   "errValidationFailed": "Validation failed.",
   "errMissingField": "A required field is missing.",
   "errInvalidFormat": "Invalid format.",
@@ -20,11 +19,9 @@
   "errUnknownMessage": "Unknown message type.",
   "errNetworkError": "Connection failed. Please check your network.",
   "errUnknown": "An unexpected error occurred.",
-
   "reasonNormal": "Game finished normally by rules.",
   "reasonResigned": "Player resigned.",
   "reasonDisconnected": "Opponent disconnected.",
-
   "auth": {
     "login": "Log In",
     "register": "Sign Up",
@@ -51,7 +48,6 @@
     "loginSuccess": "Welcome back, {}!",
     "registerSuccess": "Account created! Welcome, {}!"
   },
-
   "guest": {
     "title": "Guest Profile",
     "subtitle": "Choose your avatar and battle name",
@@ -64,9 +60,9 @@
     "restrictionTitle": "Account Required",
     "restrictionDesc": "This feature is only available for registered players. Sign up or log in to unlock friends, direct match challenges, and rating tracking!",
     "unlockAccount": "Sign Up / Log In",
-    "stayGuest": "Continue as Guest"
+    "stayGuest": "Continue as Guest",
+    "randomize": "Randomize"
   },
-
   "network": {
     "offlineTitle": "Offline Mode",
     "offlineDesc": "No internet connection detected. You can play directly against the local AI engine!",
@@ -74,7 +70,6 @@
     "retryConnection": "Retry Connection",
     "checking": "Checking connection..."
   },
-
   "dashboard": {
     "welcome": "Welcome",
     "playOnline": "Play Online",
@@ -94,9 +89,17 @@
     "losses": "Losses",
     "quickActions": "Quick Play",
     "guestNotice": "You are playing as Guest. Your stats will not be saved globally.",
-    "onlinePlayers": "Players Online"
+    "onlinePlayers": "Players Online",
+    "findMatchDesc": "Queue pool for active players (Guest & Registered)",
+    "createRoomDesc": "Custom room with short code & invite links",
+    "friendsDesc": "Direct match invites & friend lists",
+    "leaderboardDesc": "Global rankings & top Kita players",
+    "badgeOffline": "OFFLINE READY",
+    "badgeOnline": "ONLINE",
+    "toastMatchmaking": "Matchmaking queue will connect via WebSocket in Phase 4.",
+    "toastCreateRoom": "Room creation API ready on backend!",
+    "toastFriends": "Friends list and challenges loaded."
   },
-
   "game": {
     "offlineAITitle": "Kita vs AI Engine",
     "offlineAIDesc": "Single-player local match. AI engine runs on 4x7 grid.",
@@ -119,9 +122,61 @@
     "aiWon": "Defeat! AI Won!",
     "whiteTurn": "White's Turn",
     "blackTurn": "Black's Turn",
-    "inDevelopment": "Game board is ready for the upcoming match engine phase!"
+    "inDevelopment": "Game board is ready for the upcoming match engine phase!",
+    "modeLocal2P": "Local 2P (Pass & Play)",
+    "modeVsAI": "VS AI Bot",
+    "localCoopTitle": "Local 2P Co-op",
+    "vsAiTitle": "VS AI Bot",
+    "localCoopDesc": "Single-device 2 Players",
+    "aiBotDesc": "Kita AI Bot",
+    "moveCount": "Move: {}",
+    "orientationHorizontal": "Horizontal (7x4)",
+    "orientationVertical": "Vertical (4x7)",
+    "flipBoard": "Flip Board",
+    "heatmapTheme": "Heatmap Theme ({})",
+    "distanceSteps": "Distance: {} steps",
+    "scenarioLoaded": "Scenario loaded: {}",
+    "noLegalMoves": "No legal {}-step moves available (or restricted by reversal rule).",
+    "heatmapChanged": "Heatmap: {}",
+    "whiteWins": "White Wins!",
+    "blackWins": "Black Wins!",
+    "draw": "Draw!",
+    "playAgain": "Play Again",
+    "whiteKingCapturedDesc": "White captured the Black King! As the opposing King could not retaliate, White wins immediately.",
+    "blackNoLegalMoves": "Black has no legal moves remaining!",
+    "blackKingCapturedDesc": "Black captured the White King! As the opposing King could not retaliate, Black wins immediately.",
+    "whiteNoLegalMoves": "White has no legal moves remaining!",
+    "doubleKingCapturedDesc": "Both Kings were captured in consecutive turns! By rule, the match ends in a DRAW.",
+    "threefoldRepetitionDesc": "Position repeated 3 times — match drawn by threefold repetition!",
+    "genericDrawDesc": "The game ended in a draw!",
+    "testScenarios": "Test Scenarios",
+    "testScenariosTitle": "Test Scenarios",
+    "testScenariosDesc": "Select a position to test the Last Stand mechanism:",
+    "scenarioRetaliationTitle": "1. Automatic Retaliation (Draw)",
+    "scenarioRetaliationDesc": "White captures BK with WP1 -> Black BP1 automatically retaliates -> Ends in Draw.",
+    "scenarioImmediateWinTitle": "2. Immediate Win",
+    "scenarioImmediateWinDesc": "White captures BK with WP1 -> Black cannot retaliate against WK -> White wins immediately.",
+    "scenarioDefaultBoard": "Default Board (Standard)",
+    "howToPlay": "How to Play",
+    "rulesGoalTitle": "Goal",
+    "rulesGoalDesc": "Capture the opponent's King!",
+    "rulesBoardTitle": "Board",
+    "rulesBoardDesc": "Cross-shaped 20-tile board. Each tile has a value of 1, 2, or 3.",
+    "rulesPiecesTitle": "Pieces",
+    "rulesPiecesDesc": "Each team has 1 King + 2 Pawns. Pawns cannot be captured.",
+    "rulesMovementTitle": "Movement",
+    "rulesMovementDesc": "Step count required each turn = value of the tile opponent's King stands on. You must move exactly that many steps.",
+    "rulesCaptureTitle": "Capture",
+    "rulesCaptureDesc": "Only Kings can be captured — Pawns are invincible. You cannot land on your own pieces or opponent Pawns.",
+    "rulesWinTitle": "Win",
+    "rulesWinDesc": "Safely capture the opponent's King -> Win! Opponent has no legal moves -> Win!",
+    "rulesLastStandTitle": "Last Stand",
+    "rulesLastStandDesc": "When a King is captured, opponent gets ONE LAST TURN. If they capture your King -> Draw! Otherwise -> They lose!",
+    "rulesDrawTitle": "Draw",
+    "rulesDrawDesc": "Both Kings captured back-to-back -> Draw. Position repeated 3 times -> Draw (Threefold Repetition).",
+    "rulesReversalTitle": "Reversal Rule",
+    "rulesReversalDesc": "You cannot reverse your previous move unless no other legal move exists."
   },
-
   "leaderboard": {
     "title": "Leaderboard",
     "topPlayers": "Top Players",
@@ -136,9 +191,9 @@
     "empty": "No players on the leaderboard yet.",
     "error": "Failed to load leaderboard.",
     "retry": "Retry",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "you": "YOU"
   },
-
   "settings": {
     "language": "Language",
     "theme": "Theme",
@@ -146,7 +201,6 @@
     "light": "Light",
     "system": "System"
   },
-
   "common": {
     "cancel": "Cancel",
     "confirm": "Confirm",

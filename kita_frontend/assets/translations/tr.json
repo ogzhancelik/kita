@@ -64,7 +64,8 @@
     "restrictionTitle": "Kayıtlı Hesap Gerekli",
     "restrictionDesc": "Bu özellik yalnızca kayıtlı oyuncular içindir. Arkadaş eklemek, doğrudan maç daveti göndermek ve sıralama puanı kazanmak için kaydolun veya giriş yapın!",
     "unlockAccount": "Kayıt Ol / Giriş Yap",
-    "stayGuest": "Misafir Olarak Kal"
+    "stayGuest": "Misafir Olarak Kal",
+    "randomize": "Rastgele Seç"
   },
 
   "network": {
@@ -94,7 +95,16 @@
     "losses": "Mağlubiyet",
     "quickActions": "Hızlı Oyun",
     "guestNotice": "Misafir olarak oynuyorsunuz. İstatistikleriniz sunucuya kaydedilmez.",
-    "onlinePlayers": "Çevrimiçi Oyuncu"
+    "onlinePlayers": "Çevrimiçi Oyuncu",
+    "findMatchDesc": "Aktif oyuncular için eşleşme havuzu (Misafir & Kayıtlı)",
+    "createRoomDesc": "Kısa kod ve davet bağlantılarıyla özel oda",
+    "friendsDesc": "Doğrudan maç davetleri ve arkadaş listeleri",
+    "leaderboardDesc": "Küresel sıralama ve en iyi Kita oyuncuları",
+    "badgeOffline": "ÇEVRİMDIŞI HAZIR",
+    "badgeOnline": "ÇEVRİMİÇİ",
+    "toastMatchmaking": "Eşleşme sırası Aşama 4'te WebSocket üzerinden bağlanacaktır.",
+    "toastCreateRoom": "Oda oluşturma API'si sunucuda hazır!",
+    "toastFriends": "Arkadaş listesi ve meydan okumalar yüklendi."
   },
 
   "game": {
@@ -119,7 +129,60 @@
     "aiWon": "Yapay Zeka Kazandı!",
     "whiteTurn": "Beyaz'ın Sırası",
     "blackTurn": "Siyah'ın Sırası",
-    "inDevelopment": "Oyun tahtası sonraki aşama olan maç motoru için hazırlandı!"
+    "inDevelopment": "Oyun tahtası sonraki aşama olan maç motoru için hazırlandı!",
+    "modeLocal2P": "Yerel 2P (Geç ve Oyna)",
+    "modeVsAI": "VS Yapay Zeka (AI)",
+    "localCoopTitle": "Yerel 2P Co-op",
+    "vsAiTitle": "VS AI Bot",
+    "localCoopDesc": "Tek Cihazda Karşılıklı",
+    "aiBotDesc": "Kita AI Bot",
+    "moveCount": "Hamle: {}",
+    "orientationHorizontal": "Yatay (7x4)",
+    "orientationVertical": "Dikey (4x7)",
+    "flipBoard": "Manuel Çevir",
+    "heatmapTheme": "Heatmap Teması ({})",
+    "distanceSteps": "Mesafe: {} adım",
+    "scenarioLoaded": "Senaryo Yüklendi: {}",
+    "noLegalMoves": "Geçerli {}-adımlık yasal hamle yok (veya geri alma kuralı ile kısıtlandı).",
+    "heatmapChanged": "Heatmap: {}",
+    "whiteWins": "Beyaz Kazandı!",
+    "blackWins": "Siyah Kazandı!",
+    "draw": "Berabere!",
+    "playAgain": "Yeniden Oyna",
+    "whiteKingCapturedDesc": "Beyaz, Siyah kralı avladı! Karşı kral misilleme yapamadığı için oyun hemen sona erdi.",
+    "blackNoLegalMoves": "Siyah oyuncunun yapacak hiçbir yasal hamlesi kalmadı!",
+    "blackKingCapturedDesc": "Siyah, Beyaz kralı avladı! Karşı kral misilleme yapamadığı için oyun hemen sona erdi.",
+    "whiteNoLegalMoves": "Beyaz oyuncunun yapacak hiçbir yasal hamlesi kalmadı!",
+    "doubleKingCapturedDesc": "Kral yendi ancak hemen ardından karşı kral da avlandığı için kural gereği maç otomatik olarak BERABERE bitti!",
+    "threefoldRepetitionDesc": "Aynı pozisyon 3 kez tekrarlandı — kural gereği maç berabere!",
+    "genericDrawDesc": "Oyun berabere sonuçlandı!",
+    "testScenarios": "Test Senaryoları",
+    "testScenariosTitle": "Test Senaryoları",
+    "testScenariosDesc": "Son Şans mekanizmasını test etmek için bir pozisyon seçin:",
+    "scenarioRetaliationTitle": "1. Otomatik Misilleme (Draw)",
+    "scenarioRetaliationDesc": "Beyaz WP1 ile BK'yı yer -> Siyah BP1 otomatik misilleme yapar -> Berabere biter.",
+    "scenarioImmediateWinTitle": "2. Anında Bitiş (Immediate Win)",
+    "scenarioImmediateWinDesc": "Beyaz WP1 ile BK'yı yer -> Siyah karşı kralı avlayamadığı için Beyaz anında kazanır.",
+    "scenarioDefaultBoard": "Varsayılan Tahta (Standart)",
+    "howToPlay": "Nasıl Oynanır?",
+    "rulesGoalTitle": "Amaç",
+    "rulesGoalDesc": "Rakibin Kralını (Şah) yakala!",
+    "rulesBoardTitle": "Tahta",
+    "rulesBoardDesc": "Haç şeklinde 20 kareden oluşan tahta. Her kare 1, 2 veya 3 değerinde.",
+    "rulesPiecesTitle": "Taşlar",
+    "rulesPiecesDesc": "Her takımda 1 Kral (Şah) + 2 Piyon. Piyonlar yenilemez.",
+    "rulesMovementTitle": "Hareket",
+    "rulesMovementDesc": "Her turda atman gereken adım sayısı = Rakibin Kralının üzerinde durduğu karenin değeri. Tam o kadar adım atmalısın — ne fazla, ne eksik.",
+    "rulesCaptureTitle": "Yeme",
+    "rulesCaptureDesc": "Sadece Krallar yenebilir — Piyonlar dokunulmaz. Kendi taşlarına veya rakip Piyonlara inemezsin.",
+    "rulesWinTitle": "Kazanma",
+    "rulesWinDesc": "Rakibin Kralını güvenle yakala → Kazan!\nRakibin yasal hamlesi kalmasın → Kazan!",
+    "rulesLastStandTitle": "Son Şans",
+    "rulesLastStandDesc": "Bir Kral yendiğinde karşı takım SON BİR HAMLE yapar. Senin Kralını yerse → Berabere! Yiyemezse → Kaybeder!",
+    "rulesDrawTitle": "Berabere",
+    "rulesDrawDesc": "İki Kral da art arda yenilirse → Berabere\nAynı pozisyon 3 kez tekrarlanırsa → Berabere (Threefold Repetition)",
+    "rulesReversalTitle": "Geri Alma Yasağı",
+    "rulesReversalDesc": "Kendi son hamlenin tersini yapamazsın — başka hamle yoksa hariç."
   },
 
   "leaderboard": {
@@ -136,7 +199,8 @@
     "empty": "Henüz lider tablosunda oyuncu bulunmuyor.",
     "error": "Lider tablosu yüklenirken bir hata oluştu.",
     "retry": "Yeniden Dene",
-    "refresh": "Yenile"
+    "refresh": "Yenile",
+    "you": "SEN"
   },
 
   "settings": {

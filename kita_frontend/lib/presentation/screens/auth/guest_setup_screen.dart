@@ -107,7 +107,7 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
                         backgroundColor: AppColors.primaryGreen,
                         foregroundColor: Colors.white,
                       ),
-                      tooltip: 'Randomize',
+                      tooltip: 'guest.randomize'.tr(),
                       onPressed: _randomizeName,
                     ),
                   ],

@@ -26,7 +26,7 @@ Foundational systems to establish early so game strings and rules are never hard
 - [x] **Frontend**: Configure Flutter localization setup (`easy_localization`, JSON translation files `en.json`, `tr.json`).
 - [x] **Frontend**: Implement language switcher (English / Türkçe) with runtime toggle & persistence.
 - [x] **Backend**: Standardize error and status messages with language-agnostic error codes.
-- [ ] **Content**: Translate all in-game terminology (King/Şah, Pawn/Piyon, Jump/Sıçrama, Repetition/Tekrar, etc.).
+- [x] **Content**: Translate all in-game terminology (King/Şah, Pawn/Piyon, Jump/Sıçrama, Repetition/Tekrar, etc.) across en.json and tr.json with full key synchronization.
 
 ### 2. Interactive Tutorial & Game Guide
 - [ ] **Rules Reference**: Static visual guide detailing board layout (4×7 grid), piece movements, and capture rules.
@@ -121,10 +121,12 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [ ] **Match Recording**:
   - [x] Persistent match logs in DB (move sequence, timestamps, piece states, final outcome)
   - [ ] Export match notation (JSON or custom PGN-like format)
-- [ ] **Replay Viewer**:
+- [ ] **Replay & Review Viewer**:
   - [ ] Step-by-step game playback (Next move, Previous move, Jump to start/end, Auto-play with speed controls)
-- [ ] **Game Analysis**:
-  - [ ] Highlight critical turns, blunders, and winning moves
+  - [ ] Post-game review workflow: Replay past recorded matches directly from match history
+- [ ] **Game Analysis & AI Evaluation**:
+  - [ ] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
+  - [ ] Full post-game AI game review highlighting critical turns, blunders, inaccuracies, and best moves
   - [ ] Interactive "sandbox" fork: test alternate moves from any board state in the replay
 
 ---
@@ -133,3 +135,10 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 
 - [x] **Modular Kita Board Component**: Responsive board widget supporting responsive scaling (`LayoutBuilder`), horizontal (7x4) and vertical (4x7) orientations, transparent non-playable hole cells, custom themes (Classic, Dark Slate, Wood), dynamic tile values, and piece movement handlers.
 - [x] **Tactile UI System**: Chess.com-style 3D buttons, floating toast notifications, and dark/light mode theming.
+- [ ] **In-Game Move History Panel**:
+  - Dedicated / collapsible in-game panel displaying the chronological list of moves made during a match (White / Black turns, notation, piece icons).
+  - Interactive navigation to view previous moves and state progression during gameplay.
+- [ ] **Last Move Indicator & Toggle Setting**:
+  - Visual highlight / marker on origin and destination tiles of the last executed move (essential for Kita's reversal prevention and last-stand tracking).
+  - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator.
+

@@ -105,7 +105,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       _isAiThinking = false;
       _isAutoRetaliating = false;
     });
-    KitaToast.info('Senaryo Yüklendi: $label');
+    KitaToast.info('game.scenarioLoaded'.tr(args: [label]));
   }
 
   void _showTestScenariosDialog() {
@@ -115,13 +115,13 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.science_rounded, color: Colors.orangeAccent, size: 22),
-            SizedBox(width: 8),
+            const Icon(Icons.science_rounded, color: Colors.orangeAccent, size: 22),
+            const SizedBox(width: 8),
             Text(
-              'Test Senaryoları',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              'game.testScenariosTitle'.tr(),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -129,9 +129,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Son Şans mekanizmasını test etmek için bir pozisyon seçin:',
-              style: TextStyle(fontSize: 12.5),
+            Text(
+              'game.testScenariosDesc'.tr(),
+              style: const TextStyle(fontSize: 12.5),
             ),
             const SizedBox(height: 14),
             ListTile(
@@ -141,13 +141,13 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
               ),
               tileColor: AppColors.primaryGreen.withValues(alpha: 0.1),
               leading: const Icon(Icons.auto_mode_rounded, color: AppColors.primaryGreen),
-              title: const Text(
-                '1. Otomatik Misilleme (Draw)',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              title: Text(
+                'game.scenarioRetaliationTitle'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
               ),
-              subtitle: const Text(
-                'Beyaz WP1 ile BK\'yı yer -> Siyah BP1 otomatik misilleme yapar -> Berabere biter.',
-                style: TextStyle(fontSize: 11.5),
+              subtitle: Text(
+                'game.scenarioRetaliationDesc'.tr(),
+                style: const TextStyle(fontSize: 11.5),
               ),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -158,7 +158,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                   'BP1': const KitaPos(5, 3), // 2 steps to reach WK at (3,3)
                   'BP2': const KitaPos(0, 1),
                   'WP2': const KitaPos(6, 2),
-                }, 'Otomatik Misilleme (Draw)');
+                }, 'game.scenarioRetaliationTitle'.tr());
               },
             ),
             const SizedBox(height: 10),
@@ -169,13 +169,13 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
               ),
               tileColor: Colors.amber.withValues(alpha: 0.1),
               leading: const Icon(Icons.emoji_events_outlined, color: Colors.amber),
-              title: const Text(
-                '2. Anında Bitiş (Immediate Win)',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              title: Text(
+                'game.scenarioImmediateWinTitle'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
               ),
-              subtitle: const Text(
-                'Beyaz WP1 ile BK\'yı yer -> Siyah karşı kralı avlayamadığı için Beyaz anında kazanır.',
-                style: TextStyle(fontSize: 11.5),
+              subtitle: Text(
+                'game.scenarioImmediateWinDesc'.tr(),
+                style: const TextStyle(fontSize: 11.5),
               ),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -186,7 +186,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                   'BP1': const KitaPos(0, 1), // Far from WK
                   'BP2': const KitaPos(0, 2), // Far from WK
                   'WP2': const KitaPos(6, 2),
-                }, 'Anında Kazanma (Immediate Win)');
+                }, 'game.scenarioImmediateWinTitle'.tr());
               },
             ),
             const SizedBox(height: 10),
@@ -196,9 +196,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                 side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
               ),
               leading: const Icon(Icons.refresh_rounded, color: Colors.grey),
-              title: const Text(
-                'Varsayılan Tahta (Standart)',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              title: Text(
+                'game.scenarioDefaultBoard'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               ),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -210,7 +210,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Kapat'),
+            child: Text('common.close'.tr()),
           ),
         ],
       ),
@@ -291,7 +291,15 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         return;
       }
 
-      // 2. If clicking on own piece -> Select it & calculate legal moves
+      // 2. If clicking on the already selected piece's tile -> Deselect it
+      if (_selectedPos != null && _selectedPos == pos) {
+        _selectedPos = null;
+        _selectedPieceId = null;
+        _validMoves = {};
+        return;
+      }
+
+      // 3. If clicking on own piece -> Select it & calculate legal moves
       String? clickedPieceId;
       _engine.activePositions.forEach((id, p) {
         if (p == pos) clickedPieceId = id;
@@ -305,13 +313,13 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
           _validMoves = _engine.getLegalMovesForPiece(clickedPieceId!);
 
           if (_validMoves.isEmpty) {
-            KitaToast.warning('No legal ${_engine.currentStepCount}-step moves available (or restricted by reversal rule).');
+            KitaToast.warning('game.noLegalMoves'.tr(args: ['${_engine.currentStepCount}']));
           }
           return;
         }
       }
 
-      // 3. Deselect
+      // 4. Deselect (clicking on an empty tile or non-valid opponent piece)
       _selectedPos = null;
       _selectedPieceId = null;
       _validMoves = {};
@@ -437,13 +445,13 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
           icon = isPlayerWinner ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded;
           iconColor = isPlayerWinner ? AppColors.ratingGold : Colors.redAccent;
         } else {
-          title = 'Beyaz Kazandı! (White Wins)';
+          title = 'game.whiteWins'.tr();
           icon = Icons.emoji_events_rounded;
           iconColor = AppColors.ratingGold;
         }
         subtitle = endReason == EndReason.kingCaptured
-            ? 'Beyaz, Siyah kralı avladı! Karşı kral avlanamadığı için oyun hemen sona erdi.'
-            : 'Siyah oyuncunun yapacak hiçbir yasal hamlesi kalmadı!';
+            ? 'game.whiteKingCapturedDesc'.tr()
+            : 'game.blackNoLegalMoves'.tr();
         break;
       case GameStatus.blackWins:
         if (isVsAi) {
@@ -451,23 +459,23 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
           icon = isPlayerWinner ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded;
           iconColor = isPlayerWinner ? AppColors.ratingGold : Colors.redAccent;
         } else {
-          title = 'Siyah Kazandı! (Black Wins)';
+          title = 'game.blackWins'.tr();
           icon = Icons.emoji_events_rounded;
           iconColor = AppColors.ratingGold;
         }
         subtitle = endReason == EndReason.kingCaptured
-            ? 'Siyah, Beyaz kralı avladı! Karşı kral avlanamadığı için oyun hemen sona erdi.'
-            : 'Beyaz oyuncunun yapacak hiçbir yasal hamlesi kalmadı!';
+            ? 'game.blackKingCapturedDesc'.tr()
+            : 'game.whiteNoLegalMoves'.tr();
         break;
       case GameStatus.draw:
-        title = 'Berabere! (Draw)';
+        title = 'game.draw'.tr();
         icon = Icons.handshake_rounded;
         iconColor = AppColors.drawGray;
         subtitle = endReason == EndReason.doubleKingCaptured
-            ? 'Kral yendi ancak hemen ardından karşı kral da avlandığı için kural gereği maç otomatik olarak BERABERE bitti!'
+            ? 'game.doubleKingCapturedDesc'.tr()
             : endReason == EndReason.threefoldRepetition
-            ? 'Aynı pozisyon 3 kez tekrarlandı — kural gereği maç berabere!'
-            : 'Oyun berabere sonuçlandı!';
+            ? 'game.threefoldRepetitionDesc'.tr()
+            : 'game.genericDrawDesc'.tr();
         break;
       default:
         return;
@@ -518,7 +526,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
               ),
               const SizedBox(height: 24),
               KitaButton(
-                text: 'Yeniden Oyna (Play Again)',
+                text: 'game.playAgain'.tr(),
                 icon: Icons.replay_rounded,
                 variant: KitaButtonVariant.primary,
                 onPressed: () {
@@ -551,7 +559,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       appBar: KitaAppBar(
         showAuthActions: false,
         showBack: true,
-        title: _playMode == PlayMode.localCoop ? 'Local 2P Co-op' : 'VS AI Bot',
+        title: _playMode == PlayMode.localCoop ? 'game.localCoopTitle'.tr() : 'game.vsAiTitle'.tr(),
       ),
       body: ResponsiveLayout(
         maxWidth: _isHorizontal ? 640 : 460,
@@ -571,7 +579,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                     children: [
                       Expanded(
                         child: _buildModeTab(
-                          title: 'Yerel 2P (Pass & Play)',
+                          title: 'game.modeLocal2P'.tr(),
                           icon: Icons.people_alt_rounded,
                           isSelected: _playMode == PlayMode.localCoop,
                           onTap: () {
@@ -584,7 +592,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                       ),
                       Expanded(
                         child: _buildModeTab(
-                          title: 'VS Yapay Zeka (AI)',
+                          title: 'game.modeVsAI'.tr(),
                           icon: Icons.smart_toy_rounded,
                           isSelected: _playMode == PlayMode.vsAi,
                           onTap: () {
@@ -693,7 +701,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        _playMode == PlayMode.localCoop ? 'Tek Cihazda Karşılıklı' : 'Kita AI Bot',
+                                        _playMode == PlayMode.localCoop ? 'game.localCoopDesc'.tr() : 'game.aiBotDesc'.tr(),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
@@ -749,7 +757,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                         )
                                       else
                                         Text(
-                                          'Hamle: ${_engine.moveCount}',
+                                          'game.moveCount'.tr(args: ['${_engine.moveCount}']),
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
@@ -770,7 +778,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                             children: [
                               // Orientation toggle (Horizontal / Vertical)
                               IconButton(
-                                tooltip: _isHorizontal ? 'Yatay (7x4)' : 'Dikey (4x7)',
+                                tooltip: _isHorizontal ? 'game.orientationHorizontal'.tr() : 'game.orientationVertical'.tr(),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.all(5),
                                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -783,7 +791,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                               ),
                               // Manual Flip Board
                               IconButton(
-                                tooltip: 'Manuel Çevir',
+                                tooltip: 'game.flipBoard'.tr(),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.all(5),
                                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -792,7 +800,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                               ),
                               // Heatmap Palette Cycle
                               IconButton(
-                                tooltip: 'Heatmap Teması (${_getThemeName()})',
+                                tooltip: 'game.heatmapTheme'.tr(args: [_getThemeName()]),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.all(5),
                                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -801,12 +809,12 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                   setState(() {
                                     _themeIndex = (_themeIndex + 1) % 5;
                                   });
-                                  KitaToast.info('Heatmap: ${_getThemeName()}');
+                                  KitaToast.info('game.heatmapChanged'.tr(args: [_getThemeName()]));
                                 },
                               ),
                               // Test Scenarios Button
                               IconButton(
-                                tooltip: 'Test Senaryoları',
+                                tooltip: 'game.testScenarios'.tr(),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.all(5),
                                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -867,7 +875,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                 const Icon(Icons.directions_walk_rounded, size: 14, color: AppColors.primaryGreen),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Mesafe: ${_engine.currentStepCount} adım',
+                                  'game.distanceSteps'.tr(args: ['${_engine.currentStepCount}']),
                                   style: const TextStyle(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w800,
@@ -956,7 +964,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       leading: const Icon(Icons.help_outline_rounded, size: 20, color: AppColors.primaryGreen),
                       title: Text(
-                        'Nasıl Oynanır? (How to Play)',
+                        'game.howToPlay'.tr(),
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w800,
@@ -964,15 +972,15 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                         ),
                       ),
                       children: [
-                        _buildRuleItem('🎯', 'Amaç (Goal)', 'Rakibin Kralını (Şah) yakala!', isDark),
-                        _buildRuleItem('📋', 'Tahta (Board)', 'Haç şeklinde 20 kareden oluşan tahta. Her kare 1, 2 veya 3 değerinde.', isDark),
-                        _buildRuleItem('♟️', 'Taşlar (Pieces)', 'Her takımda 1 Kral (Şah) + 2 Piyon. Piyonlar yenilemez.', isDark),
-                        _buildRuleItem('🚶', 'Hareket (Movement)', 'Her turda atman gereken adım sayısı = Rakibin Kralının üzerinde durduğu karenin değeri. Tam o kadar adım atmalısın — ne fazla, ne eksik.', isDark),
-                        _buildRuleItem('⚔️', 'Yeme (Capture)', 'Sadece Krallar yenebilir — Piyonlar dokunulmaz. Kendi taşlarına veya rakip Piyonlara inemezsin.', isDark),
-                        _buildRuleItem('🏆', 'Kazanma (Win)', 'Rakibin Kralını güvenle yakala → Kazan!\nRakibin yasal hamlesi kalmasın → Kazan!', isDark),
-                        _buildRuleItem('⚖️', 'Son Şans (Last Stand)', 'Bir Kral yendiğinde karşı takım SON BİR HAMLE yapar. Senin Kralını yerse → Berabere! Yiyemezse → Kaybeder!', isDark),
-                        _buildRuleItem('🤝', 'Berabere (Draw)', 'İki Kral da art arda yenilirse → Berabere\nAynı pozisyon 3 kez tekrarlanırsa → Berabere (Threefold Repetition)', isDark),
-                        _buildRuleItem('🔄', 'Geri Alma Yasağı (Reversal Rule)', 'Kendi son hamlenin tersini yapamazsın — başka hamle yoksa hariç.', isDark),
+                        _buildRuleItem('🎯', 'game.rulesGoalTitle'.tr(), 'game.rulesGoalDesc'.tr(), isDark),
+                        _buildRuleItem('📋', 'game.rulesBoardTitle'.tr(), 'game.rulesBoardDesc'.tr(), isDark),
+                        _buildRuleItem('♟️', 'game.rulesPiecesTitle'.tr(), 'game.rulesPiecesDesc'.tr(), isDark),
+                        _buildRuleItem('🚶', 'game.rulesMovementTitle'.tr(), 'game.rulesMovementDesc'.tr(), isDark),
+                        _buildRuleItem('⚔️', 'game.rulesCaptureTitle'.tr(), 'game.rulesCaptureDesc'.tr(), isDark),
+                        _buildRuleItem('🏆', 'game.rulesWinTitle'.tr(), 'game.rulesWinDesc'.tr(), isDark),
+                        _buildRuleItem('⚖️', 'game.rulesLastStandTitle'.tr(), 'game.rulesLastStandDesc'.tr(), isDark),
+                        _buildRuleItem('🤝', 'game.rulesDrawTitle'.tr(), 'game.rulesDrawDesc'.tr(), isDark),
+                        _buildRuleItem('🔄', 'game.rulesReversalTitle'.tr(), 'game.rulesReversalDesc'.tr(), isDark),
                       ],
                     ),
                   ),

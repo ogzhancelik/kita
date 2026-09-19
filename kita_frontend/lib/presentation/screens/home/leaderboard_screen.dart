@@ -484,9 +484,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                           color: AppColors.primaryGreen,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
-                          'SEN',
-                          style: TextStyle(
+                        child: Text(
+                          'leaderboard.you'.tr(),
+                          style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
