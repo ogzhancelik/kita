@@ -1,7 +1,6 @@
 {
   "appTitle": "Kita Fullstack",
   "appTagline": "4x7 taktiksel mücadeleye hükmet",
-
   "errValidationFailed": "Doğrulama başarısız.",
   "errMissingField": "Gerekli bir alan eksik.",
   "errInvalidFormat": "Geçersiz format.",
@@ -20,11 +19,9 @@
   "errUnknownMessage": "Bilinmeyen mesaj tipi.",
   "errNetworkError": "Bağlantı kurulamadı. Lütfen ağınızı kontrol edin.",
   "errUnknown": "Beklenmeyen bir hata oluştu.",
-
   "reasonNormal": "Oyun kurallara uygun olarak sona erdi.",
   "reasonResigned": "Oyuncu çekildi.",
   "reasonDisconnected": "Rakip bağlantıyı kopardı.",
-
   "auth": {
     "login": "Giriş Yap",
     "register": "Kayıt Ol",
@@ -35,7 +32,7 @@
     "email": "E-posta",
     "password": "Şifre",
     "confirmPassword": "Şifre Tekrar",
-    "usernameHint": "ör. UstaOyuncu",
+    "usernameHint": "ör. KitaSavascisi",
     "usernameOrEmailHint": "Kullanıcı adı veya e-posta girin",
     "emailHint": "oyuncu@kita.gg",
     "passwordHint": "En az 6 karakter",
@@ -51,7 +48,6 @@
     "loginSuccess": "Tekrar hoş geldin, {}!",
     "registerSuccess": "Hesap oluşturuldu! Hoş geldin, {}!"
   },
-
   "guest": {
     "title": "Misafir Profili",
     "subtitle": "Avatarını ve savaş adını belirle",
@@ -67,7 +63,6 @@
     "stayGuest": "Misafir Olarak Kal",
     "randomize": "Rastgele Seç"
   },
-
   "network": {
     "offlineTitle": "Çevrimdışı Mod",
     "offlineDesc": "İnternet bağlantısı algılanamadı. Doğrudan lokal yapay zeka motoruna karşı oynayabilirsiniz!",
@@ -75,7 +70,6 @@
     "retryConnection": "Bağlantıyı Yeniden Dene",
     "checking": "Bağlantı kontrol ediliyor..."
   },
-
   "dashboard": {
     "welcome": "Hoş geldin",
     "playOnline": "Çevrimiçi Oyna",
@@ -106,7 +100,6 @@
     "toastCreateRoom": "Oda oluşturma API'si sunucuda hazır!",
     "toastFriends": "Arkadaş listesi ve meydan okumalar yüklendi."
   },
-
   "game": {
     "offlineAITitle": "Kita vs AI Motoru",
     "offlineAIDesc": "Tek oyunculu lokal karşılaşma. 4x7 tahta üzerinde AI hamle motoru.",
@@ -184,7 +177,6 @@
     "rulesReversalTitle": "Geri Alma Yasağı",
     "rulesReversalDesc": "Kendi son hamlenin tersini yapamazsın — başka hamle yoksa hariç."
   },
-
   "leaderboard": {
     "title": "Lider Tablosu",
     "topPlayers": "En İyiler",
@@ -202,7 +194,6 @@
     "refresh": "Yenile",
     "you": "SEN"
   },
-
   "settings": {
     "language": "Dil",
     "theme": "Tema",
@@ -210,7 +201,6 @@
     "light": "Açık",
     "system": "Sistem"
   },
-
   "common": {
     "cancel": "İptal",
     "confirm": "Onayla",

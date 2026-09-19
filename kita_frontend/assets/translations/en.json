@@ -32,7 +32,7 @@
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm Password",
-    "usernameHint": "e.g. Grandmaster",
+    "usernameHint": "e.g. KitaWarrior",
     "usernameOrEmailHint": "Enter username or email",
     "emailHint": "player@kita.gg",
     "passwordHint": "At least 6 characters",
