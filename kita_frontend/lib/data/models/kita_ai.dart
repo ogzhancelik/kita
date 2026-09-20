@@ -86,11 +86,18 @@ class KitaAI {
   final KitaNeuralNet _net = KitaNeuralNet();
   Map<String, String> _openingBook = {};
   bool _initialized = false;
+  Future<void>? _initFuture;
 
   bool get isInitialized => _initialized;
 
   /// Initialize the AI by loading model weights and opening book.
   Future<void> initialize() async {
+    if (_initialized) return;
+    _initFuture ??= _doInitialize();
+    await _initFuture;
+  }
+
+  Future<void> _doInitialize() async {
     if (_initialized) return;
 
     await _net.loadWeights('assets/ai/kita_model_weights.json');

@@ -233,7 +233,22 @@
     "speed": "Oynatma Hızı",
     "moveHistory": "Hamle Notasyonu",
     "tapMoveToJump": "Konuma gitmek için hamleye dokunun",
-    "reviewMatch": "Maçı İncele / Tekrar Oynat"
+    "reviewMatch": "Maçı İncele / Tekrar Oynat",
+    "sandboxActive": "Kum Havuzu Modu (Hamle {} dalı)",
+    "sandboxInitialActive": "Kum Havuzu Modu (Başlangıç dalı)",
+    "exitSandbox": "Kum Havuzundan Çık",
+    "returnToReplay": "Tekrara Dön",
+    "resetFork": "Dallanmaya Sıfırla",
+    "undo": "Geri Al",
+    "aiMove": "Yapay Zeka Hamlesi",
+    "aiThinking": "Yapay Zeka Düşünüyor...",
+    "alternateBranch": "Alternatif Hamle Dalı",
+    "sandboxHint": "Bu tahta konumundan alternatif hamle denemek için taştaki kareye dokunun.",
+    "sandboxTurn": "Sıra: {} ({} adım)",
+    "whiteTeam": "Beyaz",
+    "blackTeam": "Siyah",
+    "gameOverTitle": "Oyun Bitti: {}",
+    "noSandboxMoves": "Tahtada denediğiniz alternatif hamleler burada görünecektir."
   },
   "common": {
     "cancel": "İptal",

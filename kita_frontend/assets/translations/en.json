@@ -233,7 +233,22 @@
     "speed": "Playback Speed",
     "moveHistory": "Move Notation",
     "tapMoveToJump": "Tap any move to jump",
-    "reviewMatch": "Review / Replay Match"
+    "reviewMatch": "Review / Replay Match",
+    "sandboxActive": "Sandbox Mode (Forked at Move {})",
+    "sandboxInitialActive": "Sandbox Mode (Forked from Start)",
+    "exitSandbox": "Exit Sandbox",
+    "returnToReplay": "Return to Replay",
+    "resetFork": "Reset to Fork",
+    "undo": "Undo",
+    "aiMove": "AI Move",
+    "aiThinking": "AI Thinking...",
+    "alternateBranch": "Alternate Branch",
+    "sandboxHint": "Tap any piece to test alternate moves from this board state.",
+    "sandboxTurn": "{} to move ({} step{})",
+    "whiteTeam": "White",
+    "blackTeam": "Black",
+    "gameOverTitle": "Game Over: {}",
+    "noSandboxMoves": "Alternate moves you test on the board will appear here."
   },
   "common": {
     "cancel": "Cancel",

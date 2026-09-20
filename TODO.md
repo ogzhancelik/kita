@@ -126,7 +126,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [ ] **Game Analysis & AI Evaluation**:
   - [x] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
   - [ ] Full post-game AI game review highlighting critical turns, blunders, inaccuracies, and best moves
-  - [ ] Interactive "sandbox" fork: test alternate moves from any board state in the replay
+  - [x] Interactive "sandbox" fork: test alternate moves from any board state in the replay
 
 ---
 
