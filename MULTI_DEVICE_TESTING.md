@@ -30,30 +30,6 @@ ipconfig
 
 ---
 
-## 📱 Yöntem 1: USB ile Bağlı Android Telefon (En Kolay & Hızlı)
-
-Telefonunuz bilgisayara USB kablosuyla bağlı ve USB Hata Ayıklama (USB Debugging) açıksa en kararlı yöntem **ADB Port Yönlendirme**'dir.
-
-### 1. Port Yönlendirme Komutunu Çalıştırın
-Terminalde şu komutu vermeniz yeterlidir:
-
-```powershell
-adb reverse tcp:8080 tcp:8080
-```
-
-> **Bu Ne Yapar?**  
-> Telefonun içindeki `localhost:8080` çağrılarını USB kablosu üzerinden doğrudan bilgisayarınızdaki `8080` portuna iletir.
-
-### 2. Uygulamayı Başlatın
-Artık ekstra hiçbir IP tanımlaması yapmadan uygulamayı doğrudan çalıştırabilirsiniz:
-
-```powershell
-cd c:\Code\kita\kita_frontend
-flutter run -d <cihaz_id>
-```
-*(Örn: `flutter run -d R6CW902GP2B`)*
-
----
 
 ## 📶 Yöntem 2: Wi-Fi Üzerinden Bağlantı (Kablosuz Test)
 

@@ -34,7 +34,6 @@ Foundational systems to establish early so game strings and rules are never hard
   - Movement range and dynamic step calculations
   - King capture defense / last-stand mechanic
   - Threefold repetition draw condition
-
 ---
 
 ## 👤 Phase 2: User Identity & Profiles

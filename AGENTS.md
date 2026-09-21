@@ -18,6 +18,7 @@
   - **No Hardcoded Strings**: All user-facing text (labels, buttons, dialogues, notifications, tooltips, error messages) MUST be extracted into translation files (`kita_frontend/assets/translations/en.json` and `tr.json`). Avoid hardcoding display text directly inside UI widgets.
   - **Exceptions**: Universal standard acronyms or game notations (e.g., shorthand game notation or W/L/D ratios) may remain untouched if translating them causes confusion, but surrounding descriptions or labels must be localized.
   - **Key Synchronization Across Translation Files**: Whenever a new string or key is introduced, add it to ALL active language files (`en.json` and `tr.json`). If the translation for `tr.json` is outside immediate scope or uncertain, insert the English text into `tr.json` as a placeholder so that keys never fall out of sync and can be translated later.
+- **No Hardcoded Colors**: All colors MUST be defined in `kita_frontend\lib\core\theme\app_colors.dart` and `kita_frontend\lib\core\theme\app_theme.dart`and used throughout the application. 
 
 ## 4. Rule Precedence & Conflict Resolution
 - **Developer Prompt Overrides**: If an instruction from the developer conflicts with predefined guidelines in `AGENTS.md`, `TODO.md`, or architecture documents, briefly inform the developer of the conflict. If the developer confirms or directs to proceed, prioritize the developer's explicit prompts over predefined rules.
