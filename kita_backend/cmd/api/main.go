@@ -54,12 +54,14 @@ func main() {
 	userRepo := postgres.NewUserRepository(db)
 	matchRepo := postgres.NewMatchRepository(db)
 	messageRepo := postgres.NewMessageRepository(db)
+	settingsRepo := postgres.NewSettingsRepository(db)
 
 	// 4. Services
 	authService := service.NewAuthService(userRepo)
 	userService := service.NewUserService(userRepo)
 	matchService := service.NewMatchService(matchRepo, userRepo)
 	messageService := service.NewMessageService(messageRepo)
+	settingsService := service.NewSettingsService(settingsRepo, userRepo)
 
 	// 5. Realtime Game Hub & Goroutine
 	hub := game.NewHub(matchService, messageService)
@@ -69,6 +71,7 @@ func main() {
 	authH := httpHandler.NewAuthHandler(authService, userService)
 	userH := httpHandler.NewUserHandler(userService)
 	matchH := httpHandler.NewMatchHandler(matchService)
+	settingsH := httpHandler.NewSettingsHandler(settingsService)
 	wsH := wsHandler.NewWSHandler(hub, authService, userService)
 
 	// 7. Gin HTTP Engine
@@ -100,6 +103,17 @@ func main() {
 		{
 			userRoutes.GET("/profile/:id", userH.GetProfile)
 			userRoutes.GET("/leaderboard", userH.GetLeaderboard)
+			userRoutes.GET("/me/settings", middleware.AuthMiddleware(authService), settingsH.GetSettings)
+			userRoutes.PUT("/me/settings", middleware.AuthMiddleware(authService), settingsH.UpdateSettings)
+		}
+
+		settingsRoutes := api.Group("/settings")
+		{
+			settingsRoutes.GET("/defaults", settingsH.GetDefaults)
+			settingsRoutes.GET("", middleware.AuthMiddleware(authService), settingsH.GetSettings)
+			settingsRoutes.PUT("", middleware.AuthMiddleware(authService), settingsH.UpdateSettings)
+			settingsRoutes.PATCH("", middleware.AuthMiddleware(authService), settingsH.UpdateSettings)
+			settingsRoutes.POST("/reset", middleware.AuthMiddleware(authService), settingsH.ResetSettings)
 		}
 
 		matchRoutes := api.Group("/matches")

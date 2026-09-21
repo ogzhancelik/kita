@@ -1,16 +1,20 @@
 import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import '../../../core/feedback/sound_service.dart';
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../../data/models/kita_ai.dart';
+import '../../../data/models/match_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/kita_card.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/game/kita_board_theme.dart';
 import '../../widgets/game/kita_board_widget.dart';
+import 'match_replay_screen.dart';
 
 enum PlayMode { localCoop, vsAi }
 
@@ -45,9 +49,17 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   KitaAI? _ai;
   bool _aiLoading = false;
 
+  // Move recording for post-match replay
+  List<MoveRecordModel> _recordedMoves = [];
+  DateTime _lastMoveTime = DateTime.now();
+
   @override
   void initState() {
     super.initState();
+    _ai = KitaAI.instance;
+    _ai!.initialize().then((_) {
+      if (mounted) setState(() {});
+    });
     _resetGame();
   }
 
@@ -61,6 +73,8 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       _validMoves = {};
       _isAiThinking = false;
       _isAutoRetaliating = false;
+      _recordedMoves = [];
+      _lastMoveTime = DateTime.now();
     });
 
     // In VS AI mode, if human plays Black, Bot is White and moves first!
@@ -104,6 +118,8 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       _validMoves = {};
       _isAiThinking = false;
       _isAutoRetaliating = false;
+      _recordedMoves = [];
+      _lastMoveTime = DateTime.now();
     });
     KitaToast.info('game.scenarioLoaded'.tr(args: [label]));
   }
@@ -249,6 +265,14 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     }
   }
 
+  /// Returns true when [move] will capture the opponent king in the current
+  /// engine state (i.e. the piece lands on the opponent king's tile).
+  bool _isCapture(KitaMove move) {
+    final oppKingId = _engine.turn == PieceTeam.white ? 'BK' : 'WK';
+    final oppKingPos = _engine.positions[oppKingId];
+    return oppKingPos != null && move.toPos == oppKingPos;
+  }
+
   void _onTileTap(KitaPos pos) {
     if (_engine.isGameOver || _isAiThinking || _isAutoRetaliating) {
       if (_engine.isGameOver) _showGameOverDialog();
@@ -266,6 +290,13 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         final startPos = _selectedPos!;
         final move = KitaMove(pieceId: _selectedPieceId!, fromPos: startPos, toPos: pos);
 
+        _recordMove(move);
+        // Play sound before state update so capture detection works
+        if (_isCapture(move)) {
+          SoundService.instance.playCapture();
+        } else {
+          SoundService.instance.playMove();
+        }
         _engine = _engine.applyMove(move);
         _selectedPos = null;
         _selectedPieceId = null;
@@ -342,6 +373,8 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     if (!mounted) return;
 
     setState(() {
+      _recordMove(retaliationMove);
+      SoundService.instance.playCapture();
       _engine = _engine.applyMove(retaliationMove);
       _isAutoRetaliating = false;
     });
@@ -359,10 +392,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     final session = _gameSessionId;
     setState(() => _isAiThinking = true);
 
-    // Lazy-load AI model on first use
-    if (_ai == null && !_aiLoading) {
+    // Ensure AI model is initialized
+    if (_ai != null && !_ai!.isInitialized && !_aiLoading) {
       _aiLoading = true;
-      _ai = KitaAI();
       await _ai!.initialize();
       _aiLoading = false;
     }
@@ -386,6 +418,12 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
 
     if (aiMove != null) {
       setState(() {
+        _recordMove(aiMove);
+        if (_isCapture(aiMove)) {
+          SoundService.instance.playCapture();
+        } else {
+          SoundService.instance.playMove();
+        }
         _engine = _engine.applyMove(aiMove);
         _isAiThinking = false;
       });
@@ -403,6 +441,24 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     } else {
       setState(() => _isAiThinking = false);
     }
+  }
+
+  void _recordMove(KitaMove move) {
+    final now = DateTime.now();
+    final durationMs = now.difference(_lastMoveTime).inMilliseconds;
+    _lastMoveTime = now;
+
+    _recordedMoves.add(MoveRecordModel(
+      ply: _recordedMoves.length + 1,
+      playerId: move.pieceId.startsWith('W') ? 'white-player' : 'black-player',
+      piece: move.pieceId,
+      fromCol: move.fromPos.col,
+      fromRow: move.fromPos.row,
+      toCol: move.toPos.col,
+      toRow: move.toPos.row,
+      timeMs: durationMs,
+      createdAt: now,
+    ));
   }
 
   String _getTurnText() {
@@ -423,6 +479,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   }
 
   void _showGameOverDialog() {
+    SoundService.instance.playGameOver();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     String title;
@@ -525,6 +582,61 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
+              if (_recordedMoves.isNotEmpty) ...[
+                KitaButton(
+                  text: 'replay.reviewMatch'.tr(),
+                  icon: Icons.history_edu_rounded,
+                  variant: KitaButtonVariant.secondary,
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    final matchRecord = MatchRecordModel(
+                      id: 'offline-${DateTime.now().millisecondsSinceEpoch}',
+                      whitePlayerId: 'white-player',
+                      blackPlayerId: 'black-player',
+                      whitePlayer: UserProfile(
+                        id: 'white-player',
+                        username: _playMode == PlayMode.vsAi
+                            ? (_playerTeam == PieceTeam.white ? 'Player' : 'Bot AI')
+                            : 'White',
+                        rating: 1200,
+                        wins: 0,
+                        losses: 0,
+                        draws: 0,
+                        totalGames: 0,
+                        winRate: 0,
+                      ),
+                      blackPlayer: UserProfile(
+                        id: 'black-player',
+                        username: _playMode == PlayMode.vsAi
+                            ? (_playerTeam == PieceTeam.black ? 'Player' : 'Bot AI')
+                            : 'Black',
+                        rating: 1200,
+                        wins: 0,
+                        losses: 0,
+                        draws: 0,
+                        totalGames: 0,
+                        winRate: 0,
+                      ),
+                      winnerId: status == GameStatus.whiteWins
+                          ? 'white-player'
+                          : (status == GameStatus.blackWins ? 'black-player' : null),
+                      result: status == GameStatus.whiteWins
+                          ? 'white_wins'
+                          : (status == GameStatus.blackWins ? 'black_wins' : 'draw'),
+                      totalMoves: _recordedMoves.length,
+                      startedAt: DateTime.now().subtract(const Duration(minutes: 5)),
+                      endedAt: DateTime.now(),
+                      moves: List.from(_recordedMoves),
+                    );
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MatchReplayScreen(match: matchRecord),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
               KitaButton(
                 text: 'game.playAgain'.tr(),
                 icon: Icons.replay_rounded,

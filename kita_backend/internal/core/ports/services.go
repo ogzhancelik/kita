@@ -20,7 +20,7 @@ type UserService interface {
 type MatchService interface {
 	SaveFinishedMatch(ctx context.Context, match *domain.Match) error
 	GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error)
-	GetMatchMoves(ctx context.Context, matchID string) ([]domain.MatchMove, error)
+	GetMatchMoves(ctx context.Context, matchID string) ([]domain.MoveRecord, error)
 	GetUserMatches(ctx context.Context, userID string, limit, offset int) ([]domain.Match, error)
 }
 
@@ -28,3 +28,11 @@ type MessageService interface {
 	SaveMessage(ctx context.Context, matchID, senderID, content string) (*domain.Message, error)
 	GetMatchMessages(ctx context.Context, matchID string, limit int) ([]domain.Message, error)
 }
+
+type SettingsService interface {
+	GetSettings(ctx context.Context, userID string) (*domain.UserSettings, error)
+	UpdateSettings(ctx context.Context, userID string, dto *domain.UpdateSettingsDTO) (*domain.UserSettings, error)
+	ResetSettings(ctx context.Context, userID string) (*domain.UserSettings, error)
+	GetDefaultSettings() domain.UserSettings
+}
+

@@ -21,31 +21,37 @@ func NewMatchService(matchRepo ports.MatchRepository, userRepo ports.UserReposit
 }
 
 func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Match) error {
-	// Oyuncuların mevcut puanlarını al
 	whiteUser, _ := s.userRepo.FindByID(ctx, match.WhitePlayerID)
 	blackUser, _ := s.userRepo.FindByID(ctx, match.BlackPlayerID)
 
-	whiteRating := 1200
-	blackRating := 1200
+	whiteRating, whiteRD, whiteVol := 1500.0, 350.0, 0.06
+	blackRating, blackRD, blackVol := 1500.0, 350.0, 0.06
+
 	if whiteUser != nil {
 		whiteRating = whiteUser.Rating
+		whiteRD = whiteUser.RatingDeviation
+		if whiteRD == 0 { whiteRD = 350.0 }
+		whiteVol = whiteUser.Volatility
+		if whiteVol == 0 { whiteVol = 0.06 }
 	}
 	if blackUser != nil {
 		blackRating = blackUser.Rating
+		blackRD = blackUser.RatingDeviation
+		if blackRD == 0 { blackRD = 350.0 }
+		blackVol = blackUser.Volatility
+		if blackVol == 0 { blackVol = 0.06 }
 	}
 
-	// ELO hesaplaması
-	deltaWhite, deltaBlack := calculateElo(whiteRating, blackRating, match.Result, match.WinnerID, match.WhitePlayerID)
+	wR, wRD, wVol, bR, bRD, bVol := calculateGlicko2(whiteRating, whiteRD, whiteVol, blackRating, blackRD, blackVol, match.Result, match.WinnerID, match.WhitePlayerID)
 
-	// Maçı ve tüm hamleleri tek transaction ile veritabanına kaydet
-	return s.matchRepo.SaveFinishedMatchWithMoves(ctx, match, deltaWhite, deltaBlack)
+	return s.matchRepo.SaveFinishedMatchWithMoves(ctx, match, wR, wRD, wVol, bR, bRD, bVol)
 }
 
 func (s *matchService) GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error) {
 	return s.matchRepo.FindByID(ctx, matchID)
 }
 
-func (s *matchService) GetMatchMoves(ctx context.Context, matchID string) ([]domain.MatchMove, error) {
+func (s *matchService) GetMatchMoves(ctx context.Context, matchID string) ([]domain.MoveRecord, error) {
 	return s.matchRepo.GetMovesByMatchID(ctx, matchID)
 }
 
@@ -59,14 +65,83 @@ func (s *matchService) GetUserMatches(ctx context.Context, userID string, limit,
 	return s.matchRepo.FindUserMatches(ctx, userID, limit, offset)
 }
 
-// calculateElo calculates standard Elo rating changes
-func calculateElo(rWhite, rBlack int, result domain.MatchResult, winnerID *string, whitePlayerID string) (int, int) {
-	const k = 32.0
+const (
+	glickoTau   = 0.5
+	glickoScale = 173.7178
+)
 
-	// Expected scores
-	expWhite := 1.0 / (1.0 + math.Pow(10.0, float64(rBlack-rWhite)/400.0))
-	expBlack := 1.0 - expWhite
+func glickoG(phi float64) float64 {
+	return 1.0 / math.Sqrt(1.0+3.0*phi*phi/(math.Pi*math.Pi))
+}
 
+func glickoE(mu, muOpp, phiOpp float64) float64 {
+	return 1.0 / (1.0 + math.Exp(-glickoG(phiOpp)*(mu-muOpp)))
+}
+
+func calculateGlicko2Single(r, rd, vol, rOpp, rdOpp, score float64) (float64, float64, float64) {
+	mu := (r - 1500.0) / glickoScale
+	phi := rd / glickoScale
+	sigma := vol
+
+	muOpp := (rOpp - 1500.0) / glickoScale
+	phiOpp := rdOpp / glickoScale
+
+	gOpp := glickoG(phiOpp)
+	e := glickoE(mu, muOpp, phiOpp)
+
+	v := 1.0 / (gOpp * gOpp * e * (1.0 - e))
+	delta := v * gOpp * (score - e)
+
+	a := math.Log(sigma * sigma)
+
+	f := func(x float64) float64 {
+		ex := math.Exp(x)
+		num1 := ex * (delta*delta - phi*phi - v - ex)
+		den1 := 2.0 * math.Pow(phi*phi+v+ex, 2)
+		return (num1 / den1) - ((x - a) / (glickoTau * glickoTau))
+	}
+
+	epsilon := 0.000001
+	A := a
+	var B float64
+	if (delta * delta) > (phi*phi + v) {
+		B = math.Log(delta*delta - phi*phi - v)
+	} else {
+		k := 1.0
+		for f(a-k*glickoTau) < 0 {
+			k++
+		}
+		B = a - k*glickoTau
+	}
+
+	fA := f(A)
+	fB := f(B)
+
+	for math.Abs(B-A) > epsilon {
+		C := A + (A-B)*fA/(fB-fA)
+		fC := f(C)
+		if fC*fB <= 0 {
+			A = B
+			fA = fB
+		} else {
+			fA = fA / 2.0
+		}
+		B = C
+		fB = fC
+	}
+
+	sigmaPrime := math.Exp(A / 2.0)
+	phiStar := math.Sqrt(phi*phi + sigmaPrime*sigmaPrime)
+	phiPrime := 1.0 / math.Sqrt((1.0/(phiStar*phiStar))+(1.0/v))
+	muPrime := mu + phiPrime*phiPrime*gOpp*(score-e)
+
+	rPrime := glickoScale*muPrime + 1500.0
+	rdPrime := glickoScale * phiPrime
+
+	return rPrime, rdPrime, sigmaPrime
+}
+
+func calculateGlicko2(whiteR, whiteRD, whiteVol, blackR, blackRD, blackVol float64, result domain.MatchResult, winnerID *string, whitePlayerID string) (float64, float64, float64, float64, float64, float64) {
 	var scoreWhite float64
 	var scoreBlack float64
 
@@ -86,8 +161,8 @@ func calculateElo(rWhite, rBlack int, result domain.MatchResult, winnerID *strin
 		scoreWhite, scoreBlack = 0.5, 0.5
 	}
 
-	deltaWhite := int(math.Round(k * (scoreWhite - expWhite)))
-	deltaBlack := int(math.Round(k * (scoreBlack - expBlack)))
+	wR, wRD, wVol := calculateGlicko2Single(whiteR, whiteRD, whiteVol, blackR, blackRD, scoreWhite)
+	bR, bRD, bVol := calculateGlicko2Single(blackR, blackRD, blackVol, whiteR, whiteRD, scoreBlack)
 
-	return deltaWhite, deltaBlack
+	return wR, wRD, wVol, bR, bRD, bVol
 }

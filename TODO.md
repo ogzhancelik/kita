@@ -45,6 +45,10 @@ Foundational systems to establish early so game strings and rules are never hard
   - [x] Custom display name and avatar selection (Guest profile onboarding & avatar picker)
   - [x] Player statistics (total matches, wins, losses, win rate, current streak)
   - [x] Match history summary list (recent opponents, results, dates)
+- [ ] **Settings & Preferences**:
+  - [x] Backend settings API (`/api/settings`) & DB persistence (board themes, audio, orientation, move highlights)
+  - [ ] Frontend settings screen with local storage (`shared_preferences`) & backend sync
+  - [ ] In-game integration: wire sound effects, board themes, and last-move toggle
 
 ---
 
@@ -117,16 +121,15 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 
 ## 📜 Phase 6: Match Recording, Replay & Analysis
 
-- [ ] **Match Recording**:
-  - [x] Persistent match logs in DB (move sequence, timestamps, piece states, final outcome)
-  - [ ] Export match notation (JSON or custom PGN-like format)
-- [ ] **Replay & Review Viewer**:
-  - [ ] Step-by-step game playback (Next move, Previous move, Jump to start/end, Auto-play with speed controls)
-  - [ ] Post-game review workflow: Replay past recorded matches directly from match history
+- [x] **Match Recording**:
+  - [x] Persistent match logs in DB (compact single-table JSONB move sequence, think time `time_ms`, piece transitions, and outcome)
+- [x] **Replay & Review Viewer**:
+  - [x] Step-by-step game playback (Next move, Previous move, Jump to start/end, Auto-play with speed controls)
+  - [x] Post-game review workflow: Replay past recorded matches directly from match history
 - [ ] **Game Analysis & AI Evaluation**:
-  - [ ] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
+  - [x] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
   - [ ] Full post-game AI game review highlighting critical turns, blunders, inaccuracies, and best moves
-  - [ ] Interactive "sandbox" fork: test alternate moves from any board state in the replay
+  - [x] Interactive "sandbox" fork: test alternate moves from any board state in the replay
 
 ---
 
@@ -134,10 +137,13 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 
 - [x] **Modular Kita Board Component**: Responsive board widget supporting responsive scaling (`LayoutBuilder`), horizontal (7x4) and vertical (4x7) orientations, transparent non-playable hole cells, custom themes (Classic, Dark Slate, Wood), dynamic tile values, and piece movement handlers.
 - [x] **Tactile UI System**: Chess.com-style 3D buttons, floating toast notifications, and dark/light mode theming.
+- [ ] **Drag & Drop Piece Movement**:
+  - Support dragging and dropping pieces onto valid target tiles as an intuitive alternative/addition to tap-to-select and tap-to-move.
+  - Visual feedback during drag (lifted piece preview, hover / valid drop target highlights, snap-to-tile).
 - [ ] **In-Game Move History Panel**:
-  - Dedicated / collapsible in-game panel displaying the chronological list of moves made during a match (White / Black turns, notation, piece icons).
+  - Dedicated in-game panel displaying the chronological list of moves made during a match (White / Black turns, notation, piece icons).
   - Interactive navigation to view previous moves and state progression during gameplay.
 - [ ] **Last Move Indicator & Toggle Setting**:
   - Visual highlight / marker on origin and destination tiles of the last executed move (essential for Kita's reversal prevention and last-stand tracking).
-  - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator.
+  - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator (Backend ready, frontend integration pending).
 

@@ -30,7 +30,7 @@ func (m *mockMatchService) GetMatchDetails(ctx context.Context, matchID string) 
 	return m.savedMatch, nil
 }
 
-func (m *mockMatchService) GetMatchMoves(ctx context.Context, matchID string) ([]domain.MatchMove, error) {
+func (m *mockMatchService) GetMatchMoves(ctx context.Context, matchID string) ([]domain.MoveRecord, error) {
 	if m.savedMatch != nil {
 		return m.savedMatch.Moves, nil
 	}
@@ -140,6 +140,8 @@ func TestRoomMoveBufferingAndExecution(t *testing.T) {
 		}
 		if len(savedMatch.Moves) != 1 {
 			t.Errorf("Expected exactly 1 move saved, got %d", len(savedMatch.Moves))
+		} else if savedMatch.Moves[0].TimeMs < 0 {
+			t.Errorf("Expected non-negative TimeMs, got %d", savedMatch.Moves[0].TimeMs)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("Timeout waiting for match to be saved via MatchService")

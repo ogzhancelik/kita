@@ -81,14 +81,23 @@ class ScoredMove {
 // ─── Main AI Player ──────────────────────────────────────────────────
 
 class KitaAI {
+  static final KitaAI instance = KitaAI();
+
   final KitaNeuralNet _net = KitaNeuralNet();
   Map<String, String> _openingBook = {};
   bool _initialized = false;
+  Future<void>? _initFuture;
 
   bool get isInitialized => _initialized;
 
   /// Initialize the AI by loading model weights and opening book.
   Future<void> initialize() async {
+    if (_initialized) return;
+    _initFuture ??= _doInitialize();
+    await _initFuture;
+  }
+
+  Future<void> _doInitialize() async {
     if (_initialized) return;
 
     await _net.loadWeights('assets/ai/kita_model_weights.json');
@@ -259,7 +268,23 @@ class KitaAI {
     }
 
     final tensor = gameToTensor(engine);
-    return _net.forward(tensor);
+    double score = _net.forward(tensor);
+
+    // Normalize the opening phase to keep the advantage closer to 0.0
+    // Applies during the first 6 plies (3 full turns)
+    if (engine.moveCount < 6) {
+      // Starts at ~16% of the real score and scales up to 100% by move 6
+      double factor = (engine.moveCount + 1) / 6.0;
+      score *= factor;
+    }
+
+    return score;
+  }
+
+  /// Evaluates the state using a shallow search (Quiescence Search)
+  /// to resolve immediate tactical blunders before passing to the static evaluator.
+  double evaluateStateWithSearch(KitaGameEngine engine, {int depth = 1}) {
+    return _negamax(engine, depth, -double.infinity, double.infinity);
   }
 
   // ─── Negamax Search ────────────────────────────────────────────────

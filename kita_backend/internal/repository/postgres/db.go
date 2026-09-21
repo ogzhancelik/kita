@@ -38,11 +38,16 @@ func NewDatabase() (*gorm.DB, error) {
 	}
 
 	// 3. Tabloları otomatik oluştur (Auto-Migrate)
+	// Clean up legacy match_moves table if it exists in local dev
+	if db.Migrator().HasTable("match_moves") {
+		_ = db.Migrator().DropTable("match_moves")
+	}
+
 	if err := db.AutoMigrate(
 		&domain.User{},
 		&domain.Match{},
-		&domain.MatchMove{},
 		&domain.Message{},
+		&domain.UserSettings{},
 	); err != nil {
 		return nil, fmt.Errorf("failed to run database auto-migration: %w", err)
 	}
