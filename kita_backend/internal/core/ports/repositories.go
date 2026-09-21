@@ -26,3 +26,9 @@ type MessageRepository interface {
 	Save(ctx context.Context, msg *domain.Message) error
 	GetMatchMessages(ctx context.Context, matchID string, limit int) ([]domain.Message, error)
 }
+
+type SettingsRepository interface {
+	GetByUserID(ctx context.Context, userID string) (*domain.UserSettings, error)
+	Upsert(ctx context.Context, settings *domain.UserSettings) error
+	ResetToDefaults(ctx context.Context, userID string) (*domain.UserSettings, error)
+}

@@ -28,3 +28,11 @@ type MessageService interface {
 	SaveMessage(ctx context.Context, matchID, senderID, content string) (*domain.Message, error)
 	GetMatchMessages(ctx context.Context, matchID string, limit int) ([]domain.Message, error)
 }
+
+type SettingsService interface {
+	GetSettings(ctx context.Context, userID string) (*domain.UserSettings, error)
+	UpdateSettings(ctx context.Context, userID string, dto *domain.UpdateSettingsDTO) (*domain.UserSettings, error)
+	ResetSettings(ctx context.Context, userID string) (*domain.UserSettings, error)
+	GetDefaultSettings() domain.UserSettings
+}
+

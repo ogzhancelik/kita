@@ -16,8 +16,9 @@ type User struct {
 	Wins            int       `json:"wins" gorm:"default:0"`
 	Losses          int       `json:"losses" gorm:"default:0"`
 	Draws           int       `json:"draws" gorm:"default:0"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
+	Settings        *UserSettings `json:"settings,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 type UserProfile struct {

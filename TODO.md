@@ -46,6 +46,10 @@ Foundational systems to establish early so game strings and rules are never hard
   - [x] Custom display name and avatar selection (Guest profile onboarding & avatar picker)
   - [x] Player statistics (total matches, wins, losses, win rate, current streak)
   - [x] Match history summary list (recent opponents, results, dates)
+- [ ] **Settings & Preferences**:
+  - [x] Backend settings API (`/api/settings`) & DB persistence (board themes, audio, orientation, move highlights)
+  - [ ] Frontend settings screen with local storage (`shared_preferences`) & backend sync
+  - [ ] In-game integration: wire sound effects, board themes, and last-move toggle
 
 ---
 
@@ -142,5 +146,5 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - Interactive navigation to view previous moves and state progression during gameplay.
 - [ ] **Last Move Indicator & Toggle Setting**:
   - Visual highlight / marker on origin and destination tiles of the last executed move (essential for Kita's reversal prevention and last-stand tracking).
-  - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator.
+  - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator (Backend ready, frontend integration pending).
 
