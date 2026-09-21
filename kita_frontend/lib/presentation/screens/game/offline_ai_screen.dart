@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import '../../../core/feedback/sound_service.dart';
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
@@ -264,6 +265,14 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     }
   }
 
+  /// Returns true when [move] will capture the opponent king in the current
+  /// engine state (i.e. the piece lands on the opponent king's tile).
+  bool _isCapture(KitaMove move) {
+    final oppKingId = _engine.turn == PieceTeam.white ? 'BK' : 'WK';
+    final oppKingPos = _engine.positions[oppKingId];
+    return oppKingPos != null && move.toPos == oppKingPos;
+  }
+
   void _onTileTap(KitaPos pos) {
     if (_engine.isGameOver || _isAiThinking || _isAutoRetaliating) {
       if (_engine.isGameOver) _showGameOverDialog();
@@ -282,6 +291,12 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         final move = KitaMove(pieceId: _selectedPieceId!, fromPos: startPos, toPos: pos);
 
         _recordMove(move);
+        // Play sound before state update so capture detection works
+        if (_isCapture(move)) {
+          SoundService.instance.playCapture();
+        } else {
+          SoundService.instance.playMove();
+        }
         _engine = _engine.applyMove(move);
         _selectedPos = null;
         _selectedPieceId = null;
@@ -359,6 +374,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
 
     setState(() {
       _recordMove(retaliationMove);
+      SoundService.instance.playCapture();
       _engine = _engine.applyMove(retaliationMove);
       _isAutoRetaliating = false;
     });
@@ -403,6 +419,11 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     if (aiMove != null) {
       setState(() {
         _recordMove(aiMove);
+        if (_isCapture(aiMove)) {
+          SoundService.instance.playCapture();
+        } else {
+          SoundService.instance.playMove();
+        }
         _engine = _engine.applyMove(aiMove);
         _isAiThinking = false;
       });
@@ -458,6 +479,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   }
 
   void _showGameOverDialog() {
+    SoundService.instance.playGameOver();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     String title;

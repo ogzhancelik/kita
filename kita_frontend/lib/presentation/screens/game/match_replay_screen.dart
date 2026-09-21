@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import '../../../core/feedback/sound_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../../data/models/kita_ai.dart';
@@ -267,10 +268,22 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     });
   }
 
+  /// Returns true when [move] will capture the opponent king.
+  bool _isCapture(KitaGameEngine engine, KitaMove move) {
+    final oppKingId = engine.turn == PieceTeam.white ? 'BK' : 'WK';
+    final oppKingPos = engine.positions[oppKingId];
+    return oppKingPos != null && move.toPos == oppKingPos;
+  }
+
   void _applySandboxMove(KitaMove move) {
     final baseList = _sandboxStates.sublist(0, _sandboxStep + 1);
     final baseMoves = _sandboxMoves.sublist(0, _sandboxStep);
 
+    if (_isCapture(baseList.last, move)) {
+      SoundService.instance.playCapture();
+    } else {
+      SoundService.instance.playMove();
+    }
     final nextEngine = baseList.last.applyMove(move);
 
     setState(() {
@@ -303,6 +316,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
     final baseList = _sandboxStates.sublist(0, _sandboxStep + 1);
     final baseMoves = _sandboxMoves.sublist(0, _sandboxStep);
+    SoundService.instance.playCapture();
     final nextEngine = baseList.last.applyMove(retaliationMove);
 
     setState(() {
