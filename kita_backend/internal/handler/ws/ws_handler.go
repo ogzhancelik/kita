@@ -73,10 +73,15 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 
 	// Eğer kimliği doğrulanmamışsa Guest olarak bağla
 	if userID == "" {
-		rnd := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(9000) + 1000
+		nickname := strings.TrimSpace(c.Query("nickname"))
 		guestUUID := uuid.New().String()[:8]
 		userID = fmt.Sprintf("guest-%s", guestUUID)
-		username = fmt.Sprintf("Guest%d", rnd)
+		if nickname != "" {
+			username = nickname
+		} else {
+			rnd := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(9000) + 1000
+			username = fmt.Sprintf("Guest%d", rnd)
+		}
 	}
 
 	client := game.NewClient(h.hub, conn, userID, username, rating)

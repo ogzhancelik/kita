@@ -974,7 +974,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
               ),
               if (_sandboxMoves.isNotEmpty)
                 Text(
-                  '${_sandboxStep} / ${_sandboxMoves.length}',
+                  '$_sandboxStep / ${_sandboxMoves.length}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,

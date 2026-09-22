@@ -55,6 +55,7 @@ func main() {
 	matchRepo := postgres.NewMatchRepository(db)
 	messageRepo := postgres.NewMessageRepository(db)
 	settingsRepo := postgres.NewSettingsRepository(db)
+	friendRepo := postgres.NewFriendRepository(db)
 
 	// 4. Services
 	authService := service.NewAuthService(userRepo)
@@ -62,6 +63,7 @@ func main() {
 	matchService := service.NewMatchService(matchRepo, userRepo)
 	messageService := service.NewMessageService(messageRepo)
 	settingsService := service.NewSettingsService(settingsRepo, userRepo)
+	friendService := service.NewFriendService(friendRepo, userRepo)
 
 	// 5. Realtime Game Hub & Goroutine
 	hub := game.NewHub(matchService, messageService)
@@ -72,6 +74,7 @@ func main() {
 	userH := httpHandler.NewUserHandler(userService)
 	matchH := httpHandler.NewMatchHandler(matchService)
 	settingsH := httpHandler.NewSettingsHandler(settingsService)
+	friendH := httpHandler.NewFriendHandler(friendService)
 	wsH := wsHandler.NewWSHandler(hub, authService, userService)
 
 	// 7. Gin HTTP Engine
@@ -122,6 +125,24 @@ func main() {
 			matchRoutes.GET("/:id/moves", matchH.GetMatchMoves)
 			matchRoutes.GET("/user/:userId", matchH.GetUserMatches)
 		}
+
+		friendRoutes := api.Group("/friends", middleware.AuthMiddleware(authService))
+		{
+			friendRoutes.GET("", friendH.GetFriends)
+			friendRoutes.GET("/requests", friendH.GetPendingRequests)
+			friendRoutes.POST("/request", friendH.SendRequest)
+			friendRoutes.POST("/:id/accept", friendH.AcceptRequest)
+			friendRoutes.POST("/:id/decline", friendH.DeclineRequest)
+			friendRoutes.DELETE("/:id", friendH.RemoveFriend)
+		}
+
+		api.GET("/stats/online", func(c *gin.Context) {
+			online, inQueue := hub.GetOnlineStats()
+			c.JSON(http.StatusOK, gin.H{
+				"count":    online,
+				"in_queue": inQueue,
+			})
+		})
 	}
 
 	port := os.Getenv("PORT")

@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -24,6 +25,15 @@ type Client struct {
 	Username       string
 	Rating         int
 	CurrentMatchID string
+
+	// Rematch and invite tracking
+	LastFinishedMatchID      string
+	PendingRematchID         string
+	PendingInviteID          string
+	PendingInviteFriendID    string
+	PendingInviteTimeControl int64
+
+	mu sync.RWMutex
 }
 
 func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating int) *Client {

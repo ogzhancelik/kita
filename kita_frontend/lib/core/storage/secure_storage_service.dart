@@ -5,7 +5,7 @@ import '../../data/models/user_model.dart';
 
 class SecureStorageService {
   final FlutterSecureStorage _storage;
-  final Map<String, String> _memoryFallback = {};
+  static final Map<String, String> _memoryFallback = {};
 
   SecureStorageService([FlutterSecureStorage? storage])
       : _storage = storage ?? const FlutterSecureStorage();

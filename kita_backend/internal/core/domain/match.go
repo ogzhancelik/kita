@@ -11,19 +11,21 @@ const (
 	ResultDraw      MatchResult = "draw"
 	ResultResigned  MatchResult = "resigned"
 	ResultAbandoned MatchResult = "abandoned"
+	ResultTimeout   MatchResult = "timeout"
 
 	ReasonNormal       = "reason_normal"
 	ReasonResigned     = "reason_resigned"
 	ReasonDisconnected = "reason_disconnected"
+	ReasonTimeout      = "reason_timeout"
 )
 
 type Match struct {
-	ID            string       `json:"id" gorm:"primaryKey;type:uuid"`
-	WhitePlayerID string       `json:"white_player_id" gorm:"type:uuid;index;not null"`
-	BlackPlayerID string       `json:"black_player_id" gorm:"type:uuid;index;not null"`
-	WhitePlayer   *User        `json:"white_player,omitempty" gorm:"foreignKey:WhitePlayerID;references:ID"`
-	BlackPlayer   *User        `json:"black_player,omitempty" gorm:"foreignKey:BlackPlayerID;references:ID"`
-	WinnerID      *string      `json:"winner_id" gorm:"type:uuid;index"`
+	ID            string       `json:"id" gorm:"primaryKey;type:varchar(64)"`
+	WhitePlayerID string       `json:"white_player_id" gorm:"type:varchar(64);index;not null"`
+	BlackPlayerID string       `json:"black_player_id" gorm:"type:varchar(64);index;not null"`
+	WhitePlayer   *User        `json:"white_player,omitempty" gorm:"-"`
+	BlackPlayer   *User        `json:"black_player,omitempty" gorm:"-"`
+	WinnerID      *string      `json:"winner_id" gorm:"type:varchar(64);index"`
 	Result        MatchResult  `json:"result" gorm:"type:varchar(32);not null"`
 	TotalMoves    int          `json:"total_moves" gorm:"default:0"`
 	StartedAt     time.Time    `json:"started_at"`

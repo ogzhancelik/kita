@@ -18,12 +18,12 @@ type mockMatchService struct {
 	saveChan   chan *domain.Match
 }
 
-func (m *mockMatchService) SaveFinishedMatch(ctx context.Context, match *domain.Match) error {
+func (m *mockMatchService) SaveFinishedMatch(ctx context.Context, match *domain.Match) (map[string]interface{}, error) {
 	m.savedMatch = match
 	if m.saveChan != nil {
 		m.saveChan <- match
 	}
-	return nil
+	return nil, nil
 }
 
 func (m *mockMatchService) GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error) {

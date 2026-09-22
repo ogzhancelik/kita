@@ -53,7 +53,7 @@ Frontend projesinde `ApiConstants` sınıfı `--dart-define=API_URL` parametresi
 
 ```powershell
 cd c:\Code\kita\kita_frontend
-flutter run -d <cihaz_id> --dart-define=API_URL=http://192.168.1.42:8080
+flutter run -d  R6CW902GP2B --dart-define=API_URL=http://192.168.1.41:8080
 ```
 
 Eğer APK derleyip cihaza yüklemek isterseniz:
@@ -90,3 +90,6 @@ Invoke-RestMethod -Uri "http://localhost:8080/health"
 cd c:\Code\kita\kita_backend
 go run .\cmd\api\main.go
 ```
+webserver
+
+flutter run -d web-server --web-port=3000 --web-hostname=0.0.0.0 --dart-define=API_URL=http://192.168.1.41:8080

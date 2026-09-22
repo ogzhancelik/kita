@@ -48,8 +48,20 @@ func NewDatabase() (*gorm.DB, error) {
 		&domain.Match{},
 		&domain.Message{},
 		&domain.UserSettings{},
+		&domain.Friendship{},
 	); err != nil {
 		return nil, fmt.Errorf("failed to run database auto-migration: %w", err)
+	}
+
+	// Ensure foreign keys on matches are dropped and columns are varchar(64) to allow guest players
+	if db.Migrator().HasTable("matches") {
+		_ = db.Exec("ALTER TABLE matches DROP CONSTRAINT IF EXISTS fk_matches_white_player").Error
+		_ = db.Exec("ALTER TABLE matches DROP CONSTRAINT IF EXISTS fk_matches_black_player").Error
+		_ = db.Exec("ALTER TABLE matches DROP CONSTRAINT IF EXISTS fk_matches_winner").Error
+		_ = db.Exec("ALTER TABLE matches ALTER COLUMN white_player_id TYPE varchar(64) USING white_player_id::varchar").Error
+		_ = db.Exec("ALTER TABLE matches ALTER COLUMN black_player_id TYPE varchar(64) USING black_player_id::varchar").Error
+		_ = db.Exec("ALTER TABLE matches ALTER COLUMN winner_id TYPE varchar(64) USING winner_id::varchar").Error
+		_ = db.Exec("ALTER TABLE matches ALTER COLUMN id TYPE varchar(64) USING id::varchar").Error
 	}
 
 	log.Println("[Postgres] Database connected and schema migrated successfully")

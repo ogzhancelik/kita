@@ -37,6 +37,19 @@ type Room struct {
 	MovesBuffer  []domain.MoveRecord
 	lastMoveTime time.Time
 
+	// Chess Clock
+	TimeControl      int64 // ms per player, 0 = unlimited
+	WhiteRemainingMs int64
+	BlackRemainingMs int64
+	turnStartedAt    time.Time   // When the current player's clock started ticking
+	timeoutTimer     *time.Timer // Fires when current player runs out of time
+
+	// Last move tracking for UI highlighting
+	LastMoveDTO  *MoveDTO
+
+	// Rematch tracking
+	RematchRequester string // UserID of who requested rematch
+
 	StartedAt    time.Time
 	mu           sync.RWMutex
 	matchService ports.MatchService
@@ -45,19 +58,27 @@ type Room struct {
 }
 
 func NewRoom(id string, white, black *Client, matchService ports.MatchService, hub *Hub) *Room {
+	return NewRoomWithTimeControl(id, white, black, TimeControlNone, matchService, hub)
+}
+
+func NewRoomWithTimeControl(id string, white, black *Client, timeControl int64, matchService ports.MatchService, hub *Hub) *Room {
 	now := time.Now()
 	r := &Room{
-		ID:           id,
-		Status:       "in_game",
-		WhitePlayer:  white,
-		BlackPlayer:  black,
-		Spectators:   make(map[string]*Client),
-		Game:         kitagame.NewGame(),
-		MovesBuffer:  make([]domain.MoveRecord, 0, 64),
-		lastMoveTime: now,
-		StartedAt:    now,
-		matchService: matchService,
-		hub:          hub,
+		ID:               id,
+		Status:           "in_game",
+		WhitePlayer:      white,
+		BlackPlayer:      black,
+		Spectators:       make(map[string]*Client),
+		Game:             kitagame.NewGame(),
+		MovesBuffer:      make([]domain.MoveRecord, 0, 64),
+		lastMoveTime:     now,
+		TimeControl:      timeControl,
+		WhiteRemainingMs: timeControl,
+		BlackRemainingMs: timeControl,
+		turnStartedAt:    now,
+		StartedAt:        now,
+		matchService:     matchService,
+		hub:              hub,
 	}
 
 	white.CurrentMatchID = id
@@ -66,21 +87,24 @@ func NewRoom(id string, white, black *Client, matchService ports.MatchService, h
 	return r
 }
 
-func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, matchService ports.MatchService, hub *Hub) *Room {
+func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, timeControl int64, matchService ports.MatchService, hub *Hub) *Room {
 	now := time.Now()
 	r := &Room{
-		ID:           id,
-		RoomCode:     roomCode,
-		IsPrivate:    isPrivate,
-		Host:         host,
-		Status:       "waiting",
-		Spectators:   make(map[string]*Client),
-		Game:         kitagame.NewGame(),
-		MovesBuffer:  make([]domain.MoveRecord, 0, 64),
-		lastMoveTime: now,
-		StartedAt:    now,
-		matchService: matchService,
-		hub:          hub,
+		ID:               id,
+		RoomCode:         roomCode,
+		IsPrivate:        isPrivate,
+		Host:             host,
+		Status:           "waiting",
+		Spectators:       make(map[string]*Client),
+		Game:             kitagame.NewGame(),
+		MovesBuffer:      make([]domain.MoveRecord, 0, 64),
+		lastMoveTime:     now,
+		TimeControl:      timeControl,
+		WhiteRemainingMs: timeControl,
+		BlackRemainingMs: timeControl,
+		StartedAt:        now,
+		matchService:     matchService,
+		hub:              hub,
 	}
 
 	host.CurrentMatchID = id
@@ -106,8 +130,10 @@ func (r *Room) Join(client *Client) error {
 	}
 
 	r.Status = "in_game"
-	r.lastMoveTime = time.Now()
-	r.StartedAt = time.Now()
+	now := time.Now()
+	r.lastMoveTime = now
+	r.StartedAt = now
+	r.turnStartedAt = now
 	r.startLocked()
 	return nil
 }
@@ -127,6 +153,7 @@ func (r *Room) startLocked() {
 		OpponentID:     r.BlackPlayer.UserID,
 		OpponentName:   r.BlackPlayer.Username,
 		OpponentRating: r.BlackPlayer.Rating,
+		TimeControl:    r.TimeControl,
 	})
 
 	r.BlackPlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
@@ -135,11 +162,105 @@ func (r *Room) startLocked() {
 		OpponentID:     r.WhitePlayer.UserID,
 		OpponentName:   r.WhitePlayer.Username,
 		OpponentRating: r.WhitePlayer.Rating,
+		TimeControl:    r.TimeControl,
 	})
 
 	// 2. Tahtanın ilk hali gönderilir
 	r.broadcastStateLocked()
+
+	// 3. İlk chess clock timeout'u başlatılır (beyazın sırası)
+	r.startTimeoutTimerLocked()
 }
+
+// ─── Chess Clock ──────────────────────────────────────────────────────
+
+// deductCurrentPlayerTimeLocked deducts elapsed time from current player's clock.
+// Must be called with lock held. Returns remaining time for the current player.
+func (r *Room) deductCurrentPlayerTimeLocked() int64 {
+	if r.TimeControl == 0 {
+		return 0 // Unlimited — no deduction
+	}
+
+	elapsed := time.Since(r.turnStartedAt).Milliseconds()
+
+	if r.Game.Turn == "white" {
+		r.WhiteRemainingMs -= elapsed
+		if r.WhiteRemainingMs < 0 {
+			r.WhiteRemainingMs = 0
+		}
+		return r.WhiteRemainingMs
+	}
+
+	r.BlackRemainingMs -= elapsed
+	if r.BlackRemainingMs < 0 {
+		r.BlackRemainingMs = 0
+	}
+	return r.BlackRemainingMs
+}
+
+// startTimeoutTimerLocked starts a timer that fires when the current player runs out of time.
+// Must be called with lock held.
+func (r *Room) startTimeoutTimerLocked() {
+	if r.TimeControl == 0 {
+		return // Unlimited — no timeout
+	}
+
+	// Cancel previous timer
+	if r.timeoutTimer != nil {
+		r.timeoutTimer.Stop()
+	}
+
+	var remaining int64
+	if r.Game.Turn == "white" {
+		remaining = r.WhiteRemainingMs
+	} else {
+		remaining = r.BlackRemainingMs
+	}
+
+	if remaining <= 0 {
+		go r.handleTimeout()
+		return
+	}
+
+	r.turnStartedAt = time.Now()
+	r.timeoutTimer = time.AfterFunc(time.Duration(remaining)*time.Millisecond, func() {
+		r.handleTimeout()
+	})
+}
+
+// handleTimeout is called when a player's clock reaches zero.
+func (r *Room) handleTimeout() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.isFinished || r.Status != "in_game" {
+		return
+	}
+
+	// Deduct remaining time
+	r.deductCurrentPlayerTimeLocked()
+
+	// Current turn player loses
+	var winnerID *string
+	var winnerTeam string
+	var result string
+	if r.Game.Turn == "white" {
+		r.WhiteRemainingMs = 0
+		winnerID = &r.BlackPlayer.UserID
+		winnerTeam = "black"
+		result = string(domain.ResultBlackWins)
+	} else {
+		r.BlackRemainingMs = 0
+		winnerID = &r.WhitePlayer.UserID
+		winnerTeam = "white"
+		result = string(domain.ResultWhiteWins)
+	}
+
+	log.Printf("[Room %s] Player %s timed out, winner: %s", r.ID, r.Game.Turn, winnerTeam)
+	r.finishWithExplicitWinnerLocked(winnerID, winnerTeam, result, "timeout")
+}
+
+// ─── Move Handling ────────────────────────────────────────────────────
 
 func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 	r.mu.Lock()
@@ -178,10 +299,22 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 		return ErrIllegalMove
 	}
 
-	// 3. Hamleyi oyuna uygula (Mevcut engine metodu: pure transition)
+	// 3. Chess clock: Deduct time for the player who just moved
+	r.deductCurrentPlayerTimeLocked()
+
+	// 4. Hamleyi oyuna uygula (Mevcut engine metodu: pure transition)
 	r.Game = r.Game.ApplyMove(candidateMove)
 
-	// 4. Hamleyi veritabanına değil, bellekteki buffer'a ekle (JSONB MoveRecord)
+	// 5. Last move tracking
+	r.LastMoveDTO = &MoveDTO{
+		PieceID: candidateMove.PieceID,
+		FromCol: candidateMove.FromPos.Col,
+		FromRow: candidateMove.FromPos.Row,
+		ToCol:   candidateMove.ToPos.Col,
+		ToRow:   candidateMove.ToPos.Row,
+	}
+
+	// 6. Hamleyi veritabanına değil, bellekteki buffer'a ekle (JSONB MoveRecord)
 	now := time.Now()
 	durationMs := int(now.Sub(r.lastMoveTime).Milliseconds())
 	r.lastMoveTime = now
@@ -199,10 +332,13 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 	}
 	r.MovesBuffer = append(r.MovesBuffer, matchMove)
 
-	// 5. Durumu oyunculara bildir
+	// 7. Durumu oyunculara bildir
 	r.broadcastStateLocked()
 
-	// 6. Otomatik karşı misilleme kontrolü (Last-Stand Defense Auto Retaliation)
+	// 8. Start new timeout timer for the next player
+	r.startTimeoutTimerLocked()
+
+	// 9. Otomatik karşı misilleme kontrolü (Last-Stand Defense Auto Retaliation)
 	retaliationMove := r.Game.GetKingRetaliationMove()
 	if retaliationMove != nil {
 		go func(rm *Room, autoMove kitagame.Move) {
@@ -212,7 +348,20 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 			if rm.isFinished || rm.Status != "in_game" {
 				return
 			}
+
+			// Deduct time for auto-retaliation turn
+			rm.deductCurrentPlayerTimeLocked()
+
 			rm.Game = rm.Game.ApplyMove(autoMove)
+
+			// Last move tracking for retaliation
+			rm.LastMoveDTO = &MoveDTO{
+				PieceID: autoMove.PieceID,
+				FromCol: autoMove.FromPos.Col,
+				FromRow: autoMove.FromPos.Row,
+				ToCol:   autoMove.ToPos.Col,
+				ToRow:   autoMove.ToPos.Row,
+			}
 
 			var retaliatorID string
 			if rm.Game.Turn == "white" { // Turn flipped after applyMove
@@ -244,7 +393,7 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 		return nil
 	}
 
-	// 7. Oyun bitti mi kontrol et (Karşı kral avlanamadıysa anında win/loss)
+	// 10. Oyun bitti mi kontrol et (Karşı kral avlanamadıysa anında win/loss)
 	status := r.Game.GetStatus()
 	if status != "ongoing" {
 		r.finishGameLocked(status, domain.ReasonNormal)
@@ -252,6 +401,8 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 
 	return nil
 }
+
+// ─── Resign ───────────────────────────────────────────────────────────
 
 func (r *Room) Resign(playerID string) error {
 	r.mu.Lock()
@@ -266,17 +417,27 @@ func (r *Room) Resign(playerID string) error {
 	}
 
 	var winnerID *string
-	result := domain.ResultResigned
+	var winnerTeam string
+	var result string
 
 	if playerID == r.WhitePlayer.UserID {
+		// White resigned -> Black wins
 		winnerID = &r.BlackPlayer.UserID
+		winnerTeam = "black"
+		result = string(domain.ResultBlackWins)
 	} else {
+		// Black resigned -> White wins
 		winnerID = &r.WhitePlayer.UserID
+		winnerTeam = "white"
+		result = string(domain.ResultWhiteWins)
 	}
 
-	r.finishWithExplicitWinnerLocked(winnerID, string(result), domain.ReasonResigned)
+	log.Printf("[Room %s] Player %s resigned. Winner: %s (%s)", r.ID, playerID, winnerTeam, *winnerID)
+	r.finishWithExplicitWinnerLocked(winnerID, winnerTeam, result, domain.ReasonResigned)
 	return nil
 }
+
+// ─── Disconnect ───────────────────────────────────────────────────────
 
 func (r *Room) HandleDisconnect(playerID string) {
 	r.mu.Lock()
@@ -292,50 +453,62 @@ func (r *Room) HandleDisconnect(playerID string) {
 	}
 
 	var winnerID *string
+	var winnerTeam string
+	var result string
+
 	if playerID == r.WhitePlayer.UserID {
 		winnerID = &r.BlackPlayer.UserID
+		winnerTeam = "black"
+		result = string(domain.ResultBlackWins)
 	} else if playerID == r.BlackPlayer.UserID {
 		winnerID = &r.WhitePlayer.UserID
+		winnerTeam = "white"
+		result = string(domain.ResultWhiteWins)
 	} else {
 		return
 	}
 
-	r.finishWithExplicitWinnerLocked(winnerID, string(domain.ResultAbandoned), domain.ReasonDisconnected)
+	r.finishWithExplicitWinnerLocked(winnerID, winnerTeam, result, domain.ReasonDisconnected)
 }
+
+// ─── Finish Game ──────────────────────────────────────────────────────
 
 func (r *Room) finishGameLocked(status, reason string) {
 	var winnerID *string
+	var winnerTeam string
+
 	if status == "white_wins" {
 		winnerID = &r.WhitePlayer.UserID
+		winnerTeam = "white"
 	} else if status == "black_wins" {
 		winnerID = &r.BlackPlayer.UserID
+		winnerTeam = "black"
+	} else {
+		winnerTeam = "draw"
 	}
 
-	r.finishWithExplicitWinnerLocked(winnerID, status, reason)
+	r.finishWithExplicitWinnerLocked(winnerID, winnerTeam, status, reason)
 }
 
-func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, result, reason string) {
+func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, result, reason string) {
 	if r.isFinished {
 		return
 	}
 	r.isFinished = true
 	now := time.Now()
 
-	gameOverData := GameOverDTO{
-		MatchID:  r.ID,
-		WinnerID: winnerID,
-		Result:   result,
-		Reason:   reason,
+	// Stop chess clock timer
+	if r.timeoutTimer != nil {
+		r.timeoutTimer.Stop()
+		r.timeoutTimer = nil
 	}
 
-	// 1. Oyunculara oyun bittiği haber verilir
-	r.WhitePlayer.SendJSON(TypeGameOver, gameOverData)
-	r.BlackPlayer.SendJSON(TypeGameOver, gameOverData)
-	for _, spec := range r.Spectators {
-		spec.SendJSON(TypeGameOver, gameOverData)
+	// Final time deduction
+	if r.TimeControl > 0 {
+		r.deductCurrentPlayerTimeLocked()
 	}
 
-	// 2. Veritabanına tek bir transaction ile toplu kayıt (Deferred Persistence)
+	// 1. Veritabanına tek bir transaction ile toplu kayıt (Deferred Persistence)
 	matchRecord := &domain.Match{
 		ID:            r.ID,
 		WhitePlayerID: r.WhitePlayer.UserID,
@@ -348,22 +521,56 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, result, reason s
 		Moves:         r.MovesBuffer, // Tüm hamle listesi tek seferde aktarılır
 	}
 
-	go func(m *domain.Match) {
+	var ratingChanges map[string]interface{}
+	if r.matchService != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := r.matchService.SaveFinishedMatch(ctx, m); err != nil {
+		var err error
+		ratingChanges, err = r.matchService.SaveFinishedMatch(ctx, matchRecord)
+		cancel()
+		if err != nil {
 			log.Printf("[Room %s] Error saving finished match to database: %v", r.ID, err)
 		} else {
-			log.Printf("[Room %s] Match successfully saved with %d moves", r.ID, len(m.Moves))
+			log.Printf("[Room %s] Match successfully saved with %d moves", r.ID, len(matchRecord.Moves))
 		}
-	}(matchRecord)
+	}
+
+	// In-memory oyuncu rating'lerini güncelle
+	if ratingChanges != nil {
+		if whiteChange, ok := ratingChanges[r.WhitePlayer.UserID].(map[string]interface{}); ok {
+			if newR, ok := whiteChange["new"].(int); ok {
+				r.WhitePlayer.Rating = newR
+			}
+		}
+		if blackChange, ok := ratingChanges[r.BlackPlayer.UserID].(map[string]interface{}); ok {
+			if newR, ok := blackChange["new"].(int); ok {
+				r.BlackPlayer.Rating = newR
+			}
+		}
+	}
+
+	gameOverData := GameOverDTO{
+		MatchID:       r.ID,
+		WinnerID:      winnerID,
+		WinnerTeam:    winnerTeam,
+		Result:        result,
+		Reason:        reason,
+		RatingChanges: ratingChanges,
+	}
+
+	// 2. Oyunculara oyun bittiği haber verilir (DB işlemi tamamlandıktan sonra)
+	r.WhitePlayer.SendJSON(TypeGameOver, gameOverData)
+	r.BlackPlayer.SendJSON(TypeGameOver, gameOverData)
+	for _, spec := range r.Spectators {
+		spec.SendJSON(TypeGameOver, gameOverData)
+	}
 
 	// 3. Hub üzerinden odayı temizle
 	go func() {
 		r.hub.CloseRoom(r.ID)
 	}()
 }
+
+// ─── Broadcast State ──────────────────────────────────────────────────
 
 func (r *Room) broadcastStateLocked() {
 	legalGameMoves := r.Game.GetLegalMoves()
@@ -372,15 +579,38 @@ func (r *Room) broadcastStateLocked() {
 		legalDTOs = append(legalDTOs, FromGameMove(m))
 	}
 
+	// Calculate remaining times with current elapsed
+	whiteRemaining := r.WhiteRemainingMs
+	blackRemaining := r.BlackRemainingMs
+
+	if r.TimeControl > 0 {
+		elapsed := time.Since(r.turnStartedAt).Milliseconds()
+		if r.Game.Turn == "white" {
+			whiteRemaining -= elapsed
+			if whiteRemaining < 0 {
+				whiteRemaining = 0
+			}
+		} else {
+			blackRemaining -= elapsed
+			if blackRemaining < 0 {
+				blackRemaining = 0
+			}
+		}
+	}
+
 	stateDTO := GameStateDTO{
-		MatchID:     r.ID,
-		Turn:        r.Game.Turn,
-		Status:      r.Game.GetStatus(),
-		MoveCount:   r.Game.MoveCount,
-		KingEatenBy: r.Game.KingEatenBy,
-		Positions:   r.Game.Positions,
-		LegalMoves:  legalDTOs,
-		Display:     r.Game.Display("simple"),
+		MatchID:          r.ID,
+		Turn:             r.Game.Turn,
+		Status:           r.Game.GetStatus(),
+		MoveCount:        r.Game.MoveCount,
+		KingEatenBy:      r.Game.KingEatenBy,
+		Positions:        r.Game.Positions,
+		LegalMoves:       legalDTOs,
+		Display:          r.Game.Display("simple"),
+		WhiteRemainingMs: whiteRemaining,
+		BlackRemainingMs: blackRemaining,
+		TimeControl:      r.TimeControl,
+		LastMove:         r.LastMoveDTO,
 	}
 
 	r.WhitePlayer.SendJSON(TypeGameState, stateDTO)
@@ -389,6 +619,8 @@ func (r *Room) broadcastStateLocked() {
 		spec.SendJSON(TypeGameState, stateDTO)
 	}
 }
+
+// ─── Chat ─────────────────────────────────────────────────────────────
 
 func (r *Room) BroadcastChat(senderID, senderName, content string) {
 	r.mu.RLock()

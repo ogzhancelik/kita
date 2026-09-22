@@ -46,6 +46,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     }
 
     try {
+      context.read<AuthProvider>().refreshProfile();
       final list = await _matchApiService
           .getUserMatches(user.id)
           .timeout(const Duration(seconds: 6));

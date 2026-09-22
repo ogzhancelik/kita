@@ -32,3 +32,14 @@ type SettingsRepository interface {
 	Upsert(ctx context.Context, settings *domain.UserSettings) error
 	ResetToDefaults(ctx context.Context, userID string) (*domain.UserSettings, error)
 }
+
+type FriendRepository interface {
+	Create(ctx context.Context, friendship *domain.Friendship) error
+	FindByID(ctx context.Context, id string) (*domain.Friendship, error)
+	FindByUsers(ctx context.Context, user1, user2 string) (*domain.Friendship, error)
+	UpdateStatus(ctx context.Context, id string, status string) error
+	Delete(ctx context.Context, id string) error
+	ListFriends(ctx context.Context, userID string) ([]domain.Friendship, error)
+	ListPendingRequests(ctx context.Context, userID string) ([]domain.Friendship, error)
+}
+

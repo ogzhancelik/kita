@@ -5,6 +5,8 @@ import '../feedback/toast_service.dart';
 import '../storage/secure_storage_service.dart';
 
 class ApiClient {
+  static String? currentToken;
+
   late final Dio dio;
   final SecureStorageService _storage;
   final void Function()? onUnauthorized;
@@ -46,7 +48,13 @@ class _AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _storage.getToken();
+    String? token = ApiClient.currentToken;
+    if (token == null || token.isEmpty) {
+      token = await _storage.getToken();
+      if (token != null && token.isNotEmpty) {
+        ApiClient.currentToken = token;
+      }
+    }
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }

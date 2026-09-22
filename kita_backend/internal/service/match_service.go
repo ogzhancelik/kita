@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"math"
+	"strings"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
@@ -20,9 +21,16 @@ func NewMatchService(matchRepo ports.MatchRepository, userRepo ports.UserReposit
 	}
 }
 
-func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Match) error {
-	whiteUser, _ := s.userRepo.FindByID(ctx, match.WhitePlayerID)
-	blackUser, _ := s.userRepo.FindByID(ctx, match.BlackPlayerID)
+func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Match) (map[string]interface{}, error) {
+	var whiteUser *domain.User
+	if !strings.HasPrefix(match.WhitePlayerID, "guest-") {
+		whiteUser, _ = s.userRepo.FindByID(ctx, match.WhitePlayerID)
+	}
+
+	var blackUser *domain.User
+	if !strings.HasPrefix(match.BlackPlayerID, "guest-") {
+		blackUser, _ = s.userRepo.FindByID(ctx, match.BlackPlayerID)
+	}
 
 	whiteRating, whiteRD, whiteVol := 1500.0, 350.0, 0.06
 	blackRating, blackRD, blackVol := 1500.0, 350.0, 0.06
@@ -30,21 +38,59 @@ func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Matc
 	if whiteUser != nil {
 		whiteRating = whiteUser.Rating
 		whiteRD = whiteUser.RatingDeviation
-		if whiteRD == 0 { whiteRD = 350.0 }
+		if whiteRD == 0 {
+			whiteRD = 350.0
+		}
 		whiteVol = whiteUser.Volatility
-		if whiteVol == 0 { whiteVol = 0.06 }
+		if whiteVol == 0 {
+			whiteVol = 0.06
+		}
 	}
 	if blackUser != nil {
 		blackRating = blackUser.Rating
 		blackRD = blackUser.RatingDeviation
-		if blackRD == 0 { blackRD = 350.0 }
+		if blackRD == 0 {
+			blackRD = 350.0
+		}
 		blackVol = blackUser.Volatility
-		if blackVol == 0 { blackVol = 0.06 }
+		if blackVol == 0 {
+			blackVol = 0.06
+		}
 	}
 
 	wR, wRD, wVol, bR, bRD, bVol := calculateGlicko2(whiteRating, whiteRD, whiteVol, blackRating, blackRD, blackVol, match.Result, match.WinnerID, match.WhitePlayerID)
 
-	return s.matchRepo.SaveFinishedMatchWithMoves(ctx, match, wR, wRD, wVol, bR, bRD, bVol)
+	if err := s.matchRepo.SaveFinishedMatchWithMoves(ctx, match, wR, wRD, wVol, bR, bRD, bVol); err != nil {
+		return nil, err
+	}
+
+	ratingChanges := make(map[string]interface{})
+	if whiteUser != nil {
+		oldR := int(math.Round(whiteRating))
+		newR := int(math.Round(wR))
+		if newR < 100 {
+			newR = 100
+		}
+		ratingChanges[match.WhitePlayerID] = map[string]interface{}{
+			"old":  oldR,
+			"new":  newR,
+			"diff": newR - oldR,
+		}
+	}
+	if blackUser != nil {
+		oldR := int(math.Round(blackRating))
+		newR := int(math.Round(bR))
+		if newR < 100 {
+			newR = 100
+		}
+		ratingChanges[match.BlackPlayerID] = map[string]interface{}{
+			"old":  oldR,
+			"new":  newR,
+			"diff": newR - oldR,
+		}
+	}
+
+	return ratingChanges, nil
 }
 
 func (s *matchService) GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error) {

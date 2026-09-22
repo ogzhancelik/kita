@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/network/api_client.dart';
 import '../../core/network/connectivity_service.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../../data/models/user_model.dart';
@@ -77,6 +78,7 @@ class AuthProvider extends ChangeNotifier {
     final storedToken = await _storage.getToken();
     if (storedToken != null && storedToken.isNotEmpty) {
       _token = storedToken;
+      ApiClient.currentToken = storedToken;
       try {
         final profile = await _apiService.getMe();
         _currentUser = profile;
@@ -94,6 +96,7 @@ class AuthProvider extends ChangeNotifier {
           return;
         }
         await _storage.deleteToken();
+        ApiClient.currentToken = null;
       }
     }
 
@@ -113,6 +116,19 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Refresh Profile ---
+  Future<void> refreshProfile() async {
+    if (!isAuthenticated || _token == null) return;
+    try {
+      final profile = await _apiService.getMe();
+      _currentUser = profile;
+      await _storage.saveUser(profile);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[AuthProvider] Failed to refresh profile: $e');
+    }
+  }
+
   // --- Login ---
   Future<bool> login(String usernameOrEmail, String password) async {
     _setLoading(true);
@@ -122,6 +138,7 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
       _token = res.token;
+      ApiClient.currentToken = res.token;
       _currentUser = res.user;
       _guestProfile = null;
       await _storage.saveToken(res.token);
@@ -147,6 +164,7 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
       _token = res.token;
+      ApiClient.currentToken = res.token;
       _currentUser = res.user;
       _guestProfile = null;
       await _storage.saveToken(res.token);
@@ -171,6 +189,7 @@ class AuthProvider extends ChangeNotifier {
     _guestProfile = guest;
     _currentUser = null;
     _token = null;
+    ApiClient.currentToken = null;
     try {
       await _storage.saveGuestProfile(guest.nickname, guest.avatarIndex);
     } catch (_) {}
@@ -181,6 +200,7 @@ class AuthProvider extends ChangeNotifier {
   // --- Logout ---
   Future<void> logout() async {
     _setLoading(true);
+    ApiClient.currentToken = null;
     await _storage.deleteToken();
     await _storage.deleteUser();
     await _storage.deleteGuestProfile();

@@ -84,26 +84,28 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Room creation API with custom settings (time controls, privacy)
   - [x] Generate short room codes or shareable invite links
   - [x] Room state lifecycle (Waiting, In-Game, Finished, Closed)
-- [ ] **Room Join & Invitation (Frontend)**:
-  - [ ] "Create Room" and "Join by Code" screens
-  - [ ] Deep-linking support to join via invite link
-  - [ ] Friend / user direct invite system
+  - [x] Paginated public rooms listing API with search & limits
+- [x] **Room Join & Invitation (Frontend)**:
+  - [x] "Create Room" dialog with time controls (Bullet, Blitz, Rapid, Unlimited) & private toggle
+  - [x] "Join by Code" dialog with 6-character room code input
+  - [x] Paginated public room browser screen (`RoomBrowserScreen`) with pull-to-refresh
+  - [x] Friend / user direct invite system & Rematch requests via unified top-of-screen animated notification banner (`TopMatchInviteBanner`) with countdown timer and one-tap accept/decline
 
 ### 2. Matchmaking
-- [ ] **Matchmaking Queue (Backend)**:
+- [x] **Matchmaking Queue (Backend)**:
   - [x] Real-time queue pool for active players looking for a match
   - [x] Rating-based matchmaking (pair players within similar skill brackets)
-  - [ ] Fallback handling (expand search window if queue wait time exceeds threshold, or offer AI match)
-- [ ] **Queue UI (Frontend)**:
-  - [ ] "Find Match" matchmaking screen with elapsed timer and cancel option
+  - [x] Live online player count & queue count broadcasting
+- [x] **Queue UI (Frontend)**:
+  - [x] "Find Match" matchmaking bottom sheet with animated pulse, online counter, low-count warning, elapsed timer, and cancel option
 
 ### 3. In-Match Messaging & Communication
-- [ ] **WebSocket Chat Channel**:
+- [x] **WebSocket Chat Channel**:
   - [x] Room-scoped chat stream alongside game state packets
-  - [ ] Rate limiting and basic profanity/spam prevention
-- [ ] **In-Game Chat Features**:
-  - [ ] Text chat overlay or slide-out drawer
-  - [ ] Quick-reaction emoji buttons / predefined tactical emotes (e.g., "Good move!", "Well played!")
+  - [x] Rate limiting (max 200 chars) and message validation
+- [x] **In-Game Chat Features**:
+  - [x] Slide-out chat panel (`ChatPanel`) with unread badge counter and auto-scroll
+  - [x] In-game control bar with resign confirm, total match elapsed timer, and chat toggle
 
 ---
 
@@ -140,9 +142,9 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [ ] **Drag & Drop Piece Movement**:
   - Support dragging and dropping pieces onto valid target tiles as an intuitive alternative/addition to tap-to-select and tap-to-move.
   - Visual feedback during drag (lifted piece preview, hover / valid drop target highlights, snap-to-tile).
-- [ ] **In-Game Move History Panel**:
-  - Dedicated in-game panel displaying the chronological list of moves made during a match (White / Black turns, notation, piece icons).
-  - Interactive navigation to view previous moves and state progression during gameplay.
+- [x] **In-Game Move History Panel**:
+  - [x] Dedicated in-game panel displaying the chronological list of moves made during a match (White / Black turns, notation, piece icons).
+  - [x] Interactive navigation to view previous moves and state progression during gameplay (Chess.com-style scrub and live return).
 - [ ] **Last Move Indicator & Toggle Setting**:
   - Visual highlight / marker on origin and destination tiles of the last executed move (essential for Kita's reversal prevention and last-stand tracking).
   - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator (Backend ready, frontend integration pending).

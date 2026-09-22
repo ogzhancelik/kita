@@ -35,6 +35,14 @@ class ApiConstants {
   static String matchDetails(String matchId) => '/api/matches/$matchId';
   static String matchMoves(String matchId) => '/api/matches/$matchId/moves';
 
+  // Friends
+  static const String friends = '/api/friends';
+  static const String friendRequests = '/api/friends/requests';
+  static const String sendFriendRequest = '/api/friends/request';
+  static String acceptFriendRequest(String id) => '/api/friends/$id/accept';
+  static String declineFriendRequest(String id) => '/api/friends/$id/decline';
+  static String removeFriend(String id) => '/api/friends/$id';
+
   // WebSocket
   static String get wsUrl {
     final uri = Uri.parse(baseUrl);

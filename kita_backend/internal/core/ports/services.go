@@ -18,7 +18,7 @@ type UserService interface {
 }
 
 type MatchService interface {
-	SaveFinishedMatch(ctx context.Context, match *domain.Match) error
+	SaveFinishedMatch(ctx context.Context, match *domain.Match) (map[string]interface{}, error)
 	GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error)
 	GetMatchMoves(ctx context.Context, matchID string) ([]domain.MoveRecord, error)
 	GetUserMatches(ctx context.Context, userID string, limit, offset int) ([]domain.Match, error)
@@ -35,4 +35,14 @@ type SettingsService interface {
 	ResetSettings(ctx context.Context, userID string) (*domain.UserSettings, error)
 	GetDefaultSettings() domain.UserSettings
 }
+
+type FriendService interface {
+	SendRequest(ctx context.Context, requesterID, targetUsername string) (*domain.Friendship, error)
+	AcceptRequest(ctx context.Context, userID, friendshipID string) error
+	DeclineRequest(ctx context.Context, userID, friendshipID string) error
+	RemoveFriend(ctx context.Context, userID, friendID string) error
+	GetFriends(ctx context.Context, userID string) ([]domain.FriendItem, error)
+	GetPendingRequests(ctx context.Context, userID string) ([]domain.FriendItem, error)
+}
+
 
