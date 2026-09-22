@@ -51,18 +51,18 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
           Container(
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen,
+              color: isDark ? AppColors.primaryVibrant : AppColors.primary,
               borderRadius: BorderRadius.circular(8),
               boxShadow: const [
                 BoxShadow(
-                  color: AppColors.primaryGreenDark,
+                  color: AppColors.primaryShadow,
                   offset: Offset(0, 2),
                 ),
               ],
             ),
             child: const Icon(
               Icons.grid_4x4_rounded,
-              color: Colors.white,
+              color: AppColors.accent,
               size: 18,
             ),
           ),

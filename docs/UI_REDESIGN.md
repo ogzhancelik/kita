@@ -2,12 +2,12 @@
 Buradaki pek çok şey hali hazırda UI'da var, ve birkaç istisna dışında hepsinin Backend'i hazır. Bunu, sadece UI'ları güncellemek (ve gerekiyorsa yeni UI'lar eklemek) için yol haritası olarak kullanacaksın. Burada spesifik olarak belirtilmemiş UI'ları eklerken yine buradaki aynı dizayn dilini kullan.
 
 ## 0. Ana Palet
-- **Karanlık Mod Arkaplan:** #
-- **Aydınlık Mod Arkaplan:** #
-- **Ana Renk:** #
-- **Ana Renk 2:**
-- **Accent Renk:** #
-- **Accent Renk 2:** #
+- **Karanlık Mod Arkaplan:** #282828
+- **Aydınlık Mod Arkaplan:** #f3f4f4
+- **Ana Renk:** #693c51
+- **Ana Renk 2:** #16081f
+- **Accent Renk:** #a8d8c6
+- **Accent Renk 2:** #75b69c
 Temel renkler bunlar ve bunların tonları kullanılacak.
 
 ---

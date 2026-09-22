@@ -5,11 +5,43 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // --- Signature Brand & Chess Colors ---
-  static const Color primaryGreen = Color(0xFF81B64C);
-  static const Color primaryGreenHover = Color(0xFF91C55C);
-  static const Color primaryGreenDark = Color(0xFF587E32); // 3D bevel shadow
-  static const Color accentGreen = Color(0xFFA8D06B);
+  // --- Signature Brand & Accent Colors ---
+  static const Color primary = Color(
+    0xFF693C51,
+  ); // Ana Renk (Brand Plum / Burgundy)
+  static const Color primaryDark = Color.fromARGB(
+    255,
+    24,
+    13,
+    31,
+  ); // Ana Renk 2 (Deep Midnight Obsidian)
+  static const Color primaryHover = Color(0xFF7E4A63); // Lighter plum for hover
+  static const Color primaryShadow = Color(
+    0xFF462535,
+  ); // 3D bevel shadow for plum
+  static const Color primaryLight = Color(
+    0xFFD68CAE,
+  ); // Luminous Plum for Dark Mode text/icons
+  static const Color primaryVibrant = Color(
+    0xFF8A4066,
+  ); // Rich Saturated Plum for dark containers
+
+  static const Color accent = Color(
+    0xFFA8D8C6,
+  ); // Accent Renk (Soft Mint / Seafoam)
+  static const Color accentSecondary = Color(
+    0xFF75B69C,
+  ); // Accent Renk 2 (Vibrant Seafoam Jade)
+  static const Color accentDark = Color(
+    0xFF4C856F,
+  ); // 3D bevel shadow for accent buttons
+
+  // Interactive Action Colors (Aliased to vibrant accent for high contrast & pop)
+  static const Color primaryGreen =
+      accentSecondary; // #75B69C: Main interactive CTA
+  static const Color primaryGreenHover = accent; // #A8D8C6: Hover state
+  static const Color primaryGreenDark = accentDark; // #4C856F: 3D button shadow
+  static const Color accentGreen = accent; // #A8D8C6
 
   static const Color boardDarkSquare = Color(0xFF769656);
   static const Color boardLightSquare = Color(0xFFEEEED2);
@@ -26,8 +58,8 @@ class AppColors {
   static const Color drawGray = Color(0xFF95A5A6);
 
   // --- Move Quality & Evaluation Indicators ---
-  static const Color evalGood = Color(0xFF81B64C);
-  static const Color evalGoodBg = Color(0x2A81B64C);
+  static const Color evalGood = Color(0xFF75B69C);
+  static const Color evalGoodBg = Color(0x2A75B69C);
   static const Color evalInaccuracy = Color(0xFFF39C12);
   static const Color evalInaccuracyBg = Color(0x2AF39C12);
   static const Color evalMistake = Color(0xFFE67E22);
@@ -37,43 +69,49 @@ class AppColors {
   static const Color evalNeutral = Color(0xFF95A5A6);
   static const Color evalNeutralBg = Color(0x2095A5A6);
 
-  // --- Dark Theme Surfaces (Default Chess.com dark mode) ---
-  static const Color darkBg = Color(0xFF161512);
-  static const Color darkCard = Color(0xFF262421);
-  static const Color darkSurface = Color(0xFF302E2B);
-  static const Color darkSurfaceElevated = Color(0xFF3B3835);
-  static const Color darkBorder = Color(0xFF45423E);
-  static const Color darkDivider = Color(0xFF383531);
+  // --- Dark Theme Surfaces ---
+  // Deep dark obsidian canvas (#16081F) so dark mode is truly deep and immersive
+  static const Color darkBg = Color.fromARGB(255, 23, 17, 28);
+  // Cards use the #282828 surface from the palette, providing clean elevation & contrast
+  static const Color darkCard = Color.fromARGB(255, 30, 25, 34);
+  static const Color darkSurface = Color.fromARGB(255, 47, 37, 59);
+  static const Color darkSurfaceElevated = Color(0xFF4D4062);
+  static const Color darkBorder = Color(0xFF453F4C);
+  static const Color darkDivider = Color(0xFF352F3B);
 
-  static const Color darkTextPrimary = Color(0xFFFFFFFF);
-  static const Color darkTextSecondary = Color(0xFFB0ACA6);
-  static const Color darkTextMuted = Color(0xFF7A7670);
+  static const Color darkTextPrimary = Color(0xFFF5F6F6);
+  static const Color darkTextSecondary = Color(0xFFC0BEC4);
+  static const Color darkTextMuted = Color(0xFF8A8590);
 
   // --- Light Theme Surfaces ---
-  static const Color lightBg = Color(0xFFF0EFEB);
+  static const Color lightBg = Color(0xFFF3F4F4);
   static const Color lightCard = Color(0xFFFFFFFF);
-  static const Color lightSurface = Color(0xFFE5E3DD);
-  static const Color lightSurfaceElevated = Color(0xFFDCDAD3);
-  static const Color lightBorder = Color(0xFFD0CDC4);
-  static const Color lightDivider = Color(0xFFE0DDD5);
+  static const Color lightSurface = Color(0xFFE6E8E8);
+  static const Color lightSurfaceElevated = Color(0xFFDCE0E0);
+  static const Color lightBorder = Color(0xFFD0D5D5);
+  static const Color lightDivider = Color(0xFFDFE2E2);
 
-  static const Color lightTextPrimary = Color(0xFF262421);
-  static const Color lightTextSecondary = Color(0xFF6B6761);
-  static const Color lightTextMuted = Color(0xFF9E9A92);
+  static const Color lightTextPrimary = Color(0xFF16081F);
+  static const Color lightTextSecondary = Color(0xFF5D5760);
+  static const Color lightTextMuted = Color(0xFF8E8A92);
 
   // --- Semantic Feedback ---
   static const Color error = Color(0xFFE64C3C);
   static const Color errorDark = Color(0xFFB03A2E);
   static const Color warning = Color(0xFFF39C12);
   static const Color info = Color(0xFF2980B9);
-  static const Color success = Color(0xFF81B64C);
+  static const Color success = Color(0xFF75B69C);
 
   // --- Helpers depending on Brightness ---
   static Color getBackground(bool isDark) => isDark ? darkBg : lightBg;
   static Color getCard(bool isDark) => isDark ? darkCard : lightCard;
   static Color getSurface(bool isDark) => isDark ? darkSurface : lightSurface;
   static Color getBorder(bool isDark) => isDark ? darkBorder : lightBorder;
-  static Color getTextPrimary(bool isDark) => isDark ? darkTextPrimary : lightTextPrimary;
-  static Color getTextSecondary(bool isDark) => isDark ? darkTextSecondary : lightTextSecondary;
-  static Color getTextMuted(bool isDark) => isDark ? darkTextMuted : lightTextMuted;
+  static Color getTextPrimary(bool isDark) =>
+      isDark ? darkTextPrimary : lightTextPrimary;
+  static Color getTextSecondary(bool isDark) =>
+      isDark ? darkTextSecondary : lightTextSecondary;
+  static Color getTextMuted(bool isDark) =>
+      isDark ? darkTextMuted : lightTextMuted;
+  static Color getBrandPrimary(bool isDark) => isDark ? primaryLight : primary;
 }

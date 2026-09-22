@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/theme/app_colors.dart';
 
-enum KitaButtonVariant { primary, secondary, danger, outline }
+enum KitaButtonVariant { primary, secondary, brand, danger, outline }
 
 class KitaButton extends StatefulWidget {
   final String text;
@@ -44,13 +45,34 @@ class _KitaButtonState extends State<KitaButton> {
 
     switch (widget.variant) {
       case KitaButtonVariant.primary:
-        topColor = isEnabled ? AppColors.primaryGreen : AppColors.primaryGreen.withValues(alpha: 0.5);
-        bottomColor = isEnabled ? AppColors.primaryGreenDark : AppColors.primaryGreenDark.withValues(alpha: 0.5);
+        topColor = isEnabled
+            ? AppColors.primaryGreen
+            : AppColors.primaryGreen.withValues(alpha: 0.5);
+        bottomColor = isEnabled
+            ? AppColors.primaryGreenDark
+            : AppColors.primaryGreenDark.withValues(alpha: 0.5);
+        textColor = const Color(
+          0xFF16081F,
+        ); // High-contrast deep night on vibrant mint
+        break;
+      case KitaButtonVariant.brand:
+        topColor = isDark
+            ? (isEnabled
+                  ? AppColors.primaryVibrant
+                  : AppColors.primaryVibrant.withValues(alpha: 0.5))
+            : (isEnabled
+                  ? AppColors.primary
+                  : AppColors.primary.withValues(alpha: 0.5));
+        bottomColor = isEnabled
+            ? AppColors.primaryShadow
+            : AppColors.primaryShadow.withValues(alpha: 0.5);
         textColor = Colors.white;
         break;
       case KitaButtonVariant.secondary:
-        topColor = isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurface;
-        bottomColor = isDark ? const Color(0xFF262421) : const Color(0xFFCCC9C2);
+        topColor = isDark
+            ? AppColors.darkSurfaceElevated
+            : AppColors.lightSurface;
+        bottomColor = isDark ? AppColors.darkBorder : const Color(0xFFCCC9C2);
         textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
         borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
         break;
@@ -62,12 +84,15 @@ class _KitaButtonState extends State<KitaButton> {
       case KitaButtonVariant.outline:
         topColor = Colors.transparent;
         bottomColor = Colors.transparent;
-        textColor = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+        textColor = isDark
+            ? AppColors.darkTextPrimary
+            : AppColors.lightTextPrimary;
         borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
         break;
     }
 
-    final double bottomOffset = (widget.variant == KitaButtonVariant.outline || !isEnabled) ? 0 : 3.5;
+    final double bottomOffset =
+        (widget.variant == KitaButtonVariant.outline || !isEnabled) ? 0 : 3.5;
     final double currentShift = _isPressed ? bottomOffset : 0;
 
     return SizedBox(
@@ -76,7 +101,9 @@ class _KitaButtonState extends State<KitaButton> {
       child: GestureDetector(
         onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
         onTapUp: isEnabled ? (_) => setState(() => _isPressed = false) : null,
-        onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
+        onTapCancel: isEnabled
+            ? () => setState(() => _isPressed = false)
+            : null,
         onTap: isEnabled ? widget.onPressed : null,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 60),

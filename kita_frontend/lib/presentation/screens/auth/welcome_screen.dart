@@ -31,18 +31,18 @@ class WelcomeScreen extends StatelessWidget {
                   width: 110,
                   height: 110,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen,
+                    color: isDark ? AppColors.primaryVibrant : AppColors.primary,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: const [
                       BoxShadow(
-                        color: AppColors.primaryGreenDark,
+                        color: AppColors.primaryShadow,
                         offset: Offset(0, 6),
                       ),
                     ],
                   ),
                   child: const Icon(
                     Icons.grid_4x4_rounded,
-                    color: Colors.white,
+                    color: AppColors.accent,
                     size: 64,
                   ),
                 ),

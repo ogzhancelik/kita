@@ -378,7 +378,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     title: 'dashboard.matchHistory'.tr(),
                     subtitle: 'dashboard.matchHistoryDesc'.tr(),
                     icon: Icons.history_edu_rounded,
-                    iconBg: AppColors.primaryGreenHover,
+                    iconBg: isDark ? AppColors.primaryVibrant : AppColors.primary,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
