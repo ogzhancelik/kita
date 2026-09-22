@@ -42,7 +42,7 @@ func (m *mockUserRepo) FindByID(ctx context.Context, id string) (*domain.User, e
 func (m *mockUserRepo) FindByUsername(ctx context.Context, u string) (*domain.User, error) { return nil, nil }
 func (m *mockUserRepo) FindByEmail(ctx context.Context, e string) (*domain.User, error)    { return nil, nil }
 func (m *mockUserRepo) Update(ctx context.Context, user *domain.User) error                 { return nil }
-func (m *mockUserRepo) GetLeaderboard(ctx context.Context, limit int) ([]domain.User, error) {
+func (m *mockUserRepo) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	return nil, nil
 }
 

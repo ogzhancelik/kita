@@ -14,7 +14,7 @@ type AuthService interface {
 
 type UserService interface {
 	GetProfile(ctx context.Context, userID string) (*domain.UserProfile, error)
-	GetLeaderboard(ctx context.Context, limit int) ([]domain.UserProfile, error)
+	GetLeaderboard(ctx context.Context, limit int, filter string, currentUserID string) ([]domain.UserProfile, error)
 }
 
 type MatchService interface {

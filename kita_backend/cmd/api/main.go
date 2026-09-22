@@ -59,7 +59,7 @@ func main() {
 
 	// 4. Services
 	authService := service.NewAuthService(userRepo)
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, friendRepo)
 	matchService := service.NewMatchService(matchRepo, userRepo)
 	messageService := service.NewMessageService(messageRepo)
 	settingsService := service.NewSettingsService(settingsRepo, userRepo)
@@ -105,7 +105,7 @@ func main() {
 		userRoutes := api.Group("/users")
 		{
 			userRoutes.GET("/profile/:id", userH.GetProfile)
-			userRoutes.GET("/leaderboard", userH.GetLeaderboard)
+			userRoutes.GET("/leaderboard", middleware.OptionalAuthMiddleware(authService), userH.GetLeaderboard)
 			userRoutes.GET("/me/settings", middleware.AuthMiddleware(authService), settingsH.GetSettings)
 			userRoutes.PUT("/me/settings", middleware.AuthMiddleware(authService), settingsH.UpdateSettings)
 		}

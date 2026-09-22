@@ -193,7 +193,19 @@
     "error": "Lider tablosu yüklenirken bir hata oluştu.",
     "retry": "Yeniden Dene",
     "refresh": "Yenile",
-    "you": "SEN"
+    "you": "SEN",
+    "filterGlobal": "Küresel",
+    "filterFriends": "Arkadaşlar",
+    "friendsLoginPrompt": "Arkadaşlarınla Yarış",
+    "friendsLoginDesc": "Arkadaşların arasındaki sıralamanı görmek için giriş yap.",
+    "noFriendsTitle": "Henüz Arkadaşın Yok",
+    "noFriendsDesc": "Puanlarını karşılaştırmak ve en iyi Kita oyuncusunun kim olduğunu görmek için arkadaş ekle!",
+    "findFriends": "Arkadaş Bul",
+    "loginRequired": "Giriş Yap",
+    "addMoreFriendsHint": "Arkadaş lider tablonu genişletmek için daha fazla arkadaş ekle!",
+    "jumpToYourRank": "Sıralamana git",
+    "unrankedRank": "50+",
+    "tapToLocate": "Görüntülemek için dokun"
   },
   "settings": {
     "title": "Ayarlar",

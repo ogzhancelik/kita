@@ -193,7 +193,19 @@
     "error": "Failed to load leaderboard.",
     "retry": "Retry",
     "refresh": "Refresh",
-    "you": "YOU"
+    "you": "YOU",
+    "filterGlobal": "Global",
+    "filterFriends": "Friends",
+    "friendsLoginPrompt": "Compete with Friends",
+    "friendsLoginDesc": "Sign in to see where you rank among your friends.",
+    "noFriendsTitle": "No Friends Yet",
+    "noFriendsDesc": "Add friends to compare ratings and see who is the best Kita player!",
+    "findFriends": "Find Friends",
+    "loginRequired": "Log In",
+    "addMoreFriendsHint": "Add more friends to expand your friends leaderboard!",
+    "jumpToYourRank": "Jump to your rank",
+    "unrankedRank": "50+",
+    "tapToLocate": "Tap to view"
   },
   "settings": {
     "title": "Settings",

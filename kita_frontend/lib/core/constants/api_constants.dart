@@ -11,7 +11,9 @@ class ApiConstants {
       return _envApiUrl;
     }
     if (kIsWeb) {
-      return 'http://localhost:8080';
+      final host = Uri.base.host.isNotEmpty ? Uri.base.host : 'localhost';
+      final scheme = Uri.base.scheme == 'https' ? 'https' : 'http';
+      return '$scheme://$host:8080';
     }
     // For mobile or desktop testing (10.0.2.2 is Android emulator host loopback)
     return defaultTargetPlatform == TargetPlatform.android

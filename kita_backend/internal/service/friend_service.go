@@ -25,7 +25,7 @@ func NewFriendService(friendRepo ports.FriendRepository, userRepo ports.UserRepo
 
 func (s *friendService) SendRequest(ctx context.Context, requesterID, targetUsername string) (*domain.Friendship, error) {
 	targetUser, err := s.userRepo.FindByUsername(ctx, targetUsername)
-	if err != nil {
+	if err != nil || targetUser == nil {
 		return nil, appErrors.New(appErrors.ErrNotFound, "user not found")
 	}
 
@@ -70,7 +70,7 @@ func (s *friendService) SendRequest(ctx context.Context, requesterID, targetUser
 
 func (s *friendService) AcceptRequest(ctx context.Context, userID, friendshipID string) error {
 	f, err := s.friendRepo.FindByID(ctx, friendshipID)
-	if err != nil {
+	if err != nil || f == nil {
 		return appErrors.New(appErrors.ErrNotFound, "friend request not found")
 	}
 
@@ -87,7 +87,7 @@ func (s *friendService) AcceptRequest(ctx context.Context, userID, friendshipID 
 
 func (s *friendService) DeclineRequest(ctx context.Context, userID, friendshipID string) error {
 	f, err := s.friendRepo.FindByID(ctx, friendshipID)
-	if err != nil {
+	if err != nil || f == nil {
 		return appErrors.New(appErrors.ErrNotFound, "friend request not found")
 	}
 
@@ -100,7 +100,7 @@ func (s *friendService) DeclineRequest(ctx context.Context, userID, friendshipID
 
 func (s *friendService) RemoveFriend(ctx context.Context, userID, friendID string) error {
 	f, err := s.friendRepo.FindByUsers(ctx, userID, friendID)
-	if err != nil {
+	if err != nil || f == nil {
 		return appErrors.New(appErrors.ErrNotFound, "friendship not found")
 	}
 

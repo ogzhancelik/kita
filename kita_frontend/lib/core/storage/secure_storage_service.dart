@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/user_model.dart';
 
 class SecureStorageService {
@@ -21,8 +22,12 @@ class SecureStorageService {
     try {
       await _storage.write(key: key, value: value);
     } catch (e) {
-      debugPrint('SecureStorage write warning ($key): $e. Using memory fallback.');
+      debugPrint('SecureStorage write warning ($key): $e. Using fallback.');
     }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, value);
+    } catch (_) {}
   }
 
   Future<String?> _readSafe(String key) async {
@@ -30,9 +35,20 @@ class SecureStorageService {
       final val = await _storage.read(key: key);
       if (val != null) return val;
     } catch (e) {
-      debugPrint('SecureStorage read warning ($key): $e. Using memory fallback.');
+      debugPrint('SecureStorage read warning ($key): $e. Using fallback.');
     }
-    return _memoryFallback[key];
+    if (_memoryFallback.containsKey(key)) {
+      return _memoryFallback[key];
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final val = prefs.getString(key);
+      if (val != null) {
+        _memoryFallback[key] = val;
+        return val;
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<void> _deleteSafe(String key) async {
@@ -42,6 +58,10 @@ class SecureStorageService {
     } catch (e) {
       debugPrint('SecureStorage delete warning ($key): $e.');
     }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+    } catch (_) {}
   }
 
   // --- JWT Token ---

@@ -58,9 +58,13 @@ func (r *userRepo) Update(ctx context.Context, user *domain.User) error {
 	return r.db.WithContext(ctx).Save(user).Error
 }
 
-func (r *userRepo) GetLeaderboard(ctx context.Context, limit int) ([]domain.User, error) {
+func (r *userRepo) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	var users []domain.User
-	if err := r.db.WithContext(ctx).Order("rating DESC, wins DESC").Limit(limit).Find(&users).Error; err != nil {
+	query := r.db.WithContext(ctx)
+	if len(userIDs) > 0 {
+		query = query.Where("id IN ?", userIDs)
+	}
+	if err := query.Order("rating DESC, wins DESC").Limit(limit).Find(&users).Error; err != nil {
 		return nil, err
 	}
 	return users, nil

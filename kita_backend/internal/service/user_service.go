@@ -9,11 +9,15 @@ import (
 )
 
 type userService struct {
-	userRepo ports.UserRepository
+	userRepo   ports.UserRepository
+	friendRepo ports.FriendRepository
 }
 
-func NewUserService(userRepo ports.UserRepository) ports.UserService {
-	return &userService{userRepo: userRepo}
+func NewUserService(userRepo ports.UserRepository, friendRepo ports.FriendRepository) ports.UserService {
+	return &userService{
+		userRepo:   userRepo,
+		friendRepo: friendRepo,
+	}
 }
 
 func (s *userService) GetProfile(ctx context.Context, userID string) (*domain.UserProfile, error) {
@@ -29,12 +33,33 @@ func (s *userService) GetProfile(ctx context.Context, userID string) (*domain.Us
 	return &profile, nil
 }
 
-func (s *userService) GetLeaderboard(ctx context.Context, limit int) ([]domain.UserProfile, error) {
+func (s *userService) GetLeaderboard(ctx context.Context, limit int, filter string, currentUserID string) ([]domain.UserProfile, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
 
-	users, err := s.userRepo.GetLeaderboard(ctx, limit)
+	var targetIDs []string
+	if filter == "friends" {
+		if currentUserID == "" {
+			return []domain.UserProfile{}, nil
+		}
+
+		friends, err := s.friendRepo.ListFriends(ctx, currentUserID)
+		if err != nil {
+			return nil, err
+		}
+
+		targetIDs = append(targetIDs, currentUserID)
+		for _, f := range friends {
+			if f.RequesterID == currentUserID {
+				targetIDs = append(targetIDs, f.AddresseeID)
+			} else {
+				targetIDs = append(targetIDs, f.RequesterID)
+			}
+		}
+	}
+
+	users, err := s.userRepo.GetLeaderboard(ctx, limit, targetIDs)
 	if err != nil {
 		return nil, err
 	}

@@ -87,9 +87,14 @@ Invoke-RestMethod -Uri "http://localhost:8080/health"
 ```
 çıktısı `healthy` vermelidir. Eğer vermiyorsa backend'i başlatın:
 ```powershell
-cd c:\Code\kita\kita_backend
+cd .\kita_backend
 go run .\cmd\api\main.go
 ```
-webserver
 
-flutter run -d web-server --web-port=3000 --web-hostname=0.0.0.0 --dart-define=API_URL=http://192.168.1.41:8080
+### 4. Flutter Web Sunucusu (Tarayıcı Üzerinden Test)
+Frontend web sürümü artık açıldığı cihazın IP adresini otomatik algılar (`Uri.base.host`):
+```powershell
+cd .\kita_frontend
+flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000
+```
+Telefon veya başka bir cihazdan: `http://<BİLGİSAYAR_IP>:3000` adresine girmeniz yeterlidir.

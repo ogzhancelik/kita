@@ -46,3 +46,34 @@ func AuthMiddleware(authService ports.AuthService) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// OptionalAuthMiddleware attempts to authenticate the request if an Authorization
+// header or token query param is provided, but does not abort if missing or invalid.
+func OptionalAuthMiddleware(authService ports.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		token := ""
+
+		if authHeader != "" {
+			authHeader = strings.TrimSpace(authHeader)
+			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+				token = strings.TrimSpace(authHeader[7:])
+				if idx := strings.Index(token, ","); idx != -1 {
+					token = strings.TrimSpace(token[:idx])
+				}
+			}
+		}
+
+		if token == "" {
+			token = c.Query("token")
+		}
+
+		if token != "" {
+			if userID, err := authService.ValidateToken(token); err == nil {
+				c.Set("userID", userID)
+			}
+		}
+
+		c.Next()
+	}
+}

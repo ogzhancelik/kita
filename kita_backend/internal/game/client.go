@@ -33,7 +33,8 @@ type Client struct {
 	PendingInviteFriendID    string
 	PendingInviteTimeControl int64
 
-	mu sync.RWMutex
+	isClosed bool
+	mu       sync.RWMutex
 }
 
 func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating int) *Client {
@@ -45,6 +46,24 @@ func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating i
 		Username: username,
 		Rating:   rating,
 	}
+}
+
+// Close safely closes the Send channel and marks the client as closed.
+func (c *Client) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.isClosed {
+		return
+	}
+	c.isClosed = true
+	close(c.Send)
+}
+
+// IsClosed returns true if the client's Send channel has been closed.
+func (c *Client) IsClosed() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.isClosed
 }
 
 func (c *Client) ReadPump() {
@@ -122,6 +141,17 @@ func (c *Client) WritePump() {
 }
 
 func (c *Client) SendJSON(msgType string, payload any) {
+	if c == nil {
+		return
+	}
+
+	c.mu.RLock()
+	closed := c.isClosed
+	c.mu.RUnlock()
+	if closed {
+		return
+	}
+
 	bytes, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("json marshal error: %v", err)
@@ -139,11 +169,33 @@ func (c *Client) SendJSON(msgType string, payload any) {
 		return
 	}
 
-	select {
-	case c.Send <- data:
-	default:
+	bufferFull := false
+	func() {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+		if c.isClosed {
+			return
+		}
+
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[Client %s] Recovered from send panic: %v", c.UserID, r)
+			}
+		}()
+
+		select {
+		case c.Send <- data:
+		default:
+			bufferFull = true
+		}
+	}()
+
+	if bufferFull {
 		log.Printf("client %s buffer full, closing connection", c.UserID)
-		c.Hub.Unregister <- c
+		select {
+		case c.Hub.Unregister <- c:
+		default:
+		}
 	}
 }
 

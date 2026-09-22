@@ -117,7 +117,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **Leaderboards**:
   - [x] Global top players ranking (Backend API & Frontend Leaderboard Screen with Top 3 Podium)
   - [ ] User rank tier badges (e.g., Bronze, Silver, Gold, Grandmaster)
-  - [ ] Filter by friends or regional leaderboard
+  - [x] Filter by friends leaderboard
 
 ---
 
@@ -148,4 +148,9 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [ ] **Last Move Indicator & Toggle Setting**:
   - Visual highlight / marker on origin and destination tiles of the last executed move (essential for Kita's reversal prevention and last-stand tracking).
   - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator (Backend ready, frontend integration pending).
+- [x] **Leaderboard Floating Player Indicator & Seamless Scroll**:
+  - Automatically detect if current player's profile row is outside visible viewport (above or below).
+  - Floating row docked at top or bottom with directional arrow, user rank, avatar, rating, and win rate.
+  - Seamless animated scroll (`Scrollable.ensureVisible`) to player's row on tap, with auto-hiding when row is in view.
+  - Unranked / 50+ player support pinned at bottom.
 

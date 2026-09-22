@@ -6,5 +6,7 @@ void main() {
     expect(AppColors.primaryGreen, isNotNull);
     expect(AppColors.darkBg, isNotNull);
     expect(AppColors.lightBg, isNotNull);
+    expect(AppColors.silverMedal, isNotNull);
+    expect(AppColors.bronzeMedal, isNotNull);
   });
 }

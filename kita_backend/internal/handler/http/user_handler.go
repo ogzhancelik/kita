@@ -40,7 +40,15 @@ func (h *UserHandler) GetLeaderboard(c *gin.Context) {
 		limit = 20
 	}
 
-	leaderboard, err := h.userService.GetLeaderboard(c.Request.Context(), limit)
+	filter := c.DefaultQuery("filter", "global")
+	var currentUserID string
+	if val, exists := c.Get("userID"); exists {
+		if id, ok := val.(string); ok {
+			currentUserID = id
+		}
+	}
+
+	leaderboard, err := h.userService.GetLeaderboard(c.Request.Context(), limit, filter, currentUserID)
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return

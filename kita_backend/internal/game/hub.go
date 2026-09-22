@@ -72,6 +72,11 @@ func (h *Hub) handleDisconnect(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	if _, exists := h.clients[client.UserID]; !exists {
+		client.Close()
+		return
+	}
+
 	delete(h.clients, client.UserID)
 	h.removeFromQueueLocked(client)
 
@@ -82,7 +87,7 @@ func (h *Hub) handleDisconnect(client *Client) {
 		}
 	}
 
-	close(client.Send)
+	client.Close()
 	log.Printf("[Hub] Client disconnected: %s (%s)", client.Username, client.UserID)
 	h.broadcastOnlineCountLocked()
 }

@@ -18,6 +18,8 @@ class AppColors {
   // --- Rating & Badges ---
   static const Color ratingGold = Color(0xFFFFC83B);
   static const Color accentGold = Color(0xFFFFC83B);
+  static const Color silverMedal = Color(0xFFC0C0C0);
+  static const Color bronzeMedal = Color(0xFFCD7F32);
   static const Color guestOrange = Color(0xFFF39C12);
   static const Color winBlue = Color(0xFF3498DB);
   static const Color lossRed = Color(0xFFE74C3C);
