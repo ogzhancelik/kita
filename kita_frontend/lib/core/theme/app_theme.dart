@@ -16,9 +16,9 @@ class AppTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.darkBg,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.accentSecondary,
-        onPrimary: AppColors.primaryDark,
-        secondary: AppColors.accent,
+        primary: AppColors.primary,
+        onPrimary: Colors.white,
+        secondary: AppColors.accentSecondary,
         onSecondary: AppColors.primaryDark,
         surface: AppColors.darkCard,
         onSurface: AppColors.darkTextPrimary,

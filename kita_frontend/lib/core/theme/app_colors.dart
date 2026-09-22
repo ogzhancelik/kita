@@ -7,24 +7,21 @@ class AppColors {
 
   // --- Signature Brand & Accent Colors ---
   static const Color primary = Color(
-    0xFF693C51,
-  ); // Ana Renk (Brand Plum / Burgundy)
-  static const Color primaryDark = Color.fromARGB(
-    255,
-    24,
-    13,
-    31,
-  ); // Ana Renk 2 (Deep Midnight Obsidian)
-  static const Color primaryHover = Color(0xFF7E4A63); // Lighter plum for hover
+    0xFF863653,
+  ); // Ana Renk (Reddish Purplish / Crimson Berry Wine)
+  static const Color primaryDark = Color(
+    0xFF5A2236,
+  ); // Deep Purplish Shadow
+  static const Color primaryHover = Color(0xFF9E4366); // Lighter reddish-purple for hover
   static const Color primaryShadow = Color(
-    0xFF462535,
-  ); // 3D bevel shadow for plum
+    0xFF501E30,
+  ); // 3D bevel shadow for reddish-purple
   static const Color primaryLight = Color(
     0xFFD68CAE,
   ); // Luminous Plum for Dark Mode text/icons
   static const Color primaryVibrant = Color(
-    0xFF8A4066,
-  ); // Rich Saturated Plum for dark containers
+    0xFF863653,
+  ); // Rich Saturated Purplish Red
 
   static const Color accent = Color(
     0xFFA8D8C6,
@@ -36,12 +33,11 @@ class AppColors {
     0xFF4C856F,
   ); // 3D bevel shadow for accent buttons
 
-  // Interactive Action Colors (Aliased to vibrant accent for high contrast & pop)
-  static const Color primaryGreen =
-      accentSecondary; // #75B69C: Main interactive CTA
-  static const Color primaryGreenHover = accent; // #A8D8C6: Hover state
-  static const Color primaryGreenDark = accentDark; // #4C856F: 3D button shadow
-  static const Color accentGreen = accent; // #A8D8C6
+  // Interactive Action Colors (Main action is reddish purplish)
+  static const Color primaryGreen = primary; // #863653: Main interactive CTA
+  static const Color primaryGreenHover = primaryHover; // #9E4366: Hover state
+  static const Color primaryGreenDark = primaryShadow; // #501E30: 3D button shadow
+  static const Color accentGreen = accent; // #A8D8C6: Mint Accent
 
   static const Color boardDarkSquare = Color(0xFF769656);
   static const Color boardLightSquare = Color(0xFFEEEED2);
@@ -70,18 +66,18 @@ class AppColors {
   static const Color evalNeutralBg = Color(0x2095A5A6);
 
   // --- Dark Theme Surfaces ---
-  // Deep dark obsidian canvas (#16081F) so dark mode is truly deep and immersive
-  static const Color darkBg = Color.fromARGB(255, 23, 17, 28);
-  // Cards use the #282828 surface from the palette, providing clean elevation & contrast
-  static const Color darkCard = Color.fromARGB(255, 30, 25, 34);
-  static const Color darkSurface = Color.fromARGB(255, 47, 37, 59);
-  static const Color darkSurfaceElevated = Color(0xFF4D4062);
-  static const Color darkBorder = Color(0xFF453F4C);
-  static const Color darkDivider = Color(0xFF352F3B);
+  // Deep dark gray canvas (darker than #282828)
+  static const Color darkBg = Color(0xFF191919); // Pure dark neutral gray
+  // Cards use elevated neutral gray surface
+  static const Color darkCard = Color(0xFF242424);
+  static const Color darkSurface = Color(0xFF2E2E2E);
+  static const Color darkSurfaceElevated = Color(0xFF383838);
+  static const Color darkBorder = Color(0xFF3D3D3D);
+  static const Color darkDivider = Color(0xFF2C2C2C);
 
   static const Color darkTextPrimary = Color(0xFFF5F6F6);
-  static const Color darkTextSecondary = Color(0xFFC0BEC4);
-  static const Color darkTextMuted = Color(0xFF8A8590);
+  static const Color darkTextSecondary = Color(0xFFB4B4B4);
+  static const Color darkTextMuted = Color(0xFF7E7E7E);
 
   // --- Light Theme Surfaces ---
   static const Color lightBg = Color(0xFFF3F4F4);

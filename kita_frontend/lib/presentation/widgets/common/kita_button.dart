@@ -51,9 +51,7 @@ class _KitaButtonState extends State<KitaButton> {
         bottomColor = isEnabled
             ? AppColors.primaryGreenDark
             : AppColors.primaryGreenDark.withValues(alpha: 0.5);
-        textColor = const Color(
-          0xFF16081F,
-        ); // High-contrast deep night on vibrant mint
+        textColor = Colors.white; // Crisp high-contrast white on reddish-purple
         break;
       case KitaButtonVariant.brand:
         topColor = isDark
