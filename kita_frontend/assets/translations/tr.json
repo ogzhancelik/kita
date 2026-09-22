@@ -287,7 +287,14 @@
     "whiteTeam": "Beyaz",
     "blackTeam": "Siyah",
     "gameOverTitle": "Oyun Bitti: {}",
-    "noSandboxMoves": "Tahtada denediğiniz alternatif hamleler burada görünecektir."
+    "noSandboxMoves": "Tahtada denediğiniz alternatif hamleler burada görünecektir.",
+    "evalDeltaTooltip": "Hamle Kalitesi: {} • Değerlendirme: {}",
+    "evalGood": "İyi",
+    "evalInaccuracy": "Hata Eğilimi",
+    "evalMistake": "Hata",
+    "evalBlunder": "Büyük Hata",
+    "evalLegend": "Hamle Kalitesi (+kazanç / -kayıp)",
+    "evalHint": "Sayılar avantaj değişimini gösterir (+iyi, -hata)"
   },
   "common": {
     "cancel": "İptal",
@@ -371,6 +378,13 @@
     "inviteSent": "Oyun daveti gönderildi!",
     "inviteReceived": "{} seni oyuna davet etti!",
     "accept": "Kabul Et",
-    "decline": "Reddet"
+    "decline": "Reddet",
+    "chooseSide": "Tarafını Seç",
+    "colorRandom": "Rastgele",
+    "colorWhite": "Beyaz (İlk)",
+    "colorBlack": "Siyah (İkinci)",
+    "invitationSideRandom": "Taraf: Rastgele",
+    "invitationSideWhite": "Tarafınız: Beyaz",
+    "invitationSideBlack": "Tarafınız: Siyah"
   }
 }

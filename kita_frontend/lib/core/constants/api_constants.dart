@@ -49,6 +49,7 @@ class ApiConstants {
   static String get wsUrl {
     final uri = Uri.parse(baseUrl);
     final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
-    return '$scheme://${uri.host}:${uri.port}/ws';
+    final portPart = (uri.hasPort && uri.port != 80 && uri.port != 443) ? ':${uri.port}' : '';
+    return '$scheme://${uri.host}$portPart/ws';
   }
 }

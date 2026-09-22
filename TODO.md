@@ -90,12 +90,14 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] "Join by Code" dialog with 6-character room code input
   - [x] Paginated public room browser screen (`RoomBrowserScreen`) with pull-to-refresh
   - [x] Friend / user direct invite system & Rematch requests via unified top-of-screen animated notification banner (`TopMatchInviteBanner`) with countdown timer and one-tap accept/decline
+  - [x] Friend invite side/color preference dialog (Random, White, Black) and recipient side indicator
 
 ### 2. Matchmaking
 - [x] **Matchmaking Queue (Backend)**:
   - [x] Real-time queue pool for active players looking for a match
   - [x] Rating-based matchmaking (pair players within similar skill brackets)
   - [x] Live online player count & queue count broadcasting
+  - [x] Unbiased 50/50 side toss (White/Black) when pairing players from queue
 - [x] **Queue UI (Frontend)**:
   - [x] "Find Match" matchmaking bottom sheet with animated pulse, online counter, low-count warning, elapsed timer, and cancel option
 
@@ -128,9 +130,9 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **Replay & Review Viewer**:
   - [x] Step-by-step game playback (Next move, Previous move, Jump to start/end, Auto-play with speed controls)
   - [x] Post-game review workflow: Replay past recorded matches directly from match history
-- [ ] **Game Analysis & AI Evaluation**:
+- [x] **Game Analysis & AI Evaluation**:
   - [x] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
-  - [ ] Full post-game AI game review highlighting critical turns, blunders, inaccuracies, and best moves
+  - [x] Post-game AI move review & quality indicators: Real-time advantage deltas (e.g. +0.1, -0.3, 0.0), semantic color badges (good, inaccuracy, mistake, blunder), and tooltips next to moves in Match History AI Review & Sandbox fork
   - [x] Interactive "sandbox" fork: test alternate moves from any board state in the replay
 
 ---
@@ -153,4 +155,5 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - Floating row docked at top or bottom with directional arrow, user rank, avatar, rating, and win rate.
   - Seamless animated scroll (`Scrollable.ensureVisible`) to player's row on tap, with auto-hiding when row is in view.
   - Unranked / 50+ player support pinned at bottom.
-
+- [ ] **Notifications Section & Drawer**:
+  - Dedicated notification center (bell icon with unread badge, drawer/sheet for match invites, friend requests, and system alerts).

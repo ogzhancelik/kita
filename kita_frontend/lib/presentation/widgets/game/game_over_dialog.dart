@@ -104,6 +104,71 @@ class _GameOverDialogState extends State<GameOverDialog> {
             textAlign: TextAlign.center,
           ),
 
+          // Match stats pill: Elapsed time & Total moves
+          ValueListenableBuilder<int>(
+            valueListenable: provider.elapsedSeconds,
+            builder: (ctx, seconds, _) {
+              final mins = seconds ~/ 60;
+              final secs = seconds % 60;
+              final timeStr =
+                  '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+              final movesCount = provider.moveHistory.value.length;
+              return Container(
+                margin: const EdgeInsets.only(top: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.getSurface(isDark),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.getBorder(isDark)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.timer_outlined,
+                      size: 15,
+                      color: AppColors.getTextMuted(isDark),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5,
+                        color: AppColors.getTextPrimary(isDark),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '•',
+                      style: TextStyle(
+                        color: AppColors.getTextMuted(isDark),
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.numbers_rounded,
+                      size: 15,
+                      color: AppColors.getTextMuted(isDark),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'replay.movesCount'.tr(args: ['$movesCount']),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: AppColors.getTextSecondary(isDark),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
           const SizedBox(height: 16),
 
           // Rating Changes if any

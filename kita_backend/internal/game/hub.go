@@ -210,11 +210,17 @@ func (h *Hub) handleJoinQueue(client *Client) {
 		h.broadcastOnlineCountLocked()
 
 		matchID := uuid.New().String()
+		// 50/50 toss for white and black
+		white, black := p1, p2
+		if rand.Intn(2) == 1 {
+			white, black = p2, p1
+		}
+
 		// Default matchmaking uses 3-minute time control
-		room := NewRoomWithTimeControl(matchID, p1, p2, TimeControl3Min, h.matchService, h)
+		room := NewRoomWithTimeControl(matchID, white, black, TimeControl3Min, h.matchService, h)
 		h.rooms[matchID] = room
 
-		log.Printf("[Hub] Match created: %s between %s (white) and %s (black)", matchID, p1.Username, p2.Username)
+		log.Printf("[Hub] Match created: %s between %s (white) and %s (black)", matchID, white.Username, black.Username)
 		go room.Start()
 	}
 }
@@ -674,6 +680,11 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
+	colorPref := dto.ColorPreference
+	if colorPref != "white" && colorPref != "black" {
+		colorPref = "random"
+	}
+
 	inviteID := uuid.New().String()
 
 	// Store invite info on the inviter
@@ -681,17 +692,19 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 	client.PendingInviteID = inviteID
 	client.PendingInviteFriendID = dto.FriendID
 	client.PendingInviteTimeControl = timeControl
+	client.PendingInviteColor = colorPref
 	client.mu.Unlock()
 
 	friend.SendJSON(TypeMatchInvitation, MatchInvitationDTO{
-		InviteID:      inviteID,
-		InviterID:     client.UserID,
-		InviterName:   client.Username,
-		InviterRating: client.Rating,
-		TimeControl:   timeControl,
+		InviteID:        inviteID,
+		InviterID:       client.UserID,
+		InviterName:     client.Username,
+		InviterRating:   client.Rating,
+		TimeControl:     timeControl,
+		ColorPreference: colorPref,
 	})
 
-	log.Printf("[Hub] Match invite sent from %s to %s", client.Username, friend.Username)
+	log.Printf("[Hub] Match invite sent from %s to %s (pref: %s)", client.Username, friend.Username, colorPref)
 }
 
 func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
@@ -712,11 +725,13 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	// Find the inviter by invite ID
 	var inviter *Client
 	var timeControl int64
+	var colorPref string
 	for _, c := range h.clients {
 		c.mu.RLock()
 		if c.PendingInviteID == dto.InviteID && c.PendingInviteFriendID == client.UserID {
 			inviter = c
 			timeControl = c.PendingInviteTimeControl
+			colorPref = c.PendingInviteColor
 		}
 		c.mu.RUnlock()
 		if inviter != nil {
@@ -734,14 +749,30 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	inviter.PendingInviteID = ""
 	inviter.PendingInviteFriendID = ""
 	inviter.PendingInviteTimeControl = 0
+	inviter.PendingInviteColor = ""
 	inviter.mu.Unlock()
+
+	// Assign sides based on inviter's preference
+	var white, black *Client
+	switch colorPref {
+	case "white":
+		white, black = inviter, client
+	case "black":
+		white, black = client, inviter
+	default: // "random"
+		if rand.Intn(2) == 0 {
+			white, black = inviter, client
+		} else {
+			white, black = client, inviter
+		}
+	}
 
 	// Create match
 	matchID := uuid.New().String()
-	room := NewRoomWithTimeControl(matchID, inviter, client, timeControl, h.matchService, h)
+	room := NewRoomWithTimeControl(matchID, white, black, timeControl, h.matchService, h)
 	h.rooms[matchID] = room
 
-	log.Printf("[Hub] Friend match created: %s between %s and %s (TC: %dms)", matchID, inviter.Username, client.Username, timeControl)
+	log.Printf("[Hub] Friend match created: %s between %s (white) and %s (black) (TC: %dms, pref: %s)", matchID, white.Username, black.Username, timeControl, colorPref)
 	go room.Start()
 }
 
@@ -765,6 +796,7 @@ func (h *Hub) handleDeclineInvite(client *Client, rawPayload json.RawMessage) {
 			c.PendingInviteID = ""
 			c.PendingInviteFriendID = ""
 			c.PendingInviteTimeControl = 0
+			c.PendingInviteColor = ""
 			c.mu.Unlock()
 			c.SendJSON(TypeInvitationDeclined, map[string]string{
 				"invite_id": dto.InviteID,

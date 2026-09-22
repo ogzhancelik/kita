@@ -44,6 +44,19 @@ class MatchInvitationDialog extends StatelessWidget {
         ? 'online.timeUnlimited'.tr()
         : '$mins min';
 
+    final String sideLabel;
+    final IconData sideIcon;
+    if (invitation.colorPreference == 'white') {
+      sideLabel = 'online.invitationSideBlack'.tr();
+      sideIcon = Icons.circle_outlined;
+    } else if (invitation.colorPreference == 'black') {
+      sideLabel = 'online.invitationSideWhite'.tr();
+      sideIcon = Icons.circle;
+    } else {
+      sideLabel = 'online.invitationSideRandom'.tr();
+      sideIcon = Icons.shuffle_rounded;
+    }
+
     return AlertDialog(
       backgroundColor: AppColors.getCard(isDark),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -125,6 +138,37 @@ class MatchInvitationDialog extends StatelessWidget {
                     ),
                     Text(
                       'TimeControl',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.getTextMuted(isDark),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  width: 1,
+                  height: 28,
+                  color: AppColors.getBorder(isDark),
+                ),
+                Column(
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(sideIcon, size: 14, color: AppColors.primaryGreen),
+                        const SizedBox(width: 4),
+                        Text(
+                          sideLabel,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: AppColors.getTextPrimary(isDark),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'side'.tr(),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.getTextMuted(isDark),

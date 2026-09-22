@@ -52,6 +52,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   // Move recording for post-match replay
   List<MoveRecordModel> _recordedMoves = [];
   DateTime _lastMoveTime = DateTime.now();
+  DateTime _matchStartedAt = DateTime.now();
 
   @override
   void initState() {
@@ -75,6 +76,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       _isAutoRetaliating = false;
       _recordedMoves = [];
       _lastMoveTime = DateTime.now();
+      _matchStartedAt = DateTime.now();
     });
 
     // In VS AI mode, if human plays Black, Bot is White and moves first!
@@ -624,7 +626,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                           ? 'white_wins'
                           : (status == GameStatus.blackWins ? 'black_wins' : 'draw'),
                       totalMoves: _recordedMoves.length,
-                      startedAt: DateTime.now().subtract(const Duration(minutes: 5)),
+                      startedAt: _matchStartedAt,
                       endedAt: DateTime.now(),
                       moves: List.from(_recordedMoves),
                     );

@@ -32,6 +32,7 @@ type Client struct {
 	PendingInviteID          string
 	PendingInviteFriendID    string
 	PendingInviteTimeControl int64
+	PendingInviteColor       string
 
 	isClosed bool
 	mu       sync.RWMutex

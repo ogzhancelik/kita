@@ -287,7 +287,14 @@
     "whiteTeam": "White",
     "blackTeam": "Black",
     "gameOverTitle": "Game Over: {}",
-    "noSandboxMoves": "Alternate moves you test on the board will appear here."
+    "noSandboxMoves": "Alternate moves you test on the board will appear here.",
+    "evalDeltaTooltip": "Move Quality: {} • Eval: {}",
+    "evalGood": "Good",
+    "evalInaccuracy": "Inaccuracy",
+    "evalMistake": "Mistake",
+    "evalBlunder": "Blunder",
+    "evalLegend": "Move Quality (+gain / -loss)",
+    "evalHint": "Numbers indicate advantage delta (+good, -mistake)"
   },
   "common": {
     "cancel": "Cancel",
@@ -371,6 +378,13 @@
     "inviteSent": "Game invitation sent!",
     "inviteReceived": "{} invited you to a game!",
     "accept": "Accept",
-    "decline": "Decline"
+    "decline": "Decline",
+    "chooseSide": "Choose Side",
+    "colorRandom": "Random",
+    "colorWhite": "White (First)",
+    "colorBlack": "Black (Second)",
+    "invitationSideRandom": "Sides: Random",
+    "invitationSideWhite": "You play: White",
+    "invitationSideBlack": "You play: Black"
   }
 }

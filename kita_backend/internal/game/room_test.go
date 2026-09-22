@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -147,3 +148,72 @@ func TestRoomMoveBufferingAndExecution(t *testing.T) {
 		t.Fatal("Timeout waiting for match to be saved via MatchService")
 	}
 }
+
+func TestRoomClockNoElapsedLeakToOpponent(t *testing.T) {
+	mockService := &mockMatchService{
+		saveChan: make(chan *domain.Match, 1),
+	}
+	hub := NewHub(mockService, nil)
+
+	sConn1, cConn1 := setupTestWS(t)
+	sConn2, cConn2 := setupTestWS(t)
+	_ = cConn1
+	_ = cConn2
+
+	clientWhite := NewClient(hub, sConn1, "user-white", "WhitePlayer", 1200)
+	clientBlack := NewClient(hub, sConn2, "user-black", "BlackPlayer", 1200)
+
+	tc := int64(180_000)
+	room := NewRoomWithTimeControl("test-clock-room", clientWhite, clientBlack, tc, mockService, hub)
+	room.Start()
+
+	// Drain initial MatchFound and GameState messages from clientBlack.Send
+	<-clientBlack.Send // match_found
+	<-clientBlack.Send // initial game_state
+
+	// White waits 60ms before making a move
+	time.Sleep(60 * time.Millisecond)
+
+	legalMoves := room.Game.GetLegalMoves()
+	if len(legalMoves) == 0 {
+		t.Fatal("No legal moves for White")
+	}
+	moveDTO := FromGameMove(legalMoves[0])
+
+	err := room.MakeMove("user-white", moveDTO)
+	if err != nil {
+		t.Fatalf("MakeMove failed: %v", err)
+	}
+
+	// White's remaining time should have decreased
+	if room.WhiteRemainingMs >= tc {
+		t.Errorf("Expected White's time to decrease from %d, got %d", tc, room.WhiteRemainingMs)
+	}
+
+	// Black's remaining time in memory MUST NOT be affected by White's elapsed time
+	if room.BlackRemainingMs != tc {
+		t.Errorf("Expected Black's remaining time to be %d, got %d", tc, room.BlackRemainingMs)
+	}
+
+	// Read next game_state sent to Black after White's move
+	select {
+	case msgBytes := <-clientBlack.Send:
+		var wsMsg struct {
+			Type    string       `json:"type"`
+			Payload GameStateDTO `json:"payload"`
+		}
+		if err := json.Unmarshal(msgBytes, &wsMsg); err != nil {
+			t.Fatalf("Failed to unmarshal game_state: %v", err)
+		}
+		if wsMsg.Payload.Turn != "black" {
+			t.Errorf("Expected turn 'black', got %s", wsMsg.Payload.Turn)
+		}
+		// Black's remaining time in the broadcast payload MUST be equal to tc (or within 20ms), NEVER tc - 60ms
+		if wsMsg.Payload.BlackRemainingMs < tc-20 {
+			t.Errorf("Elapsed leaked! Black remaining time in payload was %d (expected >= %d)", wsMsg.Payload.BlackRemainingMs, tc-20)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timed out waiting for game_state on clientBlack.Send")
+	}
+}
+

@@ -165,11 +165,11 @@ func (r *Room) startLocked() {
 		TimeControl:    r.TimeControl,
 	})
 
-	// 2. Tahtanın ilk hali gönderilir
-	r.broadcastStateLocked()
-
-	// 3. İlk chess clock timeout'u başlatılır (beyazın sırası)
+	// 2. İlk chess clock timeout'u başlatılır (beyazın sırası)
 	r.startTimeoutTimerLocked()
+
+	// 3. Tahtanın ilk hali gönderilir
+	r.broadcastStateLocked()
 }
 
 // ─── Chess Clock ──────────────────────────────────────────────────────
@@ -182,6 +182,7 @@ func (r *Room) deductCurrentPlayerTimeLocked() int64 {
 	}
 
 	elapsed := time.Since(r.turnStartedAt).Milliseconds()
+	r.turnStartedAt = time.Now() // Reset reference immediately so elapsed does not leak into next player's broadcast
 
 	if r.Game.Turn == "white" {
 		r.WhiteRemainingMs -= elapsed
@@ -332,15 +333,24 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 	}
 	r.MovesBuffer = append(r.MovesBuffer, matchMove)
 
-	// 7. Durumu oyunculara bildir
-	r.broadcastStateLocked()
+	// 7. Oyun bitti mi kontrol et (Karşı kral avlanamadıysa anında win/loss)
+	status := r.Game.GetStatus()
+	if status != "ongoing" {
+		r.broadcastStateLocked()
+		r.finishGameLocked(status, domain.ReasonNormal)
+		return nil
+	}
 
-	// 8. Start new timeout timer for the next player
-	r.startTimeoutTimerLocked()
-
-	// 9. Otomatik karşı misilleme kontrolü (Last-Stand Defense Auto Retaliation)
+	// 8. Otomatik karşı misilleme kontrolü (Last-Stand Defense Auto Retaliation)
 	retaliationMove := r.Game.GetKingRetaliationMove()
 	if retaliationMove != nil {
+		if r.timeoutTimer != nil {
+			r.timeoutTimer.Stop()
+			r.timeoutTimer = nil
+		}
+		r.turnStartedAt = time.Now()
+		r.broadcastStateLocked()
+
 		go func(rm *Room, autoMove kitagame.Move) {
 			time.Sleep(400 * time.Millisecond)
 			rm.mu.Lock()
@@ -384,20 +394,21 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 				CreatedAt: retaliationTime,
 			})
 
-			rm.broadcastStateLocked()
-			status := rm.Game.GetStatus()
-			if status != "ongoing" {
-				rm.finishGameLocked(status, domain.ReasonNormal)
+			retaliationStatus := rm.Game.GetStatus()
+			if retaliationStatus != "ongoing" {
+				rm.broadcastStateLocked()
+				rm.finishGameLocked(retaliationStatus, domain.ReasonNormal)
+			} else {
+				rm.startTimeoutTimerLocked()
+				rm.broadcastStateLocked()
 			}
 		}(r, *retaliationMove)
 		return nil
 	}
 
-	// 10. Oyun bitti mi kontrol et (Karşı kral avlanamadıysa anında win/loss)
-	status := r.Game.GetStatus()
-	if status != "ongoing" {
-		r.finishGameLocked(status, domain.ReasonNormal)
-	}
+	// 9. Sıradaki oyuncu için timer'ı başlat, ardından tahtanın yeni halini bildir
+	r.startTimeoutTimerLocked()
+	r.broadcastStateLocked()
 
 	return nil
 }

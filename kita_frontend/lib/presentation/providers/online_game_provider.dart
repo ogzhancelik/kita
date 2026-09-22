@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../core/feedback/sound_service.dart';
 import '../../core/feedback/toast_service.dart';
 import '../../data/models/game_models.dart';
 import '../../data/models/ws_message_models.dart';
@@ -338,10 +339,11 @@ class OnlineGameProvider extends ChangeNotifier {
 
   // ─── Friend Invite ────────────────────────────────────────────────
 
-  void inviteToMatch(String friendId, {int timeControl = 180000}) {
+  void inviteToMatch(String friendId, {int timeControl = 180000, String colorPreference = 'random'}) {
     _ws.send(WsClientType.inviteToMatch, {
       'friend_id': friendId,
       'time_control': timeControl,
+      'color_preference': colorPreference,
     });
   }
 
@@ -427,6 +429,9 @@ class OnlineGameProvider extends ChangeNotifier {
   }
 
   // ─── WS Message Handler ───────────────────────────────────────────
+
+  @visibleForTesting
+  void handleWsMessageForTesting(WsMessage msg) => _handleWsMessage(msg);
 
   void _handleWsMessage(WsMessage msg) {
     switch (msg.type) {
@@ -529,6 +534,7 @@ class OnlineGameProvider extends ChangeNotifier {
             senderName: payload.inviterName,
             senderRating: payload.inviterRating,
             timeControl: payload.timeControl,
+            colorPreference: payload.colorPreference,
           );
           notifyListeners();
         }
@@ -602,6 +608,26 @@ class OnlineGameProvider extends ChangeNotifier {
     whiteRemainingMs.value = data.whiteRemainingMs;
     blackRemainingMs.value = data.blackRemainingMs;
     currentTurn.value = data.turn;
+
+    // Detect new move and play sound before frontend engine is updated
+    final isSingleNewMove = data.moveCount - moveHistory.value.length == 1;
+    if (isSingleNewMove && data.lastMove != null) {
+      final lm = data.lastMove!;
+      final movingTeam = data.turn == 'white' ? 'black' : 'white';
+      final oppKingId = movingTeam == 'white' ? 'BK' : 'WK';
+      final oppKingPos = gameEngine.value.positions[oppKingId];
+      final isCapture = (oppKingPos != null &&
+              lm.toCol == oppKingPos.col &&
+              lm.toRow == oppKingPos.row) ||
+          (data.kingEatenBy.isNotEmpty &&
+              gameEngine.value.kingEatenBy != data.kingEatenBy);
+
+      if (isCapture) {
+        SoundService.instance.playCapture();
+      } else {
+        SoundService.instance.playMove();
+      }
+    }
 
     // Sync frontend engine from backend positions
     _syncEngineFromBackend(data);
@@ -684,9 +710,15 @@ class OnlineGameProvider extends ChangeNotifier {
     if (payload == null) return;
     final data = GameOverPayload.fromJson(payload);
 
+    if (_matchStartedAt != null) {
+      elapsedSeconds.value =
+          DateTime.now().difference(_matchStartedAt!).inSeconds;
+    }
+
     gameOverData.value = data;
     matchState.value = OnlineMatchState.gameOver;
     _stopClockTimer();
+    SoundService.instance.playGameOver();
     notifyListeners();
   }
 
@@ -722,21 +754,22 @@ class OnlineGameProvider extends ChangeNotifier {
 
   void _startClockTimer() {
     _stopClockTimer();
-    if (timeControl == 0) return; // Unlimited — no timer needed
 
     _clockTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (matchState.value != OnlineMatchState.inMatch) return;
 
-      // Client-side interpolation: deduct 100ms from the active player's clock
-      if (currentTurn.value == 'white') {
-        final remaining = whiteRemainingMs.value - 100;
-        whiteRemainingMs.value = remaining > 0 ? remaining : 0;
-      } else {
-        final remaining = blackRemainingMs.value - 100;
-        blackRemainingMs.value = remaining > 0 ? remaining : 0;
+      // Client-side interpolation: deduct 100ms from the active player's clock if timed match
+      if (timeControl > 0) {
+        if (currentTurn.value == 'white') {
+          final remaining = whiteRemainingMs.value - 100;
+          whiteRemainingMs.value = remaining > 0 ? remaining : 0;
+        } else {
+          final remaining = blackRemainingMs.value - 100;
+          blackRemainingMs.value = remaining > 0 ? remaining : 0;
+        }
       }
 
-      // Update elapsed seconds
+      // Update elapsed seconds for both timed and unlimited (no time limit) modes
       if (_matchStartedAt != null) {
         elapsedSeconds.value = DateTime.now()
             .difference(_matchStartedAt!)

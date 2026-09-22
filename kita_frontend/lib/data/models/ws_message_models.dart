@@ -448,6 +448,7 @@ class MatchInvitationPayload {
   final String inviterName;
   final int inviterRating;
   final int timeControl;
+  final String colorPreference;
 
   const MatchInvitationPayload({
     required this.inviteId,
@@ -455,6 +456,7 @@ class MatchInvitationPayload {
     required this.inviterName,
     required this.inviterRating,
     required this.timeControl,
+    this.colorPreference = 'random',
   });
 
   factory MatchInvitationPayload.fromJson(Map<String, dynamic> json) {
@@ -464,6 +466,7 @@ class MatchInvitationPayload {
       inviterName: json['inviter_name'] as String? ?? '',
       inviterRating: (json['inviter_rating'] as num?)?.toInt() ?? 1200,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
+      colorPreference: json['color_preference'] as String? ?? 'random',
     );
   }
 }
@@ -481,6 +484,7 @@ class IncomingMatchRequest {
   final String senderName;
   final int senderRating;
   final int timeControl;
+  final String colorPreference;
   final DateTime createdAt;
 
   IncomingMatchRequest({
@@ -489,6 +493,7 @@ class IncomingMatchRequest {
     required this.senderName,
     this.senderRating = 1200,
     required this.timeControl,
+    this.colorPreference = 'random',
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 }

@@ -148,9 +148,18 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
         ? 'online.rematchOfferTitle'.tr()
         : 'online.friendInviteTitle'.tr();
 
+    final String sideInfo;
+    if (req.colorPreference == 'white') {
+      sideInfo = 'online.invitationSideBlack'.tr();
+    } else if (req.colorPreference == 'black') {
+      sideInfo = 'online.invitationSideWhite'.tr();
+    } else {
+      sideInfo = 'online.invitationSideRandom'.tr();
+    }
+
     final subtitle = isRematch
         ? 'online.rematchOfferSubtitle'.tr(args: [req.senderName, timeStr])
-        : 'online.friendInviteSubtitle'.tr(args: [req.senderName, timeStr]);
+        : '${'online.friendInviteSubtitle'.tr(args: [req.senderName, timeStr])} • $sideInfo';
 
     final accentColor = isRematch ? AppColors.winBlue : AppColors.ratingGold;
 

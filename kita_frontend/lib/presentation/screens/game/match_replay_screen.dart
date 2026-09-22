@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../../data/models/kita_ai.dart';
 import '../../../data/models/match_model.dart';
+import '../../../data/models/move_evaluation.dart';
 import '../../../data/services/match_api_service.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_card.dart';
@@ -53,6 +54,8 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   // AI Evaluation
   final KitaAI _ai = KitaAI.instance;
   bool _aiReady = false;
+  List<MoveEvaluation?> _evaluations = [];
+  List<MoveEvaluation?> _sandboxEvaluations = [];
 
   // Interactive Sandbox Fork State
   bool _isSandboxMode = false;
@@ -93,7 +96,13 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   Future<void> _initAI() async {
     try {
       await _ai.initialize();
-      if (mounted) setState(() => _aiReady = true);
+      if (mounted) {
+        setState(() {
+          _aiReady = true;
+          _computeMoveEvaluations();
+          if (_isSandboxMode) _computeSandboxEvaluations();
+        });
+      }
     } catch (_) {
       // AI fallback heuristic in advantage bar will be used
     }
@@ -142,6 +151,56 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
     _states = computed;
     _currentStep = 0;
+    _computeMoveEvaluations();
+  }
+
+  void _computeMoveEvaluations() {
+    if (_states.length < 2 || _match == null) {
+      _evaluations = [];
+      return;
+    }
+
+    final List<double> stateScores = [];
+    for (final state in _states) {
+      stateScores.add(AiAdvantageBar.computeWhiteAdvantageScore(state, _aiReady ? _ai : null));
+    }
+
+    final List<MoveEvaluation?> evals = [];
+    for (int i = 1; i < _states.length; i++) {
+      final isWhite = i % 2 == 1; // 1-based ply: 1 is White, 2 is Black, etc.
+      evals.add(MoveEvaluation.compute(
+        whiteScoreBefore: stateScores[i - 1],
+        whiteScoreAfter: stateScores[i],
+        isWhiteMove: isWhite,
+      ));
+    }
+
+    _evaluations = evals;
+  }
+
+  void _computeSandboxEvaluations() {
+    if (_sandboxStates.length < 2) {
+      _sandboxEvaluations = [];
+      return;
+    }
+
+    final List<double> stateScores = [];
+    for (final state in _sandboxStates) {
+      stateScores.add(AiAdvantageBar.computeWhiteAdvantageScore(state, _aiReady ? _ai : null));
+    }
+
+    final List<MoveEvaluation?> evals = [];
+    for (int i = 1; i < _sandboxStates.length; i++) {
+      final globalPly = _forkStep + i;
+      final isWhite = globalPly % 2 == 1;
+      evals.add(MoveEvaluation.compute(
+        whiteScoreBefore: stateScores[i - 1],
+        whiteScoreAfter: stateScores[i],
+        isWhiteMove: isWhite,
+      ));
+    }
+
+    _sandboxEvaluations = evals;
   }
 
   void _jumpToStep(int step) {
@@ -294,6 +353,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       _selectedPieceId = null;
       _validMoves = {};
     });
+    _computeSandboxEvaluations();
 
     if (nextEngine.hasKingRetaliation) {
       _handleAutoRetaliation();
@@ -325,6 +385,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       _sandboxStep = _sandboxStates.length - 1;
       _isAutoRetaliating = false;
     });
+    _computeSandboxEvaluations();
   }
 
   Future<void> _playAiSandboxMove() async {
@@ -1186,6 +1247,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                   final fromStr = _formatCoord(move.fromPos.col, move.fromPos.row);
                   final toStr = _formatCoord(move.toPos.col, move.toPos.row);
                   final turnNumber = ((_forkStep + moveIndex) ~/ 2) + 1;
+                  final sandboxEval = (_sandboxEvaluations.length > moveIndex) ? _sandboxEvaluations[moveIndex] : null;
 
                   return InkWell(
                     onTap: () => _jumpToSandboxStep(index),
@@ -1244,6 +1306,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                               ),
                             ),
                           ),
+                          if (sandboxEval != null) ...[
+                            const SizedBox(width: 6),
+                            _buildEvalBadge(sandboxEval, isActive, isDark),
+                          ],
                         ],
                       ),
                     ),
@@ -1275,13 +1341,40 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'replay.moveHistory'.tr(),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                ),
+              Row(
+                children: [
+                  Text(
+                    'replay.moveHistory'.tr(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'replay.evalHint'.tr(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        'replay.evalLegend'.tr(),
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               Text(
                 'replay.tapMoveToJump'.tr(),
@@ -1385,12 +1478,13 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final fromStr = _formatCoord(move.fromCol, move.fromRow);
     final toStr = _formatCoord(move.toCol, move.toRow);
     final timeStr = move.timeMs > 0 ? '${(move.timeMs / 1000).toStringAsFixed(1)}s' : '';
+    final eval = (_evaluations.length >= plyIndex) ? _evaluations[plyIndex - 1] : null;
 
     return InkWell(
       onTap: () => _jumpToStep(plyIndex),
       borderRadius: BorderRadius.circular(6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
           color: isActive
               ? AppColors.primaryGreen
@@ -1417,14 +1511,14 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 5),
 
             // Piece and Move notation
             Expanded(
               child: Text(
                 '${move.piece} $fromStr→$toStr',
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: 11,
                   fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
                   color: isActive
                       ? Colors.white
@@ -1435,18 +1529,59 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
               ),
             ),
 
+            // Move evaluation delta badge (like +0.1, -0.3)
+            if (eval != null) ...[
+              const SizedBox(width: 4),
+              _buildEvalBadge(eval, isActive, isDark),
+            ],
+
             // Think time
-            if (timeStr.isNotEmpty)
+            if (timeStr.isNotEmpty) ...[
+              const SizedBox(width: 4),
               Text(
                 timeStr,
                 style: TextStyle(
-                  fontSize: 9.5,
+                  fontSize: 9.0,
                   color: isActive
                       ? Colors.white70
                       : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
                 ),
               ),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEvalBadge(MoveEvaluation eval, bool isActive, bool isDark) {
+    final textColor = eval.getTextColor(isDark, isActive);
+    final badgeColor = eval.getBadgeColor(isActive);
+    final borderColor = eval.getBorderColor(isDark, isActive);
+
+    final tooltipMsg = 'replay.evalDeltaTooltip'.tr(args: [
+      eval.qualityName,
+      eval.positionScoreLabel,
+    ]);
+
+    return Tooltip(
+      message: tooltipMsg,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+        decoration: BoxDecoration(
+          color: badgeColor,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: borderColor, width: 0.8),
+        ),
+        child: Text(
+          eval.deltaLabel,
+          style: TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w800,
+            fontFamily: 'monospace',
+            color: textColor,
+            letterSpacing: -0.2,
+          ),
         ),
       ),
     );

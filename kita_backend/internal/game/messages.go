@@ -214,16 +214,18 @@ type RematchOfferedDTO struct {
 // ─── Friend Invite DTOs ───────────────────────────────────────────────
 
 type InviteToMatchDTO struct {
-	FriendID    string `json:"friend_id"`
-	TimeControl int64  `json:"time_control"`
+	FriendID        string `json:"friend_id"`
+	TimeControl     int64  `json:"time_control"`
+	ColorPreference string `json:"color_preference,omitempty"`
 }
 
 type MatchInvitationDTO struct {
-	InviteID      string `json:"invite_id"`
-	InviterID     string `json:"inviter_id"`
-	InviterName   string `json:"inviter_name"`
-	InviterRating int    `json:"inviter_rating"`
-	TimeControl   int64  `json:"time_control"`
+	InviteID        string `json:"invite_id"`
+	InviterID       string `json:"inviter_id"`
+	InviterName     string `json:"inviter_name"`
+	InviterRating   int    `json:"inviter_rating"`
+	TimeControl     int64  `json:"time_control"`
+	ColorPreference string `json:"color_preference,omitempty"`
 }
 
 type AcceptInviteDTO struct {

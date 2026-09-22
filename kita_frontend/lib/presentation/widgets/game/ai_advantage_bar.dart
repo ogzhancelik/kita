@@ -26,7 +26,11 @@ class AiAdvantageBar extends StatelessWidget {
 
   /// Computes absolute evaluation from White's perspective.
   /// Standard range: [-1.0, 1.0] for ongoing games, ±10.0 for terminal wins.
-  double get whiteAdvantageScore {
+  double get whiteAdvantageScore => computeWhiteAdvantageScore(engine, ai);
+
+  /// Computes absolute evaluation from White's perspective.
+  /// Standard range: [-1.0, 1.0] for ongoing games, ±10.0 for terminal wins.
+  static double computeWhiteAdvantageScore(KitaGameEngine engine, [KitaAI? ai]) {
     final status = engine.getStatus();
     if (status == GameStatus.whiteWins) return 10.0;
     if (status == GameStatus.blackWins) return -10.0;
@@ -43,10 +47,10 @@ class AiAdvantageBar extends StatelessWidget {
     }
 
     // Material & King safety heuristic fallback if AI weights not yet loaded
-    return _heuristicScore(engine);
+    return heuristicScore(engine);
   }
 
-  static double _heuristicScore(KitaGameEngine eng) {
+  static double heuristicScore(KitaGameEngine eng) {
     double score = 0.0;
     final wk = eng.positions['WK'];
     final bk = eng.positions['BK'];

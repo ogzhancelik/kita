@@ -106,12 +106,18 @@ class PlayerInfoBar extends StatelessWidget {
             ),
           ),
 
-          // Chess clock
-          if (timeControl > 0) _ChessClock(
-            remainingMs: remainingMs,
-            isActiveTurn: isActiveTurn,
-            playerTeam: team,
-          ),
+          // Chess clock or Unlimited badge
+          if (timeControl > 0)
+            _ChessClock(
+              remainingMs: remainingMs,
+              isActiveTurn: isActiveTurn,
+              playerTeam: team,
+            )
+          else
+            _UnlimitedClockBadge(
+              isActiveTurn: isActiveTurn,
+              playerTeam: team,
+            ),
         ],
       ),
     );
@@ -189,3 +195,49 @@ class _ChessClock extends StatelessWidget {
     );
   }
 }
+
+/// Badge displayed when the match has no time limit (unlimited).
+class _UnlimitedClockBadge extends StatelessWidget {
+  final ValueNotifier<String> isActiveTurn;
+  final String playerTeam;
+
+  const _UnlimitedClockBadge({
+    required this.isActiveTurn,
+    required this.playerTeam,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ValueListenableBuilder<String>(
+      valueListenable: isActiveTurn,
+      builder: (ctx, turn, _) {
+        final isActive = turn == playerTeam;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: isActive
+                ? AppColors.primaryGreen.withValues(alpha: 0.15)
+                : AppColors.getSurface(isDark),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isActive
+                  ? AppColors.primaryGreen
+                  : AppColors.getBorder(isDark),
+              width: 1.5,
+            ),
+          ),
+          child: Icon(
+            Icons.all_inclusive_rounded,
+            size: 18,
+            color: isActive
+                ? AppColors.primaryGreen
+                : AppColors.getTextMuted(isDark),
+          ),
+        );
+      },
+    );
+  }
+}
+

@@ -427,6 +427,16 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                         color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                       ),
                     ),
+                    if (match.endedAt != null) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '•  ${_formatDuration(match.endedAt!.difference(match.startedAt).inSeconds)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -442,5 +452,12 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
         ],
       ),
     );
+  }
+
+  String _formatDuration(int seconds) {
+    if (seconds < 0) seconds = 0;
+    final mins = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 }

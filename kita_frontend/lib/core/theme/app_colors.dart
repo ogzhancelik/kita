@@ -25,6 +25,18 @@ class AppColors {
   static const Color lossRed = Color(0xFFE74C3C);
   static const Color drawGray = Color(0xFF95A5A6);
 
+  // --- Move Quality & Evaluation Indicators ---
+  static const Color evalGood = Color(0xFF81B64C);
+  static const Color evalGoodBg = Color(0x2A81B64C);
+  static const Color evalInaccuracy = Color(0xFFF39C12);
+  static const Color evalInaccuracyBg = Color(0x2AF39C12);
+  static const Color evalMistake = Color(0xFFE67E22);
+  static const Color evalMistakeBg = Color(0x2AE67E22);
+  static const Color evalBlunder = Color(0xFFE74C3C);
+  static const Color evalBlunderBg = Color(0x2AE74C3C);
+  static const Color evalNeutral = Color(0xFF95A5A6);
+  static const Color evalNeutralBg = Color(0x2095A5A6);
+
   // --- Dark Theme Surfaces (Default Chess.com dark mode) ---
   static const Color darkBg = Color(0xFF161512);
   static const Color darkCard = Color(0xFF262421);
