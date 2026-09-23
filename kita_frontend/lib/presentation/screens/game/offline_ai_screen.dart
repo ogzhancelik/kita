@@ -19,7 +19,9 @@ import 'match_replay_screen.dart';
 enum PlayMode { localCoop, vsAi }
 
 class OfflineAiScreen extends StatefulWidget {
-  const OfflineAiScreen({super.key});
+  final PlayMode? initialMode;
+
+  const OfflineAiScreen({super.key, this.initialMode});
 
   @override
   State<OfflineAiScreen> createState() => _OfflineAiScreenState();
@@ -30,7 +32,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   late KitaGameEngine _engine;
 
   // Settings
-  PlayMode _playMode = PlayMode.localCoop;
+  late PlayMode _playMode;
   PieceTeam _playerTeam = PieceTeam.white; // Human player's side in VS AI mode
   int _selectedDifficulty = 1; // 0: Easy, 1: Medium, 2: Hard
   bool _isHorizontal = true;
@@ -57,6 +59,7 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
   @override
   void initState() {
     super.initState();
+    _playMode = widget.initialMode ?? PlayMode.localCoop;
     _ai = KitaAI.instance;
     _ai!.initialize().then((_) {
       if (mounted) setState(() {});

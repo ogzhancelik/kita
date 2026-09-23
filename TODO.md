@@ -41,13 +41,14 @@ Foundational systems to establish early so game strings and rules are never hard
 - [x] **Auth / Guest System**:
   - [x] Support Guest/Anonymous play (zero barrier to entry)
   - [x] User registration & login (email/password or OAuth)
-- [ ] **User Profile**:
+- [x] **User Profile**:
   - [x] Custom display name and avatar selection (Guest profile onboarding & avatar picker)
   - [x] Player statistics (total matches, wins, losses, win rate, current streak)
   - [x] Match history summary list (recent opponents, results, dates)
+  - [x] Dedicated User Profile modal dialog & detailed stats view
 - [ ] **Settings & Preferences**:
   - [x] Backend settings API (`/api/settings`) & DB persistence (board themes, audio, orientation, move highlights)
-  - [ ] Frontend settings screen with local storage (`shared_preferences`) & backend sync
+  - [x] Frontend settings modal dialog with appearance/theme, language, and account controls
   - [ ] In-game integration: wire sound effects, board themes, and last-move toggle
 
 ---

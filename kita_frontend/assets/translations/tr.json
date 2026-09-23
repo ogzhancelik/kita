@@ -99,7 +99,30 @@
     "badgeOnline": "ÇEVRİMİÇİ",
     "toastMatchmaking": "Eşleşme sırası Aşama 4'te WebSocket üzerinden bağlanacaktır.",
     "toastCreateRoom": "Oda oluşturma API'si sunucuda hazır!",
-    "toastFriends": "Arkadaş listesi ve meydan okumalar yüklendi."
+    "toastFriends": "Arkadaş listesi ve meydan okumalar yüklendi.",
+    "topLeaderboard": "En İyiler",
+    "openRooms": "Açık Odalar",
+    "noOpenRooms": "Bekleyen açık oda bulunamadı",
+    "friendsQuick": "Arkadaşlar & Hızlı Davet",
+    "recentMatches": "Son Maçlar",
+    "playMenu": "Kita Oyna",
+    "playMenuSubtitle": "Oyun modunu seçin",
+    "matchmakingWarning": "Hızlı eşleşme havuzu aktif online oyuncularla eşleştirir.",
+    "quickChallenge": "Davet Et",
+    "invited": "Davet Edildi",
+    "watchReplay": "Tekrar",
+    "noRecentMatches": "Henüz oynanmış maç yok. İlk maçına hemen başla!",
+    "allFriends": "Tümünü Gör",
+    "allRooms": "Tüm Odalar",
+    "homeAction": "Ana Sayfa",
+    "playAction": "Oyna",
+    "friendsTab": "Arkadaşlar",
+    "globalTab": "Global",
+    "challengeSent": "{} kullanıcısına maç daveti gönderildi",
+    "rank": "Sıra",
+    "createRoomShort": "Oda Kur",
+    "viewProfileTooltip": "Profili ve istatistikleri görüntüle",
+    "loadMore": "Daha Fazla Yükle"
   },
   "game": {
     "offlineAITitle": "Kita vs AI Motoru",
@@ -386,5 +409,41 @@
     "invitationSideRandom": "Taraf: Rastgele",
     "invitationSideWhite": "Tarafınız: Beyaz",
     "invitationSideBlack": "Tarafınız: Siyah"
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "placeholderTitle": "Bildirim Merkezi",
+    "placeholderDesc": "Rövanş istekleri, arkadaşlık davetleri ve oda bildirimleri burada toplanacaktır.",
+    "empty": "Şu an okunmamış bildirim bulunmuyor.",
+    "comingSoon": "Geliştirme Aşamasında"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "theme": "Görünüm",
+    "language": "Dil",
+    "sound": "Ses Efektleri",
+    "account": "Hesap",
+    "about": "Kita Hakkında",
+    "version": "Sürüm 1.0.0",
+    "themeLight": "Aydınlık Mod",
+    "themeDark": "Karanlık Mod",
+    "languageTr": "Türkçe",
+    "languageEn": "English",
+    "logoutConfirmTitle": "Çıkış Yapılsın mı?",
+    "logoutConfirmDesc": "Hesabınızdan çıkış yapmak istediğinize emin misiniz?",
+    "cancel": "İptal",
+    "confirm": "Onayla"
+  },
+  "profile": {
+    "title": "Oyuncu Profili",
+    "changeAvatar": "Avatarı Değiştir",
+    "memberSince": "Hesap Durumu",
+    "registeredPlayer": "Kayıtlı Oyuncu",
+    "guestPlayer": "Misafir Oyuncu",
+    "stats": "Performans Özeti",
+    "matchesCount": "Toplam Karşılaşma",
+    "winRate": "Galibiyet Oranı",
+    "rating": "Mevcut ELO",
+    "wld": "Galibiyet / Mağlubiyet / Beraberlik"
   }
 }

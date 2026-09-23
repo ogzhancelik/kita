@@ -1,5 +1,8 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../providers/auth_provider.dart';
 
 class AvatarItem {
   final int id;
@@ -35,6 +38,46 @@ class AvatarPicker extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
   });
+
+  static Future<void> show(BuildContext context) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final authProv = ctx.watch<AuthProvider>();
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'guest.chooseAvatar'.tr(),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              AvatarPicker(
+                selectedIndex: authProv.avatarIndex,
+                onSelected: (idx) {
+                  authProv.setAvatarIndex(idx);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

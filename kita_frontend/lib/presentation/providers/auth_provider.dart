@@ -58,7 +58,23 @@ class AuthProvider extends ChangeNotifier {
     if (isGuest && _guestProfile != null) {
       return _guestProfile!.avatarIndex;
     }
+    if (_currentUser != null) {
+      return _currentUser!.username.hashCode.abs() % 8;
+    }
     return 0;
+  }
+
+  Future<void> setAvatarIndex(int index) async {
+    if (isGuest && _guestProfile != null) {
+      _guestProfile = GuestProfile(
+        nickname: _guestProfile!.nickname,
+        avatarIndex: index,
+      );
+      try {
+        await _storage.saveGuestProfile(_guestProfile!.nickname, index);
+      } catch (_) {}
+      notifyListeners();
+    }
   }
 
   // --- Step 1 & 2 & 3 Initialization Flow ---

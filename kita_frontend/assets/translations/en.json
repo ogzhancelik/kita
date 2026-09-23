@@ -99,7 +99,30 @@
     "badgeOnline": "ONLINE",
     "toastMatchmaking": "Matchmaking queue will connect via WebSocket in Phase 4.",
     "toastCreateRoom": "Room creation API ready on backend!",
-    "toastFriends": "Friends list and challenges loaded."
+    "toastFriends": "Friends list and challenges loaded.",
+    "topLeaderboard": "Top Players",
+    "openRooms": "Open Rooms",
+    "noOpenRooms": "No open rooms waiting for players",
+    "friendsQuick": "Friends & Challenges",
+    "recentMatches": "Recent Matches",
+    "playMenu": "Play Kita",
+    "playMenuSubtitle": "Select game mode",
+    "matchmakingWarning": "Queue pool pairs with currently active online players.",
+    "quickChallenge": "Challenge",
+    "invited": "Invited",
+    "watchReplay": "Replay",
+    "noRecentMatches": "No matches played yet. Start your first game!",
+    "allFriends": "View All",
+    "allRooms": "All Rooms",
+    "homeAction": "Home",
+    "playAction": "Play",
+    "friendsTab": "Friends",
+    "globalTab": "Global",
+    "challengeSent": "Match invitation sent to {}",
+    "rank": "Rank",
+    "createRoomShort": "Create Room",
+    "viewProfileTooltip": "View profile & stats",
+    "loadMore": "Load More"
   },
   "game": {
     "offlineAITitle": "Kita vs AI Engine",
@@ -386,5 +409,41 @@
     "invitationSideRandom": "Sides: Random",
     "invitationSideWhite": "You play: White",
     "invitationSideBlack": "You play: Black"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "placeholderTitle": "Notification Center",
+    "placeholderDesc": "Rematch invitations, friend requests, and room invites will be organized here.",
+    "empty": "No notifications right now.",
+    "comingSoon": "Under Construction"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Appearance",
+    "language": "Language",
+    "sound": "Sound Effects",
+    "account": "Account",
+    "about": "About Kita",
+    "version": "Version 1.0.0",
+    "themeLight": "Light Mode",
+    "themeDark": "Dark Mode",
+    "languageTr": "Türkçe",
+    "languageEn": "English",
+    "logoutConfirmTitle": "Log Out?",
+    "logoutConfirmDesc": "Are you sure you want to log out of your account?",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "profile": {
+    "title": "Player Profile",
+    "changeAvatar": "Change Avatar",
+    "memberSince": "Account Status",
+    "registeredPlayer": "Registered Player",
+    "guestPlayer": "Guest Account",
+    "stats": "Performance Summary",
+    "matchesCount": "Total Matches",
+    "winRate": "Win Rate",
+    "rating": "Current ELO",
+    "wld": "Wins / Losses / Draws"
   }
 }
