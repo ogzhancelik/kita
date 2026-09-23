@@ -129,7 +129,7 @@ class OnlineGameProvider extends ChangeNotifier {
 
   final ValueNotifier<List<ChatMessage>> chatMessages = ValueNotifier([]);
   final ValueNotifier<int> unreadChatCount = ValueNotifier(0);
-  bool isChatOpen = false;
+  bool isChatOpen = true;
 
   // ─── Game Over ────────────────────────────────────────────────────
 
@@ -395,14 +395,17 @@ class OnlineGameProvider extends ChangeNotifier {
         index >= _engineSnapshots.length ||
         index == _engineSnapshots.length - 1) {
       viewingMoveIndex.value = -1; // Go live
+      notifyListeners();
       return;
     }
     viewingMoveIndex.value = index;
+    notifyListeners();
   }
 
   /// Return to live (current) board state.
   void goLive() {
     viewingMoveIndex.value = -1;
+    notifyListeners();
   }
 
   /// Get the board state for the currently viewed move index (or live state).
@@ -415,6 +418,46 @@ class OnlineGameProvider extends ChangeNotifier {
       return _engineSnapshots[idx];
     }
     return gameEngine.value;
+  }
+
+  bool get canStepBackward {
+    if (_engineSnapshots.length <= 1) return false;
+    if (viewingMoveIndex.value == -1) return true;
+    return viewingMoveIndex.value > 0;
+  }
+
+  bool get canStepForward {
+    if (_engineSnapshots.length <= 1) return false;
+    return viewingMoveIndex.value >= 0;
+  }
+
+  /// Step backward one move in history.
+  void stepBackward() {
+    if (!canStepBackward) return;
+    if (viewingMoveIndex.value == -1) {
+      if (_engineSnapshots.length > 1) {
+        viewMoveAt(_engineSnapshots.length - 2);
+      }
+    } else if (viewingMoveIndex.value > 0) {
+      viewMoveAt(viewingMoveIndex.value - 1);
+    }
+  }
+
+  /// Step forward one move in history (or return to live).
+  void stepForward() {
+    if (!canStepForward) return;
+    final current = viewingMoveIndex.value;
+    if (current == -1) return;
+    if (current < _engineSnapshots.length - 2) {
+      viewMoveAt(current + 1);
+    } else {
+      goLive();
+    }
+  }
+
+  /// Send a draw offer to opponent via in-game chat.
+  void sendDrawOffer() {
+    sendChat('🏳️ [Draw Offer]');
   }
 
   // ─── Chat Panel ───────────────────────────────────────────────────
@@ -625,6 +668,7 @@ class OnlineGameProvider extends ChangeNotifier {
     gameOverData.value = null;
     rematchOffer.value = null;
     elapsedSeconds.value = 0;
+    isChatOpen = true;
     _engineSnapshots.clear();
     _engineSnapshots.add(KitaGameEngine()); // Initial state at index 0
 
@@ -858,7 +902,7 @@ class OnlineGameProvider extends ChangeNotifier {
     viewingMoveIndex.value = -1;
     chatMessages.value = [];
     unreadChatCount.value = 0;
-    isChatOpen = false;
+    isChatOpen = true;
     gameOverData.value = null;
     rematchOffer.value = null;
     matchInvitation.value = null;

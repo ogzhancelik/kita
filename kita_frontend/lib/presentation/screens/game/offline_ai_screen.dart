@@ -292,6 +292,8 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         return 'Cyber Purple';
       case 4:
         return 'Slate Mono';
+      case 5:
+        return "minecraft";
       default:
         return 'Emerald';
     }

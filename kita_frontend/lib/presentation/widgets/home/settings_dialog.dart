@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
+import 'match_settings_dialog.dart';
 
 class SettingsDialog extends StatelessWidget {
   const SettingsDialog({super.key});
@@ -136,6 +137,27 @@ class SettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
+                    // --- Match Settings (Board theme, orientation & flip) ---
+                    _buildSettingsTile(
+                      isDark: isDark,
+                      icon: Icons.sports_esports_rounded,
+                      iconColor: AppColors.primaryGreen,
+                      title: 'settings.matchSettings'.tr(),
+                      subtitle: 'settings.matchSettingsDesc'.tr(),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        MatchSettingsDialog.show(context);
+                      },
+                      trailing: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
                     // --- Avatar / Profile Quick Action ---
                     _buildSettingsTile(
                       isDark: isDark,
@@ -223,8 +245,9 @@ class SettingsDialog extends StatelessWidget {
     required String title,
     required String subtitle,
     Widget? trailing,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    final tileContent = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBg : AppColors.lightBg,
@@ -272,6 +295,18 @@ class SettingsDialog extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: tileContent,
+        ),
+      );
+    }
+    return tileContent;
   }
 
   void _showLogoutConfirmation(BuildContext context, AuthProvider authProv, bool isDark) {

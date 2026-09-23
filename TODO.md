@@ -48,8 +48,7 @@ Foundational systems to establish early so game strings and rules are never hard
   - [x] Dedicated User Profile modal dialog & detailed stats view
 - [ ] **Settings & Preferences**:
   - [x] Backend settings API (`/api/settings`) & DB persistence (board themes, audio, orientation, move highlights)
-  - [x] Frontend settings modal dialog with appearance/theme, language, and account controls
-  - [ ] In-game integration: wire sound effects, board themes, and last-move toggle
+  - [x] In-game integration: wire board themes, orientation, flip direction, and match settings dialog
 
 ---
 
@@ -149,6 +148,14 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - Standardized algebraic move notation (`A2C3` for pawns, `♚A2C3` for kings).
   - Maintained full backwards-compatibility with custom themes (`KitaBoardTheme`), heatmap palettes, and piece builders.
 - [x] **Tactile UI System**: Chess.com-style 3D buttons, floating toast notifications, and dark/light mode theming.
+- [x] **UI Redesign - Portrait Game Screen (Section 3)**:
+  - Top bar with centered total elapsed match time (`MatchTopBar`).
+  - Horizontal scrollable move history ribbon (`MoveHistoryPanel`) with synchronized scrubbing.
+  - Mirrored player cards (`PlayerInfoBar`): Opponent (avatar/name/elo left, clock right), User (clock left, name/elo/avatar right with tap-to-profile modal).
+  - Zero-margin edge-to-edge board fit: board spans 100% width with 0 padding to screen borders.
+  - Inline responsive chat (`ChatPanel`): open by default; when toggled closed, board cleanly centers via distributed vertical alignment; when soft keyboard opens, secondary elements hide and board shrinks to fit without overflow.
+  - Bottom control bar (`MatchBottomBar`): menu with Resign, Draw Offer, and Report Opponent dialogs; Chat toggle; and `<` / `>` move history step buttons.
+  - Strict zero page margins with balanced, equal horizontal container padding.
 - [ ] **Drag & Drop Piece Movement**:
   - Support dragging and dropping pieces onto valid target tiles as an intuitive alternative/addition to tap-to-select and tap-to-move.
   - Visual feedback during drag (lifted piece preview, hover / valid drop target highlights, snap-to-tile).

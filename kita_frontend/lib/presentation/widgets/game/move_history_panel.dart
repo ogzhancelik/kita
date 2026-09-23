@@ -44,6 +44,10 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
             color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             width: 0.5,
           ),
+          bottom: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            width: 0.5,
+          ),
         ),
       ),
       child: ValueListenableBuilder<List<OnlineMoveRecord>>(

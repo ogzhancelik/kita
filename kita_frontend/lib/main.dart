@@ -7,6 +7,7 @@ import 'core/feedback/toast_service.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/friends_provider.dart';
+import 'presentation/providers/game_settings_provider.dart';
 import 'presentation/providers/notification_provider.dart';
 import 'presentation/providers/online_game_provider.dart';
 import 'presentation/providers/theme_provider.dart';
@@ -33,6 +34,7 @@ void main() async {
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => GameSettingsProvider()),
           ChangeNotifierProvider(create: (_) => AuthProvider()),
           ChangeNotifierProvider(create: (_) => OnlineGameProvider()),
           ChangeNotifierProvider(create: (_) => FriendsProvider()),

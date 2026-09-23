@@ -5,26 +5,24 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/game/chat_panel.dart';
-import '../../widgets/game/game_control_bar.dart';
 import '../../widgets/game/game_over_dialog.dart';
 import '../../widgets/game/kita_board_widget.dart';
+import '../../widgets/game/match_bottom_bar.dart';
 import '../../widgets/game/move_history_panel.dart';
 import '../../widgets/game/player_info_bar.dart';
 
-/// Online match screen with modular, independently-rebuilding widgets.
+/// Online match screen (Portrait/Default) with space-efficient layout.
 ///
-/// Layout order (top to bottom):
-///   1. OpponentInfoBar (with chess clock)
-///   2. KitaBoardWidget (game board)
-///   3. PlayerInfoBar (with chess clock)
-///   4. MoveHistoryPanel (horizontal scrollable ribbon)
-///   5. GameControlBar (resign, chat toggle, elapsed time)
-///   6. ChatPanel (slide-out overlay)
-///
-/// Each child widget uses [ValueListenableBuilder] for granular rebuilds.
-/// Rearranging or removing widgets will not break the others.
+/// Layout order (Top to Bottom):
+///   1. MoveHistoryPanel (horizontal scrollable ribbon)
+///   2. Opponent PlayerInfoBar (left avatar/name/elo, right clock)
+///   3. Board Container (Stack with centered board fitting its container, and rotate button at top-left)
+///   4. User PlayerInfoBar (left clock, right name/elo/avatar, tap to open profile)
+///   5. ChatPanel (inline; thin header and input timer only when typing; pinned to bottom)
+///   6. MatchBottomBar (menu, chat toggle, centered timer, move back/forward buttons)
 class OnlineMatchScreen extends StatefulWidget {
   const OnlineMatchScreen({super.key});
 
@@ -35,6 +33,7 @@ class OnlineMatchScreen extends StatefulWidget {
 class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
   OnlineGameProvider? _provider;
   bool _isGameOverDialogShowing = false;
+  final GlobalKey _chatPanelKey = GlobalKey();
 
   @override
   void didChangeDependencies() {
@@ -104,16 +103,24 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isBlack = provider.myTeam == 'black';
 
-    final myDisplayName = (provider.myUsername != null && provider.myUsername!.isNotEmpty)
+    final myDisplayName = (provider.myUsername != null &&
+            provider.myUsername!.isNotEmpty)
         ? provider.myUsername!
         : authProv.displayName;
 
-    final myRating = (authProv.isAuthenticated && authProv.currentUser?.rating != null)
+    final myRating = (authProv.isAuthenticated &&
+            authProv.currentUser?.rating != null)
         ? authProv.currentUser!.rating
         : provider.myRating;
 
-    final canLeaveFreely = provider.matchState.value == OnlineMatchState.gameOver ||
-        provider.matchState.value == OnlineMatchState.idle;
+    final canLeaveFreely =
+        provider.matchState.value == OnlineMatchState.gameOver ||
+            provider.matchState.value == OnlineMatchState.idle;
+
+    // Detect if soft keyboard is currently open
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardOpen = keyboardHeight > 60;
+    final isChatOpen = provider.isChatOpen;
 
     return PopScope(
       canPop: canLeaveFreely,
@@ -124,119 +131,142 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
       },
       child: Scaffold(
         backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+        resizeToAvoidBottomInset: true,
         body: SafeArea(
-          child: Stack(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Main game layout
-              Column(
-                children: [
-                  // 1. Opponent Info Bar (top)
-                  PlayerInfoBar(
-                    isOpponent: true,
-                    name: provider.opponentInfo?.name ?? 'online.opponent'.tr(),
-                    rating: provider.opponentInfo?.rating ?? 1200,
-                    team: isBlack ? 'white' : 'black',
-                    remainingMs: isBlack
-                        ? provider.whiteRemainingMs
-                        : provider.blackRemainingMs,
-                    isActiveTurn: provider.currentTurn,
-                    timeControl: provider.timeControl,
-                  ),
-
-                  // Rematch requested banner (fallback if dialog is closed)
-                  ValueListenableBuilder<bool>(
-                    valueListenable: provider.isRematchRequested,
-                    builder: (ctx, isRequested, _) {
-                      if (!isRequested) return const SizedBox.shrink();
-                      return Container(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 6),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.getCard(isDark),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.primaryGreen),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.primaryGreen),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'online.rematchRequestSent'.tr(),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.getTextPrimary(isDark),
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                provider.cancelRematchRequest();
-                                provider.resetToIdle();
-                                Navigator.of(context).pop();
-                              },
-                              child: Text(
-                                'online.backToMenu'.tr(),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.lossRed,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-
-                  // 2. Board
-                  Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: _BoardSection(
-                          provider: provider,
-                          flipBoard: isBlack,
+              // Rematch requested banner (fallback if dialog was dismissed)
+              ValueListenableBuilder<bool>(
+                valueListenable: provider.isRematchRequested,
+                builder: (ctx, isRequested, _) {
+                  if (!isRequested) return const SizedBox.shrink();
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.getCard(isDark),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: AppColors.primaryGreen,
+                          width: 1,
                         ),
                       ),
                     ),
-                  ),
-
-                  // 3. Player Info Bar (bottom)
-                  PlayerInfoBar(
-                    isOpponent: false,
-                    name: myDisplayName,
-                    rating: myRating,
-                    team: provider.myTeam ?? 'white',
-                    remainingMs: isBlack
-                        ? provider.blackRemainingMs
-                        : provider.whiteRemainingMs,
-                    isActiveTurn: provider.currentTurn,
-                    timeControl: provider.timeControl,
-                  ),
-
-                  // 4. Move History Panel
-                  const MoveHistoryPanel(),
-
-                  // 5. Game Control Bar
-                  const GameControlBar(),
-                ],
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primaryGreen),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'online.rematchRequestSent'.tr(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.getTextPrimary(isDark),
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            provider.cancelRematchRequest();
+                            provider.resetToIdle();
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(
+                            'online.backToMenu'.tr(),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.lossRed,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
 
-              // 6. Chat Panel (overlay)
-              const ChatPanel(),
+              // 1. Moves ribbon (hidden when keyboard is open to maximize space)
+              if (!isKeyboardOpen) const MoveHistoryPanel(),
+
+              // 2. Opponent Info Bar (hidden when keyboard is open)
+              if (!isKeyboardOpen)
+                PlayerInfoBar(
+                  isOpponent: true,
+                  name: provider.opponentInfo?.name ?? 'online.opponent'.tr(),
+                  rating: provider.opponentInfo?.rating ?? 1200,
+                  team: isBlack ? 'white' : 'black',
+                  remainingMs: isBlack
+                      ? provider.whiteRemainingMs
+                      : provider.blackRemainingMs,
+                  isActiveTurn: provider.currentTurn,
+                  timeControl: provider.timeControl,
+                ),
+
+              // 3. Board Container: Expands to fill available space, KitaBoardWidget handles its own aspect ratio
+              Expanded(
+                flex: isChatOpen ? (isKeyboardOpen ? 4 : 3) : 1,
+                child: Builder(
+                  builder: (context) {
+                    final gameSettings = context.watch<GameSettingsProvider>();
+                    final isHorizontal = gameSettings.isHorizontal;
+                    final effectiveFlip = gameSettings.shouldFlipBoard(provider.myTeam ?? 'white');
+
+                    return _BoardSection(
+                      provider: provider,
+                      flipBoard: effectiveFlip,
+                      isHorizontal: isHorizontal,
+                    );
+                  },
+                ),
+              ),
+
+              // 4. User Info Bar (hidden when keyboard is open)
+              if (!isKeyboardOpen)
+                PlayerInfoBar(
+                  isOpponent: false,
+                  name: myDisplayName,
+                  rating: myRating,
+                  team: provider.myTeam ?? 'white',
+                  remainingMs: isBlack
+                      ? provider.blackRemainingMs
+                      : provider.whiteRemainingMs,
+                  isActiveTurn: provider.currentTurn,
+                  timeControl: provider.timeControl,
+                ),
+
+              // 5. Chat Section (inline, pinned to bottom above keyboard)
+              if (isChatOpen)
+                if (isKeyboardOpen)
+                  Expanded(
+                    flex: 2,
+                    child: ChatPanel(
+                      key: _chatPanelKey,
+                      isKeyboardOpen: true,
+                    ),
+                  )
+                else
+                  Expanded(
+                    flex: 2,
+                    child: ChatPanel(
+                      key: _chatPanelKey,
+                      isKeyboardOpen: false,
+                    ),
+                  ),
+
+              // 6. Bottom Action Bar (Menu, Chat toggle, Centered Timer, Step Back/Forward - hidden when typing)
+              if (!isKeyboardOpen) const MatchBottomBar(),
             ],
           ),
         ),
@@ -283,8 +313,13 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
 class _BoardSection extends StatelessWidget {
   final OnlineGameProvider provider;
   final bool flipBoard;
+  final bool isHorizontal;
 
-  const _BoardSection({required this.provider, required this.flipBoard});
+  const _BoardSection({
+    required this.provider,
+    required this.flipBoard,
+    this.isHorizontal = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -305,6 +340,7 @@ class _BoardSection extends StatelessWidget {
                   provider: provider,
                   displayEngine: displayEngine,
                   flipBoard: flipBoard,
+                  isHorizontal: isHorizontal,
                   isMyTurn: isMyTurn && isLive,
                   legalMoves: isLive ? legal : [],
                 );
@@ -322,6 +358,7 @@ class _BoardInteraction extends StatefulWidget {
   final OnlineGameProvider provider;
   final KitaGameEngine displayEngine;
   final bool flipBoard;
+  final bool isHorizontal;
   final bool isMyTurn;
   final List<KitaMove> legalMoves;
 
@@ -329,6 +366,7 @@ class _BoardInteraction extends StatefulWidget {
     required this.provider,
     required this.displayEngine,
     required this.flipBoard,
+    this.isHorizontal = true,
     required this.isMyTurn,
     required this.legalMoves,
   });
@@ -343,11 +381,17 @@ class _BoardInteractionState extends State<_BoardInteraction> {
 
   @override
   Widget build(BuildContext context) {
+    final gameSettings = context.watch<GameSettingsProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final boardTheme = gameSettings.currentBoardTheme(isDark);
+
     return KitaBoardWidget(
       pieces: widget.displayEngine.activePositions,
       selectedPos: _selectedPos,
       validMoves: _validMoves,
       flipBoard: widget.flipBoard,
+      isHorizontal: widget.isHorizontal,
+      theme: boardTheme,
       onTileTap: widget.isMyTurn ? _onTileTap : null,
     );
   }
@@ -389,8 +433,9 @@ class _BoardInteractionState extends State<_BoardInteraction> {
       // Check if it's our piece
       final piece = KitaPiece.allPieces[tappedPieceId];
       if (piece != null) {
-        final isOurPiece = (widget.provider.myTeam == 'white' && piece.isWhite) ||
-            (widget.provider.myTeam == 'black' && piece.isBlack);
+        final isOurPiece =
+            (widget.provider.myTeam == 'white' && piece.isWhite) ||
+                (widget.provider.myTeam == 'black' && piece.isBlack);
 
         if (isOurPiece) {
           final movesForPiece = widget.legalMoves

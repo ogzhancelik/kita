@@ -13,6 +13,7 @@ var (
 		"ocean_azure":      true,
 		"cyber_purple":     true,
 		"slate_monochrome": true,
+		"minecraft":        true,
 	}
 
 	ValidBoardOrientations = map[string]bool{
@@ -51,7 +52,7 @@ func DefaultSettings(userID string) UserSettings {
 	now := time.Now().UTC()
 	return UserSettings{
 		UserID:            userID,
-		BoardTheme:        "emerald",
+		BoardTheme:        "minecraft",
 		BoardOrientation:  "horizontal",
 		SoundEnabled:      true,
 		HapticsEnabled:    true,

@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../providers/auth_provider.dart';
+import '../common/avatar_picker.dart';
+import '../home/user_profile_dialog.dart';
 
 /// Player/Opponent info bar with chess clock display.
 ///
-/// This widget is fully independent and modular — it can be placed
-/// anywhere in the widget tree without breaking other components.
+/// Layout in Portrait mode:
+/// - Opponent: Avatar, Name & ELO on the left; Clock on the right.
+/// - Player: Clock on the left; Name, ELO & Avatar on the right.
+///
+/// Tapping the player's info bar opens the User Profile modal sheet.
+/// Spans full width with zero outer page margins and equal horizontal padding inside.
 class PlayerInfoBar extends StatelessWidget {
   final bool isOpponent;
   final String name;
@@ -14,6 +22,7 @@ class PlayerInfoBar extends StatelessWidget {
   final ValueNotifier<int> remainingMs;
   final ValueNotifier<String> isActiveTurn;
   final int timeControl;
+  final VoidCallback? onTap;
 
   const PlayerInfoBar({
     super.key,
@@ -24,102 +33,142 @@ class PlayerInfoBar extends StatelessWidget {
     required this.remainingMs,
     required this.isActiveTurn,
     required this.timeControl,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isWhite = team == 'white';
-    final teamColor = isWhite ? Colors.white : const Color(0xFF333333);
-    final teamIcon = isWhite
-        ? Icons.circle_outlined
-        : Icons.circle;
+    final teamColor = isWhite ? Colors.white : const Color(0xFF222222);
+
+    final authProv = context.watch<AuthProvider>();
+    final int avatarIdx = isOpponent ? 1 : authProv.avatarIndex;
+    final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
+
+    final avatarWidget = Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: avatarItem.accentColor.withValues(alpha: 0.15),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: teamColor,
+          width: 2.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(
+          avatarItem.icon,
+          size: 18,
+          color: avatarItem.accentColor,
+        ),
+      ),
+    );
+
+    final nameAndRatingWidget = Column(
+      crossAxisAlignment:
+          isOpponent ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          name,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 1),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          decoration: BoxDecoration(
+            color: AppColors.ratingGold.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            '$rating',
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ratingGold,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final clockWidget = timeControl > 0
+        ? _ChessClock(
+            remainingMs: remainingMs,
+            isActiveTurn: isActiveTurn,
+            playerTeam: team,
+          )
+        : _UnlimitedClockBadge(
+            isActiveTurn: isActiveTurn,
+            playerTeam: team,
+          );
+
+    final content = InkWell(
+      onTap: onTap ??
+          (!isOpponent
+              ? () => UserProfileDialog.show(context)
+              : null),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: isOpponent
+            ? Row(
+                children: [
+                  avatarWidget,
+                  const SizedBox(width: 10),
+                  Expanded(child: nameAndRatingWidget),
+                  const SizedBox(width: 10),
+                  clockWidget,
+                ],
+              )
+            : Row(
+                children: [
+                  clockWidget,
+                  const SizedBox(width: 10),
+                  Expanded(child: nameAndRatingWidget),
+                  const SizedBox(width: 10),
+                  avatarWidget,
+                ],
+              ),
+      ),
+    );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : AppColors.lightCard,
         border: Border(
           bottom: isOpponent
               ? BorderSide(
                   color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  width: 0.5,
+                  width: 0.8,
                 )
               : BorderSide.none,
           top: !isOpponent
               ? BorderSide(
                   color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  width: 0.5,
+                  width: 0.8,
                 )
               : BorderSide.none,
         ),
       ),
-      child: Row(
-        children: [
-          // Team color indicator
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: teamColor,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                width: 1.5,
-              ),
-            ),
-            child: Icon(
-              teamIcon,
-              size: 16,
-              color: isWhite ? Colors.black54 : Colors.white70,
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // Name & rating
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.lightTextPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '$rating',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.ratingGold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Chess clock or Unlimited badge
-          if (timeControl > 0)
-            _ChessClock(
-              remainingMs: remainingMs,
-              isActiveTurn: isActiveTurn,
-              playerTeam: team,
-            )
-          else
-            _UnlimitedClockBadge(
-              isActiveTurn: isActiveTurn,
-              playerTeam: team,
-            ),
-        ],
-      ),
+      child: content,
     );
   }
 }
@@ -174,15 +223,24 @@ class _ChessClock extends StatelessWidget {
 
             return AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: bgColor,
                 borderRadius: BorderRadius.circular(8),
+                boxShadow: isActive
+                    ? [
+                        BoxShadow(
+                          color: bgColor.withValues(alpha: 0.4),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
+                    : null,
               ),
               child: Text(
                 '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
                   fontFeatures: const [FontFeature.tabularFigures()],
                   color: textColor,
@@ -215,7 +273,7 @@ class _UnlimitedClockBadge extends StatelessWidget {
         final isActive = turn == playerTeam;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
             color: isActive
                 ? AppColors.primaryGreen.withValues(alpha: 0.15)
@@ -230,7 +288,7 @@ class _UnlimitedClockBadge extends StatelessWidget {
           ),
           child: Icon(
             Icons.all_inclusive_rounded,
-            size: 18,
+            size: 16,
             color: isActive
                 ? AppColors.primaryGreen
                 : AppColors.getTextMuted(isDark),
@@ -240,4 +298,3 @@ class _UnlimitedClockBadge extends StatelessWidget {
     );
   }
 }
-
