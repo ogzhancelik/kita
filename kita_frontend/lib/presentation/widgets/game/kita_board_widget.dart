@@ -52,116 +52,54 @@ class KitaBoardWidget extends StatelessWidget {
     final int colsCount = isHorizontal ? 7 : 4;
     final int rowsCount = isHorizontal ? 4 : 7;
 
-    // Coordinate margin for semi-transparent rank/file label bars
-    const double labelMargin = 18.0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Available space minus margin for labels
-        final double availW =
-            constraints.maxWidth -
-            (currentTheme.showCoordinateLabels ? labelMargin * 2 : 0);
-        final double availH =
-            (constraints.maxHeight.isFinite
-                ? constraints.maxHeight
-                : constraints.maxWidth * (rowsCount / colsCount)) -
-            (currentTheme.showCoordinateLabels ? labelMargin * 2 : 0);
+    // Invert lookup: Pos -> PieceID
+    final Map<KitaPos, String> posToPiece = {};
+    pieces.forEach((id, pos) {
+      posToPiece[pos] = id;
+    });
 
-        final double cellFromWidth = availW / colsCount;
-        final double cellFromHeight = availH / rowsCount;
-        final double cellSize = max(min(cellFromWidth, cellFromHeight), 24.0);
+    return Center(
+      child: AspectRatio(
+        aspectRatio: colsCount / rowsCount,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double cellSize = constraints.maxWidth / colsCount;
 
-        final double gridWidth = cellSize * colsCount;
-        final double gridHeight = cellSize * rowsCount;
-        final double totalWidth =
-            gridWidth +
-            (currentTheme.showCoordinateLabels ? labelMargin * 2 : 0);
-        final double totalHeight =
-            gridHeight +
-            (currentTheme.showCoordinateLabels ? labelMargin * 2 : 0);
-
-        // Invert lookup: Pos -> PieceID
-        final Map<KitaPos, String> posToPiece = {};
-        pieces.forEach((id, pos) {
-          posToPiece[pos] = id;
-        });
-
-        return Center(
-          child: SizedBox(
-            width: totalWidth,
-            height: totalHeight,
-            child: Stack(
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top coordinate labels (2, 3, 1, 2, 1, 3, 2)
-                if (currentTheme.showCoordinateLabels)
-                  Positioned(
-                    top: 0,
-                    left: labelMargin,
-                    width: gridWidth,
-                    height: labelMargin,
-                    child: _buildTopLabels(cellSize, colsCount, currentTheme),
-                  ),
-
-                // Bottom coordinate labels
-                if (currentTheme.showCoordinateLabels)
-                  Positioned(
-                    bottom: 0,
-                    left: labelMargin,
-                    width: gridWidth,
-                    height: labelMargin,
-                    child: _buildBottomLabels(
-                      cellSize,
-                      colsCount,
-                      currentTheme,
+                for (int r = 0; r < rowsCount; r++)
+                  Expanded(
+                    flex: 1,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (int c = 0; c < colsCount; c++)
+                          Expanded(
+                            flex: 1,
+                            child: AspectRatio(
+                              aspectRatio: 1.0,
+                              child: _buildCell(
+                                context: context,
+                                displayCol: c,
+                                displayRow: r,
+                                cellSize: cellSize,
+                                posToPiece: posToPiece,
+                                theme: currentTheme,
+                                colsCount: colsCount,
+                                rowsCount: rowsCount,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-
-                // Left coordinate labels (2, 3, 3, 2)
-                if (currentTheme.showCoordinateLabels)
-                  Positioned(
-                    left: 0,
-                    top: labelMargin,
-                    width: labelMargin,
-                    height: gridHeight,
-                    child: _buildLeftLabels(cellSize, rowsCount, currentTheme),
-                  ),
-
-                // Right coordinate labels
-                if (currentTheme.showCoordinateLabels)
-                  Positioned(
-                    right: 0,
-                    top: labelMargin,
-                    width: labelMargin,
-                    height: gridHeight,
-                    child: _buildRightLabels(cellSize, rowsCount, currentTheme),
-                  ),
-
-                // Main Playable Grid
-                Positioned(
-                  left: currentTheme.showCoordinateLabels ? labelMargin : 0,
-                  top: currentTheme.showCoordinateLabels ? labelMargin : 0,
-                  width: gridWidth,
-                  height: gridHeight,
-                  child: Stack(
-                    children: [
-                      for (int r = 0; r < rowsCount; r++)
-                        for (int c = 0; c < colsCount; c++)
-                          _buildCell(
-                            context: context,
-                            displayCol: c,
-                            displayRow: r,
-                            cellSize: cellSize,
-                            posToPiece: posToPiece,
-                            theme: currentTheme,
-                          ),
-                    ],
-                  ),
-                ),
               ],
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -187,6 +125,8 @@ class KitaBoardWidget extends StatelessWidget {
     required double cellSize,
     required Map<KitaPos, String> posToPiece,
     required KitaBoardTheme theme,
+    required int colsCount,
+    required int rowsCount,
   }) {
     final canonicalPos = _mapToCanonical(displayCol, displayRow);
     final isValid = KitaBoardConfig.isValidTile(
@@ -196,13 +136,7 @@ class KitaBoardWidget extends StatelessWidget {
 
     // Empty hole tiles: completely transparent & non-interactive
     if (!isValid) {
-      return Positioned(
-        left: displayCol * cellSize,
-        top: displayRow * cellSize,
-        width: cellSize,
-        height: cellSize,
-        child: const SizedBox.shrink(),
-      );
+      return const SizedBox.shrink();
     }
 
     final tileValue = KitaBoardConfig.getTileValue(
@@ -217,13 +151,32 @@ class KitaBoardWidget extends StatelessWidget {
     // Heatmap background color strictly derived from tile value (1, 2, or 3)
     final cellBaseColor = theme.getColorForValue(tileValue);
 
-    return Positioned(
-      left: displayCol * cellSize,
-      top: displayRow * cellSize,
-      width: cellSize,
-      height: cellSize,
-      child: Padding(
-        padding: EdgeInsets.all(theme.tileSpacing),
+    // Coordinates:
+    // First column: row labels (A, B, C, D)
+    final bool isFirstCol = (displayCol == 0);
+    // Last row: col numbers (1, 2, 3, 4, 5, 6, 7)
+    final bool isLastRow = (displayRow == rowsCount - 1);
+
+    const rowLetters = ['A', 'B', 'C', 'D'];
+    final String rowLabel = isHorizontal
+        ? ((canonicalPos.row >= 0 && canonicalPos.row < rowLetters.length)
+            ? rowLetters[canonicalPos.row]
+            : '${canonicalPos.row}')
+        : '${canonicalPos.col + 1}';
+
+    final String colLabel = isHorizontal
+        ? '${canonicalPos.col + 1}'
+        : ((canonicalPos.row >= 0 && canonicalPos.row < rowLetters.length)
+            ? rowLetters[canonicalPos.row]
+            : '${canonicalPos.row}');
+
+    final double innerSize = max(cellSize - (theme.tileSpacing * 2), 16.0);
+    final double pieceSize = innerSize * 0.72;
+    final double labelFontSize = max(cellSize * 0.17, 8.5);
+
+    return Padding(
+      padding: EdgeInsets.all(theme.tileSpacing),
+      child: SizedBox.expand(
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -231,6 +184,8 @@ class KitaBoardWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(theme.tileBorderRadius),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 120),
+              width: double.infinity,
+              height: double.infinity,
               decoration: BoxDecoration(
                 color: isSelected
                     ? theme.selectedHighlightColor
@@ -253,13 +208,14 @@ class KitaBoardWidget extends StatelessWidget {
                 ],
               ),
               child: Stack(
+                fit: StackFit.expand,
                 alignment: Alignment.center,
                 children: [
-                  // 1. Tile Step Value Badge (subtle semi-transparent indicator inside tile)
+                  // 1. Tile Step Value Badge (sol üst)
                   if (theme.showTileValues)
                     Positioned(
                       top: 2,
-                      left: 3,
+                      left: 4,
                       child: Text(
                         '$tileValue',
                         style: TextStyle(
@@ -272,28 +228,66 @@ class KitaBoardWidget extends StatelessWidget {
                       ),
                     ),
 
-                  // 2. Valid Move Target Indicator (Ring / Dot)
-                  if (isValidMove)
-                    Container(
-                      width: cellSize * 0.32,
-                      height: cellSize * 0.32,
-                      decoration: BoxDecoration(
-                        color: piece == null
-                            ? theme.validMoveHighlightColor
-                            : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: piece != null
-                            ? Border.all(
-                                color: theme.validMoveHighlightColor,
-                                width: 3.0,
-                              )
-                            : null,
+                  // 2. Row Coordinate Label (sol alt - A, B, C, D)
+                  if (theme.showCoordinateLabels && isFirstCol)
+                    Positioned(
+                      bottom: 2,
+                      left: 4,
+                      child: Text(
+                        rowLabel,
+                        style: TextStyle(
+                          fontSize: labelFontSize,
+                          fontWeight: FontWeight.w800,
+                          color: isSelected
+                            ? Colors.black54
+                            : theme.coordinateLabelColor,
+                        ),
                       ),
                     ),
 
-                  // 3. Piece on Tile
+                  // 3. Col Coordinate Label (sağ alt - 1, 2, 3, 4, 5, 6, 7)
+                  if (theme.showCoordinateLabels && isLastRow)
+                    Positioned(
+                      bottom: 2,
+                      right: 4,
+                      child: Text(
+                        colLabel,
+                        style: TextStyle(
+                          fontSize: labelFontSize,
+                          fontWeight: FontWeight.w800,
+                          color: isSelected
+                            ? Colors.black54
+                            : theme.coordinateLabelColor,
+                        ),
+                      ),
+                    ),
+
+                  // 4. Valid Move Target Indicator (Ring / Dot)
+                  if (isValidMove)
+                    Center(
+                      child: Container(
+                        width: cellSize * 0.32,
+                        height: cellSize * 0.32,
+                        decoration: BoxDecoration(
+                          color: piece == null
+                              ? theme.validMoveHighlightColor
+                              : Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: piece != null
+                              ? Border.all(
+                                  color: theme.validMoveHighlightColor,
+                                  width: 3.0,
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+
+                  // 5. Piece on Tile (tam ortada)
                   if (piece != null)
-                    _renderPiece(context, piece, cellSize * 0.68, theme),
+                    Center(
+                      child: _renderPiece(context, piece, pieceSize, theme),
+                    ),
                 ],
               ),
             ),
@@ -332,97 +326,6 @@ class KitaBoardWidget extends StatelessWidget {
         accentColor: accentColor,
       );
     }
-  }
-
-  // --- Perimeter Coordinate Markings (Semi-transparent) ---
-  Widget _buildTopLabels(double cellSize, int count, KitaBoardTheme theme) {
-    // 2 3 1 2 1 3 2
-    final defaultValues = isHorizontal ? [2, 3, 1, 2, 1, 3, 2] : [2, 3, 3, 2];
-    return Row(
-      children: List.generate(count, (i) {
-        final val = flipBoard ? defaultValues[count - 1 - i] : defaultValues[i];
-        return SizedBox(
-          width: cellSize,
-          child: Center(
-            child: Text(
-              '$val',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: theme.coordinateLabelColor,
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildBottomLabels(double cellSize, int count, KitaBoardTheme theme) {
-    final defaultValues = isHorizontal ? [2, 3, 1, 2, 1, 3, 2] : [2, 3, 3, 2];
-    return Row(
-      children: List.generate(count, (i) {
-        final val = flipBoard ? defaultValues[count - 1 - i] : defaultValues[i];
-        return SizedBox(
-          width: cellSize,
-          child: Center(
-            child: Text(
-              '$val',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: theme.coordinateLabelColor,
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildLeftLabels(double cellSize, int count, KitaBoardTheme theme) {
-    // 2 3 3 2
-    final defaultValues = isHorizontal ? [2, 3, 3, 2] : [2, 3, 1, 2, 1, 3, 2];
-    return Column(
-      children: List.generate(count, (i) {
-        final val = flipBoard ? defaultValues[count - 1 - i] : defaultValues[i];
-        return SizedBox(
-          height: cellSize,
-          child: Center(
-            child: Text(
-              '$val',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: theme.coordinateLabelColor,
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildRightLabels(double cellSize, int count, KitaBoardTheme theme) {
-    final defaultValues = isHorizontal ? [2, 3, 3, 2] : [2, 3, 1, 2, 1, 3, 2];
-    return Column(
-      children: List.generate(count, (i) {
-        final val = flipBoard ? defaultValues[count - 1 - i] : defaultValues[i];
-        return SizedBox(
-          height: cellSize,
-          child: Center(
-            child: Text(
-              '$val',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: theme.coordinateLabelColor,
-              ),
-            ),
-          ),
-        );
-      }),
-    );
   }
 }
 

@@ -1475,8 +1475,6 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     required bool isWhite,
     required bool isDark,
   }) {
-    final fromStr = _formatCoord(move.fromCol, move.fromRow);
-    final toStr = _formatCoord(move.toCol, move.toRow);
     final timeStr = move.timeMs > 0 ? '${(move.timeMs / 1000).toStringAsFixed(1)}s' : '';
     final eval = (_evaluations.length >= plyIndex) ? _evaluations[plyIndex - 1] : null;
 
@@ -1516,7 +1514,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             // Piece and Move notation
             Expanded(
               child: Text(
-                '${move.piece} $fromStr→$toStr',
+                move.notation,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,

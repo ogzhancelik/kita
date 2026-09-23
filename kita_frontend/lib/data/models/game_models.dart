@@ -102,8 +102,24 @@ class KitaMove {
   @override
   int get hashCode => Object.hash(pieceId, fromPos, toPos);
 
+  /// Formats coordinate (col, row) to standard notation (e.g. col 0, row 0 -> 'A1')
+  static String formatPos(KitaPos pos) {
+    const rowLabels = ['A', 'B', 'C', 'D'];
+    final r = (pos.row >= 0 && pos.row < rowLabels.length) ? rowLabels[pos.row] : '${pos.row}';
+    return '$r${pos.col + 1}';
+  }
+
+  /// Algebraic move notation according to UI spec (e.g. "A2C3" or "♚A2C3")
+  String get notation {
+    final fromStr = formatPos(fromPos);
+    final toStr = formatPos(toPos);
+    final isKing = pieceId == 'WK' || pieceId == 'BK' || KitaPiece.allPieces[pieceId]?.isKing == true;
+    final prefix = isKing ? '♚' : '';
+    return '$prefix$fromStr$toStr';
+  }
+
   @override
-  String toString() => '$pieceId: $fromPos -> $toPos';
+  String toString() => notation;
 }
 
 // ─── Board Configuration (matches backend board.go) ──────────────────

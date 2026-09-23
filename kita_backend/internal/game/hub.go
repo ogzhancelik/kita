@@ -637,7 +637,10 @@ func (h *Hub) handleRematchDecline(client *Client, rawPayload json.RawMessage) {
 				c.mu.Lock()
 				c.PendingRematchID = ""
 				c.mu.Unlock()
-				c.SendJSON(TypeRematchDeclined, map[string]string{"match_id": dto.MatchID})
+				c.SendJSON(TypeRematchDeclined, map[string]string{
+					"match_id":      dto.MatchID,
+					"decliner_name": client.Username,
+				})
 				break
 			}
 		}
@@ -799,8 +802,9 @@ func (h *Hub) handleDeclineInvite(client *Client, rawPayload json.RawMessage) {
 			c.PendingInviteColor = ""
 			c.mu.Unlock()
 			c.SendJSON(TypeInvitationDeclined, map[string]string{
-				"invite_id": dto.InviteID,
-				"friend_id": client.UserID,
+				"invite_id":     dto.InviteID,
+				"friend_id":     client.UserID,
+				"decliner_name": client.Username,
 			})
 			break
 		}
@@ -833,3 +837,15 @@ func (h *Hub) CloseRoom(matchID string) {
 		log.Printf("[Hub] Room %s closed and removed from memory", matchID)
 	}
 }
+
+// SendToUser dispatches a message to an online user connected to the Hub.
+func (h *Hub) SendToUser(userID string, msgType string, payload any) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if client, exists := h.clients[userID]; exists {
+		client.SendJSON(msgType, payload)
+		log.Printf("[Hub] Dispatched %s to user %s (%s)", msgType, client.Username, userID)
+	}
+}
+

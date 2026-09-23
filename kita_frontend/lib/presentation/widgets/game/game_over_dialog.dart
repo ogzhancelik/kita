@@ -241,7 +241,10 @@ class _GameOverDialogState extends State<GameOverDialog> {
                         padding: const EdgeInsets.all(6),
                         minimumSize: const Size(34, 34),
                       ),
-                      onPressed: provider.declineRematch,
+                      onPressed: () {
+                        provider.declineRematch();
+                        Navigator.of(context, rootNavigator: true).pop();
+                      },
                       tooltip: 'online.decline'.tr(),
                     ),
                     const SizedBox(width: 6),
@@ -265,6 +268,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
                       ),
                       onPressed: () {
                         provider.acceptRematch();
+                        Navigator.of(context, rootNavigator: true).pop();
                       },
                     ),
                   ],

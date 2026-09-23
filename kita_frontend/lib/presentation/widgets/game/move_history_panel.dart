@@ -148,26 +148,28 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
                                   ),
                                   const SizedBox(width: 3),
                                 ],
-                                // Piece icon
-                                Text(
-                                  piece?.isKing == true ? '♚' : '♟',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isWhiteMove
-                                        ? Colors.white
-                                        : Colors.black87,
+                                // Piece icon (King symbol for kings only)
+                                if (piece?.isKing == true) ...[
+                                  Text(
+                                    '♚',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isWhiteMove
+                                          ? Colors.white
+                                          : (isDark ? Colors.white70 : Colors.black87),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 2),
-                                // Move notation
+                                  const SizedBox(width: 2),
+                                ],
+                                // Move notation: A2C3 format
                                 Text(
-                                  '(${move.fromCol},${move.fromRow})→(${move.toCol},${move.toRow})',
+                                  '${KitaMove.formatPos(KitaPos(move.fromCol, move.fromRow))}${KitaMove.formatPos(KitaPos(move.toCol, move.toRow))}',
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
                                     color: isDark
-                                        ? AppColors.darkTextSecondary
-                                        : AppColors.lightTextSecondary,
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary,
                                   ),
                                 ),
                               ],

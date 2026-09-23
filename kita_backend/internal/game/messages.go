@@ -49,9 +49,12 @@ const (
 	TypeRematchOffered    = "rematch_offered"
 	TypeRematchAccepted   = "rematch_accepted"
 	TypeRematchDeclined   = "rematch_declined"
-	TypeMatchInvitation   = "match_invitation"
+	TypeMatchInvitation    = "match_invitation"
 	TypeInvitationDeclined = "invitation_declined"
-	TypeTimeoutLoss       = "timeout_loss"
+	TypeTimeoutLoss        = "timeout_loss"
+	TypeFriendRequest      = "friend_request"
+	TypeFriendRequestDeclined = "friend_request_declined"
+	TypeFriendRequestAccepted = "friend_request_accepted"
 )
 
 // Time control presets (in milliseconds)

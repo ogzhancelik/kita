@@ -141,6 +141,13 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 ## 🎨 UI & Design Systems
 
 - [x] **Modular Kita Board Component**: Responsive board widget supporting responsive scaling (`LayoutBuilder`), horizontal (7x4) and vertical (4x7) orientations, transparent non-playable hole cells, custom themes (Classic, Dark Slate, Wood), dynamic tile values, and piece movement handlers.
+- [x] **UI Redesign - Board & Move Notation (Section 2)**:
+  - Flex & Expanded inside AspectRatio layout: perfect 1:1 square tiles with no pixel drift or overflow.
+  - Zero-margin edge-to-edge screen fit: removed outer coordinate bars/margins.
+  - In-tile coordinates: A, B, C, D on column 0 (bottom-left) and 1..7 on bottom row (bottom-right); tile values at top-left.
+  - Centered & proportionally scaled pieces inside tile safe area.
+  - Standardized algebraic move notation (`A2C3` for pawns, `♚A2C3` for kings).
+  - Maintained full backwards-compatibility with custom themes (`KitaBoardTheme`), heatmap palettes, and piece builders.
 - [x] **Tactile UI System**: Chess.com-style 3D buttons, floating toast notifications, and dark/light mode theming.
 - [ ] **Drag & Drop Piece Movement**:
   - Support dragging and dropping pieces onto valid target tiles as an intuitive alternative/addition to tap-to-select and tap-to-move.
@@ -156,5 +163,11 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - Floating row docked at top or bottom with directional arrow, user rank, avatar, rating, and win rate.
   - Seamless animated scroll (`Scrollable.ensureVisible`) to player's row on tap, with auto-hiding when row is in view.
   - Unranked / 50+ player support pinned at bottom.
-- [ ] **Notifications Section & Drawer**:
-  - Dedicated notification center (bell icon with unread badge, drawer/sheet for match invites, friend requests, and system alerts).
+- [x] **Notifications System & Hub**:
+  - [x] Shared real-time state management (`NotificationProvider`) across all screens with reactive updates.
+  - [x] Actionable priority hierarchy: Rematch (1) > Challenge (2) > Friend Request (3).
+  - [x] Home menu notification summary card docked above Leaderboard with max 3 non-interacted items and auto-fill on dismiss.
+  - [x] Reusable notification tile with right-aligned accept/decline buttons and horizontal swipe-to-ignore (`Dismissible`).
+  - [x] Main Notifications Screen (`NotificationsScreen`) displaying chronological notifications, auto-marking informational alerts as read on mount, and dimming read/ignored items.
+  - [x] Intelligent top floating dialog: suppressed on home dashboard screen, displayed on other screens (e.g. Settings, Leaderboard, Friends, In-Game).
+

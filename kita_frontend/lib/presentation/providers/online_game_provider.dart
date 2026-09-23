@@ -163,6 +163,7 @@ class OnlineGameProvider extends ChangeNotifier {
   );
 
   final ValueNotifier<bool> isGameOverDialogActive = ValueNotifier(false);
+  final ValueNotifier<Map<String, dynamic>?> onWsNotificationEvent = ValueNotifier(null);
 
   // ─── Elapsed Time ─────────────────────────────────────────────────
 
@@ -313,24 +314,22 @@ class OnlineGameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void acceptRematch() {
+  void acceptRematch([String? matchId]) {
     final offer = rematchOffer.value;
-    if (offer != null) {
-      _ws.send(WsClientType.rematchAccept, {'match_id': offer.matchId});
-    } else if (incomingMatchRequest.value?.type == IncomingMatchRequestType.rematch) {
-      _ws.send(WsClientType.rematchAccept, {'match_id': incomingMatchRequest.value!.id});
+    final mId = matchId ?? offer?.matchId ?? incomingMatchRequest.value?.id;
+    if (mId != null && mId.isNotEmpty) {
+      _ws.send(WsClientType.rematchAccept, {'match_id': mId});
     }
     rematchOffer.value = null;
     incomingMatchRequest.value = null;
     notifyListeners();
   }
 
-  void declineRematch() {
+  void declineRematch([String? matchId]) {
     final offer = rematchOffer.value;
-    if (offer != null) {
-      _ws.send(WsClientType.rematchDecline, {'match_id': offer.matchId});
-    } else if (incomingMatchRequest.value?.type == IncomingMatchRequestType.rematch) {
-      _ws.send(WsClientType.rematchDecline, {'match_id': incomingMatchRequest.value!.id});
+    final mId = matchId ?? offer?.matchId ?? incomingMatchRequest.value?.id;
+    if (mId != null && mId.isNotEmpty) {
+      _ws.send(WsClientType.rematchDecline, {'match_id': mId});
     }
     rematchOffer.value = null;
     incomingMatchRequest.value = null;
@@ -515,6 +514,9 @@ class OnlineGameProvider extends ChangeNotifier {
 
       case WsServerType.rematchDeclined:
         rematchOffer.value = null;
+        final rematchDecliner = (msg.payload != null && msg.payload!['decliner_name'] != null)
+            ? msg.payload!['decliner_name'] as String
+            : (opponentInfo?.name ?? '');
         if (isRematchRequested.value) {
           isRematchRequested.value = false;
           KitaToast.info('online.rematchDeclinedToast'.tr());
@@ -522,6 +524,10 @@ class OnlineGameProvider extends ChangeNotifier {
         if (incomingMatchRequest.value?.type == IncomingMatchRequestType.rematch) {
           incomingMatchRequest.value = null;
         }
+        onWsNotificationEvent.value = {
+          'type': 'rematch_declined',
+          'decliner': rematchDecliner,
+        };
         notifyListeners();
 
       case WsServerType.matchInvitation:
@@ -540,11 +546,46 @@ class OnlineGameProvider extends ChangeNotifier {
         }
 
       case WsServerType.invitationDeclined:
+        final inviteDecliner = (msg.payload != null && msg.payload!['decliner_name'] != null)
+            ? msg.payload!['decliner_name'] as String
+            : '';
         if (incomingMatchRequest.value?.type == IncomingMatchRequestType.friendInvite) {
           incomingMatchRequest.value = null;
+        }
+        onWsNotificationEvent.value = {
+          'type': 'invitation_declined',
+          'decliner': inviteDecliner,
+        };
+        notifyListeners();
+
+      case WsServerType.friendRequest:
+        if (msg.payload != null) {
+          onWsNotificationEvent.value = {
+            'type': 'friend_request',
+            'payload': msg.payload,
+          };
           notifyListeners();
         }
-        break;
+
+      case WsServerType.friendRequestDeclined:
+        final frDecliner = (msg.payload != null && msg.payload!['decliner_name'] != null)
+            ? msg.payload!['decliner_name'] as String
+            : '';
+        onWsNotificationEvent.value = {
+          'type': 'friend_request_declined',
+          'decliner': frDecliner,
+        };
+        notifyListeners();
+
+      case WsServerType.friendRequestAccepted:
+        final frAccepter = (msg.payload != null && msg.payload!['accepter_name'] != null)
+            ? msg.payload!['accepter_name'] as String
+            : '';
+        onWsNotificationEvent.value = {
+          'type': 'friend_request_accepted',
+          'accepter': frAccepter,
+        };
+        notifyListeners();
 
       case WsServerType.error:
         _handleError(msg.payload);

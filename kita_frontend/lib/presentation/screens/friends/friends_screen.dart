@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/friend_models.dart';
+import '../../../data/models/notification_model.dart';
 import '../../providers/friends_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
 import '../game/online_match_screen.dart';
@@ -26,7 +28,12 @@ class _FriendsScreenState extends State<FriendsScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FriendsProvider>().loadAll();
+      context.read<FriendsProvider>().loadAll().then((_) {
+        if (mounted) {
+          final incoming = context.read<FriendsProvider>().incomingRequests;
+          context.read<NotificationProvider>().syncFromFriendRequests(incoming);
+        }
+      });
     });
   }
 
@@ -39,8 +46,13 @@ class _FriendsScreenState extends State<FriendsScreen>
   @override
   Widget build(BuildContext context) {
     final friendsProv = context.watch<FriendsProvider>();
+    final notifProv = context.watch<NotificationProvider>();
     final onlineProv = context.watch<OnlineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final pendingFriendCount = notifProv.pendingNotifications
+        .where((n) => n.type == KitaNotificationType.friendRequest)
+        .length;
 
     // Navigate to match if online match starts
     if (onlineProv.matchState.value == OnlineMatchState.inMatch) {
@@ -70,7 +82,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('online.friendRequests'.tr()),
-                  if (friendsProv.pendingIncomingCount > 0) ...[
+                  if (pendingFriendCount > 0 || friendsProv.pendingIncomingCount > 0) ...[
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.all(4),
@@ -79,7 +91,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                         shape: BoxShape.circle,
                       ),
                       child: Text(
-                        '${friendsProv.pendingIncomingCount}',
+                        '${pendingFriendCount > 0 ? pendingFriendCount : friendsProv.pendingIncomingCount}',
                         style: const TextStyle(
                           fontSize: 10,
                           color: AppColors.darkTextPrimary,
@@ -201,7 +213,11 @@ class _FriendsScreenState extends State<FriendsScreen>
 
     return RefreshIndicator(
       color: AppColors.primaryGreen,
-      onRefresh: friendsProv.loadAll,
+      onRefresh: () async {
+        final notifProv = context.read<NotificationProvider>();
+        await friendsProv.loadAll();
+        notifProv.syncFromFriendRequests(friendsProv.incomingRequests);
+      },
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -219,8 +235,20 @@ class _FriendsScreenState extends State<FriendsScreen>
               (r) => _IncomingRequestCard(
                 request: r,
                 isDark: isDark,
-                onAccept: () => friendsProv.acceptRequest(r.friendshipId),
-                onDecline: () => friendsProv.declineRequest(r.friendshipId),
+                onAccept: () async {
+                  final notifId = 'friend_request_${r.friendshipId}';
+                  final notifProv = context.read<NotificationProvider>();
+                  await notifProv.acceptNotification(context, notifId);
+                  await friendsProv.acceptRequest(r.friendshipId);
+                  notifProv.syncFriendshipActioned(r.friendshipId, NotificationStatus.accepted);
+                },
+                onDecline: () async {
+                  final notifId = 'friend_request_${r.friendshipId}';
+                  final notifProv = context.read<NotificationProvider>();
+                  await notifProv.declineNotification(context, notifId);
+                  await friendsProv.declineRequest(r.friendshipId);
+                  notifProv.syncFriendshipActioned(r.friendshipId, NotificationStatus.declined);
+                },
               ),
             ),
             const SizedBox(height: 16),

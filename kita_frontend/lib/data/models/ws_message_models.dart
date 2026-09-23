@@ -48,6 +48,9 @@ class WsServerType {
   static const String matchInvitation = 'match_invitation';
   static const String invitationDeclined = 'invitation_declined';
   static const String queueLeft = 'queue_left';
+  static const String friendRequest = 'friend_request';
+  static const String friendRequestDeclined = 'friend_request_declined';
+  static const String friendRequestAccepted = 'friend_request_accepted';
 }
 
 // ─── Time Control Presets (ms) ────────────────────────────────────────

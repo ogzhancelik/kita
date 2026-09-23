@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+
 import '../../../core/feedback/sound_service.dart';
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -104,9 +106,11 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       _flipBoard = (team == PieceTeam.black);
     });
     _resetGame();
-    KitaToast.info(team == PieceTeam.white
-        ? 'game.sideSelectedWhite'.tr()
-        : 'game.sideSelectedBlack'.tr());
+    KitaToast.info(
+      team == PieceTeam.white
+          ? 'game.sideSelectedWhite'.tr()
+          : 'game.sideSelectedBlack'.tr(),
+    );
   }
 
   void _loadScenario(Map<String, KitaPos?> positions, String label) {
@@ -138,7 +142,11 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.science_rounded, color: Colors.orangeAccent, size: 22),
+            const Icon(
+              Icons.science_rounded,
+              color: Colors.orangeAccent,
+              size: 22,
+            ),
             const SizedBox(width: 8),
             Text(
               'game.testScenariosTitle'.tr(),
@@ -158,13 +166,21 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
             ListTile(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: AppColors.primaryGreen.withValues(alpha: 0.4)),
+                side: BorderSide(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.4),
+                ),
               ),
               tileColor: AppColors.primaryGreen.withValues(alpha: 0.1),
-              leading: const Icon(Icons.auto_mode_rounded, color: AppColors.primaryGreen),
+              leading: const Icon(
+                Icons.auto_mode_rounded,
+                color: AppColors.primaryGreen,
+              ),
               title: Text(
                 'game.scenarioRetaliationTitle'.tr(),
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
               subtitle: Text(
                 'game.scenarioRetaliationDesc'.tr(),
@@ -173,8 +189,8 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
               onTap: () {
                 Navigator.of(ctx).pop();
                 _loadScenario({
-                  'BK': const KitaPos(3, 0),  // tile value 2
-                  'WK': const KitaPos(3, 3),  // tile value 2
+                  'BK': const KitaPos(3, 0), // tile value 2
+                  'WK': const KitaPos(3, 3), // tile value 2
                   'WP1': const KitaPos(1, 0), // 2 steps to reach BK at (3,0)
                   'BP1': const KitaPos(5, 3), // 2 steps to reach WK at (3,3)
                   'BP2': const KitaPos(0, 1),
@@ -189,10 +205,16 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                 side: BorderSide(color: Colors.amber.withValues(alpha: 0.4)),
               ),
               tileColor: Colors.amber.withValues(alpha: 0.1),
-              leading: const Icon(Icons.emoji_events_outlined, color: Colors.amber),
+              leading: const Icon(
+                Icons.emoji_events_outlined,
+                color: Colors.amber,
+              ),
               title: Text(
                 'game.scenarioImmediateWinTitle'.tr(),
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
               subtitle: Text(
                 'game.scenarioImmediateWinDesc'.tr(),
@@ -201,8 +223,8 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
               onTap: () {
                 Navigator.of(ctx).pop();
                 _loadScenario({
-                  'BK': const KitaPos(3, 0),  // tile value 2
-                  'WK': const KitaPos(3, 3),  // tile value 2
+                  'BK': const KitaPos(3, 0), // tile value 2
+                  'WK': const KitaPos(3, 3), // tile value 2
                   'WP1': const KitaPos(1, 0), // Can capture BK at (3,0)
                   'BP1': const KitaPos(0, 1), // Far from WK
                   'BP2': const KitaPos(0, 2), // Far from WK
@@ -219,7 +241,10 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
               leading: const Icon(Icons.refresh_rounded, color: Colors.grey),
               title: Text(
                 'game.scenarioDefaultBoard'.tr(),
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -248,6 +273,8 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         return KitaBoardTheme.cyberPurple();
       case 4:
         return KitaBoardTheme.slateMonochrome();
+      case 5:
+        return KitaBoardTheme.minecraft();
       default:
         return KitaBoardTheme.emerald(isDark);
     }
@@ -293,7 +320,11 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       // 1. If clicking a valid move target -> Apply move
       if (_selectedPieceId != null && _validMoves.contains(pos)) {
         final startPos = _selectedPos!;
-        final move = KitaMove(pieceId: _selectedPieceId!, fromPos: startPos, toPos: pos);
+        final move = KitaMove(
+          pieceId: _selectedPieceId!,
+          fromPos: startPos,
+          toPos: pos,
+        );
 
         _recordMove(move);
         // Play sound before state update so capture detection works
@@ -320,7 +351,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         }
 
         // Trigger AI move if in VS AI mode and turn passed to the bot
-        final aiTeam = _playerTeam == PieceTeam.white ? PieceTeam.black : PieceTeam.white;
+        final aiTeam = _playerTeam == PieceTeam.white
+            ? PieceTeam.black
+            : PieceTeam.white;
         if (_playMode == PlayMode.vsAi && _engine.turn == aiTeam) {
           _triggerAiMove();
         }
@@ -349,7 +382,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
           _validMoves = _engine.getLegalMovesForPiece(clickedPieceId!);
 
           if (_validMoves.isEmpty) {
-            KitaToast.warning('game.noLegalMoves'.tr(args: ['${_engine.currentStepCount}']));
+            KitaToast.warning(
+              'game.noLegalMoves'.tr(args: ['${_engine.currentStepCount}']),
+            );
           }
           return;
         }
@@ -404,7 +439,10 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       _aiLoading = false;
     }
 
-    if (!mounted || _gameSessionId != session || _engine.isGameOver || _ai == null) {
+    if (!mounted ||
+        _gameSessionId != session ||
+        _engine.isGameOver ||
+        _ai == null) {
       if (mounted && _gameSessionId == session) {
         setState(() => _isAiThinking = false);
       }
@@ -412,7 +450,8 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     }
 
     // Map difficulty index 0/1/2 → Easy/Medium/Hard
-    final difficulty = AIDifficulty.all[_selectedDifficulty.clamp(0, AIDifficulty.all.length - 1)];
+    final difficulty = AIDifficulty
+        .all[_selectedDifficulty.clamp(0, AIDifficulty.all.length - 1)];
 
     // Small delay to let the UI update with "thinking" indicator
     await Future.delayed(const Duration(milliseconds: 150));
@@ -453,17 +492,21 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     final durationMs = now.difference(_lastMoveTime).inMilliseconds;
     _lastMoveTime = now;
 
-    _recordedMoves.add(MoveRecordModel(
-      ply: _recordedMoves.length + 1,
-      playerId: move.pieceId.startsWith('W') ? 'white-player' : 'black-player',
-      piece: move.pieceId,
-      fromCol: move.fromPos.col,
-      fromRow: move.fromPos.row,
-      toCol: move.toPos.col,
-      toRow: move.toPos.row,
-      timeMs: durationMs,
-      createdAt: now,
-    ));
+    _recordedMoves.add(
+      MoveRecordModel(
+        ply: _recordedMoves.length + 1,
+        playerId: move.pieceId.startsWith('W')
+            ? 'white-player'
+            : 'black-player',
+        piece: move.pieceId,
+        fromCol: move.fromPos.col,
+        fromRow: move.fromPos.row,
+        toCol: move.toPos.col,
+        toRow: move.toPos.row,
+        timeMs: durationMs,
+        createdAt: now,
+      ),
+    );
   }
 
   String _getTurnText() {
@@ -495,16 +538,18 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
     final endReason = _engine.getEndReason();
     final status = _engine.getStatus();
     final isVsAi = _playMode == PlayMode.vsAi;
-    final isPlayerWinner = isVsAi && (
-      (status == GameStatus.whiteWins && _playerTeam == PieceTeam.white) ||
-      (status == GameStatus.blackWins && _playerTeam == PieceTeam.black)
-    );
+    final isPlayerWinner =
+        isVsAi &&
+        ((status == GameStatus.whiteWins && _playerTeam == PieceTeam.white) ||
+            (status == GameStatus.blackWins && _playerTeam == PieceTeam.black));
 
     switch (status) {
       case GameStatus.whiteWins:
         if (isVsAi) {
           title = isPlayerWinner ? 'game.youWon'.tr() : 'game.aiWon'.tr();
-          icon = isPlayerWinner ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded;
+          icon = isPlayerWinner
+              ? Icons.emoji_events_rounded
+              : Icons.sentiment_dissatisfied_rounded;
           iconColor = isPlayerWinner ? AppColors.ratingGold : Colors.redAccent;
         } else {
           title = 'game.whiteWins'.tr();
@@ -518,7 +563,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       case GameStatus.blackWins:
         if (isVsAi) {
           title = isPlayerWinner ? 'game.youWon'.tr() : 'game.aiWon'.tr();
-          icon = isPlayerWinner ? Icons.emoji_events_rounded : Icons.sentiment_dissatisfied_rounded;
+          icon = isPlayerWinner
+              ? Icons.emoji_events_rounded
+              : Icons.sentiment_dissatisfied_rounded;
           iconColor = isPlayerWinner ? AppColors.ratingGold : Colors.redAccent;
         } else {
           title = 'game.blackWins'.tr();
@@ -550,7 +597,10 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         backgroundColor: isDark ? AppColors.darkCard : AppColors.lightCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 1.5),
+          side: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            width: 1.5,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 26.0),
@@ -572,7 +622,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                 style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -582,7 +634,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                 style: TextStyle(
                   fontSize: 13.5,
                   height: 1.45,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -601,7 +655,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                       whitePlayer: UserProfile(
                         id: 'white-player',
                         username: _playMode == PlayMode.vsAi
-                            ? (_playerTeam == PieceTeam.white ? 'Player' : 'Bot AI')
+                            ? (_playerTeam == PieceTeam.white
+                                  ? 'Player'
+                                  : 'Bot AI')
                             : 'White',
                         rating: 1200,
                         wins: 0,
@@ -613,7 +669,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                       blackPlayer: UserProfile(
                         id: 'black-player',
                         username: _playMode == PlayMode.vsAi
-                            ? (_playerTeam == PieceTeam.black ? 'Player' : 'Bot AI')
+                            ? (_playerTeam == PieceTeam.black
+                                  ? 'Player'
+                                  : 'Bot AI')
                             : 'Black',
                         rating: 1200,
                         wins: 0,
@@ -624,10 +682,14 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                       ),
                       winnerId: status == GameStatus.whiteWins
                           ? 'white-player'
-                          : (status == GameStatus.blackWins ? 'black-player' : null),
+                          : (status == GameStatus.blackWins
+                                ? 'black-player'
+                                : null),
                       result: status == GameStatus.whiteWins
                           ? 'white_wins'
-                          : (status == GameStatus.blackWins ? 'black_wins' : 'draw'),
+                          : (status == GameStatus.blackWins
+                                ? 'black_wins'
+                                : 'draw'),
                       totalMoves: _recordedMoves.length,
                       startedAt: _matchStartedAt,
                       endedAt: DateTime.now(),
@@ -676,7 +738,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
       appBar: KitaAppBar(
         showAuthActions: false,
         showBack: true,
-        title: _playMode == PlayMode.localCoop ? 'game.localCoopTitle'.tr() : 'game.vsAiTitle'.tr(),
+        title: _playMode == PlayMode.localCoop
+            ? 'game.localCoopTitle'.tr()
+            : 'game.vsAiTitle'.tr(),
       ),
       body: ResponsiveLayout(
         maxWidth: _isHorizontal ? 640 : 460,
@@ -688,9 +752,15 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                 // 1. Mode Switcher (Coop Pass & Play vs VS AI)
                 Container(
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                    color: isDark
+                        ? AppColors.darkSurface
+                        : AppColors.lightSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -728,11 +798,20 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                 // 1.1 Side Selection (Only in VS AI mode)
                 if (_playMode == PlayMode.vsAi) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                      color: isDark
+                          ? AppColors.darkSurface
+                          : AppColors.lightSurface,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -744,7 +823,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                               Icon(
                                 Icons.shield_outlined,
                                 size: 14,
-                                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                color: isDark
+                                    ? AppColors.darkTextMuted
+                                    : AppColors.lightTextMuted,
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -752,7 +833,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                  color: isDark
+                                      ? AppColors.darkTextMuted
+                                      : AppColors.lightTextMuted,
                                 ),
                               ),
                             ],
@@ -787,7 +870,10 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
 
                 // 2. Info & Controls Card
                 KitaCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12.0,
+                    vertical: 10.0,
+                  ),
                   child: Column(
                     children: [
                       Row(
@@ -800,7 +886,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(7),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                    color: AppColors.primaryGreen.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
@@ -814,17 +902,22 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        _playMode == PlayMode.localCoop ? 'game.localCoopDesc'.tr() : 'game.aiBotDesc'.tr(),
+                                        _playMode == PlayMode.localCoop
+                                            ? 'game.localCoopDesc'.tr()
+                                            : 'game.aiBotDesc'.tr(),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13,
-                                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                                          color: isDark
+                                              ? AppColors.darkTextPrimary
+                                              : AppColors.lightTextPrimary,
                                         ),
                                       ),
                                       if (_playMode == PlayMode.vsAi)
@@ -832,7 +925,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                           value: _selectedDifficulty,
                                           isDense: true,
                                           underline: const SizedBox(),
-                                          dropdownColor: isDark ? AppColors.darkCard : AppColors.lightCard,
+                                          dropdownColor: isDark
+                                              ? AppColors.darkCard
+                                              : AppColors.lightCard,
                                           items: [
                                             DropdownMenuItem(
                                               value: 0,
@@ -862,22 +957,31 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                                 'game.hard'.tr(),
                                                 style: const TextStyle(
                                                   fontSize: 11,
-                                                  color: Colors.deepOrangeAccent,
+                                                  color:
+                                                      Colors.deepOrangeAccent,
                                                   fontWeight: FontWeight.w700,
                                                 ),
                                               ),
                                             ),
                                           ],
                                           onChanged: (val) {
-                                            if (val != null) setState(() => _selectedDifficulty = val);
+                                            if (val != null) {
+                                              setState(
+                                                () => _selectedDifficulty = val,
+                                              );
+                                            }
                                           },
                                         )
                                       else
                                         Text(
-                                          'game.moveCount'.tr(args: ['${_engine.moveCount}']),
+                                          'game.moveCount'.tr(
+                                            args: ['${_engine.moveCount}'],
+                                          ),
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                            color: isDark
+                                                ? AppColors.darkTextMuted
+                                                : AppColors.lightTextMuted,
                                           ),
                                         ),
                                     ],
@@ -895,38 +999,66 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                             children: [
                               // Orientation toggle (Horizontal / Vertical)
                               IconButton(
-                                tooltip: _isHorizontal ? 'game.orientationHorizontal'.tr() : 'game.orientationVertical'.tr(),
+                                tooltip: _isHorizontal
+                                    ? 'game.orientationHorizontal'.tr()
+                                    : 'game.orientationVertical'.tr(),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.all(5),
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                constraints: const BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
                                 icon: Icon(
-                                  _isHorizontal ? Icons.stay_current_landscape_rounded : Icons.stay_current_portrait_rounded,
+                                  _isHorizontal
+                                      ? Icons.stay_current_landscape_rounded
+                                      : Icons.stay_current_portrait_rounded,
                                   size: 18,
                                   color: AppColors.primaryGreen,
                                 ),
-                                onPressed: () => setState(() => _isHorizontal = !_isHorizontal),
+                                onPressed: () => setState(
+                                  () => _isHorizontal = !_isHorizontal,
+                                ),
                               ),
                               // Manual Flip Board
                               IconButton(
                                 tooltip: 'game.flipBoard'.tr(),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.all(5),
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                icon: const Icon(Icons.swap_vert_rounded, size: 18),
-                                onPressed: () => setState(() => _flipBoard = !_flipBoard),
+                                constraints: const BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
+                                icon: const Icon(
+                                  Icons.swap_vert_rounded,
+                                  size: 18,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _flipBoard = !_flipBoard),
                               ),
                               // Heatmap Palette Cycle
                               IconButton(
-                                tooltip: 'game.heatmapTheme'.tr(args: [_getThemeName()]),
+                                tooltip: 'game.heatmapTheme'.tr(
+                                  args: [_getThemeName()],
+                                ),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.all(5),
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                icon: const Icon(Icons.palette_outlined, size: 18),
+                                constraints: const BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
+                                icon: const Icon(
+                                  Icons.palette_outlined,
+                                  size: 18,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _themeIndex = (_themeIndex + 1) % 5;
                                   });
-                                  KitaToast.info('game.heatmapChanged'.tr(args: [_getThemeName()]));
+                                  KitaToast.info(
+                                    'game.heatmapChanged'.tr(
+                                      args: [_getThemeName()],
+                                    ),
+                                  );
                                 },
                               ),
                               // Test Scenarios Button
@@ -934,8 +1066,15 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                 tooltip: 'game.testScenarios'.tr(),
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.all(5),
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                icon: const Icon(Icons.science_outlined, size: 18, color: Colors.orangeAccent),
+                                constraints: const BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
+                                icon: const Icon(
+                                  Icons.science_outlined,
+                                  size: 18,
+                                  color: Colors.orangeAccent,
+                                ),
                                 onPressed: _showTestScenariosDialog,
                               ),
                             ],
@@ -956,9 +1095,14 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                 width: 14,
                                 height: 14,
                                 decoration: BoxDecoration(
-                                  color: isWhiteTurn ? Colors.white : Colors.black,
+                                  color: isWhiteTurn
+                                      ? Colors.white
+                                      : Colors.black,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.grey, width: 1.5),
+                                  border: Border.all(
+                                    color: Colors.grey,
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -967,7 +1111,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                                  color: isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.lightTextPrimary,
                                 ),
                               ),
                               if (_isAiThinking) ...[
@@ -975,24 +1121,40 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                                 const SizedBox(
                                   width: 12,
                                   height: 12,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ],
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.18),
+                              color: AppColors.primaryGreen.withValues(
+                                alpha: 0.18,
+                              ),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.primaryGreen, width: 1),
+                              border: Border.all(
+                                color: AppColors.primaryGreen,
+                                width: 1,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.directions_walk_rounded, size: 14, color: AppColors.primaryGreen),
+                                const Icon(
+                                  Icons.directions_walk_rounded,
+                                  size: 14,
+                                  color: AppColors.primaryGreen,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'game.distanceSteps'.tr(args: ['${_engine.currentStepCount}']),
+                                  'game.distanceSteps'.tr(
+                                    args: ['${_engine.currentStepCount}'],
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 11.5,
                                     fontWeight: FontWeight.w800,
@@ -1016,12 +1178,16 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                     color: isDark ? AppColors.darkCard : AppColors.lightCard,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.35 : 0.08,
+                        ),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -1073,31 +1239,86 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
 
                 // 5. How to Play — Game Rules Section
                 Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  data: Theme.of(context)
+                      .copyWith(dividerColor: Colors.transparent),
                   child: KitaCard(
                     padding: EdgeInsets.zero,
                     child: ExpansionTile(
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                      tilePadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 2,
+                      ),
                       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      leading: const Icon(Icons.help_outline_rounded, size: 20, color: AppColors.primaryGreen),
+                      leading: const Icon(
+                        Icons.help_outline_rounded,
+                        size: 20,
+                        color: AppColors.primaryGreen,
+                      ),
                       title: Text(
                         'game.howToPlay'.tr(),
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w800,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
                         ),
                       ),
                       children: [
-                        _buildRuleItem('🎯', 'game.rulesGoalTitle'.tr(), 'game.rulesGoalDesc'.tr(), isDark),
-                        _buildRuleItem('📋', 'game.rulesBoardTitle'.tr(), 'game.rulesBoardDesc'.tr(), isDark),
-                        _buildRuleItem('♟️', 'game.rulesPiecesTitle'.tr(), 'game.rulesPiecesDesc'.tr(), isDark),
-                        _buildRuleItem('🚶', 'game.rulesMovementTitle'.tr(), 'game.rulesMovementDesc'.tr(), isDark),
-                        _buildRuleItem('⚔️', 'game.rulesCaptureTitle'.tr(), 'game.rulesCaptureDesc'.tr(), isDark),
-                        _buildRuleItem('🏆', 'game.rulesWinTitle'.tr(), 'game.rulesWinDesc'.tr(), isDark),
-                        _buildRuleItem('⚖️', 'game.rulesLastStandTitle'.tr(), 'game.rulesLastStandDesc'.tr(), isDark),
-                        _buildRuleItem('🤝', 'game.rulesDrawTitle'.tr(), 'game.rulesDrawDesc'.tr(), isDark),
-                        _buildRuleItem('🔄', 'game.rulesReversalTitle'.tr(), 'game.rulesReversalDesc'.tr(), isDark),
+                        _buildRuleItem(
+                          '🎯',
+                          'game.rulesGoalTitle'.tr(),
+                          'game.rulesGoalDesc'.tr(),
+                          isDark,
+                        ),
+                        _buildRuleItem(
+                          '📋',
+                          'game.rulesBoardTitle'.tr(),
+                          'game.rulesBoardDesc'.tr(),
+                          isDark,
+                        ),
+                        _buildRuleItem(
+                          '♟️',
+                          'game.rulesPiecesTitle'.tr(),
+                          'game.rulesPiecesDesc'.tr(),
+                          isDark,
+                        ),
+                        _buildRuleItem(
+                          '🚶',
+                          'game.rulesMovementTitle'.tr(),
+                          'game.rulesMovementDesc'.tr(),
+                          isDark,
+                        ),
+                        _buildRuleItem(
+                          '⚔️',
+                          'game.rulesCaptureTitle'.tr(),
+                          'game.rulesCaptureDesc'.tr(),
+                          isDark,
+                        ),
+                        _buildRuleItem(
+                          '🏆',
+                          'game.rulesWinTitle'.tr(),
+                          'game.rulesWinDesc'.tr(),
+                          isDark,
+                        ),
+                        _buildRuleItem(
+                          '⚖️',
+                          'game.rulesLastStandTitle'.tr(),
+                          'game.rulesLastStandDesc'.tr(),
+                          isDark,
+                        ),
+                        _buildRuleItem(
+                          '🤝',
+                          'game.rulesDrawTitle'.tr(),
+                          'game.rulesDrawDesc'.tr(),
+                          isDark,
+                        ),
+                        _buildRuleItem(
+                          '🔄',
+                          'game.rulesReversalTitle'.tr(),
+                          'game.rulesReversalDesc'.tr(),
+                          isDark,
+                        ),
                       ],
                     ),
                   ),
@@ -1130,7 +1351,11 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey),
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : Colors.grey,
+            ),
             const SizedBox(width: 6),
             Text(
               title,
@@ -1184,7 +1409,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                   color: isWhite ? Colors.white : Colors.black,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isWhite ? Colors.grey.shade400 : Colors.grey.shade700,
+                    color: isWhite
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade700,
                     width: 1.5,
                   ),
                   boxShadow: [
@@ -1206,8 +1433,12 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                     fontSize: 11.5,
                     fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                     color: isSelected
-                        ? (isDark ? AppColors.primaryGreen : const Color(0xFF1B5E20))
-                        : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                        ? (isDark
+                              ? AppColors.primaryGreen
+                              : const Color(0xFF1B5E20))
+                        : (isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary),
                   ),
                 ),
               ),
@@ -1243,7 +1474,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1252,7 +1485,9 @@ class _OfflineAiScreenState extends State<OfflineAiScreen> {
                   style: TextStyle(
                     fontSize: 11.5,
                     height: 1.4,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
                   ),
                 ),
               ],

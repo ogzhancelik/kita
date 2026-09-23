@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/theme/app_colors.dart';
 
-enum HeatmapPalette {
-  emerald,
-  amber,
-  ocean,
-  purple,
-  slate,
-}
+enum HeatmapPalette { emerald, amber, ocean, purple, slate, minecraft }
 
 class KitaBoardTheme {
   final Map<int, Color> valueColors;
@@ -46,6 +41,29 @@ class KitaBoardTheme {
     return valueColors[value] ?? const Color(0xFF4A4A4A);
   }
 
+  factory KitaBoardTheme.minecraft() {
+    return KitaBoardTheme(
+      valueColors: const {
+        1: Color(0xFFfcd235), // 1: Dark forest
+        2: Color(0xFFe96c0b), // 2: Mid emerald
+        3: Color(0xFF982421), // 3: Bright lively green
+      },
+      selectedHighlightColor: const Color.fromARGB(
+        255,
+        255,
+        255,
+        255,
+      ).withValues(alpha: 0.5),
+      validMoveHighlightColor: const Color.fromARGB(
+        255,
+        0,
+        0,
+        0,
+      ).withValues(alpha: 0.5),
+      tileValueColor: AppColors.darkCard,
+    );
+  }
+
   // --- 1. Heatmap Emerald (Signature Chess.com style) ---
   factory KitaBoardTheme.emerald([bool isDark = true]) {
     return KitaBoardTheme(
@@ -62,7 +80,12 @@ class KitaBoardTheme {
             },
       selectedHighlightColor: const Color(0xFFF1C40F).withValues(alpha: 0.85),
       validMoveHighlightColor: const Color(0xFF00FF88).withValues(alpha: 0.85),
-      tileValueColor: Colors.white.withValues(alpha: 0.85),
+      tileValueColor: const Color.fromARGB(
+        255,
+        255,
+        255,
+        255,
+      ).withValues(alpha: 0.85),
     );
   }
 
@@ -70,12 +93,12 @@ class KitaBoardTheme {
   factory KitaBoardTheme.amberSunset() {
     return const KitaBoardTheme(
       valueColors: {
-        1: Color(0xFF7A3E00), // 1: Deep burnt umber
-        2: Color(0xFFD35400), // 2: Warm radiant amber
-        3: Color(0xFFE74C3C), // 3: Fiery bright coral
+        1: Color(0xFF5e262f), // 1: Deep burnt umber
+        2: Color(0xFF8d3e53), // 2: Warm radiant amber
+        3: Color(0xFFbf5377), // 3: Fiery bright coral
       },
       selectedHighlightColor: Color(0xFFF39C12),
-      validMoveHighlightColor: Color(0xFF2ECC71),
+      validMoveHighlightColor: Color(0xFFef9d0d),
       tileValueColor: Colors.white,
     );
   }
@@ -84,12 +107,12 @@ class KitaBoardTheme {
   factory KitaBoardTheme.oceanAzure() {
     return const KitaBoardTheme(
       valueColors: {
-        1: Color(0xFF154360), // 1: Deep navy
-        2: Color(0xFF2471A3), // 2: Oceanic azure
-        3: Color(0xFF17A589), // 3: Vibrant turquoise
+        1: Color(0xFF275e49), // 1: Deep navy
+        2: Color(0xFF3e8f66), // 2: Oceanic azure
+        3: Color(0xFF52be80), // 3: Vibrant turquoise
       },
-      selectedHighlightColor: Color(0xFFF4D03F),
-      validMoveHighlightColor: Color(0xFF58D68D),
+      selectedHighlightColor: Color.fromARGB(255, 255, 217, 0),
+      validMoveHighlightColor: Color(0xFF0e93ee),
       tileValueColor: Colors.white,
     );
   }

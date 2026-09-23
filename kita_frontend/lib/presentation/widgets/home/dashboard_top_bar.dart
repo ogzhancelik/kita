@@ -5,7 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/friends_provider.dart';
-import '../../screens/home/notifications_placeholder_screen.dart';
+import '../../providers/notification_provider.dart';
+import '../../screens/home/notifications_screen.dart';
 import '../common/avatar_picker.dart';
 import '../common/stat_badge.dart';
 import 'settings_dialog.dart';
@@ -19,11 +20,12 @@ class DashboardTopBar extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProv = context.watch<AuthProvider>();
     final friendsProv = context.watch<FriendsProvider>();
+    final notifProv = context.watch<NotificationProvider>();
     final user = authProv.currentUser;
     final isGuest = authProv.isGuest;
 
     final avatarItem = AvatarPicker.avatars[authProv.avatarIndex % AvatarPicker.avatars.length];
-    final hasUnreadNotifications = friendsProv.pendingIncomingCount > 0;
+    final hasUnreadNotifications = notifProv.hasUnread || friendsProv.pendingIncomingCount > 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
@@ -131,7 +133,7 @@ class DashboardTopBar extends StatelessWidget {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const NotificationsPlaceholderScreen(),
+                            builder: (_) => const NotificationsScreen(),
                           ),
                         );
                       },

@@ -30,6 +30,8 @@ class MoveRecordModel {
         toPos: KitaPos(toCol, toRow),
       );
 
+  String get notation => toKitaMove().notation;
+
   factory MoveRecordModel.fromJson(Map<String, dynamic> json) {
     return MoveRecordModel(
       ply: (json['ply'] as num?)?.toInt() ?? 0,

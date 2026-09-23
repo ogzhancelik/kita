@@ -9,12 +9,22 @@ import (
 	"github.com/oguzhancelik/kita/internal/core/ports"
 )
 
-type FriendHandler struct {
-	friendService ports.FriendService
+type WsNotifier interface {
+	SendToUser(userID string, msgType string, payload any)
 }
 
-func NewFriendHandler(friendService ports.FriendService) *FriendHandler {
-	return &FriendHandler{friendService: friendService}
+type FriendHandler struct {
+	friendService ports.FriendService
+	userService   ports.UserService
+	notifier      WsNotifier
+}
+
+func NewFriendHandler(friendService ports.FriendService, userService ports.UserService, notifier WsNotifier) *FriendHandler {
+	return &FriendHandler{
+		friendService: friendService,
+		userService:   userService,
+		notifier:      notifier,
+	}
 }
 
 // GetFriends handles GET /api/friends
@@ -79,6 +89,24 @@ func (h *FriendHandler) SendRequest(c *gin.Context) {
 		return
 	}
 
+	if h.notifier != nil && friendship != nil {
+		senderName := ""
+		senderRating := 1200
+		if h.userService != nil {
+			if sender, err := h.userService.GetProfile(c.Request.Context(), userID); err == nil && sender != nil {
+				senderName = sender.Username
+				senderRating = sender.Rating
+			}
+		}
+		h.notifier.SendToUser(friendship.AddresseeID, "friend_request", gin.H{
+			"friendship_id": friendship.ID,
+			"user_id":       userID,
+			"username":      senderName,
+			"rating":        senderRating,
+			"created_at":    friendship.CreatedAt,
+		})
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"friendship": friendship})
 }
 
@@ -96,6 +124,16 @@ func (h *FriendHandler) AcceptRequest(c *gin.Context) {
 		return
 	}
 
+	var requesterID string
+	if reqs, err := h.friendService.GetPendingRequests(c.Request.Context(), userID); err == nil {
+		for _, r := range reqs {
+			if r.FriendshipID == id && r.Direction == "incoming" {
+				requesterID = r.UserID
+				break
+			}
+		}
+	}
+
 	if err := h.friendService.AcceptRequest(c.Request.Context(), userID, id); err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			SendError(c, http.StatusBadRequest, appErr.Code, appErr.Message)
@@ -103,6 +141,19 @@ func (h *FriendHandler) AcceptRequest(c *gin.Context) {
 		}
 		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
+	}
+
+	if h.notifier != nil && requesterID != "" {
+		accepterName := ""
+		if h.userService != nil {
+			if accepter, err := h.userService.GetProfile(c.Request.Context(), userID); err == nil && accepter != nil {
+				accepterName = accepter.Username
+			}
+		}
+		h.notifier.SendToUser(requesterID, "friend_request_accepted", gin.H{
+			"friendship_id": id,
+			"accepter_name": accepterName,
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "accepted"})
@@ -122,6 +173,16 @@ func (h *FriendHandler) DeclineRequest(c *gin.Context) {
 		return
 	}
 
+	var requesterID string
+	if reqs, err := h.friendService.GetPendingRequests(c.Request.Context(), userID); err == nil {
+		for _, r := range reqs {
+			if r.FriendshipID == id && r.Direction == "incoming" {
+				requesterID = r.UserID
+				break
+			}
+		}
+	}
+
 	if err := h.friendService.DeclineRequest(c.Request.Context(), userID, id); err != nil {
 		if appErr, ok := err.(*errors.AppError); ok {
 			SendError(c, http.StatusBadRequest, appErr.Code, appErr.Message)
@@ -129,6 +190,19 @@ func (h *FriendHandler) DeclineRequest(c *gin.Context) {
 		}
 		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
+	}
+
+	if h.notifier != nil && requesterID != "" {
+		declinerName := ""
+		if h.userService != nil {
+			if decliner, err := h.userService.GetProfile(c.Request.Context(), userID); err == nil && decliner != nil {
+				declinerName = decliner.Username
+			}
+		}
+		h.notifier.SendToUser(requesterID, "friend_request_declined", gin.H{
+			"friendship_id": id,
+			"decliner_name": declinerName,
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "declined"})

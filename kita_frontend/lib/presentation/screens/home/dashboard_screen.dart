@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/home/dashboard_action_dock.dart';
@@ -12,6 +13,7 @@ import '../../widgets/home/dashboard_leaderboard_card.dart';
 import '../../widgets/home/dashboard_match_history_card.dart';
 import '../../widgets/home/dashboard_open_rooms_card.dart';
 import '../../widgets/home/dashboard_top_bar.dart';
+import '../../widgets/home/home_notification_summary_card.dart';
 import '../../widgets/home/play_menu_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -28,6 +30,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<NotificationProvider>().setDashboardActive(true);
       final authProv = context.read<AuthProvider>();
       final onlineProv = context.read<OnlineGameProvider>();
       onlineProv.connectAndListen(
@@ -134,6 +138,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 10),
                         ],
+
+                        // 0. Notification Summary Card (Max 3 actionable notifications, priority sorted)
+                        const HomeNotificationSummaryCard(),
 
                         // 1. Leaderboard (Friends & Global TOP 3)
                         const DashboardLeaderboardCard(),

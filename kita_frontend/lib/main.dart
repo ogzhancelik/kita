@@ -7,6 +7,7 @@ import 'core/feedback/toast_service.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/friends_provider.dart';
+import 'presentation/providers/notification_provider.dart';
 import 'presentation/providers/online_game_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'dart:async';
@@ -35,6 +36,7 @@ void main() async {
           ChangeNotifierProvider(create: (_) => AuthProvider()),
           ChangeNotifierProvider(create: (_) => OnlineGameProvider()),
           ChangeNotifierProvider(create: (_) => FriendsProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ],
         child: const KitaApp(),
       ),
@@ -51,28 +53,114 @@ class KitaApp extends StatefulWidget {
 
 class _KitaAppState extends State<KitaApp> {
   OnlineGameProvider? _onlineProv;
+  FriendsProvider? _friendsProv;
   bool _isInviteDialogShowing = false;
+  bool _isMatchScreenOpen = false;
+  Timer? _friendsPollTimer;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final prov = context.read<OnlineGameProvider>();
-    if (_onlineProv != prov) {
+    final online = context.read<OnlineGameProvider>();
+    if (_onlineProv != online) {
       _onlineProv?.incomingMatchRequest.removeListener(_onIncomingRequestChanged);
-      _onlineProv = prov;
+      _onlineProv?.onWsNotificationEvent.removeListener(_onWsNotificationEvent);
+      _onlineProv?.matchState.removeListener(_onMatchStateChanged);
+      _onlineProv = online;
       _onlineProv?.incomingMatchRequest.addListener(_onIncomingRequestChanged);
+      _onlineProv?.onWsNotificationEvent.addListener(_onWsNotificationEvent);
+      _onlineProv?.matchState.addListener(_onMatchStateChanged);
     }
+
+    final friends = context.read<FriendsProvider>();
+    if (_friendsProv != friends) {
+      _friendsProv?.removeListener(_onFriendsChanged);
+      _friendsProv = friends;
+      _friendsProv?.addListener(_onFriendsChanged);
+    }
+
+    _friendsPollTimer?.cancel();
+    _friendsPollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) {
+        _friendsProv?.loadAll();
+      }
+    });
   }
 
   @override
   void dispose() {
     _onlineProv?.incomingMatchRequest.removeListener(_onIncomingRequestChanged);
+    _onlineProv?.onWsNotificationEvent.removeListener(_onWsNotificationEvent);
+    _onlineProv?.matchState.removeListener(_onMatchStateChanged);
+    _friendsProv?.removeListener(_onFriendsChanged);
+    _friendsPollTimer?.cancel();
     super.dispose();
+  }
+
+  void _onFriendsChanged() {
+    final incoming = _friendsProv?.incomingRequests;
+    if (incoming != null && incoming.isNotEmpty && mounted) {
+      context.read<NotificationProvider>().syncFromFriendRequests(incoming);
+    }
+  }
+
+  void _onWsNotificationEvent() {
+    final event = _onlineProv?.onWsNotificationEvent.value;
+    if (event == null || !mounted) return;
+
+    final type = event['type'] as String?;
+    final notifProv = context.read<NotificationProvider>();
+
+    if (type == 'rematch_declined') {
+      notifProv.addRematchDeclinedNotification(event['decliner'] as String?);
+    } else if (type == 'invitation_declined') {
+      notifProv.addChallengeDeclinedNotification(event['decliner'] as String?);
+    } else if (type == 'friend_request') {
+      final payload = event['payload'] as Map<String, dynamic>?;
+      if (payload != null) {
+        notifProv.syncFromWsFriendRequest(payload);
+        _friendsProv?.loadAll();
+      }
+    } else if (type == 'friend_request_declined') {
+      notifProv.addFriendRequestDeclinedNotification(event['decliner'] as String?);
+      _friendsProv?.loadAll();
+    } else if (type == 'friend_request_accepted') {
+      notifProv.addFriendRequestAcceptedNotification(event['accepter'] as String?);
+      _friendsProv?.loadAll();
+    }
+  }
+
+  void _onMatchStateChanged() {
+    if (_onlineProv?.matchState.value == OnlineMatchState.inMatch && !_isMatchScreenOpen) {
+      _isMatchScreenOpen = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        appNavigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => const OnlineMatchScreen(),
+            settings: const RouteSettings(name: '/online_match'),
+          ),
+        ).then((_) {
+          _isMatchScreenOpen = false;
+        });
+      });
+    }
   }
 
   void _onIncomingRequestChanged() {
     final req = _onlineProv?.incomingMatchRequest.value;
-    if (req != null && !_isInviteDialogShowing) {
+    if (req != null) {
+      if (mounted) {
+        context.read<NotificationProvider>().syncFromIncomingMatchRequest(req);
+      }
+
+      // Do NOT show floating dialog on home dashboard screen.
+      // Only show it when user is navigated away to a subscreen (canPop == true).
+      final isSubScreenActive = appNavigatorKey.currentState?.canPop() ?? false;
+      if (!isSubScreenActive) {
+        return;
+      }
+
       // If rematch offer arrives while GameOverDialog is active on screen,
       // let GameOverDialog handle accept/decline internally without popping top dialog.
       if (req.type == IncomingMatchRequestType.rematch &&
@@ -80,43 +168,28 @@ class _KitaAppState extends State<KitaApp> {
         return;
       }
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _isInviteDialogShowing) return;
-        final navContext = appNavigatorKey.currentContext;
-        if (navContext == null) return;
+      if (!_isInviteDialogShowing) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _isInviteDialogShowing) return;
+          final navContext = appNavigatorKey.currentContext;
+          if (navContext == null) return;
 
-        _isInviteDialogShowing = true;
-        TopMatchInviteDialog.show(
-          context: navContext,
-          request: req,
-          onAccept: () {
-            _onlineProv?.acceptIncomingRequest();
-            _listenAndNavigateToMatch();
-          },
-          onDecline: () {
-            _onlineProv?.declineIncomingRequest();
-          },
-        ).then((_) {
-          _isInviteDialogShowing = false;
+          _isInviteDialogShowing = true;
+          TopMatchInviteDialog.show(
+            context: navContext,
+            request: req,
+            onAccept: () {
+              _onlineProv?.acceptIncomingRequest();
+            },
+            onDecline: () {
+              _onlineProv?.declineIncomingRequest();
+            },
+          ).then((_) {
+            _isInviteDialogShowing = false;
+          });
         });
-      });
-    }
-  }
-
-  void _listenAndNavigateToMatch() {
-    void listener() {
-      if (_onlineProv?.matchState.value == OnlineMatchState.inMatch) {
-        _onlineProv?.matchState.removeListener(listener);
-        appNavigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => const OnlineMatchScreen()),
-        );
       }
     }
-
-    _onlineProv?.matchState.addListener(listener);
-    Timer(const Duration(seconds: 10), () {
-      _onlineProv?.matchState.removeListener(listener);
-    });
   }
 
   @override

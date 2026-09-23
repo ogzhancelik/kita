@@ -74,7 +74,7 @@ func main() {
 	userH := httpHandler.NewUserHandler(userService)
 	matchH := httpHandler.NewMatchHandler(matchService)
 	settingsH := httpHandler.NewSettingsHandler(settingsService)
-	friendH := httpHandler.NewFriendHandler(friendService)
+	friendH := httpHandler.NewFriendHandler(friendService, userService, hub)
 	wsH := wsHandler.NewWSHandler(hub, authService, userService)
 
 	// 7. Gin HTTP Engine
