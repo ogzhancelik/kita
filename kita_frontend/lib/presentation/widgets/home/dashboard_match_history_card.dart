@@ -51,10 +51,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
           await LocalMatchHistoryService.instance.getShowOfflineMatches();
 
       final offlineList = showOffline
-          ? await LocalMatchHistoryService.instance.getMatches(
-              userId: user?.id,
-              isGuest: isGuest,
-            )
+          ? await LocalMatchHistoryService.instance.getMatches()
           : <MatchRecordModel>[];
 
       if (isGuest) {

@@ -39,6 +39,7 @@ class WebSocketService {
 
   String? _token;
   String? _nickname;
+  int? _avatarIndex;
   int _reconnectAttempt = 0;
   static const int _maxReconnectAttempts = 5;
   bool _intentionalDisconnect = false;
@@ -47,12 +48,16 @@ class WebSocketService {
   /// Connect to the WebSocket server.
   /// If [token] is provided, it's sent as a query parameter for authentication.
   /// If [nickname] is provided (e.g. for guests), it's sent for display name resolution.
-  void connect({String? token, String? nickname}) {
+  /// If [avatarIndex] is provided, it's sent for initial avatar synchronization.
+  void connect({String? token, String? nickname, int? avatarIndex}) {
     final isAlreadyActive =
         connectionState.value == WsConnectionState.connected ||
         connectionState.value == WsConnectionState.connecting;
 
-    if (isAlreadyActive && _token == token && _nickname == nickname) {
+    if (isAlreadyActive &&
+        _token == token &&
+        _nickname == nickname &&
+        _avatarIndex == avatarIndex) {
       return;
     }
 
@@ -62,6 +67,7 @@ class WebSocketService {
 
     _token = token;
     _nickname = nickname;
+    _avatarIndex = avatarIndex;
     _intentionalDisconnect = false;
     _reconnectAttempt = 0;
     _doConnect();
@@ -98,6 +104,9 @@ class WebSocketService {
     }
     if (_nickname != null && _nickname!.isNotEmpty) {
       params.add('nickname=${Uri.encodeComponent(_nickname!)}');
+    }
+    if (_avatarIndex != null) {
+      params.add('avatar_index=$_avatarIndex');
     }
     if (params.isNotEmpty) {
       url += '?${params.join('&')}';
@@ -195,7 +204,7 @@ class WebSocketService {
       debugPrint('[WS] Connection pending — queued message: $type');
       _pendingMessages.add(encoded);
       if (connectionState.value == WsConnectionState.disconnected) {
-        connect(token: _token, nickname: _nickname);
+        connect(token: _token, nickname: _nickname, avatarIndex: _avatarIndex);
       }
       return;
     }

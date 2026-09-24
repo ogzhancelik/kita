@@ -217,3 +217,60 @@ func TestRoomClockNoElapsedLeakToOpponent(t *testing.T) {
 	}
 }
 
+func TestMatchFoundIncludesOpponentAvatarIndex(t *testing.T) {
+	mockService := &mockMatchService{
+		saveChan: make(chan *domain.Match, 1),
+	}
+	hub := NewHub(mockService, nil, nil)
+
+	sConn1, _ := setupTestWS(t)
+	sConn2, _ := setupTestWS(t)
+
+	// White has avatar index 3, Black has avatar index 6
+	clientWhite := NewClient(hub, sConn1, "user-white", "WhitePlayer", 1200, 3)
+	clientBlack := NewClient(hub, sConn2, "user-black", "BlackPlayer", 1400, 6)
+
+	room := NewRoom("test-avatar-match", clientWhite, clientBlack, mockService, hub)
+	room.Start()
+
+	// 1. Verify White receives Black's avatar index (6)
+	select {
+	case msgBytes := <-clientWhite.Send:
+		var wsMsg struct {
+			Type    string        `json:"type"`
+			Payload MatchFoundDTO `json:"payload"`
+		}
+		if err := json.Unmarshal(msgBytes, &wsMsg); err != nil {
+			t.Fatalf("Failed to unmarshal match_found: %v", err)
+		}
+		if wsMsg.Payload.OpponentAvatarIndex != 6 {
+			t.Errorf("Expected White to receive OpponentAvatarIndex 6, got %d", wsMsg.Payload.OpponentAvatarIndex)
+		}
+		if wsMsg.Payload.OpponentName != "BlackPlayer" {
+			t.Errorf("Expected OpponentName 'BlackPlayer', got %s", wsMsg.Payload.OpponentName)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timed out waiting for match_found on clientWhite.Send")
+	}
+
+	// 2. Verify Black receives White's avatar index (3)
+	select {
+	case msgBytes := <-clientBlack.Send:
+		var wsMsg struct {
+			Type    string        `json:"type"`
+			Payload MatchFoundDTO `json:"payload"`
+		}
+		if err := json.Unmarshal(msgBytes, &wsMsg); err != nil {
+			t.Fatalf("Failed to unmarshal match_found: %v", err)
+		}
+		if wsMsg.Payload.OpponentAvatarIndex != 3 {
+			t.Errorf("Expected Black to receive OpponentAvatarIndex 3, got %d", wsMsg.Payload.OpponentAvatarIndex)
+		}
+		if wsMsg.Payload.OpponentName != "WhitePlayer" {
+			t.Errorf("Expected OpponentName 'WhitePlayer', got %s", wsMsg.Payload.OpponentName)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timed out waiting for match_found on clientBlack.Send")
+	}
+}
+

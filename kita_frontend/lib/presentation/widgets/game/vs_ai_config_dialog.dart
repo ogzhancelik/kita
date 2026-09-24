@@ -9,7 +9,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/online_game_provider.dart';
-import '../../screens/game/online_match_screen.dart';
 
 /// Pre-game configuration dialog for "Play vs Computer" (AI).
 /// Allows the player to select Bot Difficulty and Player Side.
@@ -434,6 +433,8 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       team = PieceTeam.white;
     }
 
+    Navigator.of(context).pop();
+
     prov.startOfflineMatch(
       mode: PlayMode.vsAi,
       playerTeam: team,
@@ -442,12 +443,6 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       playerName: playerName,
       playerRating: playerRating,
       isGuest: isGuest,
-    );
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => const OnlineMatchScreen(),
-      ),
     );
   }
 }

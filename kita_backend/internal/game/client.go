@@ -25,6 +25,7 @@ type Client struct {
 	Username       string
 	Rating         int
 	CurrentMatchID string
+	AvatarIndex    int
 
 	// Rematch and invite tracking
 	LastFinishedMatchID      string
@@ -38,14 +39,19 @@ type Client struct {
 	mu       sync.RWMutex
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating int) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating int, avatarIndex ...int) *Client {
+	av := 0
+	if len(avatarIndex) > 0 {
+		av = avatarIndex[0]
+	}
 	return &Client{
-		Hub:      hub,
-		Conn:     conn,
-		Send:     make(chan []byte, 256),
-		UserID:   userID,
-		Username: username,
-		Rating:   rating,
+		Hub:         hub,
+		Conn:        conn,
+		Send:        make(chan []byte, 256),
+		UserID:      userID,
+		Username:    username,
+		Rating:      rating,
+		AvatarIndex: av,
 	}
 }
 

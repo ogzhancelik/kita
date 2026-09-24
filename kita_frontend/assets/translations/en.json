@@ -136,7 +136,11 @@
       "yourTurn": "Your Turn",
       "opponentTurn": "Opponent's Turn",
       "roomCode": "Room Code",
-      "swipeToCancel": "Swipe to cancel"
+      "swipeToCancel": "Swipe to cancel",
+      "resignDialogTitle": "Resign Match?",
+      "resignDialogDesc": "Are you sure you want to resign and leave this match?",
+      "resignTooltip": "Resign & Leave",
+      "matchClosedDesc": "The match room has been closed or is no longer available."
     }
   },
   "game": {
@@ -409,6 +413,8 @@
     "resultDefeat": "Defeat",
     "resultDraw": "Draw",
     "viewBoard": "Review Board",
+    "reviewMatch": "Review Match",
+    "ratingChange": "Rating",
     "showResults": "Show Results",
     "reasonNormal": "Game finished normally by rules.",
     "reasonResigned": "Opponent resigned.",
@@ -416,6 +422,7 @@
     "reasonDisconnected": "Opponent disconnected.",
     "reasonCheckmate": "Checkmate.",
     "reasonDrawAgreement": "Draw agreed.",
+    "matchNotFoundOrClosed": "Match room is no longer active or was closed.",
     "rematch": "Rematch",
     "rematchOffered": "Rematch offered!",
     "waitingForRematch": "Waiting for Rematch...",

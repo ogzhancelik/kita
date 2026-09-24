@@ -67,11 +67,13 @@ class OpponentInfo {
   final String id;
   final String name;
   final int rating;
+  final int avatarIndex;
 
   const OpponentInfo({
     required this.id,
     required this.name,
     required this.rating,
+    this.avatarIndex = 0,
   });
 }
 
@@ -245,11 +247,16 @@ class OnlineGameProvider extends ChangeNotifier {
   }
 
   /// Connect to WebSocket and start listening.
-  void connectAndListen({String? token, String? nickname}) {
+  void connectAndListen({String? token, String? nickname, int? avatarIndex}) {
     myUserId = null;
     myUsername = null;
     myRating = 1200;
-    _ws.connect(token: token, nickname: nickname);
+    _ws.connect(token: token, nickname: nickname, avatarIndex: avatarIndex);
+  }
+
+  /// Update the player's avatar on the server via WebSocket.
+  void updateAvatar(int avatarIndex) {
+    _ws.send(WsClientType.updateAvatar, {'avatar_index': avatarIndex});
   }
 
   // ─── Matchmaking ──────────────────────────────────────────────────
@@ -323,6 +330,7 @@ class OnlineGameProvider extends ChangeNotifier {
     offlinePlayerRating = playerRating;
     offlineIsGuest = isGuest;
     _offlineMatchSaved = false;
+    _lastOfflineMatchRecord = null;
     myTeam = playerTeam.name;
 
     if (mode == PlayMode.vsAi) {
@@ -331,12 +339,14 @@ class OnlineGameProvider extends ChangeNotifier {
         id: 'bot',
         name: 'game.aiBot'.tr(),
         rating: botRating,
+        avatarIndex: 7,
       );
     } else {
       opponentInfo = OpponentInfo(
         id: 'local_player',
         name: playerTeam == PieceTeam.white ? 'game.playBlack'.tr() : 'game.playWhite'.tr(),
         rating: 1200,
+        avatarIndex: 1,
       );
     }
 
@@ -369,6 +379,7 @@ class OnlineGameProvider extends ChangeNotifier {
         id: 'bot',
         name: 'game.aiBot'.tr(),
         rating: 1000 + difficulty * 200,
+        avatarIndex: 7,
       );
       notifyListeners();
     }
@@ -612,6 +623,26 @@ class OnlineGameProvider extends ChangeNotifier {
     _ws.send(WsClientType.resign);
   }
 
+  /// Resigns/forfeits the match and immediately resets client state to idle.
+  /// Used when dismissing an active game card from the dashboard or abandoning a defunct match.
+  void resignAndClear() {
+    if (matchState.value != OnlineMatchState.inMatch) {
+      resetToIdle();
+      return;
+    }
+    if (isOffline) {
+      resign();
+      resetToIdle();
+      return;
+    }
+    try {
+      _ws.send(WsClientType.resign);
+    } catch (e) {
+      debugPrint('[OnlineGame] Failed to send resign: $e');
+    }
+    resetToIdle();
+  }
+
   Future<void> _saveOfflineGameRecord(GameOverPayload payload) async {
     if (_offlineMatchSaved) return;
     if (!isOffline || offlinePlayMode != PlayMode.vsAi) return;
@@ -677,14 +708,78 @@ class OnlineGameProvider extends ChangeNotifier {
         isOffline: true,
       );
 
-      await LocalMatchHistoryService.instance.saveMatch(
-        record,
-        isGuest: offlineIsGuest,
-        userId: offlinePlayerId,
-      );
+      _lastOfflineMatchRecord = record;
+      await LocalMatchHistoryService.instance.saveMatch(record);
     } catch (e) {
       debugPrint('[OnlineGameProvider] Failed to save offline match: $e');
     }
+  }
+
+  MatchRecordModel? _lastOfflineMatchRecord;
+  MatchRecordModel? get lastOfflineMatchRecord => _lastOfflineMatchRecord;
+
+  MatchRecordModel? buildCurrentOfflineMatchRecord(GameOverPayload? payload) {
+    if (!isOffline || offlinePlayMode != PlayMode.vsAi) return null;
+    final isPlayerWhite = (offlinePlayerTeam == PieceTeam.white);
+    final botRating = 1000 + offlineBotDifficulty * 200;
+    final botDifficultyNames = ['Easy', 'Medium', 'Hard'];
+    final diffName = (offlineBotDifficulty >= 0 && offlineBotDifficulty <= 2)
+        ? botDifficultyNames[offlineBotDifficulty]
+        : 'Medium';
+    final botUsername = 'AI Bot ($diffName)';
+
+    final playerUser = UserProfile(
+      id: offlinePlayerId ?? (offlineIsGuest ? 'guest' : 'local_player'),
+      username: offlinePlayerName ?? (offlineIsGuest ? 'Guest' : 'Player'),
+      rating: offlinePlayerRating ?? 1200,
+    );
+
+    final botUser = UserProfile(
+      id: 'bot',
+      username: botUsername,
+      rating: botRating,
+    );
+
+    String? winnerId;
+    if (payload?.winnerTeam == 'white') {
+      winnerId = isPlayerWhite ? playerUser.id : 'bot';
+    } else if (payload?.winnerTeam == 'black') {
+      winnerId = isPlayerWhite ? 'bot' : playerUser.id;
+    } else {
+      winnerId = null;
+    }
+
+    final moveRecords = moveHistory.value.map((m) {
+      final isPlayer = (m.playerTeam == (offlinePlayerTeam == PieceTeam.white ? 'white' : 'black'));
+      return MoveRecordModel(
+        ply: m.plyIndex,
+        playerId: isPlayer ? playerUser.id : 'bot',
+        piece: m.pieceId,
+        fromCol: m.fromCol,
+        fromRow: m.fromRow,
+        toCol: m.toCol,
+        toRow: m.toRow,
+        timeMs: 0,
+        createdAt: DateTime.now(),
+      );
+    }).toList();
+
+    final record = MatchRecordModel(
+      id: matchId ?? 'offline_${DateTime.now().millisecondsSinceEpoch}',
+      whitePlayerId: isPlayerWhite ? playerUser.id : 'bot',
+      blackPlayerId: isPlayerWhite ? 'bot' : playerUser.id,
+      whitePlayer: isPlayerWhite ? playerUser : botUser,
+      blackPlayer: isPlayerWhite ? botUser : playerUser,
+      winnerId: winnerId,
+      result: payload?.result ?? 'in_progress',
+      totalMoves: moveRecords.length,
+      startedAt: _matchStartedAt ?? DateTime.now(),
+      endedAt: DateTime.now(),
+      moves: moveRecords,
+      isOffline: true,
+    );
+    _lastOfflineMatchRecord = record;
+    return record;
   }
 
   void sendChat(String content) {
@@ -916,6 +1011,26 @@ class OnlineGameProvider extends ChangeNotifier {
           myUserId = data.userId;
           myUsername = data.username;
           myRating = data.rating;
+
+          // If provider had an active match state, but server reports no active match exists:
+          if (!isOffline && matchState.value == OnlineMatchState.inMatch) {
+            if (data.activeMatchId == null ||
+                data.activeMatchId!.isEmpty ||
+                data.activeMatchId != matchId) {
+              debugPrint(
+                '[OnlineGame] Connected: match $matchId is not active on server. Resetting to idle.',
+              );
+              resetToIdle();
+            }
+          }
+          // If provider had an active room, but server reports no active waiting room:
+          if (matchState.value == OnlineMatchState.inRoom &&
+              (data.activeRoomCode == null || data.activeRoomCode!.isEmpty)) {
+            debugPrint(
+              '[OnlineGame] Connected: room is not active on server. Resetting to idle.',
+            );
+            resetToIdle();
+          }
         }
         requestRoomsList(page: 1, limit: 10);
         notifyListeners();
@@ -962,6 +1077,11 @@ class OnlineGameProvider extends ChangeNotifier {
 
       case WsServerType.chatBroadcast:
         _handleChatBroadcast(msg.payload);
+
+      case WsServerType.matchClosed:
+        debugPrint('[OnlineGame] Server notified that match is closed.');
+        resetToIdle();
+        KitaToast.info('dashboard.pendingSection.matchClosedDesc'.tr());
 
       case WsServerType.onlineCount:
         if (msg.payload != null) {
@@ -1136,6 +1256,7 @@ class OnlineGameProvider extends ChangeNotifier {
       id: data.opponentId,
       name: data.opponentName,
       rating: data.opponentRating,
+      avatarIndex: data.opponentAvatarIndex,
     );
 
     // Clear rematch & invite requests
@@ -1321,6 +1442,22 @@ class OnlineGameProvider extends ChangeNotifier {
     lastError.value = error;
     pendingOutgoingChallenge.value = null;
     notifyListeners();
+
+    final isMatchNotFound = error.code == 'ERR_MATCH_NOT_FOUND' ||
+        error.message.toLowerCase().contains('match not found') ||
+        error.message.toLowerCase().contains('no active match');
+
+    if (isMatchNotFound) {
+      if (matchState.value == OnlineMatchState.inMatch ||
+          matchState.value == OnlineMatchState.inRoom) {
+        debugPrint(
+          '[OnlineGame] Server indicated match/room not found. Resetting state to idle.',
+        );
+        resetToIdle();
+      }
+      KitaToast.info('online.matchNotFoundOrClosed'.tr());
+      return;
+    }
 
     String message;
     if (error.code == 'ERR_PLAYER_OFFLINE' ||

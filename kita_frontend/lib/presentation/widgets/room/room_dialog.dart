@@ -26,11 +26,23 @@ class CreateRoomDialog extends StatefulWidget {
     if (provider.matchState.value != OnlineMatchState.inRoom) {
       provider.resetToIdle();
     }
-    return showDialog(
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const CreateRoomDialog(),
     );
+
+    // If dialog was closed because match started, ensure we navigate to OnlineMatchScreen
+    if (provider.matchState.value == OnlineMatchState.inMatch &&
+        context.mounted &&
+        !OnlineMatchScreen.isMatchScreenOpen) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const OnlineMatchScreen(),
+          settings: const RouteSettings(name: '/online_match'),
+        ),
+      );
+    }
   }
 
   @override
@@ -41,6 +53,7 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
   int _selectedTimeControl = TimeControlPreset.threeMin;
   bool _isPrivate = false;
   bool _isSubmitting = false;
+  OnlineGameProvider? _provider;
 
   @override
   void initState() {
@@ -53,20 +66,45 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final prov = context.read<OnlineGameProvider>();
+    if (_provider != prov) {
+      _provider?.matchState.removeListener(_onMatchStateChanged);
+      _provider = prov;
+      _provider?.matchState.addListener(_onMatchStateChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _provider?.matchState.removeListener(_onMatchStateChanged);
+    super.dispose();
+  }
+
+  void _onMatchStateChanged() {
+    if (!mounted) return;
+    if (_provider?.matchState.value == OnlineMatchState.inMatch) {
+      final route = ModalRoute.of(context);
+      if (route != null && route.isActive) {
+        Navigator.of(context).removeRoute(route);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<OnlineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Auto-navigate to match screen when match begins
+    // Safety fallback: ensure dialog route is removed when match starts
     if (provider.matchState.value == OnlineMatchState.inMatch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          Navigator.of(context).pop();
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const OnlineMatchScreen(),
-            ),
-          );
+          final route = ModalRoute.of(context);
+          if (route != null && route.isActive) {
+            Navigator.of(context).removeRoute(route);
+          }
         }
       });
     }
@@ -443,10 +481,22 @@ class JoinRoomDialog extends StatefulWidget {
     if (!canProceed) return;
 
     if (!context.mounted) return;
-    return showDialog(
+    await showDialog(
       context: context,
       builder: (_) => const JoinRoomDialog(),
     );
+
+    // If dialog was closed because match started, ensure we navigate to OnlineMatchScreen
+    if (provider.matchState.value == OnlineMatchState.inMatch &&
+        context.mounted &&
+        !OnlineMatchScreen.isMatchScreenOpen) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const OnlineMatchScreen(),
+          settings: const RouteSettings(name: '/online_match'),
+        ),
+      );
+    }
   }
 
   @override
@@ -456,6 +506,7 @@ class JoinRoomDialog extends StatefulWidget {
 class _JoinRoomDialogState extends State<JoinRoomDialog> {
   final TextEditingController _codeController = TextEditingController();
   bool _isSubmitting = false;
+  OnlineGameProvider? _provider;
 
   @override
   void initState() {
@@ -468,9 +519,31 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final prov = context.read<OnlineGameProvider>();
+    if (_provider != prov) {
+      _provider?.matchState.removeListener(_onMatchStateChanged);
+      _provider = prov;
+      _provider?.matchState.addListener(_onMatchStateChanged);
+    }
+  }
+
+  @override
   void dispose() {
+    _provider?.matchState.removeListener(_onMatchStateChanged);
     _codeController.dispose();
     super.dispose();
+  }
+
+  void _onMatchStateChanged() {
+    if (!mounted) return;
+    if (_provider?.matchState.value == OnlineMatchState.inMatch) {
+      final route = ModalRoute.of(context);
+      if (route != null && route.isActive) {
+        Navigator.of(context).removeRoute(route);
+      }
+    }
   }
 
   @override
@@ -485,16 +558,14 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
       _isSubmitting = false;
     }
 
-    // Auto-navigate to match screen when match starts
+    // Safety fallback: ensure dialog route is removed when match starts
     if (provider.matchState.value == OnlineMatchState.inMatch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          Navigator.of(context).pop();
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const OnlineMatchScreen(),
-            ),
-          );
+          final route = ModalRoute.of(context);
+          if (route != null && route.isActive) {
+            Navigator.of(context).removeRoute(route);
+          }
         }
       });
     }

@@ -16,6 +16,7 @@ import '../../widgets/game/kita_board_widget.dart';
 import '../../widgets/game/match_bottom_bar.dart';
 import '../../widgets/game/move_history_panel.dart';
 import '../../widgets/game/player_info_bar.dart';
+import 'match_replay_screen.dart';
 
 /// Online match screen (Portrait/Default) with space-efficient layout.
 ///
@@ -27,6 +28,8 @@ import '../../widgets/game/player_info_bar.dart';
 ///   5. ChatPanel (inline; thin header and input timer only when typing; pinned to bottom)
 ///   6. MatchBottomBar (menu, chat toggle, centered timer, move back/forward buttons)
 class OnlineMatchScreen extends StatefulWidget {
+  static bool isMatchScreenOpen = false;
+
   const OnlineMatchScreen({super.key});
 
   @override
@@ -37,6 +40,12 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
   OnlineGameProvider? _provider;
   bool _isGameOverDialogShowing = false;
   final GlobalKey _chatPanelKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    OnlineMatchScreen.isMatchScreenOpen = true;
+  }
 
   @override
   void didChangeDependencies() {
@@ -53,13 +62,19 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
 
   @override
   void dispose() {
+    OnlineMatchScreen.isMatchScreenOpen = false;
     _provider?.gameOverData.removeListener(_onGameOver);
     _provider?.matchState.removeListener(_onMatchStateChanged);
     super.dispose();
   }
 
   void _onMatchStateChanged() {
-    if (_provider?.matchState.value == OnlineMatchState.inMatch &&
+    final state = _provider?.matchState.value;
+    if (state == OnlineMatchState.idle && mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+    if (state == OnlineMatchState.inMatch &&
         _isGameOverDialogShowing &&
         mounted) {
       Navigator.of(context, rootNavigator: true).pop();
@@ -71,19 +86,23 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     final provider = _provider ?? context.read<OnlineGameProvider>();
     final data = provider.gameOverData.value;
     if (data == null) return;
+    if (_isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
 
     // Show game over dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _isGameOverDialogShowing) return;
+      if (!mounted || _isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
       _showGameOverDialog(data);
     });
   }
 
   void _showGameOverDialog(GameOverPayload data) {
-    if (!mounted || _isGameOverDialogShowing) return;
-    _isGameOverDialogShowing = true;
     final provider = _provider ?? context.read<OnlineGameProvider>();
+    if (!mounted || _isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
+    _isGameOverDialogShowing = true;
     context.read<AuthProvider>().refreshProfile();
+
+    final isVsAi = provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi;
+
     GameOverDialog.show(
       context: context,
       gameOverData: data,
@@ -97,6 +116,20 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
         context.read<AuthProvider>().refreshProfile();
         Navigator.of(context).popUntil((route) => route.isFirst);
       },
+      onReviewMatch: isVsAi
+          ? () {
+              final matchRecord = provider.lastOfflineMatchRecord ??
+                  provider.buildCurrentOfflineMatchRecord(data);
+              if (matchRecord != null) {
+                Navigator.of(context, rootNavigator: true).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MatchReplayScreen(match: matchRecord),
+                  ),
+                );
+              }
+            }
+          : null,
     ).then((_) {
       _isGameOverDialogShowing = false;
     });
@@ -218,6 +251,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       name: opponentName,
                       rating: opponentRating,
                       ratingLabel: opponentRatingLabel,
+                      avatarIndex: provider.opponentInfo?.avatarIndex,
                       team: isBlack ? 'white' : 'black',
                       remainingMs: isBlack
                           ? provider.whiteRemainingMs
@@ -230,6 +264,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       isOpponent: false,
                       name: myDisplayName,
                       rating: myRating,
+                      avatarIndex: authProv.avatarIndex,
                       team: provider.myTeam ?? 'white',
                       remainingMs: isBlack
                           ? provider.blackRemainingMs
@@ -565,7 +600,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              provider.resign();
+              provider.resignAndClear();
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
             child: Text(
               'online.resignAndLeave'.tr(),

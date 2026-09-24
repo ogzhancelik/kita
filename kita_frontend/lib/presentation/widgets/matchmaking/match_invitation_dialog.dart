@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/online_match_screen.dart';
+import '../common/avatar_picker.dart';
 
 /// Modal dialog presented when a friend challenges the user to a match.
 class MatchInvitationDialog extends StatelessWidget {
@@ -26,16 +27,25 @@ class MatchInvitationDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<OnlineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inviterAvatar = AvatarPicker.avatars[
+        invitation.inviterAvatarIndex % AvatarPicker.avatars.length];
 
     // Auto-navigate to match screen when match starts
     if (provider.matchState.value == OnlineMatchState.inMatch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pop();
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => const OnlineMatchScreen(),
-          ),
-        );
+        if (!mounted) return;
+        final route = ModalRoute.of(context);
+        if (route != null && route.isActive) {
+          Navigator.of(context).removeRoute(route);
+        }
+        if (!OnlineMatchScreen.isMatchScreenOpen) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const OnlineMatchScreen(),
+              settings: const RouteSettings(name: '/online_match'),
+            ),
+          );
+        }
       });
     }
 
@@ -69,12 +79,16 @@ class MatchInvitationDialog extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.ratingGold.withValues(alpha: 0.15),
+              color: inviterAvatar.accentColor.withValues(alpha: 0.18),
+              border: Border.all(
+                color: inviterAvatar.accentColor,
+                width: 2.0,
+              ),
             ),
-            child: const Icon(
-              Icons.sports_esports_rounded,
+            child: Icon(
+              inviterAvatar.icon,
               size: 40,
-              color: AppColors.ratingGold,
+              color: inviterAvatar.accentColor,
             ),
           ),
           const SizedBox(height: 12),

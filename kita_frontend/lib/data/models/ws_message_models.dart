@@ -25,6 +25,7 @@ class WsClientType {
   static const String declineInvitation = 'decline_invitation';
   static const String cancelInvitation = 'cancel_invitation';
   static const String leaveRoom = 'leave_room';
+  static const String updateAvatar = 'update_avatar';
 }
 
 /// Server → Client message types
@@ -54,6 +55,7 @@ class WsServerType {
   static const String friendRequest = 'friend_request';
   static const String friendRequestDeclined = 'friend_request_declined';
   static const String friendRequestAccepted = 'friend_request_accepted';
+  static const String matchClosed = 'match_closed';
 }
 
 // ─── Time Control Presets (ms) ────────────────────────────────────────
@@ -113,11 +115,17 @@ class ConnectedPayload {
   final String userId;
   final String username;
   final int rating;
+  final int avatarIndex;
+  final String? activeMatchId;
+  final String? activeRoomCode;
 
   const ConnectedPayload({
     required this.userId,
     required this.username,
     required this.rating,
+    this.avatarIndex = 0,
+    this.activeMatchId,
+    this.activeRoomCode,
   });
 
   factory ConnectedPayload.fromJson(Map<String, dynamic> json) {
@@ -125,6 +133,9 @@ class ConnectedPayload {
       userId: json['user_id'] as String? ?? '',
       username: json['username'] as String? ?? '',
       rating: (json['rating'] as num?)?.toInt() ?? 1200,
+      avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
+      activeMatchId: json['active_match_id'] as String?,
+      activeRoomCode: json['active_room_code'] as String?,
     );
   }
 }
@@ -137,6 +148,7 @@ class MatchFoundPayload {
   final String opponentId;
   final String opponentName;
   final int opponentRating;
+  final int opponentAvatarIndex;
   final int timeControl;
   final bool isReconnect;
 
@@ -146,6 +158,7 @@ class MatchFoundPayload {
     required this.opponentId,
     required this.opponentName,
     required this.opponentRating,
+    this.opponentAvatarIndex = 0,
     required this.timeControl,
     this.isReconnect = false,
   });
@@ -157,6 +170,7 @@ class MatchFoundPayload {
       opponentId: json['opponent_id'] as String? ?? '',
       opponentName: json['opponent_name'] as String? ?? 'Opponent',
       opponentRating: (json['opponent_rating'] as num?)?.toInt() ?? 1200,
+      opponentAvatarIndex: (json['opponent_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       isReconnect: json['is_reconnect'] as bool? ?? false,
     );
@@ -424,6 +438,7 @@ class RoomInfoPayload {
   final String? hostId;
   final String hostName;
   final int hostRating;
+  final int hostAvatarIndex;
   final int timeControl;
   final bool isPrivate;
 
@@ -432,6 +447,7 @@ class RoomInfoPayload {
     this.hostId,
     required this.hostName,
     required this.hostRating,
+    this.hostAvatarIndex = 0,
     required this.timeControl,
     required this.isPrivate,
   });
@@ -442,6 +458,7 @@ class RoomInfoPayload {
       hostId: json['host_id'] as String?,
       hostName: json['host_name'] as String? ?? 'Unknown',
       hostRating: (json['host_rating'] as num?)?.toInt() ?? 1200,
+      hostAvatarIndex: (json['host_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       isPrivate: json['is_private'] as bool? ?? false,
     );
@@ -480,12 +497,14 @@ class RematchOfferedPayload {
   final String matchId;
   final String requesterId;
   final String requesterName;
+  final int requesterAvatarIndex;
   final int timeControl;
 
   const RematchOfferedPayload({
     required this.matchId,
     required this.requesterId,
     required this.requesterName,
+    this.requesterAvatarIndex = 0,
     required this.timeControl,
   });
 
@@ -494,6 +513,7 @@ class RematchOfferedPayload {
       matchId: json['match_id'] as String? ?? '',
       requesterId: json['requester_id'] as String? ?? '',
       requesterName: json['requester_name'] as String? ?? '',
+      requesterAvatarIndex: (json['requester_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
     );
   }
@@ -506,6 +526,7 @@ class MatchInvitationPayload {
   final String inviterId;
   final String inviterName;
   final int inviterRating;
+  final int inviterAvatarIndex;
   final int timeControl;
   final String colorPreference;
 
@@ -514,6 +535,7 @@ class MatchInvitationPayload {
     required this.inviterId,
     required this.inviterName,
     required this.inviterRating,
+    this.inviterAvatarIndex = 0,
     required this.timeControl,
     this.colorPreference = 'random',
   });
@@ -524,6 +546,7 @@ class MatchInvitationPayload {
       inviterId: json['inviter_id'] as String? ?? '',
       inviterName: json['inviter_name'] as String? ?? '',
       inviterRating: (json['inviter_rating'] as num?)?.toInt() ?? 1200,
+      inviterAvatarIndex: (json['inviter_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       colorPreference: json['color_preference'] as String? ?? 'random',
     );

@@ -152,21 +152,23 @@ func (r *Room) startLocked() {
 
 	// 1. Oyunculara maç bulundu ve takımları bildirilir
 	r.WhitePlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
-		MatchID:        r.ID,
-		YourTeam:       "white",
-		OpponentID:     r.BlackPlayer.UserID,
-		OpponentName:   r.BlackPlayer.Username,
-		OpponentRating: r.BlackPlayer.Rating,
-		TimeControl:    r.TimeControl,
+		MatchID:             r.ID,
+		YourTeam:            "white",
+		OpponentID:          r.BlackPlayer.UserID,
+		OpponentName:        r.BlackPlayer.Username,
+		OpponentRating:      r.BlackPlayer.Rating,
+		OpponentAvatarIndex: r.BlackPlayer.AvatarIndex,
+		TimeControl:         r.TimeControl,
 	})
 
 	r.BlackPlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
-		MatchID:        r.ID,
-		YourTeam:       "black",
-		OpponentID:     r.WhitePlayer.UserID,
-		OpponentName:   r.WhitePlayer.Username,
-		OpponentRating: r.WhitePlayer.Rating,
-		TimeControl:    r.TimeControl,
+		MatchID:             r.ID,
+		YourTeam:            "black",
+		OpponentID:          r.WhitePlayer.UserID,
+		OpponentName:        r.WhitePlayer.Username,
+		OpponentRating:      r.WhitePlayer.Rating,
+		OpponentAvatarIndex: r.WhitePlayer.AvatarIndex,
+		TimeControl:         r.TimeControl,
 	})
 
 	// 2. İlk chess clock timeout'u başlatılır (beyazın sırası)
@@ -570,24 +572,26 @@ func (r *Room) HandleReconnect(client *Client) bool {
 
 	log.Printf("[Room %s] Player %s reconnected as %s", r.ID, client.Username, team)
 
-	// Send MatchFound with IsReconnect: true
 	oppID := ""
 	oppName := ""
 	oppRating := 1200
+	oppAvatar := 0
 	if opp != nil {
 		oppID = opp.UserID
 		oppName = opp.Username
 		oppRating = opp.Rating
+		oppAvatar = opp.AvatarIndex
 	}
 
 	client.SendJSON(TypeMatchFound, MatchFoundDTO{
-		MatchID:        r.ID,
-		YourTeam:       team,
-		OpponentID:     oppID,
-		OpponentName:   oppName,
-		OpponentRating: oppRating,
-		TimeControl:    r.TimeControl,
-		IsReconnect:    true,
+		MatchID:             r.ID,
+		YourTeam:            team,
+		OpponentID:          oppID,
+		OpponentName:        oppName,
+		OpponentRating:      oppRating,
+		OpponentAvatarIndex: oppAvatar,
+		TimeControl:         r.TimeControl,
+		IsReconnect:         true,
 	})
 
 	// Send authoritative current game state

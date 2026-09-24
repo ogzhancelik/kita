@@ -90,11 +90,12 @@ class HomePendingGameCard extends StatelessWidget {
     final tcStr = _formatTimeControl(onlineProv.timeControl);
 
     return _buildDismissibleContainer(
-      key: ValueKey('active_game_${onlineProv.matchId}'),
+      key: ValueKey('active_game_${onlineProv.matchId ?? "current"}'),
       dismissLabel: 'dashboard.pendingSection.resign'.tr(),
       dismissIcon: Icons.flag_rounded,
+      confirmDismiss: () => _confirmResignDialog(context, isDark),
       onDismissed: () {
-        onlineProv.resign();
+        onlineProv.resignAndClear();
       },
       child: InkWell(
         onTap: () => _rejoinGame(context),
@@ -243,6 +244,21 @@ class HomePendingGameCard extends StatelessWidget {
                   ),
                   elevation: 2,
                 ),
+              ),
+
+              const SizedBox(width: 4),
+
+              // Resign / Leave Action Button
+              IconButton(
+                icon: const Icon(Icons.flag_outlined, size: 20),
+                color: AppColors.lossRed,
+                tooltip: 'dashboard.pendingSection.resignTooltip'.tr(),
+                onPressed: () async {
+                  final confirmed = await _confirmResignDialog(context, isDark);
+                  if (confirmed) {
+                    onlineProv.resignAndClear();
+                  }
+                },
               ),
             ],
           ),
@@ -550,6 +566,48 @@ class HomePendingGameCard extends StatelessWidget {
     );
   }
 
+  Future<bool> _confirmResignDialog(BuildContext context, bool isDark) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.getCard(isDark),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'dashboard.pendingSection.resignDialogTitle'.tr(),
+          style: TextStyle(
+            color: AppColors.getTextPrimary(isDark),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'dashboard.pendingSection.resignDialogDesc'.tr(),
+          style: TextStyle(color: AppColors.getTextSecondary(isDark)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'common.cancel'.tr(),
+              style: TextStyle(color: AppColors.getTextSecondary(isDark)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.lossRed,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text('dashboard.pendingSection.resign'.tr()),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   // ─── Swipe-to-Cancel Dismissible Container ───────────────────────────
 
   Widget _buildDismissibleContainer({
@@ -557,6 +615,7 @@ class HomePendingGameCard extends StatelessWidget {
     required String dismissLabel,
     required IconData dismissIcon,
     required VoidCallback onDismissed,
+    Future<bool?> Function()? confirmDismiss,
     required Widget child,
   }) {
     return Container(
@@ -564,6 +623,7 @@ class HomePendingGameCard extends StatelessWidget {
       child: Dismissible(
         key: key,
         direction: DismissDirection.horizontal,
+        confirmDismiss: confirmDismiss != null ? (_) => confirmDismiss() : null,
         background: Container(
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 20),

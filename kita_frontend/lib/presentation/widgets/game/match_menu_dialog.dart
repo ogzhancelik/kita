@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../home/settings_dialog.dart';
+import '../../screens/game/match_replay_screen.dart';
 import 'game_over_dialog.dart';
 
 /// Modal bottom sheet for match actions: Resign, Offer Draw, Report Opponent.
@@ -125,6 +126,20 @@ class MatchMenuDialog extends StatelessWidget {
                         context.read<AuthProvider>().refreshProfile();
                         Navigator.of(context).popUntil((route) => route.isFirst);
                       },
+                      onReviewMatch: (provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi)
+                          ? () {
+                              final matchRecord = provider.lastOfflineMatchRecord ??
+                                  provider.buildCurrentOfflineMatchRecord(data);
+                              if (matchRecord != null) {
+                                Navigator.of(context, rootNavigator: true).pop();
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => MatchReplayScreen(match: matchRecord),
+                                  ),
+                                );
+                              }
+                            }
+                          : null,
                     );
                   }
                 },

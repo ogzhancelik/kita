@@ -24,7 +24,9 @@ class MatchmakingSheet extends StatefulWidget {
     );
 
     // If bottom sheet was closed because match started, navigate cleanly to OnlineMatchScreen
-    if (provider.matchState.value == OnlineMatchState.inMatch && context.mounted) {
+    if (provider.matchState.value == OnlineMatchState.inMatch &&
+        context.mounted &&
+        !OnlineMatchScreen.isMatchScreenOpen) {
       await nav.push(
         MaterialPageRoute(
           builder: (_) => const OnlineMatchScreen(),
@@ -74,7 +76,10 @@ class _MatchmakingSheetState extends State<MatchmakingSheet>
     if (provider.matchState.value == OnlineMatchState.inMatch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          Navigator.of(context).pop();
+          final route = ModalRoute.of(context);
+          if (route != null && route.isActive) {
+            Navigator.of(context).removeRoute(route);
+          }
         }
       });
     }

@@ -52,10 +52,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           await LocalMatchHistoryService.instance.getShowOfflineMatches();
 
       // 2. Fetch offline matches from local device storage
-      _offlineMatches = await LocalMatchHistoryService.instance.getMatches(
-        userId: user?.id,
-        isGuest: isGuest,
-      );
+      _offlineMatches = await LocalMatchHistoryService.instance.getMatches();
 
       // 3. Fetch online matches from backend API if not guest
       if (!isGuest && user != null) {

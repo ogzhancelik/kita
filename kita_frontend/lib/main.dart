@@ -75,7 +75,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
       try {
         final authProv = context.read<AuthProvider>();
         if (authProv.isGuest) {
-          LocalMatchHistoryService.instance.clearGuestMatches();
+          LocalMatchHistoryService.instance.clearOfflineMatches();
         }
       } catch (_) {}
     }
@@ -184,14 +184,19 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   }
 
   void _onMatchStateChanged() {
-    if (_onlineProv?.matchState.value == OnlineMatchState.inMatch && !_isMatchScreenOpen) {
+    if (_onlineProv?.matchState.value == OnlineMatchState.inMatch &&
+        !_isMatchScreenOpen &&
+        !OnlineMatchScreen.isMatchScreenOpen) {
       if (_onlineProv?.isReconnectedMatch.value == true) {
         // Player reconnected to an existing match on startup; stay on dashboard to let user Rejoin via card
         return;
       }
       _isMatchScreenOpen = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+        if (!mounted || OnlineMatchScreen.isMatchScreenOpen) {
+          _isMatchScreenOpen = false;
+          return;
+        }
         appNavigatorKey.currentState?.push(
           MaterialPageRoute(
             builder: (_) => const OnlineMatchScreen(),

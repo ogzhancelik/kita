@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/online_game_provider.dart';
 
 class AvatarItem {
   final int id;
@@ -69,6 +70,9 @@ class AvatarPicker extends StatelessWidget {
                 selectedIndex: authProv.avatarIndex,
                 onSelected: (idx) {
                   authProv.setAvatarIndex(idx);
+                  try {
+                    ctx.read<OnlineGameProvider>().updateAvatar(idx);
+                  } catch (_) {}
                   Navigator.of(ctx).pop();
                 },
               ),

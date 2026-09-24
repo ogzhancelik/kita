@@ -136,7 +136,11 @@
       "yourTurn": "Sıra Sende",
       "opponentTurn": "Rakibin Sırası",
       "roomCode": "Oda Kodu",
-      "swipeToCancel": "İptal için kaydır"
+      "swipeToCancel": "İptal için kaydır",
+      "resignDialogTitle": "Maçı Terk Et?",
+      "resignDialogDesc": "Bu maçtan çekilip ayrılmak istediğinizden emin misiniz?",
+      "resignTooltip": "Terk Et ve Ayrıl",
+      "matchClosedDesc": "Maç odası kapandı veya artık mevcut değil."
     }
   },
   "game": {
@@ -408,6 +412,8 @@
     "resultDefeat": "Yenilgi",
     "resultDraw": "Berabere",
     "viewBoard": "Tahtayı İncele",
+    "reviewMatch": "Maçı İncele",
+    "ratingChange": "Puan",
     "showResults": "Sonuçları Göster",
     "reasonNormal": "Oyun kuralına göre bitti.",
     "reasonResigned": "Rakip oyunu terk etti.",
@@ -415,6 +421,7 @@
     "reasonDisconnected": "Rakibin bağlantısı koptu.",
     "reasonCheckmate": "Şah mat.",
     "reasonDrawAgreement": "Beraberlik kabul edildi.",
+    "matchNotFoundOrClosed": "Maç odası artık aktif değil veya kapatılmış.",
     "rematch": "Rövanş",
     "rematchOffered": "Rövanş teklif edildi!",
     "waitingForRematch": "Rövanş Bekleniyor...",

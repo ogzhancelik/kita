@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/ws_message_models.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/online_game_provider.dart';
 
 /// Modal dialog presented when an online match concludes.
@@ -12,6 +13,7 @@ class GameOverDialog extends StatefulWidget {
   final String myUserId;
   final VoidCallback onRematch;
   final VoidCallback onBackToMenu;
+  final VoidCallback? onReviewMatch;
 
   const GameOverDialog({
     super.key,
@@ -19,6 +21,7 @@ class GameOverDialog extends StatefulWidget {
     required this.myUserId,
     required this.onRematch,
     required this.onBackToMenu,
+    this.onReviewMatch,
   });
 
   /// Presents the modal dialog with tap-to-dismiss enabled.
@@ -28,6 +31,7 @@ class GameOverDialog extends StatefulWidget {
     required String myUserId,
     required VoidCallback onRematch,
     required VoidCallback onBackToMenu,
+    VoidCallback? onReviewMatch,
   }) {
     return showDialog(
       context: context,
@@ -37,6 +41,7 @@ class GameOverDialog extends StatefulWidget {
         myUserId: myUserId,
         onRematch: onRematch,
         onBackToMenu: onBackToMenu,
+        onReviewMatch: onReviewMatch,
       ),
     );
   }
@@ -323,15 +328,25 @@ class _GameOverDialogState extends State<GameOverDialog> {
         ),
       ),
       actions: [
-        // Review Board button (dismisses dialog to view final board and chat)
-        TextButton.icon(
-          onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
-          icon: const Icon(Icons.grid_view_rounded, size: 16),
-          label: Text('online.viewBoard'.tr()),
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.getTextSecondary(isDark),
+        // Review Match (if vs AI / onReviewMatch provided) or Review Board
+        if (widget.onReviewMatch != null)
+          TextButton.icon(
+            onPressed: widget.onReviewMatch,
+            icon: const Icon(Icons.auto_awesome, size: 16, color: AppColors.ratingGold),
+            label: Text('online.reviewMatch'.tr()),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.ratingGold,
+            ),
+          )
+        else
+          TextButton.icon(
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+            icon: const Icon(Icons.grid_view_rounded, size: 16),
+            label: Text('online.viewBoard'.tr()),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.getTextSecondary(isDark),
+            ),
           ),
-        ),
 
         // Back to Menu button
         TextButton(
@@ -401,41 +416,85 @@ class _GameOverDialogState extends State<GameOverDialog> {
     );
   }
 
+  int? _getMyRatingDiff() {
+    final changes = widget.gameOverData.ratingChanges;
+    if (changes == null || changes.isEmpty) return null;
+
+    dynamic val = changes[widget.myUserId];
+    if (val == null && changes.length == 1) {
+      val = changes.values.first;
+    }
+    if (val == null) {
+      final authId = context.read<AuthProvider>().currentUser?.id;
+      if (authId != null && changes.containsKey(authId)) {
+        val = changes[authId];
+      }
+    }
+    val ??= changes.values.firstOrNull;
+
+    if (val is Map) {
+      if (val['diff'] != null) {
+        return (val['diff'] as num).toInt();
+      }
+      if (val['new'] != null && val['old'] != null) {
+        return ((val['new'] as num) - (val['old'] as num)).toInt();
+      }
+    } else if (val is num) {
+      return val.toInt();
+    }
+    return null;
+  }
+
   Widget _buildRatingChanges(bool isDark) {
+    final diff = _getMyRatingDiff();
+    if (diff == null) return const SizedBox.shrink();
+
+    final diffStr = diff >= 0 ? '+$diff' : '$diff';
+    final Color diffColor = diff > 0
+        ? AppColors.victory
+        : (diff < 0 ? AppColors.lossRed : AppColors.drawGray);
+    final IconData diffIcon = diff > 0
+        ? Icons.trending_up_rounded
+        : (diff < 0 ? Icons.trending_down_rounded : Icons.trending_flat_rounded);
+
     return Container(
+      margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.getSurface(isDark),
-        borderRadius: BorderRadius.circular(10),
+        color: diffColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: diffColor.withValues(alpha: 0.4),
+          width: 1,
+        ),
       ),
-      child: Column(
-        children: widget.gameOverData.ratingChanges!.entries.map((entry) {
-          final isUser = entry.key == widget.myUserId;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isUser ? 'online.you'.tr() : 'online.opponent'.tr(),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isUser ? FontWeight.bold : FontWeight.normal,
-                    color: AppColors.getTextPrimary(isDark),
-                  ),
-                ),
-                Text(
-                  '${entry.value}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.ratingGold,
-                  ),
-                ),
-              ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            diffIcon,
+            size: 18,
+            color: diffColor,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'online.ratingChange'.tr(),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.getTextSecondary(isDark),
             ),
-          );
-        }).toList(),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            diffStr,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: diffColor,
+            ),
+          ),
+        ],
       ),
     );
   }

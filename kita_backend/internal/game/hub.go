@@ -72,14 +72,28 @@ func (h *Hub) Run() {
 					break
 				}
 			}
+			activeMatchID := ""
+			activeRoomCode := ""
+			if matchedRoom != nil {
+				matchedRoom.mu.RLock()
+				if matchedRoom.Status == "in_game" {
+					activeMatchID = matchedRoom.ID
+				} else if matchedRoom.Status == "waiting" {
+					activeRoomCode = matchedRoom.RoomCode
+				}
+				matchedRoom.mu.RUnlock()
+			}
 			h.mu.Unlock()
 
 			client.SendJSON(TypeConnected, map[string]any{
-				"user_id":  client.UserID,
-				"username": client.Username,
-				"rating":   client.Rating,
+				"user_id":          client.UserID,
+				"username":         client.Username,
+				"rating":           client.Rating,
+				"avatar_index":     client.AvatarIndex,
+				"active_match_id":  activeMatchID,
+				"active_room_code": activeRoomCode,
 			})
-			log.Printf("[Hub] Client connected: %s (%s)", client.Username, client.UserID)
+			log.Printf("[Hub] Client connected: %s (%s, avatar: %d, activeMatch: %s)", client.Username, client.UserID, client.AvatarIndex, activeMatchID)
 
 			if matchedRoom != nil {
 				if matchedRoom.Status == "in_game" {
@@ -216,8 +230,30 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 	case TypeLeaveRoom:
 		h.handleLeaveRoom(client)
 
+	case TypeUpdateAvatar:
+		h.handleUpdateAvatar(client, msg.Payload)
+
 	default:
 		client.SendError(errors.ErrUnknownMessage, "Unknown message type: "+msg.Type)
+	}
+}
+
+func (h *Hub) handleUpdateAvatar(client *Client, rawPayload json.RawMessage) {
+	var dto struct {
+		AvatarIndex int `json:"avatar_index"`
+	}
+	if err := json.Unmarshal(rawPayload, &dto); err == nil {
+		client.AvatarIndex = dto.AvatarIndex
+		log.Printf("[Hub] User %s (%s) updated avatar index to %d", client.Username, client.UserID, client.AvatarIndex)
+	}
+}
+
+func (h *Hub) UpdateClientAvatar(userID string, avatarIndex int) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if client, ok := h.clients[userID]; ok {
+		client.AvatarIndex = avatarIndex
+		log.Printf("[Hub] Updated client %s avatar index to %d", userID, avatarIndex)
 	}
 }
 
@@ -565,19 +601,22 @@ func (h *Hub) getPublicRoomsDTOLocked(page, limit int) RoomsListDTO {
 			hostID := ""
 			hostName := "Unknown"
 			hostRating := 1200
+			hostAvatarIndex := 0
 			if room.Host != nil {
 				hostID = room.Host.UserID
 				hostName = room.Host.Username
 				hostRating = room.Host.Rating
+				hostAvatarIndex = room.Host.AvatarIndex
 			}
 			items = append(items, roomItem{
 				dto: RoomInfoDTO{
-					RoomCode:    room.RoomCode,
-					HostID:      hostID,
-					HostName:    hostName,
-					HostRating:  hostRating,
-					TimeControl: room.TimeControl,
-					IsPrivate:   room.IsPrivate,
+					RoomCode:        room.RoomCode,
+					HostID:          hostID,
+					HostName:        hostName,
+					HostRating:      hostRating,
+					HostAvatarIndex: hostAvatarIndex,
+					TimeControl:     room.TimeControl,
+					IsPrivate:       room.IsPrivate,
 				},
 				startedAt: room.StartedAt,
 			})
@@ -708,10 +747,11 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 	}
 
 	opponentClient.SendJSON(TypeRematchOffered, RematchOfferedDTO{
-		MatchID:       dto.MatchID,
-		RequesterID:   client.UserID,
-		RequesterName: client.Username,
-		TimeControl:   TimeControl3Min, // Default for rematch
+		MatchID:              dto.MatchID,
+		RequesterID:          client.UserID,
+		RequesterName:        client.Username,
+		RequesterAvatarIndex: client.AvatarIndex,
+		TimeControl:          TimeControl3Min, // Default for rematch
 	})
 
 	log.Printf("[Hub] Rematch requested by %s for match %s", client.Username, dto.MatchID)
@@ -890,23 +930,25 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 	})
 
 	friend.SendJSON(TypeMatchInvitation, MatchInvitationDTO{
-		InviteID:        inviteID,
-		InviterID:       client.UserID,
-		InviterName:     client.Username,
-		InviterRating:   client.Rating,
-		TimeControl:     timeControl,
-		ColorPreference: colorPref,
+		InviteID:           inviteID,
+		InviterID:          client.UserID,
+		InviterName:        client.Username,
+		InviterRating:      client.Rating,
+		InviterAvatarIndex: client.AvatarIndex,
+		TimeControl:        timeControl,
+		ColorPreference:    colorPref,
 	})
 
 	if h.notificationService != nil {
-		go func(friendID string, inviterID string, inviterName string, rating int, tc int64, pref string, invID string) {
+		go func(friendID string, inviterID string, inviterName string, rating int, avatarIdx int, tc int64, pref string, invID string) {
 			payloadBytes, _ := json.Marshal(map[string]any{
-				"invite_id":        invID,
-				"inviter_id":       inviterID,
-				"sender_name":      inviterName,
-				"sender_rating":    rating,
-				"time_control":     tc,
-				"color_preference": pref,
+				"invite_id":            invID,
+				"inviter_id":           inviterID,
+				"sender_name":          inviterName,
+				"sender_rating":        rating,
+				"sender_avatar_index":  avatarIdx,
+				"time_control":         tc,
+				"color_preference":     pref,
 			})
 			notif := &domain.Notification{
 				ID:        "challenge_" + invID,
@@ -920,7 +962,7 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 				Payload:   string(payloadBytes),
 			}
 			_, _ = h.notificationService.CreateNotification(context.Background(), notif)
-		}(dto.FriendID, client.UserID, client.Username, client.Rating, timeControl, colorPref, inviteID)
+		}(dto.FriendID, client.UserID, client.Username, client.Rating, client.AvatarIndex, timeControl, colorPref, inviteID)
 	}
 
 	// Ephemeral auto-expiration timer (60s) for live match invitation
@@ -1184,12 +1226,20 @@ func (h *Hub) CloseRoom(matchID string) {
 			room.WhitePlayer.LastFinishedMatchID = matchID
 			room.WhitePlayer.CurrentMatchID = ""
 			room.WhitePlayer.mu.Unlock()
+			room.WhitePlayer.SendJSON(TypeMatchClosed, map[string]string{
+				"match_id": matchID,
+				"reason":   "closed",
+			})
 		}
 		if room.BlackPlayer != nil {
 			room.BlackPlayer.mu.Lock()
 			room.BlackPlayer.LastFinishedMatchID = matchID
 			room.BlackPlayer.CurrentMatchID = ""
 			room.BlackPlayer.mu.Unlock()
+			room.BlackPlayer.SendJSON(TypeMatchClosed, map[string]string{
+				"match_id": matchID,
+				"reason":   "closed",
+			})
 		}
 		if room.Host != nil && room.Status == "waiting" {
 			room.Host.mu.Lock()

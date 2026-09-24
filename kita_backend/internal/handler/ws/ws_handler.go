@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -60,6 +61,15 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 	var userID string
 	var username string
 	rating := 1200
+	avatarIndex := 0
+
+	hasQueryAvatar := false
+	if avStr := c.Query("avatar_index"); avStr != "" {
+		if av, err := strconv.Atoi(avStr); err == nil {
+			avatarIndex = av
+			hasQueryAvatar = true
+		}
+	}
 
 	if token != "" {
 		if uid, err := h.authService.ValidateToken(token); err == nil {
@@ -67,6 +77,9 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 			if profile, err := h.userService.GetProfile(c.Request.Context(), userID); err == nil {
 				username = profile.Username
 				rating = profile.Rating
+				if !hasQueryAvatar {
+					avatarIndex = profile.AvatarIndex
+				}
 			}
 		}
 	}
@@ -84,7 +97,7 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 		}
 	}
 
-	client := game.NewClient(h.hub, conn, userID, username, rating)
+	client := game.NewClient(h.hub, conn, userID, username, rating, avatarIndex)
 	h.hub.Register <- client
 
 	go client.WritePump()

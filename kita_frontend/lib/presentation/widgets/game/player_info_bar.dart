@@ -23,6 +23,7 @@ class PlayerInfoBar extends StatelessWidget {
   final ValueNotifier<int> remainingMs;
   final ValueNotifier<String> isActiveTurn;
   final int timeControl;
+  final int? avatarIndex;
   final VoidCallback? onTap;
 
   const PlayerInfoBar({
@@ -35,6 +36,7 @@ class PlayerInfoBar extends StatelessWidget {
     required this.remainingMs,
     required this.isActiveTurn,
     required this.timeControl,
+    this.avatarIndex,
     this.onTap,
   });
 
@@ -45,9 +47,10 @@ class PlayerInfoBar extends StatelessWidget {
     final teamColor = isWhite ? Colors.white : const Color(0xFF222222);
 
     final authProv = context.watch<AuthProvider>();
-    final int avatarIdx = isOpponent
-        ? (name.hashCode.abs() % AvatarPicker.avatars.length)
-        : authProv.avatarIndex;
+    final int avatarIdx = avatarIndex ??
+        (isOpponent
+            ? (name.hashCode.abs() % AvatarPicker.avatars.length)
+            : authProv.avatarIndex);
     final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
 
     final avatarWidget = Container(

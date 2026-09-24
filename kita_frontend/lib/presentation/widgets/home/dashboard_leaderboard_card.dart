@@ -208,10 +208,7 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
   }
 
   Widget _buildPodiumItem(UserProfile player, int rank, bool isDark) {
-    final avatarIdx = player.avatarIndex != 0
-        ? player.avatarIndex
-        : (player.username.hashCode.abs() % AvatarPicker.avatars.length);
-    final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
+    final avatarItem = AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
     final Color medalColor;
     final double avatarSize;
 

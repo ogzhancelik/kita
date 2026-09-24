@@ -42,6 +42,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onlineProv.connectAndListen(
         token: authProv.token,
         nickname: authProv.displayName,
+        avatarIndex: authProv.avatarIndex,
       );
       onlineProv.requestOnlineCount();
     });

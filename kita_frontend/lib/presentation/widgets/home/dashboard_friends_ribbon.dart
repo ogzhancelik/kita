@@ -153,10 +153,7 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
   }
 
   Widget _buildFriendCard(FriendItemModel friend, bool isDark) {
-    final avatarIndex = friend.avatarIndex != 0
-        ? friend.avatarIndex
-        : (friend.username.hashCode.abs() % AvatarPicker.avatars.length);
-    final avatar = AvatarPicker.avatars[avatarIndex % AvatarPicker.avatars.length];
+    final avatar = AvatarPicker.avatars[friend.avatarIndex % AvatarPicker.avatars.length];
 
     return Container(
       width: 108,

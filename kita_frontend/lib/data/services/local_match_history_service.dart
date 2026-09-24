@@ -14,11 +14,10 @@ class LocalMatchHistoryService {
   static const int _maxStoredMatches = 50;
 
   /// Saves an offline match to local device storage.
-  /// If [isGuest] is true, the match is tagged as a guest match so it can
-  /// be wiped cleanly when the guest logs off or quits.
+  /// Offline matches are device-based, persisting on the local device.
   Future<void> saveMatch(
     MatchRecordModel match, {
-    required bool isGuest,
+    bool? isGuest,
     String? userId,
   }) async {
     try {
@@ -36,8 +35,6 @@ class LocalMatchHistoryService {
 
       final entry = {
         'id': match.id,
-        'is_guest': isGuest,
-        'user_id': userId,
         'saved_at': DateTime.now().toIso8601String(),
         'match': match.toJson(),
       };
@@ -57,11 +54,10 @@ class LocalMatchHistoryService {
   }
 
   /// Retrieves offline matches from local storage.
-  /// If [isGuest] is true, returns matches tagged as guest.
-  /// If [isGuest] is false, returns matches associated with [userId] or not tagged as guest.
+  /// Offline matches are device-based rather than account-based.
   Future<List<MatchRecordModel>> getMatches({
     String? userId,
-    bool isGuest = false,
+    bool? isGuest,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -73,21 +69,11 @@ class LocalMatchHistoryService {
 
       for (final item in list) {
         if (item is! Map<String, dynamic>) continue;
-        final itemIsGuest = item['is_guest'] == true;
-        final itemUserId = item['user_id'] as String?;
-
-        if (isGuest) {
-          if (!itemIsGuest) continue;
-        } else {
-          if (itemIsGuest) continue;
-          if (userId != null && itemUserId != null && itemUserId != userId) {
-            continue;
-          }
-        }
-
-        final matchMap = item['match'] as Map<String, dynamic>?;
-        if (matchMap != null) {
+        final matchMap = (item['match'] as Map<String, dynamic>?) ?? item;
+        try {
           results.add(MatchRecordModel.fromJson(matchMap));
+        } catch (e) {
+          debugPrint('[LocalMatchHistoryService] Error parsing match: $e');
         }
       }
 
@@ -98,35 +84,22 @@ class LocalMatchHistoryService {
     }
   }
 
-  /// Deletes all offline matches that were played while in guest mode.
-  /// Called when a guest logs off, quits, or switches account.
-  Future<void> clearGuestMatches() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_keyMatches);
-      if (raw == null || raw.isEmpty) return;
-
-      final list = jsonDecode(raw) as List<dynamic>;
-      final retained = list.where((item) {
-        if (item is! Map<String, dynamic>) return false;
-        return item['is_guest'] != true;
-      }).toList();
-
-      await prefs.setString(_keyMatches, jsonEncode(retained));
-    } catch (e) {
-      debugPrint('[LocalMatchHistoryService] Error clearing guest matches: $e');
-    }
-  }
-
-  /// Clears all offline matches stored on the device.
-  Future<void> clearAll() async {
+  /// Deletes offline match records from the device.
+  /// Called when a guest logs out.
+  Future<void> clearOfflineMatches() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyMatches);
     } catch (e) {
-      debugPrint('[LocalMatchHistoryService] Error clearing all matches: $e');
+      debugPrint('[LocalMatchHistoryService] Error clearing offline matches: $e');
     }
   }
+
+  /// Alias for [clearOfflineMatches] for backward compatibility.
+  Future<void> clearGuestMatches() => clearOfflineMatches();
+
+  /// Clears all offline matches stored on the device.
+  Future<void> clearAll() => clearOfflineMatches();
 
   /// Gets the user's toggle setting for showing/hiding offline games in match history.
   /// Defaults to true.

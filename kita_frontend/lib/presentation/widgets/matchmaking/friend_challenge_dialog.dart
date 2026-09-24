@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/friend_models.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
+import '../common/avatar_picker.dart';
 import 'activity_conflict_dialog.dart';
 
 
@@ -101,21 +102,32 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: (isOffline ? AppColors.drawGray : AppColors.online)
-                      .withValues(alpha: 0.2),
-                  child: Text(
-                    widget.friend.username.isNotEmpty
-                        ? widget.friend.username[0].toUpperCase()
-                        : '?',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isOffline ? AppColors.drawGray : AppColors.online,
+              Builder(
+                builder: (_) {
+                  final avatarItem = AvatarPicker.avatars[
+                      widget.friend.avatarIndex % AvatarPicker.avatars.length];
+                  return Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: avatarItem.accentColor.withValues(alpha: 0.18),
+                      border: Border.all(
+                        color: avatarItem.accentColor,
+                        width: 1.8,
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 10),
+                    child: Center(
+                      child: Icon(
+                        avatarItem.icon,
+                        size: 18,
+                        color: avatarItem.accentColor,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

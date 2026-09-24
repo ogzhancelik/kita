@@ -152,6 +152,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **Replay & Review Viewer**:
   - [x] Step-by-step game playback (Next move, Previous move, Jump to start/end, Auto-play with speed controls)
   - [x] Post-game review workflow: Replay past recorded matches directly from match history (both online and offline matches)
+  - [x] Direct post-game AI review entry: "Review Match" on Play vs Computer game over panel directly opens AI Match Replay screen
 - [x] **Game Analysis & AI Evaluation**:
   - [x] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
   - [x] Post-game AI move review & quality indicators: Real-time advantage deltas (e.g. +0.1, -0.3, 0.0), semantic color badges (good, inaccuracy, mistake, blunder), and tooltips next to moves in Match History AI Review & Sandbox fork
@@ -173,7 +174,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **UI Redesign - Portrait Game Screen (Section 3)**:
   - Top bar with centered total elapsed match time (`MatchTopBar`).
   - Horizontal scrollable move history ribbon (`MoveHistoryPanel`) with synchronized scrubbing.
-  - Mirrored player cards (`PlayerInfoBar`): Opponent (avatar/name/elo left, clock right), User (clock left, name/elo/avatar right with tap-to-profile modal).
+  - Mirrored player cards (`PlayerInfoBar`): Opponent (avatar/name/elo left, clock right with real-time opponent avatar synchronization), User (clock left, name/elo/avatar right with tap-to-profile modal).
   - Zero-margin edge-to-edge board fit: board spans 100% width with 0 padding to screen borders.
   - Inline responsive chat (`ChatPanel`): open by default; when toggled closed, board cleanly centers via distributed vertical alignment; when soft keyboard opens, secondary elements hide and board shrinks to fit without overflow.
   - Bottom control bar (`MatchBottomBar`): menu with Resign, Draw Offer, and Report Opponent dialogs; Chat toggle; and `<` / `>` move history step buttons.

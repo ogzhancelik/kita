@@ -30,6 +30,7 @@ const (
 	TypeDeclineInvite   = "decline_invitation"
 	TypeCancelInvite    = "cancel_invitation"
 	TypeLeaveRoom       = "leave_room"
+	TypeUpdateAvatar    = "update_avatar"
 
 	// Server -> Client
 	TypeConnected        = "connected"
@@ -43,6 +44,7 @@ const (
 	TypeGameOver         = "game_over"
 	TypeChatBroadcast    = "chat_broadcast"
 	TypeError            = "error"
+	TypeMatchClosed      = "match_closed"
 
 	// Server -> Client (New)
 	TypeOnlineCount          = "online_count"
@@ -123,13 +125,14 @@ type GameStateDTO struct {
 // ─── Match Found DTO ──────────────────────────────────────────────────
 
 type MatchFoundDTO struct {
-	MatchID        string `json:"match_id"`
-	YourTeam       string `json:"your_team"` // "white" or "black"
-	OpponentID     string `json:"opponent_id"`
-	OpponentName   string `json:"opponent_name"`
-	OpponentRating int    `json:"opponent_rating"`
-	TimeControl    int64  `json:"time_control"`
-	IsReconnect    bool   `json:"is_reconnect,omitempty"`
+	MatchID             string `json:"match_id"`
+	YourTeam            string `json:"your_team"` // "white" or "black"
+	OpponentID          string `json:"opponent_id"`
+	OpponentName        string `json:"opponent_name"`
+	OpponentRating      int    `json:"opponent_rating"`
+	OpponentAvatarIndex int    `json:"opponent_avatar_index"`
+	TimeControl         int64  `json:"time_control"`
+	IsReconnect         bool   `json:"is_reconnect,omitempty"`
 }
 
 // ─── Game Over DTO ────────────────────────────────────────────────────
@@ -192,12 +195,13 @@ type ListRoomsDTO struct {
 }
 
 type RoomInfoDTO struct {
-	RoomCode     string `json:"room_code"`
-	HostID       string `json:"host_id,omitempty"`
-	HostName     string `json:"host_name"`
-	HostRating   int    `json:"host_rating"`
-	TimeControl  int64  `json:"time_control"`
-	IsPrivate    bool   `json:"is_private"`
+	RoomCode        string `json:"room_code"`
+	HostID          string `json:"host_id,omitempty"`
+	HostName        string `json:"host_name"`
+	HostRating      int    `json:"host_rating"`
+	HostAvatarIndex int    `json:"host_avatar_index"`
+	TimeControl     int64  `json:"time_control"`
+	IsPrivate       bool   `json:"is_private"`
 }
 
 type RoomsListDTO struct {
@@ -214,10 +218,11 @@ type RematchRequestDTO struct {
 }
 
 type RematchOfferedDTO struct {
-	MatchID       string `json:"match_id"`
-	RequesterID   string `json:"requester_id"`
-	RequesterName string `json:"requester_name"`
-	TimeControl   int64  `json:"time_control"`
+	MatchID              string `json:"match_id"`
+	RequesterID          string `json:"requester_id"`
+	RequesterName        string `json:"requester_name"`
+	RequesterAvatarIndex int    `json:"requester_avatar_index"`
+	TimeControl          int64  `json:"time_control"`
 }
 
 // ─── Friend Invite DTOs ───────────────────────────────────────────────
@@ -229,12 +234,13 @@ type InviteToMatchDTO struct {
 }
 
 type MatchInvitationDTO struct {
-	InviteID        string `json:"invite_id"`
-	InviterID       string `json:"inviter_id"`
-	InviterName     string `json:"inviter_name"`
-	InviterRating   int    `json:"inviter_rating"`
-	TimeControl     int64  `json:"time_control"`
-	ColorPreference string `json:"color_preference,omitempty"`
+	InviteID           string `json:"invite_id"`
+	InviterID          string `json:"inviter_id"`
+	InviterName        string `json:"inviter_name"`
+	InviterRating      int    `json:"inviter_rating"`
+	InviterAvatarIndex int    `json:"inviter_avatar_index"`
+	TimeControl        int64  `json:"time_control"`
+	ColorPreference    string `json:"color_preference,omitempty"`
 }
 
 type AcceptInviteDTO struct {

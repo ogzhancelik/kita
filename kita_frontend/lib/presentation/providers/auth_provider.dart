@@ -186,7 +186,6 @@ class AuthProvider extends ChangeNotifier {
       await _storage.saveToken(res.token);
       await _storage.saveUser(res.user);
       await _storage.deleteGuestProfile();
-      await LocalMatchHistoryService.instance.clearGuestMatches();
 
       _state = AuthState.authenticated;
       _setLoading(false);
@@ -213,7 +212,6 @@ class AuthProvider extends ChangeNotifier {
       await _storage.saveToken(res.token);
       await _storage.saveUser(res.user);
       await _storage.deleteGuestProfile();
-      await LocalMatchHistoryService.instance.clearGuestMatches();
 
       _state = AuthState.authenticated;
       _setLoading(false);
@@ -226,7 +224,6 @@ class AuthProvider extends ChangeNotifier {
 
   // --- Continue as Guest (Gartic Phone style) ---
   Future<void> continueAsGuest(String nickname, int avatarIndex) async {
-    await LocalMatchHistoryService.instance.clearGuestMatches();
     final guest = GuestProfile(
       nickname: nickname.trim().isEmpty ? 'Guest${DateTime.now().millisecondsSinceEpoch % 10000}' : nickname.trim(),
       avatarIndex: avatarIndex,
@@ -253,7 +250,7 @@ class AuthProvider extends ChangeNotifier {
     await _storage.deleteUser();
     await _storage.deleteGuestProfile();
     if (wasGuest) {
-      await LocalMatchHistoryService.instance.clearGuestMatches();
+      await LocalMatchHistoryService.instance.clearOfflineMatches();
     }
     _currentUser = null;
     _guestProfile = null;
