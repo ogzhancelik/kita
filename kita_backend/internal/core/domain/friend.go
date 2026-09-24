@@ -26,6 +26,7 @@ type FriendItem struct {
 	FriendshipID string    `json:"friendship_id"`
 	UserID       string    `json:"user_id"`
 	Username     string    `json:"username"`
+	AvatarIndex  int       `json:"avatar_index"`
 	Rating       int       `json:"rating"`
 	Status       string    `json:"status"`
 	Direction    string    `json:"direction"` // "friend", "incoming", "outgoing"

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/friends_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/kita_text_field.dart';
@@ -45,6 +47,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (success && mounted) {
       KitaToast.success('auth.registerSuccess'.tr(args: [authProv.displayName]));
+      context.read<FriendsProvider>().loadAll();
+      context.read<NotificationProvider>().loadNotifications();
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }

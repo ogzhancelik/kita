@@ -42,7 +42,7 @@ Foundational systems to establish early so game strings and rules are never hard
   - [x] Support Guest/Anonymous play (zero barrier to entry)
   - [x] User registration & login (email/password or OAuth)
 - [x] **User Profile**:
-  - [x] Custom display name and avatar selection (Guest profile onboarding & avatar picker)
+  - [x] Custom display name and avatar selection (Guest onboarding, logged-in user profile avatar picker & backend sync)
   - [x] Player statistics (total matches, wins, losses, win rate, current streak)
   - [x] Match history summary list (recent opponents, results, dates)
   - [x] Dedicated User Profile modal dialog & detailed stats view

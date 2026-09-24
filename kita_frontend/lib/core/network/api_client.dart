@@ -29,7 +29,7 @@ class ApiClient {
 
     dio.interceptors.addAll([
       _AuthInterceptor(_storage),
-      _ErrorInterceptor(onUnauthorized: onUnauthorized),
+      _ErrorInterceptor(_storage, onUnauthorized: onUnauthorized),
     ]);
   }
 
@@ -63,9 +63,10 @@ class _AuthInterceptor extends Interceptor {
 }
 
 class _ErrorInterceptor extends Interceptor {
+  final SecureStorageService _storage;
   final void Function()? onUnauthorized;
 
-  _ErrorInterceptor({this.onUnauthorized});
+  _ErrorInterceptor(this._storage, {this.onUnauthorized});
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
@@ -92,6 +93,9 @@ class _ErrorInterceptor extends Interceptor {
       }
 
       if (statusCode == 401) {
+        ApiClient.currentToken = null;
+        _storage.deleteToken();
+        _storage.deleteUser();
         onUnauthorized?.call();
       }
     }
@@ -104,9 +108,10 @@ class _ErrorInterceptor extends Interceptor {
       translated = messageKey;
     }
 
-    // Show floating toast if not marked silent
+    // Show floating toast if not marked silent and not an unauthorized / session error
     final isSilent = err.requestOptions.extra['silent'] == true;
-    if (!isSilent) {
+    final isAuthError = messageKey == 'errUnauthorized' || messageKey == 'errTokenExpired';
+    if (!isSilent && !isAuthError) {
       KitaToast.error(translated);
     }
 

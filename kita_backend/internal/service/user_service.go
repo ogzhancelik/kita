@@ -70,3 +70,22 @@ func (s *userService) GetLeaderboard(ctx context.Context, limit int, filter stri
 	}
 	return profiles, nil
 }
+
+func (s *userService) UpdateAvatar(ctx context.Context, userID string, avatarIndex int) (*domain.UserProfile, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	user.AvatarIndex = avatarIndex
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	profile := user.ToProfile()
+	return &profile, nil
+}
+

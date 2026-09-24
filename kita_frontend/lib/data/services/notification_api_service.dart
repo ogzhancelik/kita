@@ -29,6 +29,7 @@ class NotificationApiService {
         'limit': limit,
         'offset': offset,
       },
+      options: Options(extra: {'silent': true}),
     );
 
     final data = response.data as Map<String, dynamic>;

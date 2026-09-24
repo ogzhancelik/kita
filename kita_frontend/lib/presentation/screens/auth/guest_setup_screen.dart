@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/friends_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
@@ -149,6 +151,10 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
                   variant: KitaButtonVariant.primary,
                   onPressed: () async {
                     final name = _nameController.text.trim();
+                    if (context.mounted) {
+                      context.read<FriendsProvider>().clear();
+                      context.read<NotificationProvider>().clear();
+                    }
                     await context.read<AuthProvider>().continueAsGuest(
                           name.isEmpty ? 'Guest' : name,
                           _selectedAvatarIndex,

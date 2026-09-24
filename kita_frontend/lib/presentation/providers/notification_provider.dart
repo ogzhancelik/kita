@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/network/api_client.dart';
 import '../../data/models/friend_models.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/models/ws_message_models.dart';
@@ -22,8 +23,20 @@ class NotificationProvider extends ChangeNotifier {
   bool get isDashboardActive => _isDashboardActive;
   bool get isLoading => _isLoading;
 
+  /// Clears in-memory notifications (e.g. on logout or guest switch).
+  void clear() {
+    _notifications.clear();
+    _isLoading = false;
+    notifyListeners();
+  }
+
   /// Loads persistent notifications from the backend.
   Future<void> loadNotifications() async {
+    if (_apiService.runtimeType == NotificationApiService &&
+        (ApiClient.currentToken == null || ApiClient.currentToken!.isEmpty)) {
+      return;
+    }
+
     _isLoading = true;
 
     try {

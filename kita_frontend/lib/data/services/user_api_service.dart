@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
-import '../../core/storage/secure_storage_service.dart';
 import '../models/user_model.dart';
 
 class UserApiService {
@@ -15,16 +14,7 @@ class UserApiService {
     String filter = 'global',
     String? token,
   }) async {
-    String? authToken = token;
-    if (authToken == null || authToken.isEmpty) {
-      authToken = ApiClient.currentToken;
-    }
-    if (authToken == null || authToken.isEmpty) {
-      authToken = await SecureStorageService().getToken();
-    }
-    if (authToken != null && authToken.isNotEmpty) {
-      ApiClient.currentToken = authToken;
-    }
+    final authToken = (token != null && token.isNotEmpty) ? token : ApiClient.currentToken;
 
     final response = await _client.dio.get(
       ApiConstants.leaderboard,
@@ -33,9 +23,12 @@ class UserApiService {
         'filter': filter,
         if (authToken != null && authToken.isNotEmpty) 'token': authToken,
       },
-      options: (authToken != null && authToken.isNotEmpty)
-          ? Options(headers: {'Authorization': 'Bearer $authToken'})
-          : null,
+      options: Options(
+        extra: {'silent': true},
+        headers: (authToken != null && authToken.isNotEmpty)
+            ? {'Authorization': 'Bearer $authToken'}
+            : null,
+      ),
     );
 
     final data = response.data as Map<String, dynamic>;
@@ -49,6 +42,21 @@ class UserApiService {
   /// Fetches public profile for a specific user ID
   Future<UserProfile> getUserProfile(String id) async {
     final response = await _client.dio.get(ApiConstants.userProfile(id));
+    return UserProfile.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Updates authenticated user's avatar
+  Future<UserProfile> updateAvatar(int avatarIndex) async {
+    final token = ApiClient.currentToken;
+
+    final response = await _client.dio.put(
+      ApiConstants.updateAvatar,
+      data: {'avatar_index': avatarIndex},
+      options: (token != null && token.isNotEmpty)
+          ? Options(headers: {'Authorization': 'Bearer $token'})
+          : null,
+    );
+
     return UserProfile.fromJson(response.data as Map<String, dynamic>);
   }
 }

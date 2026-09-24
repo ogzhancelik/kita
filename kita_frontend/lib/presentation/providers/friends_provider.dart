@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../core/network/api_client.dart';
 import '../../data/models/friend_models.dart';
 import '../../data/services/friend_api_service.dart';
 
@@ -25,7 +26,25 @@ class FriendsProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   int get pendingIncomingCount => incomingRequests.length;
 
+  /// Clears in-memory friends list and pending requests.
+  void clear() {
+    _friends = [];
+    _pendingRequests = [];
+    _errorMessage = null;
+    _isLoading = false;
+    notifyListeners();
+  }
+
   Future<void> loadAll() async {
+    if (_apiService.runtimeType == FriendApiService &&
+        (ApiClient.currentToken == null || ApiClient.currentToken!.isEmpty)) {
+      _friends = [];
+      _pendingRequests = [];
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();

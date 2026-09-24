@@ -30,6 +30,7 @@ class ApiConstants {
 
   // User & Stats
   static const String leaderboard = '/api/users/leaderboard';
+  static const String updateAvatar = '/api/users/me/avatar';
   static String userProfile(String id) => '/api/users/profile/$id';
 
   // Matches & Replay

@@ -32,10 +32,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final authProv = context.read<AuthProvider>();
       final notifProv = context.read<NotificationProvider>();
       notifProv.setDashboardActive(true);
-      notifProv.loadNotifications();
-      final authProv = context.read<AuthProvider>();
+      if (authProv.isAuthenticated && !authProv.isGuest) {
+        notifProv.loadNotifications();
+      }
       final onlineProv = context.read<OnlineGameProvider>();
       onlineProv.connectAndListen(
         token: authProv.token,

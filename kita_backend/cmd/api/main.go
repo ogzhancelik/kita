@@ -109,6 +109,12 @@ func main() {
 		{
 			userRoutes.GET("/profile/:id", userH.GetProfile)
 			userRoutes.GET("/leaderboard", middleware.OptionalAuthMiddleware(authService), userH.GetLeaderboard)
+			userRoutes.PUT("/me/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
+			userRoutes.PATCH("/me/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
+			userRoutes.PUT("/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
+			userRoutes.PATCH("/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
+			userRoutes.PUT("/profile/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
+			userRoutes.PATCH("/profile/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
 			userRoutes.GET("/me/settings", middleware.AuthMiddleware(authService), settingsH.GetSettings)
 			userRoutes.PUT("/me/settings", middleware.AuthMiddleware(authService), settingsH.UpdateSettings)
 		}

@@ -1,6 +1,7 @@
 class UserProfile {
   final String id;
   final String username;
+  final int avatarIndex;
   final int rating;
   final int wins;
   final int losses;
@@ -12,6 +13,7 @@ class UserProfile {
   const UserProfile({
     required this.id,
     required this.username,
+    this.avatarIndex = 0,
     required this.rating,
     required this.wins,
     required this.losses,
@@ -21,10 +23,37 @@ class UserProfile {
     this.createdAt,
   });
 
+  UserProfile copyWith({
+    String? id,
+    String? username,
+    int? avatarIndex,
+    int? rating,
+    int? wins,
+    int? losses,
+    int? draws,
+    int? totalGames,
+    double? winRate,
+    DateTime? createdAt,
+  }) {
+    return UserProfile(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      avatarIndex: avatarIndex ?? this.avatarIndex,
+      rating: rating ?? this.rating,
+      wins: wins ?? this.wins,
+      losses: losses ?? this.losses,
+      draws: draws ?? this.draws,
+      totalGames: totalGames ?? this.totalGames,
+      winRate: winRate ?? this.winRate,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? 'Player',
+      avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
       rating: (json['rating'] as num?)?.toInt() ?? 1200,
       wins: (json['wins'] as num?)?.toInt() ?? 0,
       losses: (json['losses'] as num?)?.toInt() ?? 0,
@@ -41,6 +70,7 @@ class UserProfile {
     return {
       'id': id,
       'username': username,
+      'avatar_index': avatarIndex,
       'rating': rating,
       'wins': wins,
       'losses': losses,

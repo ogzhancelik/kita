@@ -1,9 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/connectivity_service.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/auth_api_service.dart';
+import '../../data/services/user_api_service.dart';
 import '../widgets/common/guest_guard_dialog.dart';
 
 enum AuthState {
@@ -17,6 +19,7 @@ enum AuthState {
 
 class AuthProvider extends ChangeNotifier {
   final AuthApiService _apiService;
+  final UserApiService _userApiService;
   final SecureStorageService _storage;
   final ConnectivityService _connectivity;
 
@@ -28,9 +31,11 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider({
     AuthApiService? apiService,
+    UserApiService? userApiService,
     SecureStorageService? storage,
     ConnectivityService? connectivity,
   })  : _apiService = apiService ?? AuthApiService(),
+        _userApiService = userApiService ?? UserApiService(),
         _storage = storage ?? SecureStorageService(),
         _connectivity = connectivity ?? ConnectivityService();
 
@@ -59,7 +64,7 @@ class AuthProvider extends ChangeNotifier {
       return _guestProfile!.avatarIndex;
     }
     if (_currentUser != null) {
-      return _currentUser!.username.hashCode.abs() % 8;
+      return _currentUser!.avatarIndex;
     }
     return 0;
   }
@@ -74,6 +79,21 @@ class AuthProvider extends ChangeNotifier {
         await _storage.saveGuestProfile(_guestProfile!.nickname, index);
       } catch (_) {}
       notifyListeners();
+    } else if (isAuthenticated && _currentUser != null) {
+      _currentUser = _currentUser!.copyWith(avatarIndex: index);
+      notifyListeners();
+      try {
+        await _storage.saveUser(_currentUser!);
+      } catch (_) {}
+
+      try {
+        final updated = await _userApiService.updateAvatar(index);
+        _currentUser = updated;
+        await _storage.saveUser(updated);
+        notifyListeners();
+      } catch (e) {
+        debugPrint('[AuthProvider] Failed to persist avatar update: $e');
+      }
     }
   }
 
@@ -96,22 +116,27 @@ class AuthProvider extends ChangeNotifier {
       _token = storedToken;
       ApiClient.currentToken = storedToken;
       try {
-        final profile = await _apiService.getMe();
+        final profile = await _apiService.getMe(silent: true);
         _currentUser = profile;
         await _storage.saveUser(profile);
         _state = AuthState.authenticated;
         notifyListeners();
         return;
       } catch (e) {
-        // If 401 or token invalid, clear it
-        final cached = await _storage.getUser();
-        if (cached != null) {
-          _currentUser = cached;
-          _state = AuthState.authenticated;
-          notifyListeners();
-          return;
+        final isUnauthorized = e is DioException && (e.response?.statusCode == 401);
+        if (!isUnauthorized) {
+          final cached = await _storage.getUser();
+          if (cached != null) {
+            _currentUser = cached;
+            _state = AuthState.authenticated;
+            notifyListeners();
+            return;
+          }
         }
         await _storage.deleteToken();
+        await _storage.deleteUser();
+        _token = null;
+        _currentUser = null;
         ApiClient.currentToken = null;
       }
     }
@@ -206,6 +231,8 @@ class AuthProvider extends ChangeNotifier {
     _currentUser = null;
     _token = null;
     ApiClient.currentToken = null;
+    await _storage.deleteToken();
+    await _storage.deleteUser();
     try {
       await _storage.saveGuestProfile(guest.nickname, guest.avatarIndex);
     } catch (_) {}

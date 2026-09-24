@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
 import '../models/auth_response_model.dart';
@@ -40,8 +41,11 @@ class AuthApiService {
     return AuthResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<UserProfile> getMe() async {
-    final response = await _client.dio.get(ApiConstants.me);
+  Future<UserProfile> getMe({bool silent = false}) async {
+    final response = await _client.dio.get(
+      ApiConstants.me,
+      options: silent ? Options(extra: {'silent': true}) : null,
+    );
     return UserProfile.fromJson(response.data as Map<String, dynamic>);
   }
 }

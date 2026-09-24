@@ -26,7 +26,15 @@ func (m *mockUserRepoForUserService) FindByUsername(ctx context.Context, u strin
 func (m *mockUserRepoForUserService) FindByEmail(ctx context.Context, e string) (*domain.User, error) {
 	return nil, nil
 }
-func (m *mockUserRepoForUserService) Update(ctx context.Context, user *domain.User) error { return nil }
+func (m *mockUserRepoForUserService) Update(ctx context.Context, user *domain.User) error {
+	for i, u := range m.users {
+		if u.ID == user.ID {
+			m.users[i] = *user
+			return nil
+		}
+	}
+	return nil
+}
 func (m *mockUserRepoForUserService) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	if len(userIDs) == 0 {
 		return m.users, nil
@@ -153,3 +161,45 @@ func TestUserService_GetLeaderboard_Friends_Unauthenticated(t *testing.T) {
 		t.Errorf("expected empty profiles for unauthenticated friends leaderboard, got %d", len(profiles))
 	}
 }
+
+func TestUserService_UpdateAvatar(t *testing.T) {
+	userRepo := &mockUserRepoForUserService{
+		users: []domain.User{
+			{ID: "u1", Username: "Alice", AvatarIndex: 0},
+		},
+	}
+	friendRepo := &mockFriendRepoForUserService{}
+	svc := NewUserService(userRepo, friendRepo)
+
+	profile, err := svc.UpdateAvatar(context.Background(), "u1", 4)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if profile.AvatarIndex != 4 {
+		t.Errorf("expected avatar_index 4, got %d", profile.AvatarIndex)
+	}
+
+	// Verify persistence in repo
+	user, err := userRepo.FindByID(context.Background(), "u1")
+	if err != nil || user == nil {
+		t.Fatalf("failed to find user: %v", err)
+	}
+	if user.AvatarIndex != 4 {
+		t.Errorf("expected repo user avatar_index 4, got %d", user.AvatarIndex)
+	}
+}
+
+func TestUserService_UpdateAvatar_UserNotFound(t *testing.T) {
+	userRepo := &mockUserRepoForUserService{
+		users: []domain.User{},
+	}
+	friendRepo := &mockFriendRepoForUserService{}
+	svc := NewUserService(userRepo, friendRepo)
+
+	_, err := svc.UpdateAvatar(context.Background(), "nonexistent", 2)
+	if err == nil {
+		t.Error("expected error for nonexistent user, got nil")
+	}
+}
+

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
 import '../models/friend_models.dart';
@@ -9,7 +10,10 @@ class FriendApiService {
 
   /// Fetches accepted friends
   Future<List<FriendItemModel>> getFriends() async {
-    final response = await _client.dio.get(ApiConstants.friends);
+    final response = await _client.dio.get(
+      ApiConstants.friends,
+      options: Options(extra: {'silent': true}),
+    );
     final data = response.data as Map<String, dynamic>;
     final list = data['friends'] as List<dynamic>? ?? [];
 
@@ -20,7 +24,10 @@ class FriendApiService {
 
   /// Fetches pending friend requests (both incoming and outgoing)
   Future<List<FriendItemModel>> getPendingRequests() async {
-    final response = await _client.dio.get(ApiConstants.friendRequests);
+    final response = await _client.dio.get(
+      ApiConstants.friendRequests,
+      options: Options(extra: {'silent': true}),
+    );
     final data = response.data as Map<String, dynamic>;
     final list = data['requests'] as List<dynamic>? ?? [];
 

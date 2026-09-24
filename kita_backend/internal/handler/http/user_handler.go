@@ -56,3 +56,43 @@ func (h *UserHandler) GetLeaderboard(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"leaderboard": leaderboard})
 }
+
+type UpdateAvatarRequest struct {
+	AvatarIndex    *int `json:"avatar_index"`
+	AltAvatarIndex *int `json:"avatarIndex"`
+}
+
+func (h *UserHandler) UpdateAvatar(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		SendError(c, http.StatusUnauthorized, errors.ErrUnauthorized, "Unauthorized")
+		return
+	}
+
+	var req UpdateAvatarRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, err.Error())
+		return
+	}
+
+	targetIndex := 0
+	if req.AvatarIndex != nil {
+		targetIndex = *req.AvatarIndex
+	} else if req.AltAvatarIndex != nil {
+		targetIndex = *req.AltAvatarIndex
+	}
+
+	if targetIndex < 0 || targetIndex > 64 {
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, "avatar index out of range")
+		return
+	}
+
+	profile, err := h.userService.UpdateAvatar(c.Request.Context(), userID.(string), targetIndex)
+	if err != nil {
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+

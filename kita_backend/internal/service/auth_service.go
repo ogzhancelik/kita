@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"os"
 	"strings"
 	"time"
@@ -65,6 +66,7 @@ func (s *authService) Register(ctx context.Context, username, email, password st
 		Username:     username,
 		Email:        email,
 		PasswordHash: string(hash),
+		AvatarIndex:  int(crc32.ChecksumIEEE([]byte(username))) % 8,
 		Rating:       1200,
 		Wins:         0,
 		Losses:       0,

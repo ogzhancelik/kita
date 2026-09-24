@@ -84,15 +84,21 @@ class _KitaAppState extends State<KitaApp> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<NotificationProvider>().loadNotifications();
+        final authProv = context.read<AuthProvider>();
+        if (authProv.isAuthenticated && !authProv.isGuest) {
+          context.read<NotificationProvider>().loadNotifications();
+        }
       }
     });
 
     _friendsPollTimer?.cancel();
     _friendsPollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (mounted) {
-        _friendsProv?.loadAll();
-        context.read<NotificationProvider>().loadNotifications();
+        final authProv = context.read<AuthProvider>();
+        if (authProv.isAuthenticated && !authProv.isGuest) {
+          _friendsProv?.loadAll();
+          context.read<NotificationProvider>().loadNotifications();
+        }
       }
     });
   }
@@ -124,6 +130,8 @@ class _KitaAppState extends State<KitaApp> {
 
     final type = event['type'] as String?;
     final notifProv = context.read<NotificationProvider>();
+    final authProv = context.read<AuthProvider>();
+    final canFetchSocial = authProv.isAuthenticated && !authProv.isGuest;
 
     if (type == 'rematch_declined') {
       notifProv.addRematchDeclinedNotification(event['decliner'] as String?);
@@ -133,14 +141,20 @@ class _KitaAppState extends State<KitaApp> {
       final payload = event['payload'] as Map<String, dynamic>?;
       if (payload != null) {
         notifProv.syncFromWsFriendRequest(payload);
-        _friendsProv?.loadAll();
+        if (canFetchSocial) {
+          _friendsProv?.loadAll();
+        }
       }
     } else if (type == 'friend_request_declined') {
       notifProv.addFriendRequestDeclinedNotification(event['decliner'] as String?);
-      _friendsProv?.loadAll();
+      if (canFetchSocial) {
+        _friendsProv?.loadAll();
+      }
     } else if (type == 'friend_request_accepted') {
       notifProv.addFriendRequestAcceptedNotification(event['accepter'] as String?);
-      _friendsProv?.loadAll();
+      if (canFetchSocial) {
+        _friendsProv?.loadAll();
+      }
     } else if (type == 'invitation_cancelled') {
       final inviteId = event['invite_id'] as String?;
       final inviterId = event['inviter_id'] as String?;
