@@ -77,7 +77,7 @@ class MatchMenuDialog extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
-            if (provider.isOffline) ...[
+            if (provider.isOffline && provider.gameOverData.value == null) ...[
               // Offline: New Game option
               _MenuTile(
                 icon: Icons.replay_rounded,
@@ -144,7 +144,7 @@ class MatchMenuDialog extends StatelessWidget {
                   }
                 },
               ),
-              if (!provider.isOffline && !provider.isRematchRequested.value)
+              if (!provider.isRematchRequested.value)
                 _MenuTile(
                   icon: Icons.replay_rounded,
                   iconColor: AppColors.primaryGreen,

@@ -365,7 +365,15 @@
     "evalMistake": "Hata",
     "evalBlunder": "Büyük Hata",
     "evalLegend": "Hamle Kalitesi (+kazanç / -kayıp)",
-    "evalHint": "Sayılar avantaj değişimini gösterir (+iyi, -hata)"
+    "evalHint": "Sayılar avantaj değişimini gösterir (+iyi, -hata)",
+    "exit": "İncelemeden Çık",
+    "flipPerspective": "Görünüm Açısını Çevir",
+    "orientation": "Yönü Değiştir",
+    "matchInfo": "Maç Detayları",
+    "settings": "Ayarlar",
+    "firstMove": "İlk Hamle",
+    "lastMove": "Son Hamle",
+    "toMove": "Hamle Sırası"
   },
   "common": {
     "cancel": "İptal",

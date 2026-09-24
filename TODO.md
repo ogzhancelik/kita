@@ -153,6 +153,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Step-by-step game playback (Next move, Previous move, Jump to start/end, Auto-play with speed controls)
   - [x] Post-game review workflow: Replay past recorded matches directly from match history (both online and offline matches)
   - [x] Direct post-game AI review entry: "Review Match" on Play vs Computer game over panel directly opens AI Match Replay screen
+  - [x] Unified In-Game Template Redesign: Modern layout matching online/offline game screens (Exit & settings top panel, Opponent info bar, Board, Player info bar with player's color on bottom-right, AI advantage bar below player's info, expanded move list where chat is located, and bottom playback controls panel)
 - [x] **Game Analysis & AI Evaluation**:
   - [x] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
   - [x] Post-game AI move review & quality indicators: Real-time advantage deltas (e.g. +0.1, -0.3, 0.0), semantic color badges (good, inaccuracy, mistake, blunder), and tooltips next to moves in Match History AI Review & Sandbox fork

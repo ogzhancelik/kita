@@ -1,20 +1,36 @@
 import 'dart:async';
+import 'dart:math';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../../core/feedback/sound_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../../data/models/kita_ai.dart';
 import '../../../data/models/match_model.dart';
 import '../../../data/models/move_evaluation.dart';
+import '../../../data/models/user_model.dart';
 import '../../../data/services/match_api_service.dart';
-import '../../widgets/common/kita_app_bar.dart';
-import '../../widgets/common/kita_card.dart';
-import '../../widgets/common/responsive_layout.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/game/ai_advantage_bar.dart';
 import '../../widgets/game/kita_board_theme.dart';
 import '../../widgets/game/kita_board_widget.dart';
+import '../../widgets/home/settings_dialog.dart';
 
+/// Redesigned Match Review / Replay screen adhering strictly to the
+/// online/offline in-game screen template.
+///
+/// Layout Order (Top to Bottom):
+///   1. Top Panel (Exit button, Replay/Move title, Flip Perspective, Theme, Orientation, Details)
+///   2. Opponent Player Info Bar (Avatar, name & rating on left; color badge on right)
+///   3. Centered Board Container (Responsive sizing for horizontal & vertical modes)
+///   4. Player Info Bar (Status/turn on left; avatar, name, & player's color on bottom-right)
+///   5. AI Advantage Evaluation Bar (directly below player's info panel)
+///   6. Interactive Move List (Expanded area where chat normally sits)
+///   7. Bottom Navigation Bar (Jump start, Prev, Play/Pause, Next, Jump end, Speed / Sandbox controls)
 class MatchReplayScreen extends StatefulWidget {
   final MatchRecordModel? match;
   final String? matchId;
@@ -112,6 +128,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     if (widget.match != null) {
       _match = widget.match;
       _computeEngineStates();
+      _initPlayerPerspective();
       setState(() => _isLoading = false);
       return;
     }
@@ -124,6 +141,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         _isLoading = false;
       });
       _computeEngineStates();
+      _initPlayerPerspective();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -131,6 +149,32 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Sets default board perspective to player's eye (Black if player was black, White if white).
+  void _initPlayerPerspective() {
+    if (_match == null) return;
+    final authProv = context.read<AuthProvider>();
+    final currentUserId = authProv.currentUser?.id;
+    final currentUsername = authProv.currentUser?.username ?? authProv.displayName;
+
+    bool userIsBlack = false;
+    if (_match!.isOffline) {
+      if (_match!.blackPlayer?.id == 'guest' ||
+          _match!.blackPlayer?.id == 'local_player' ||
+          _match!.whitePlayer?.id == 'bot') {
+        userIsBlack = true;
+      }
+    } else if (currentUserId != null && currentUserId.isNotEmpty) {
+      if (_match!.blackPlayerId == currentUserId ||
+          _match!.blackPlayer?.username == currentUsername) {
+        userIsBlack = true;
+      }
+    }
+
+    setState(() {
+      _flipBoard = userIsBlack;
+    });
   }
 
   void _computeEngineStates() {
@@ -319,7 +363,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       }
     }
 
-    // 4. Deselect (clicking on an empty tile or non-turn piece)
+    // 4. Deselect
     setState(() {
       _selectedPos = null;
       _selectedPieceId = null;
@@ -327,7 +371,6 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     });
   }
 
-  /// Returns true when [move] will capture the opponent king.
   bool _isCapture(KitaGameEngine engine, KitaMove move) {
     final oppKingId = engine.turn == PieceTeam.white ? 'BK' : 'WK';
     final oppKingPos = engine.positions[oppKingId];
@@ -480,7 +523,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
   void _scrollToActiveMove() {
     if (!_movesScrollController.hasClients || _currentStep <= 0) return;
-    final rowHeight = 44.0;
+    const rowHeight = 44.0;
     final targetOffset = ((_currentStep - 1) / 2) * rowHeight;
     _movesScrollController.animateTo(
       targetOffset.clamp(0.0, _movesScrollController.position.maxScrollExtent),
@@ -515,211 +558,499 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: KitaAppBar(
-        showAuthActions: false,
-        showBack: true,
-        title: 'replay.title'.tr(),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline_rounded, size: 48, color: Colors.redAccent),
-                      const SizedBox(height: 12),
-                      Text(_errorMessage!, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                )
-              : ResponsiveLayout(
-                  maxWidth: _isHorizontal ? 680 : 480,
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // 1. Players & Match Outcome Header
-                          _buildMatchHeader(isDark),
-                          const SizedBox(height: 8),
-
-                          // 2. AI Advantage Evaluation Bar
-                          if (_states.isNotEmpty) ...[
-                            AiAdvantageBar(
-                              engine: _activeEngine,
-                              ai: _aiReady ? _ai : null,
-                              thickness: 24,
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-
-                          // 3. Kita Board Container
-                          _buildBoardCard(isDark),
-                          const SizedBox(height: 10),
-
-                          // 4. Playback Navigation Controls (⏮ ◀ ▶/⏸ ▶ ⏭)
-                          _buildPlaybackControls(isDark),
-                          const SizedBox(height: 10),
-
-                          // 5. Interactive Move List
-                          _buildMoveHistoryPanel(isDark),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-    );
-  }
-
-  Widget _buildMatchHeader(bool isDark) {
-    final match = _match!;
-    final whiteName = match.whitePlayer?.username ?? 'White';
-    final blackName = match.blackPlayer?.username ?? 'Black';
-
-    String outcomeText;
-    Color outcomeColor;
-    if (match.result == 'white_wins') {
-      outcomeText = 'replay.whiteWon'.tr(args: [whiteName]);
-      outcomeColor = AppColors.ratingGold;
-    } else if (match.result == 'black_wins') {
-      outcomeText = 'replay.blackWon'.tr(args: [blackName]);
-      outcomeColor = AppColors.ratingGold;
-    } else if (match.result == 'draw') {
-      outcomeText = 'replay.draw'.tr();
-      outcomeColor = Colors.grey;
-    } else {
-      outcomeText = match.result.toUpperCase();
-      outcomeColor = AppColors.primaryGreen;
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.getBackground(isDark),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primaryGreen),
+        ),
+      );
     }
 
-    return KitaCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: AppColors.getBackground(isDark),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // White player info
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey, width: 1.5),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '$whiteName (${match.whitePlayer?.rating ?? 1200})',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.lossRed),
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.getTextPrimary(isDark),
                 ),
               ),
-
-              // VS divider
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text(
-                  'vs',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                  ),
-                ),
-              ),
-
-              // Black player info
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '$blackName (${match.blackPlayer?.rating ?? 1200})',
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey, width: 1.5),
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('common.back'.tr()),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: outcomeColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  outcomeText,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: outcomeColor,
+        ),
+      );
+    }
+
+    // Determine perspective:
+    // When _flipBoard is false: White is at bottom, Black is at top
+    // When _flipBoard is true: Black is at bottom, White is at top
+    final isBottomWhite = !_flipBoard;
+    final bottomPlayer = isBottomWhite ? _match?.whitePlayer : _match?.blackPlayer;
+    final bottomTeam = isBottomWhite ? 'white' : 'black';
+    final topPlayer = isBottomWhite ? _match?.blackPlayer : _match?.whitePlayer;
+    final topTeam = isBottomWhite ? 'black' : 'white';
+
+    return Scaffold(
+      backgroundColor: AppColors.getBackground(isDark),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Top Panel: Settings, Exit, Replay state
+            _buildTopPanel(isDark),
+
+            // 2. Middle Game Area: Opponent Card, Board, Player Card, Advantage Bar, Move List
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final totalHeight = constraints.maxHeight;
+                  final totalWidth = constraints.maxWidth;
+
+                  final opponentCard = _buildPlayerInfoBar(
+                    isBottom: false,
+                    player: topPlayer,
+                    team: topTeam,
+                    isDark: isDark,
+                  );
+
+                  final userCard = _buildPlayerInfoBar(
+                    isBottom: true,
+                    player: bottomPlayer,
+                    team: bottomTeam,
+                    isDark: isDark,
+                  );
+
+                  final boardWidget = _buildBoardWidget(isDark);
+
+                  // Fixed vertical elements:
+                  // Opponent Card (~44px) + Gap (8px) + User Card (~44px) + Gap (8px) + Advantage Bar (~26px + 8px padding) = 138px
+                  const double fixedHeaderHeight = 138.0;
+                  const double minMoveListHeight = 110.0;
+                  final double availableForBoardAndList =
+                      max(minMoveListHeight + 60.0, totalHeight - fixedHeaderHeight);
+                  final double maxBoardHeight =
+                      max(60.0, availableForBoardAndList - minMoveListHeight);
+
+                  final double boardHeight;
+                  if (_isHorizontal) {
+                    final double naturalHorizontalHeight = totalWidth * (4.0 / 7.0);
+                    boardHeight = min(naturalHorizontalHeight, maxBoardHeight);
+                  } else {
+                    final double targetVerticalHeight = availableForBoardAndList * 0.52;
+                    final double naturalVerticalHeight = totalWidth * (7.0 / 4.0);
+                    boardHeight =
+                        min(min(targetVerticalHeight, maxBoardHeight), naturalVerticalHeight);
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Top player (Opponent)
+                      opponentCard,
+
+                      const SizedBox(height: 8),
+
+                      // Centered Board Section
+                      SizedBox(
+                        height: boardHeight,
+                        width: totalWidth,
+                        child: Center(
+                          child: AspectRatio(
+                            aspectRatio: _isHorizontal ? (7 / 4) : (4 / 7),
+                            child: boardWidget,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Bottom player (Player's eye perspective with color on bottom-right)
+                      userCard,
+
+                      // Black/White Advantage Bar placed directly below the player's info panel
+                      if (_states.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: AiAdvantageBar(
+                            engine: _activeEngine,
+                            ai: _aiReady ? _ai : null,
+                            thickness: 26,
+                          ),
+                        ),
+
+                      // Move List positioned where chat is placed in live matches
+                      Expanded(
+                        child: _buildMoveHistoryPanel(isDark),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            // 3. Bottom Navigation & Playback Controls Panel
+            _buildBottomPlaybackBar(isDark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Top panel matching the game style: Exit button on left, Replay / Sandbox status in center,
+  /// and Hamburger Settings menu on right.
+  Widget _buildTopPanel(bool isDark) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.getBorder(isDark),
+            width: 0.8,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Exit button
+          IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, size: 22),
+            color: AppColors.getTextPrimary(isDark),
+            tooltip: 'replay.exit'.tr(),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+
+          const SizedBox(width: 4),
+
+          // Center: Sandbox Banner (stays) or Clean Replay Title (ply indicator removed)
+          Expanded(
+            child: _isSandboxMode
+                ? InkWell(
+                    onTap: _exitSandbox,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.ratingGold.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.ratingGold.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.alt_route_rounded, size: 14, color: AppColors.ratingGold),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              _forkStep == 0
+                                  ? 'replay.sandboxInitialActive'.tr()
+                                  : 'replay.sandboxActive'.tr(args: ['$_forkStep']),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.ratingGold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.close_rounded, size: 13, color: AppColors.ratingGold),
+                        ],
+                      ),
+                    ),
+                  )
+                : Text(
+                    'replay.title'.tr(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.getTextPrimary(isDark),
+                    ),
                   ),
-                ),
-              ),
-              Text(
-                'replay.movesCount'.tr(args: ['${_match!.totalMoves}']),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                ),
-              ),
-            ],
+          ),
+
+          // 1. Flip board perspective
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: const Icon(Icons.swap_vert_rounded, size: 21),
+            color: _flipBoard ? AppColors.accent : AppColors.getTextPrimary(isDark),
+            tooltip: 'replay.flipPerspective'.tr(),
+            onPressed: () => setState(() => _flipBoard = !_flipBoard),
+          ),
+
+          // 2. Horizontal / Vertical orientation toggle
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: const Icon(Icons.screen_rotation_rounded, size: 21),
+            color: AppColors.getTextPrimary(isDark),
+            tooltip: 'replay.orientation'.tr(),
+            onPressed: () => setState(() => _isHorizontal = !_isHorizontal),
+          ),
+
+          // 3. Match replay info
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: const Icon(Icons.info_outline_rounded, size: 21),
+            color: AppColors.getTextPrimary(isDark),
+            tooltip: 'replay.matchInfo'.tr(),
+            onPressed: () => _showMatchDetailsDialog(isDark),
+          ),
+
+          // 4. Settings
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: const Icon(Icons.settings_rounded, size: 21),
+            color: AppColors.getTextPrimary(isDark),
+            tooltip: 'settings.title'.tr(),
+            onPressed: () => SettingsDialog.show(context),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBoardCard(bool isDark) {
+
+
+  /// Player info bar styled symmetrically with online/offline PlayerInfoBar.
+  /// For bottom player (user's eye): puts the player's color on bottom-right (Black if black, white if white).
+  Widget _buildPlayerInfoBar({
+    required bool isBottom,
+    required UserProfile? player,
+    required String team, // 'white' or 'black'
+    required bool isDark,
+  }) {
+    final isWhite = team == 'white';
+    final teamColor = isWhite ? Colors.white : const Color(0xFF222222);
+
+    final playerName = player?.username ??
+        (isWhite ? 'replay.whiteTeam'.tr() : 'replay.blackTeam'.tr());
+    final playerRating = player?.rating ?? 1200;
+
+    final avatarIdx = (player?.avatarIndex != null)
+        ? player!.avatarIndex!
+        : (playerName.hashCode.abs() % AvatarPicker.avatars.length);
+    final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
+
+    final isTurnToMove = _activeEngine.turn == (isWhite ? PieceTeam.white : PieceTeam.black);
+
+    // Player color badge (Black if black, white if white)
+    final colorBadge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: isWhite ? Colors.white : const Color(0xFF202020),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isWhite ? Colors.grey.shade400 : AppColors.ratingGold.withValues(alpha: 0.6),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isWhite ? const Color(0xFFEEEEEE) : Colors.black,
+              border: Border.all(
+                color: isWhite ? Colors.grey.shade600 : Colors.white60,
+                width: 0.9,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4.5),
+          Text(
+            isWhite ? 'replay.whiteTeam'.tr() : 'replay.blackTeam'.tr(),
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: isWhite ? Colors.black87 : Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final avatarWidget = Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: avatarItem.accentColor.withValues(alpha: 0.15),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: teamColor,
+          width: 2.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(
+          avatarItem.icon,
+          size: 16,
+          color: avatarItem.accentColor,
+        ),
+      ),
+    );
+
+    final nameAndRating = Column(
+      crossAxisAlignment: isBottom ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          playerName,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.getTextPrimary(isDark),
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 1),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0.5),
+          decoration: BoxDecoration(
+            color: AppColors.ratingGold.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            '$playerRating',
+            style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ratingGold,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final turnBadge = isTurnToMove
+        ? Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(
+                color: AppColors.accentSecondary.withValues(alpha: 0.5),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accentSecondary,
+                  ),
+                ),
+                const SizedBox(width: 4.5),
+                Text(
+                  'replay.toMove'.tr(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.accent : AppColors.accentSecondary,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        border: Border(
+          bottom: !isBottom
+              ? BorderSide(color: AppColors.getBorder(isDark), width: 0.8)
+              : BorderSide.none,
+          top: isBottom
+              ? BorderSide(color: AppColors.getBorder(isDark), width: 0.8)
+              : BorderSide.none,
+        ),
+      ),
+      child: isBottom
+          ? Row(
+              children: [
+                // Left: turn indicator
+                turnBadge,
+                const Spacer(),
+                // Right: Name/rating, avatar, and player's color on bottom-right!
+                nameAndRating,
+                const SizedBox(width: 8),
+                avatarWidget,
+                const SizedBox(width: 8),
+                colorBadge,
+              ],
+            )
+          : Row(
+              children: [
+                // Left: Avatar, Name/rating
+                avatarWidget,
+                const SizedBox(width: 8),
+                nameAndRating,
+                const Spacer(),
+                // Right: Opponent's color badge and turn indicator
+                turnBadge,
+                const SizedBox(width: 8),
+                colorBadge,
+              ],
+            ),
+    );
+  }
+
+  /// Board Widget configured with active state, theme, perspective flip, and interactive taps
+  Widget _buildBoardWidget(bool isDark) {
     if (_states.isEmpty) return const SizedBox();
 
     final currentEngine = _activeEngine;
     final boardTheme = _getBoardTheme(isDark);
 
     // Highlight the move executed to reach current state
-    Set<KitaPos> lastMoveHighlights = {};
+    final Set<KitaPos> lastMoveHighlights = {};
     if (_isSandboxMode) {
       if (_sandboxStep > 0 && _sandboxStep - 1 < _sandboxMoves.length) {
         final lastMove = _sandboxMoves[_sandboxStep - 1];
@@ -734,736 +1065,119 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       }
     }
 
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _isSandboxMode
-              ? AppColors.ratingGold.withValues(alpha: 0.65)
-              : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-          width: _isSandboxMode ? 2.0 : 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _isSandboxMode
-                ? AppColors.ratingGold.withValues(alpha: isDark ? 0.22 : 0.12)
-                : Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Toolbar above board
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (_isSandboxMode)
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.ratingGold.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColors.ratingGold.withValues(alpha: 0.5)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.alt_route_rounded, size: 14, color: AppColors.ratingGold),
-                          const SizedBox(width: 5),
-                          Text(
-                            _forkStep == 0
-                                ? 'replay.sandboxInitialActive'.tr()
-                                : 'replay.sandboxActive'.tr(args: ['$_forkStep']),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.ratingGold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Text(
-                  _currentStep == 0
-                      ? 'replay.initialPosition'.tr()
-                      : 'replay.plyIndicator'.tr(args: ['$_currentStep', '${_states.length - 1}']),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                  ),
-                ),
-              Row(
-                children: [
-                  IconButton(
-                    tooltip: 'game.flipBoard'.tr(),
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.swap_vert_rounded, size: 18),
-                    onPressed: () => setState(() => _flipBoard = !_flipBoard),
-                  ),
-                  IconButton(
-                    tooltip: _isHorizontal ? 'game.orientationHorizontal'.tr() : 'game.orientationVertical'.tr(),
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(
-                      _isHorizontal ? Icons.stay_current_landscape_rounded : Icons.stay_current_portrait_rounded,
-                      size: 18,
-                      color: AppColors.primaryGreen,
-                    ),
-                    onPressed: () => setState(() => _isHorizontal = !_isHorizontal),
-                  ),
-                  IconButton(
-                    tooltip: 'game.heatmapTheme'.tr(args: ['']),
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.palette_outlined, size: 18),
-                    onPressed: () => setState(() => _themeIndex = (_themeIndex + 1) % 5),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-
-          // Board Widget
-          AspectRatio(
-            aspectRatio: _isHorizontal ? (7 / 4) : (4 / 7),
-            child: KitaBoardWidget(
-              pieces: currentEngine.activePositions,
-              selectedPos: _selectedPos,
-              validMoves: _selectedPieceId != null ? _validMoves : lastMoveHighlights,
-              onTileTap: _onTileTap,
-              isHorizontal: _isHorizontal,
-              flipBoard: _flipBoard,
-              theme: boardTheme,
-            ),
-          ),
-        ],
-      ),
+    return KitaBoardWidget(
+      pieces: currentEngine.activePositions,
+      selectedPos: _selectedPos,
+      validMoves: _selectedPieceId != null ? _validMoves : lastMoveHighlights,
+      onTileTap: _onTileTap,
+      isHorizontal: _isHorizontal,
+      flipBoard: _flipBoard,
+      theme: boardTheme,
     );
   }
 
-  Widget _buildPlaybackControls(bool isDark) {
-    if (_isSandboxMode) {
-      return _buildSandboxControls(isDark);
-    }
-
-    return KitaCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      child: Column(
-        children: [
-          // Scrub Slider
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 4,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-              activeTrackColor: AppColors.primaryGreen,
-              thumbColor: AppColors.primaryGreen,
-            ),
-            child: Slider(
-              value: _currentStep.toDouble(),
-              min: 0.0,
-              max: (_states.length > 1 ? (_states.length - 1).toDouble() : 1.0),
-              divisions: _states.length > 1 ? _states.length - 1 : 1,
-              onChanged: (val) => _jumpToStep(val.toInt()),
-            ),
-          ),
-
-          // Step Buttons & Auto-play
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Jump to Start
-              IconButton(
-                tooltip: 'replay.jumpStart'.tr(),
-                icon: const Icon(Icons.skip_previous_rounded, size: 22),
-                onPressed: _currentStep > 0 ? () => _jumpToStep(0) : null,
-              ),
-
-              // Previous Move
-              IconButton(
-                tooltip: 'replay.prevMove'.tr(),
-                icon: const Icon(Icons.fast_rewind_rounded, size: 24),
-                onPressed: _currentStep > 0 ? _prevStep : null,
-              ),
-
-              // Play / Pause
-              FloatingActionButton.small(
-                elevation: 2,
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-                onPressed: _togglePlayPause,
-                child: Icon(
-                  _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  size: 26,
-                ),
-              ),
-
-              // Next Move
-              IconButton(
-                tooltip: 'replay.nextMove'.tr(),
-                icon: const Icon(Icons.fast_forward_rounded, size: 24),
-                onPressed: _currentStep < _states.length - 1 ? _nextStep : null,
-              ),
-
-              // Jump to End
-              IconButton(
-                tooltip: 'replay.jumpEnd'.tr(),
-                icon: const Icon(Icons.skip_next_rounded, size: 22),
-                onPressed: _currentStep < _states.length - 1
-                    ? () => _jumpToStep(_states.length - 1)
-                    : null,
-              ),
-
-              // Speed selector button
-              PopupMenuButton<double>(
-                tooltip: 'replay.speed'.tr(),
-                initialValue: _playbackSpeed,
-                onSelected: _changeSpeed,
-                itemBuilder: (ctx) => [
-                  const PopupMenuItem(value: 0.5, child: Text('0.5x')),
-                  const PopupMenuItem(value: 1.0, child: Text('1.0x')),
-                  const PopupMenuItem(value: 1.5, child: Text('1.5x')),
-                  const PopupMenuItem(value: 2.0, child: Text('2.0x')),
-                ],
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    ),
-                  ),
-                  child: Text(
-                    '${_playbackSpeed}x',
-                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          // Sandbox hint
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.touch_app_outlined,
-                  size: 13,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                ),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    'replay.sandboxHint'.tr(),
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSandboxControls(bool isDark) {
-    final currentEngine = _activeEngine;
-    final turnColor = currentEngine.turn == PieceTeam.white ? Colors.white : Colors.black;
-    final turnTeamName = currentEngine.turn == PieceTeam.white ? 'replay.whiteTeam'.tr() : 'replay.blackTeam'.tr();
-
-    String statusText;
-    if (currentEngine.isGameOver) {
-      String outcome;
-      if (currentEngine.getStatus() == GameStatus.whiteWins) {
-        outcome = 'game.whiteWins'.tr();
-      } else if (currentEngine.getStatus() == GameStatus.blackWins) {
-        outcome = 'game.blackWins'.tr();
-      } else {
-        outcome = 'game.draw'.tr();
-      }
-      statusText = 'replay.gameOverTitle'.tr(args: [outcome]);
-    } else {
-      final steps = currentEngine.currentStepCount;
-      statusText = 'replay.sandboxTurn'.tr(args: [turnTeamName, '$steps', steps > 1 ? 's' : '']);
-    }
-
-    return KitaCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-      child: Column(
-        children: [
-          // Status row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: turnColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey, width: 1.5),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    statusText,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              if (_sandboxMoves.isNotEmpty)
-                Text(
-                  '$_sandboxStep / ${_sandboxMoves.length}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
-
-          // Action buttons row: Undo, Reset, AI Move, Return to Replay
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Undo
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: const Icon(Icons.undo_rounded, size: 16),
-                label: Text('replay.undo'.tr(), style: const TextStyle(fontSize: 11.5)),
-                onPressed: _sandboxStep > 0 ? _undoSandboxMove : null,
-              ),
-
-              // Reset to Fork
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: const Icon(Icons.restart_alt_rounded, size: 16),
-                label: Text('replay.resetFork'.tr(), style: const TextStyle(fontSize: 11.5)),
-                onPressed: _sandboxMoves.isNotEmpty ? _resetToFork : null,
-              ),
-
-              // AI Move
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: _isAiThinking
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.smart_toy_outlined, size: 16),
-                label: Text(
-                  _isAiThinking ? 'replay.aiThinking'.tr() : 'replay.aiMove'.tr(),
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                ),
-                onPressed: (!currentEngine.isGameOver && !_isAiThinking && !_isAutoRetaliating)
-                    ? _playAiSandboxMove
-                    : null,
-              ),
-
-              // Return to Replay
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.ratingGold,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: const Icon(Icons.replay_rounded, size: 16),
-                label: Text(
-                  'replay.returnToReplay'.tr(),
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () => _exitSandbox(),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSandboxBranchPanel(bool isDark) {
-    return KitaCard(
-      padding: const EdgeInsets.all(12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.alt_route_rounded, size: 18, color: AppColors.ratingGold),
-                  const SizedBox(width: 6),
-                  Text(
-                    'replay.alternateBranch'.tr(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              InkWell(
-                onTap: () => _exitSandbox(),
-                borderRadius: BorderRadius.circular(6),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.replay_rounded, size: 14, color: AppColors.primaryGreen),
-                      const SizedBox(width: 4),
-                      Text(
-                        'replay.returnToReplay'.tr(),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryGreen,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
-
-          if (_sandboxMoves.isEmpty)
-            Container(
-              height: 120,
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.touch_app_outlined,
-                    size: 28,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'replay.noSandboxMoves'.tr(),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            SizedBox(
-              height: 180,
-              child: ListView.builder(
-                itemCount: _sandboxMoves.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    final isForkActive = _sandboxStep == 0;
-                    return InkWell(
-                      onTap: () => _jumpToSandboxStep(0),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 2),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isForkActive
-                              ? AppColors.ratingGold.withValues(alpha: 0.18)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: isForkActive
-                                ? AppColors.ratingGold
-                                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.fork_left_rounded, size: 15, color: AppColors.ratingGold),
-                            const SizedBox(width: 8),
-                            Text(
-                              _forkStep == 0
-                                  ? 'replay.initialPosition'.tr()
-                                  : 'replay.sandboxActive'.tr(args: ['$_forkStep']),
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: isForkActive ? FontWeight.w800 : FontWeight.w600,
-                                color: isForkActive
-                                    ? AppColors.ratingGold
-                                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  final moveIndex = index - 1;
-                  final move = _sandboxMoves[moveIndex];
-                  final isActive = _sandboxStep == index;
-                  final isWhite = _sandboxStates[index - 1].turn == PieceTeam.white;
-                  final fromStr = _formatCoord(move.fromPos.col, move.fromPos.row);
-                  final toStr = _formatCoord(move.toPos.col, move.toPos.row);
-                  final turnNumber = ((_forkStep + moveIndex) ~/ 2) + 1;
-                  final sandboxEval = (_sandboxEvaluations.length > moveIndex) ? _sandboxEvaluations[moveIndex] : null;
-
-                  return InkWell(
-                    onTap: () => _jumpToSandboxStep(index),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? AppColors.primaryGreen
-                            : (isDark ? AppColors.darkSurface : AppColors.lightSurface),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: isActive
-                              ? AppColors.primaryGreen
-                              : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 28,
-                            child: Text(
-                              '$turnNumber.',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isActive
-                                    ? Colors.white70
-                                    : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: isWhite ? Colors.white : Colors.black,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isActive ? Colors.white : Colors.grey,
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${move.pieceId} $fromStr→$toStr',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
-                                color: isActive
-                                    ? Colors.white
-                                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                              ),
-                            ),
-                          ),
-                          if (sandboxEval != null) ...[
-                            const SizedBox(width: 6),
-                            _buildEvalBadge(sandboxEval, isActive, isDark),
-                          ],
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
+  /// Move list placed where the chat panel sits in online match screen.
   Widget _buildMoveHistoryPanel(bool isDark) {
     if (_isSandboxMode) {
       return _buildSandboxBranchPanel(isDark);
     }
+
     if (_match == null || _match!.moves.isEmpty) {
-      return const SizedBox();
+      return Container(
+        color: AppColors.getCard(isDark),
+        alignment: Alignment.center,
+        child: Text(
+          'online.noMoves'.tr(),
+          style: TextStyle(fontSize: 12, color: AppColors.getTextMuted(isDark)),
+        ),
+      );
     }
 
     final moves = _match!.moves;
     final int turnPairsCount = ((moves.length + 1) / 2).floor();
 
-    return KitaCard(
-      padding: const EdgeInsets.all(12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'replay.moveHistory'.tr(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Tooltip(
-                    message: 'replay.evalHint'.tr(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                          width: 0.8,
-                        ),
-                      ),
-                      child: Text(
-                        'replay.evalLegend'.tr(),
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                'replay.tapMoveToJump'.tr(),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Divider(height: 1),
-          const SizedBox(height: 6),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        border: Border(
+          top: BorderSide(color: AppColors.getBorder(isDark), width: 0.8),
+        ),
+      ),
+      child: ListView.builder(
+        controller: _movesScrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        itemCount: turnPairsCount,
+        itemBuilder: (context, turnIndex) {
+          final whitePlyIndex = turnIndex * 2 + 1; // 1-based ply
+          final blackPlyIndex = turnIndex * 2 + 2;
 
-          // Move items list
-          SizedBox(
-            height: 180,
-            child: ListView.builder(
-              controller: _movesScrollController,
-              itemCount: turnPairsCount,
-              itemBuilder: (context, turnIndex) {
-                final whitePlyIndex = turnIndex * 2 + 1; // 1-based ply
-                final blackPlyIndex = turnIndex * 2 + 2;
+          final whiteMove =
+              whitePlyIndex <= moves.length ? moves[whitePlyIndex - 1] : null;
+          final blackMove =
+              blackPlyIndex <= moves.length ? moves[blackPlyIndex - 1] : null;
 
-                final whiteMove = whitePlyIndex <= moves.length ? moves[whitePlyIndex - 1] : null;
-                final blackMove = blackPlyIndex <= moves.length ? moves[blackPlyIndex - 1] : null;
+          final isWhiteActive = _currentStep == whitePlyIndex;
+          final isBlackActive = _currentStep == blackPlyIndex;
 
-                final isWhiteActive = _currentStep == whitePlyIndex;
-                final isBlackActive = _currentStep == blackPlyIndex;
-
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 2),
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: (isWhiteActive || isBlackActive)
-                        ? AppColors.primaryGreen.withValues(alpha: 0.12)
-                        : (turnIndex % 2 == 0
-                            ? (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02))
-                            : Colors.transparent),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    children: [
-                      // Turn number
-                      SizedBox(
-                        width: 28,
-                        child: Text(
-                          '${turnIndex + 1}.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                          ),
-                        ),
-                      ),
-
-                      // White ply
-                      Expanded(
-                        child: whiteMove != null
-                            ? _buildMoveButton(
-                                move: whiteMove,
-                                plyIndex: whitePlyIndex,
-                                isActive: isWhiteActive,
-                                isWhite: true,
-                                isDark: isDark,
-                              )
-                            : const SizedBox(),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Black ply
-                      Expanded(
-                        child: blackMove != null
-                            ? _buildMoveButton(
-                                move: blackMove,
-                                plyIndex: blackPlyIndex,
-                                isActive: isBlackActive,
-                                isWhite: false,
-                                isDark: isDark,
-                              )
-                            : const SizedBox(),
-                      ),
-                    ],
-                  ),
-                );
-              },
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 2.5),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            decoration: BoxDecoration(
+              color: (isWhiteActive || isBlackActive)
+                  ? AppColors.primaryGreen.withValues(alpha: 0.12)
+                  : (turnIndex % 2 == 0
+                      ? (isDark
+                          ? Colors.white.withValues(alpha: 0.02)
+                          : Colors.black.withValues(alpha: 0.02))
+                      : Colors.transparent),
+              borderRadius: BorderRadius.circular(6),
             ),
-          ),
-        ],
+            child: Row(
+              children: [
+                // Turn number
+                SizedBox(
+                  width: 24,
+                  child: Text(
+                    '${turnIndex + 1}.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.getTextMuted(isDark),
+                    ),
+                  ),
+                ),
+
+                // White ply
+                Expanded(
+                  child: whiteMove != null
+                      ? _buildMoveButton(
+                          move: whiteMove,
+                          plyIndex: whitePlyIndex,
+                          isActive: isWhiteActive,
+                          isWhite: true,
+                          isDark: isDark,
+                        )
+                      : const SizedBox(),
+                ),
+                const SizedBox(width: 6),
+
+                // Black ply
+                Expanded(
+                  child: blackMove != null
+                      ? _buildMoveButton(
+                          move: blackMove,
+                          plyIndex: blackPlyIndex,
+                          isActive: isBlackActive,
+                          isWhite: false,
+                          isDark: isDark,
+                        )
+                      : const SizedBox(),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -1475,14 +1189,13 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     required bool isWhite,
     required bool isDark,
   }) {
-    final timeStr = move.timeMs > 0 ? '${(move.timeMs / 1000).toStringAsFixed(1)}s' : '';
     final eval = (_evaluations.length >= plyIndex) ? _evaluations[plyIndex - 1] : null;
 
     return InkWell(
       onTap: () => _jumpToStep(plyIndex),
       borderRadius: BorderRadius.circular(6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6.5),
         decoration: BoxDecoration(
           color: isActive
               ? AppColors.primaryGreen
@@ -1496,27 +1209,27 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         ),
         child: Row(
           children: [
-            // Team icon
+            // Team disc
             Container(
-              width: 10,
-              height: 10,
+              width: 9,
+              height: 9,
               decoration: BoxDecoration(
                 color: isWhite ? Colors.white : Colors.black,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isActive ? Colors.white : Colors.grey,
-                  width: 1,
+                  width: 0.9,
                 ),
               ),
             ),
-            const SizedBox(width: 5),
+            const SizedBox(width: 6),
 
             // Piece and Move notation
             Expanded(
               child: Text(
                 move.notation,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
                   color: isActive
                       ? Colors.white
@@ -1527,24 +1240,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
               ),
             ),
 
-            // Move evaluation delta badge (like +0.1, -0.3)
+            // Evaluation delta badge
             if (eval != null) ...[
               const SizedBox(width: 4),
               _buildEvalBadge(eval, isActive, isDark),
-            ],
-
-            // Think time
-            if (timeStr.isNotEmpty) ...[
-              const SizedBox(width: 4),
-              Text(
-                timeStr,
-                style: TextStyle(
-                  fontSize: 9.0,
-                  color: isActive
-                      ? Colors.white70
-                      : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
-                ),
-              ),
             ],
           ],
         ),
@@ -1574,13 +1273,456 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         child: Text(
           eval.deltaLabel,
           style: TextStyle(
-            fontSize: 9.5,
+            fontSize: 9,
             fontWeight: FontWeight.w800,
             fontFamily: 'monospace',
             color: textColor,
             letterSpacing: -0.2,
           ),
         ),
+      ),
+    );
+  }
+
+  /// Alternate branch panel in sandbox mode
+  Widget _buildSandboxBranchPanel(bool isDark) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        border: Border(
+          top: BorderSide(color: AppColors.getBorder(isDark), width: 0.8),
+        ),
+      ),
+      child: _sandboxMoves.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.touch_app_outlined,
+                      size: 26,
+                      color: AppColors.getTextMuted(isDark),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'replay.sandboxHint'.tr(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.getTextMuted(isDark),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              itemCount: _sandboxMoves.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  final isForkActive = _sandboxStep == 0;
+                  return InkWell(
+                    onTap: () => _jumpToSandboxStep(0),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 2.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6.5),
+                      decoration: BoxDecoration(
+                        color: isForkActive
+                            ? AppColors.ratingGold.withValues(alpha: 0.18)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isForkActive
+                              ? AppColors.ratingGold
+                              : AppColors.getBorder(isDark),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.fork_left_rounded,
+                              size: 14, color: AppColors.ratingGold),
+                          const SizedBox(width: 8),
+                          Text(
+                            _forkStep == 0
+                                ? 'replay.initialPosition'.tr()
+                                : 'replay.sandboxActive'.tr(args: ['$_forkStep']),
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: isForkActive ? FontWeight.w800 : FontWeight.w600,
+                              color: isForkActive
+                                  ? AppColors.ratingGold
+                                  : AppColors.getTextPrimary(isDark),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                final moveIndex = index - 1;
+                final move = _sandboxMoves[moveIndex];
+                final isActive = _sandboxStep == index;
+                final isWhite = _sandboxStates[index - 1].turn == PieceTeam.white;
+                final fromStr = _formatCoord(move.fromPos.col, move.fromPos.row);
+                final toStr = _formatCoord(move.toPos.col, move.toPos.row);
+                final turnNumber = ((_forkStep + moveIndex) ~/ 2) + 1;
+                final sandboxEval = (_sandboxEvaluations.length > moveIndex)
+                    ? _sandboxEvaluations[moveIndex]
+                    : null;
+
+                return InkWell(
+                  onTap: () => _jumpToSandboxStep(index),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 2.5),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6.5),
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? AppColors.primaryGreen
+                          : AppColors.getSurface(isDark),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isActive
+                            ? AppColors.primaryGreen
+                            : AppColors.getBorder(isDark),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          child: Text(
+                            '$turnNumber.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: isActive
+                                  ? Colors.white70
+                                  : AppColors.getTextMuted(isDark),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 9,
+                          height: 9,
+                          decoration: BoxDecoration(
+                            color: isWhite ? Colors.white : Colors.black,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isActive ? Colors.white : Colors.grey,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${move.pieceId} $fromStr→$toStr',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
+                              color: isActive
+                                  ? Colors.white
+                                  : AppColors.getTextPrimary(isDark),
+                            ),
+                          ),
+                        ),
+                        if (sandboxEval != null) ...[
+                          const SizedBox(width: 4),
+                          _buildEvalBadge(sandboxEval, isActive, isDark),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  /// Bottom panel with play/previous/next controls adhering to MatchBottomBar layout.
+  Widget _buildBottomPlaybackBar(bool isDark) {
+    if (_isSandboxMode) {
+      return Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.getCard(isDark),
+          border: Border(
+            top: BorderSide(
+              color: AppColors.getBorder(isDark),
+              width: 0.8,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Reset to Fork
+            TextButton.icon(
+              icon: const Icon(Icons.restart_alt_rounded, size: 16),
+              label: Text('replay.resetFork'.tr(), style: const TextStyle(fontSize: 11.5)),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.getTextPrimary(isDark),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+              onPressed: _sandboxMoves.isNotEmpty ? _resetToFork : null,
+            ),
+
+            // AI Move
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                elevation: 0,
+              ),
+              icon: _isAiThinking
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.smart_toy_outlined, size: 16),
+              label: Text(
+                'replay.aiMove'.tr(),
+                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+              ),
+              onPressed: (!_activeEngine.isGameOver && !_isAiThinking && !_isAutoRetaliating)
+                  ? _playAiSandboxMove
+                  : null,
+            ),
+
+            // Return to Replay
+            TextButton.icon(
+              icon: const Icon(Icons.replay_rounded, size: 16),
+              label: Text('replay.returnToReplay'.tr(), style: const TextStyle(fontSize: 11.5)),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.ratingGold,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+              onPressed: _exitSandbox,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        border: Border(
+          top: BorderSide(
+            color: AppColors.getBorder(isDark),
+            width: 0.8,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // Previous move (◀)
+          IconButton(
+            tooltip: 'replay.prevMove'.tr(),
+            icon: const Icon(Icons.fast_rewind_rounded, size: 24),
+            color: _currentStep > 0
+                ? AppColors.getTextPrimary(isDark)
+                : AppColors.getTextMuted(isDark),
+            onPressed: _currentStep > 0 ? _prevStep : null,
+          ),
+
+          // Center Play / Pause button
+          FloatingActionButton.small(
+            elevation: 1,
+            backgroundColor: AppColors.primaryGreen,
+            foregroundColor: Colors.white,
+            onPressed: _togglePlayPause,
+            child: Icon(
+              _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              size: 24,
+            ),
+          ),
+
+          // Next move (▶)
+          IconButton(
+            tooltip: 'replay.nextMove'.tr(),
+            icon: const Icon(Icons.fast_forward_rounded, size: 24),
+            color: _currentStep < _states.length - 1
+                ? AppColors.getTextPrimary(isDark)
+                : AppColors.getTextMuted(isDark),
+            onPressed: _currentStep < _states.length - 1 ? _nextStep : null,
+          ),
+
+          // AI Move (in replay mode: automatically chooses the best AI move and opens sandbox branch)
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              elevation: 0,
+            ),
+            icon: _isAiThinking
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.smart_toy_outlined, size: 16),
+            label: Text(
+              'replay.aiMove'.tr(),
+              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+            ),
+            onPressed: (!_activeEngine.isGameOver && !_isAiThinking && !_isAutoRetaliating)
+                ? _playAiSandboxMove
+                : null,
+          ),
+
+          // Playback speed selector button
+          PopupMenuButton<double>(
+            tooltip: 'replay.speed'.tr(),
+            initialValue: _playbackSpeed,
+            onSelected: _changeSpeed,
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(value: 0.5, child: Text('0.5x')),
+              const PopupMenuItem(value: 1.0, child: Text('1.0x')),
+              const PopupMenuItem(value: 1.5, child: Text('1.5x')),
+              const PopupMenuItem(value: 2.0, child: Text('2.0x')),
+            ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.getSurface(isDark),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.getBorder(isDark), width: 0.8),
+              ),
+              child: Text(
+                '${_playbackSpeed}x',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.getTextPrimary(isDark),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMatchDetailsDialog(bool isDark) {
+    if (_match == null) return;
+    final match = _match!;
+
+    final whiteName = match.whitePlayer?.username ?? 'White';
+    final blackName = match.blackPlayer?.username ?? 'Black';
+
+    String outcomeText;
+    Color outcomeColor;
+    if (match.result == 'white_wins') {
+      outcomeText = 'replay.whiteWon'.tr(args: [whiteName]);
+      outcomeColor = AppColors.ratingGold;
+    } else if (match.result == 'black_wins') {
+      outcomeText = 'replay.blackWon'.tr(args: [blackName]);
+      outcomeColor = AppColors.ratingGold;
+    } else if (match.result == 'draw') {
+      outcomeText = 'replay.draw'.tr();
+      outcomeColor = AppColors.drawGray;
+    } else {
+      outcomeText = match.result.toUpperCase();
+      outcomeColor = AppColors.primaryGreen;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.getCard(isDark),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.analytics_outlined, color: AppColors.primaryGreen),
+            const SizedBox(width: 8),
+            Text(
+              'replay.title'.tr(),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.getTextPrimary(isDark),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '$whiteName (${match.whitePlayer?.rating ?? 1200})',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.getTextPrimary(isDark),
+                  ),
+                ),
+                Text(
+                  'vs',
+                  style: TextStyle(color: AppColors.getTextMuted(isDark)),
+                ),
+                Text(
+                  '$blackName (${match.blackPlayer?.rating ?? 1200})',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.getTextPrimary(isDark),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: outcomeColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                outcomeText,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: outcomeColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'replay.movesCount'.tr(args: ['${match.totalMoves}']),
+              style: TextStyle(color: AppColors.getTextSecondary(isDark)),
+            ),
+            if (match.startedAt.year > 2000) ...[
+              const SizedBox(height: 4),
+              Text(
+                DateFormat.yMMMd().add_jm().format(match.startedAt),
+                style: TextStyle(fontSize: 12, color: AppColors.getTextMuted(isDark)),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('common.close'.tr()),
+          ),
+        ],
       ),
     );
   }

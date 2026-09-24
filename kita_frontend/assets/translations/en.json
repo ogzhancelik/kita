@@ -366,7 +366,15 @@
     "evalMistake": "Mistake",
     "evalBlunder": "Blunder",
     "evalLegend": "Move Quality (+gain / -loss)",
-    "evalHint": "Numbers indicate advantage delta (+good, -mistake)"
+    "evalHint": "Numbers indicate advantage delta (+good, -mistake)",
+    "exit": "Exit Review",
+    "flipPerspective": "Flip Board Perspective",
+    "orientation": "Toggle Orientation",
+    "matchInfo": "Match Details",
+    "settings": "Settings",
+    "firstMove": "First Move",
+    "lastMove": "Last Move",
+    "toMove": "To Move"
   },
   "common": {
     "cancel": "Cancel",

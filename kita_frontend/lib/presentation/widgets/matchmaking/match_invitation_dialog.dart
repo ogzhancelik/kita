@@ -33,7 +33,7 @@ class MatchInvitationDialog extends StatelessWidget {
     // Auto-navigate to match screen when match starts
     if (provider.matchState.value == OnlineMatchState.inMatch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+        if (!context.mounted) return;
         final route = ModalRoute.of(context);
         if (route != null && route.isActive) {
           Navigator.of(context).removeRoute(route);

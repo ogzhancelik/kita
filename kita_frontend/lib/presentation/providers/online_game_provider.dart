@@ -320,14 +320,15 @@ class OnlineGameProvider extends ChangeNotifier {
     int? playerRating,
     bool isGuest = false,
   }) {
-    resetToIdle();
+    clearError();
+    _stopClockTimer();
     isOffline = true;
     offlinePlayMode = mode;
     offlineBotDifficulty = botDifficulty;
     offlinePlayerTeam = playerTeam;
-    offlinePlayerId = playerId;
-    offlinePlayerName = playerName;
-    offlinePlayerRating = playerRating;
+    offlinePlayerId = playerId ?? offlinePlayerId;
+    offlinePlayerName = playerName ?? offlinePlayerName;
+    offlinePlayerRating = playerRating ?? offlinePlayerRating;
     offlineIsGuest = isGuest;
     _offlineMatchSaved = false;
     _lastOfflineMatchRecord = null;
@@ -352,10 +353,27 @@ class OnlineGameProvider extends ChangeNotifier {
 
     matchId = 'offline-${DateTime.now().millisecondsSinceEpoch}';
     timeControl = 0;
+    roomCode.value = null;
+    isRoomPrivate = false;
     gameEngine.value = KitaGameEngine();
     _engineSnapshots.clear();
     _engineSnapshots.add(KitaGameEngine());
     legalMoves.value = gameEngine.value.getLegalMoves();
+    lastMove.value = null;
+    moveHistory.value = [];
+    viewingMoveIndex.value = -1;
+    chatMessages.value = [];
+    unreadChatCount.value = 0;
+    isChatOpen = true;
+    gameOverData.value = null;
+    rematchOffer.value = null;
+    matchInvitation.value = null;
+    incomingMatchRequest.value = null;
+    isRematchRequested.value = false;
+    isGameOverDialogActive.value = false;
+    pendingOutgoingChallenge.value = null;
+    isReconnectedMatch.value = false;
+    isAiThinking.value = false;
     currentTurn.value = 'white';
     whiteRemainingMs.value = 0;
     blackRemainingMs.value = 0;
@@ -566,11 +584,12 @@ class OnlineGameProvider extends ChangeNotifier {
   }
 
   Future<void> _triggerBotMove() async {
+    final currentMatchId = matchId;
     isAiThinking.value = true;
     notifyListeners();
 
     await Future.delayed(const Duration(milliseconds: 400));
-    if (matchState.value != OnlineMatchState.inMatch || !isOffline) {
+    if (matchState.value != OnlineMatchState.inMatch || !isOffline || matchId != currentMatchId) {
       isAiThinking.value = false;
       notifyListeners();
       return;
@@ -592,7 +611,7 @@ class OnlineGameProvider extends ChangeNotifier {
     isAiThinking.value = false;
     notifyListeners();
 
-    if (botMove != null && matchState.value == OnlineMatchState.inMatch && isOffline) {
+    if (botMove != null && matchState.value == OnlineMatchState.inMatch && isOffline && matchId == currentMatchId) {
       _makeOfflineMove(botMove);
     }
   }

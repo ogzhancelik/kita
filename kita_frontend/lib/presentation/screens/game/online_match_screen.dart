@@ -75,7 +75,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
       return;
     }
     if (state == OnlineMatchState.inMatch &&
-        _isGameOverDialogShowing &&
+        (_isGameOverDialogShowing || (_provider?.isGameOverDialogActive.value ?? false)) &&
         mounted) {
       Navigator.of(context, rootNavigator: true).pop();
       _isGameOverDialogShowing = false;
@@ -434,28 +434,6 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                       color: AppColors.primaryGreen,
-                    ),
-                  ),
-                ] else if (provider.isOffline) ...[
-                  ElevatedButton.icon(
-                    onPressed: () => provider.requestRematch(),
-                    icon: const Icon(Icons.replay_rounded, size: 14),
-                    label: Text('game.newGame'.tr()),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: AppColors.darkTextPrimary,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      textStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
                     ),
                   ),
                 ] else ...[
