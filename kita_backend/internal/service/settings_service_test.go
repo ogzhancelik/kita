@@ -58,8 +58,8 @@ func TestSettingsService_GetSettings_DefaultFallback(t *testing.T) {
 	if settings.UserID != "user-1" {
 		t.Errorf("expected user-1, got %s", settings.UserID)
 	}
-	if settings.BoardTheme != "emerald" {
-		t.Errorf("expected emerald, got %s", settings.BoardTheme)
+	if settings.BoardTheme != domain.DefaultBoardTheme {
+		t.Errorf("expected %s, got %s", domain.DefaultBoardTheme, settings.BoardTheme)
 	}
 }
 
@@ -114,8 +114,8 @@ func TestSettingsService_ResetSettings(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if reset.BoardTheme != "emerald" {
-		t.Errorf("expected reset to emerald, got %s", reset.BoardTheme)
+	if reset.BoardTheme != domain.DefaultBoardTheme {
+		t.Errorf("expected reset to %s, got %s", domain.DefaultBoardTheme, reset.BoardTheme)
 	}
 }
 

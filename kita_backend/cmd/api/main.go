@@ -20,7 +20,7 @@ func corsMiddleware() gin.HandlerFunc {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
@@ -56,6 +56,7 @@ func main() {
 	messageRepo := postgres.NewMessageRepository(db)
 	settingsRepo := postgres.NewSettingsRepository(db)
 	friendRepo := postgres.NewFriendRepository(db)
+	notifRepo := postgres.NewNotificationRepository(db)
 
 	// 4. Services
 	authService := service.NewAuthService(userRepo)
@@ -64,9 +65,10 @@ func main() {
 	messageService := service.NewMessageService(messageRepo)
 	settingsService := service.NewSettingsService(settingsRepo, userRepo)
 	friendService := service.NewFriendService(friendRepo, userRepo)
+	notificationService := service.NewNotificationService(notifRepo)
 
 	// 5. Realtime Game Hub & Goroutine
-	hub := game.NewHub(matchService, messageService)
+	hub := game.NewHub(matchService, messageService, notificationService)
 	go hub.Run()
 
 	// 6. Handlers
@@ -74,7 +76,8 @@ func main() {
 	userH := httpHandler.NewUserHandler(userService)
 	matchH := httpHandler.NewMatchHandler(matchService)
 	settingsH := httpHandler.NewSettingsHandler(settingsService)
-	friendH := httpHandler.NewFriendHandler(friendService, userService, hub)
+	friendH := httpHandler.NewFriendHandler(friendService, userService, notificationService, hub)
+	notifH := httpHandler.NewNotificationHandler(notificationService)
 	wsH := wsHandler.NewWSHandler(hub, authService, userService)
 
 	// 7. Gin HTTP Engine
@@ -134,6 +137,14 @@ func main() {
 			friendRoutes.POST("/:id/accept", friendH.AcceptRequest)
 			friendRoutes.POST("/:id/decline", friendH.DeclineRequest)
 			friendRoutes.DELETE("/:id", friendH.RemoveFriend)
+		}
+
+		notifRoutes := api.Group("/notifications", middleware.AuthMiddleware(authService))
+		{
+			notifRoutes.GET("", notifH.GetNotifications)
+			notifRoutes.PATCH("/:id/status", notifH.UpdateStatus)
+			notifRoutes.POST("/mark-all-read", notifH.MarkAllAsRead)
+			notifRoutes.DELETE("/:id", notifH.DeleteNotification)
 		}
 
 		api.GET("/stats/online", func(c *gin.Context) {

@@ -112,7 +112,7 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
           ValueListenableBuilder<RoomsListPayload?>(
             valueListenable: onlineProv.roomsList,
             builder: (ctx, roomsPayload, _) {
-              final rooms = roomsPayload?.rooms.where((r) => !r.isPrivate).take(5).toList() ?? [];
+              final rooms = onlineProv.joinableRooms.take(5).toList();
 
               if (rooms.isEmpty) {
                 return Padding(

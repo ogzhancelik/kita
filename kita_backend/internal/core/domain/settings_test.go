@@ -9,8 +9,8 @@ func TestDefaultSettings(t *testing.T) {
 	if s.UserID != "user-123" {
 		t.Errorf("expected user ID 'user-123', got '%s'", s.UserID)
 	}
-	if s.BoardTheme != "emerald" {
-		t.Errorf("expected default theme emerald, got %s", s.BoardTheme)
+	if s.BoardTheme != DefaultBoardTheme {
+		t.Errorf("expected default theme %s, got %s", DefaultBoardTheme, s.BoardTheme)
 	}
 	if !s.SoundEnabled {
 		t.Errorf("expected soundEnabled true by default")

@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
+import '../providers/online_game_provider.dart';
 import '../widgets/common/kita_app_bar.dart';
 import '../widgets/common/kita_button.dart';
 import '../widgets/common/responsive_layout.dart';
 import 'auth/welcome_screen.dart';
-import 'game/offline_ai_screen.dart';
+import 'game/online_match_screen.dart';
 import 'home/dashboard_screen.dart';
 
 class SplashGateScreen extends StatefulWidget {
@@ -88,8 +89,13 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
                       icon: Icons.smart_toy_rounded,
                       variant: KitaButtonVariant.primary,
                       onPressed: () {
+                        context.read<OnlineGameProvider>().startOfflineMatch(
+                          mode: PlayMode.vsAi,
+                        );
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const OfflineAiScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const OnlineMatchScreen(),
+                          ),
                         );
                       },
                     ),

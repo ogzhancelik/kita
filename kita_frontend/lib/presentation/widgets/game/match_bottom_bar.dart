@@ -45,54 +45,57 @@ class MatchBottomBar extends StatelessWidget {
           ),
           const SizedBox(width: 4),
 
-          // 2. Chat Toggle Button with unread badge
-          ValueListenableBuilder<int>(
-            valueListenable: provider.unreadChatCount,
-            builder: (ctx, unread, _) {
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      provider.isChatOpen
-                          ? Icons.chat_rounded
-                          : Icons.chat_bubble_outline_rounded,
+          // 2. Chat Toggle Button with unread badge (online matches only)
+          if (!provider.isOffline) ...[
+            ValueListenableBuilder<int>(
+              valueListenable: provider.unreadChatCount,
+              builder: (ctx, unread, _) {
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        provider.isChatOpen
+                            ? Icons.chat_rounded
+                            : Icons.chat_bubble_outline_rounded,
+                      ),
+                      color: provider.isChatOpen
+                          ? AppColors.primaryGreen
+                          : AppColors.getTextSecondary(isDark),
+                      tooltip: 'online.toggleChat'.tr(),
+                      onPressed: provider.toggleChat,
                     ),
-                    color: provider.isChatOpen
-                        ? AppColors.primaryGreen
-                        : AppColors.getTextSecondary(isDark),
-                    tooltip: 'online.toggleChat'.tr(),
-                    onPressed: provider.toggleChat,
-                  ),
-                  if (unread > 0 && !provider.isChatOpen)
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: AppColors.lossRed,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          unread > 9 ? '9+' : '$unread',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
+                    if (unread > 0 && !provider.isChatOpen)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.lossRed,
+                            shape: BoxShape.circle,
                           ),
-                          textAlign: TextAlign.center,
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unread > 9 ? '9+' : '$unread',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              );
-            },
-          ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(width: 4),
+          ],
 
           const Spacer(),
 

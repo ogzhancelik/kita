@@ -6,7 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/friends/friends_screen.dart';
-import '../../screens/game/offline_ai_screen.dart';
+import '../../screens/game/online_match_screen.dart';
+import '../game/vs_ai_config_dialog.dart';
 import '../matchmaking/matchmaking_sheet.dart';
 import '../room/room_dialog.dart';
 
@@ -123,13 +124,7 @@ class PlayMenuDialog extends StatelessWidget {
                       isDark: isDark,
                       onTap: () {
                         Navigator.of(context).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const OfflineAiScreen(
-                              initialMode: PlayMode.vsAi,
-                            ),
-                          ),
-                        );
+                        VsAiConfigDialog.show(context);
                       },
                     ),
                     const SizedBox(height: 12),
@@ -146,11 +141,12 @@ class PlayMenuDialog extends StatelessWidget {
                       isDark: isDark,
                       onTap: () {
                         Navigator.of(context).pop();
+                        context.read<OnlineGameProvider>().startOfflineMatch(
+                          mode: PlayMode.localCoop,
+                        );
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const OfflineAiScreen(
-                              initialMode: PlayMode.localCoop,
-                            ),
+                            builder: (_) => const OnlineMatchScreen(),
                           ),
                         );
                       },

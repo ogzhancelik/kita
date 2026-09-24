@@ -43,3 +43,14 @@ type FriendRepository interface {
 	ListPendingRequests(ctx context.Context, userID string) ([]domain.Friendship, error)
 }
 
+type NotificationRepository interface {
+	Create(ctx context.Context, notif *domain.Notification) error
+	FindByID(ctx context.Context, id string) (*domain.Notification, error)
+	ListByUserID(ctx context.Context, userID string, limit, offset int) ([]domain.Notification, error)
+	GetUnreadCount(ctx context.Context, userID string) (int64, error)
+	UpdateStatus(ctx context.Context, id string, userID string, status string) error
+	MarkAllAsRead(ctx context.Context, userID string) error
+	Delete(ctx context.Context, id string, userID string) error
+	DeletePendingChallenge(ctx context.Context, actorID string, friendID string) error
+}
+

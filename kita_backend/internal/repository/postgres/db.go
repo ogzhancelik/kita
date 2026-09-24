@@ -49,6 +49,7 @@ func NewDatabase() (*gorm.DB, error) {
 		&domain.Message{},
 		&domain.UserSettings{},
 		&domain.Friendship{},
+		&domain.Notification{},
 	); err != nil {
 		return nil, fmt.Errorf("failed to run database auto-migration: %w", err)
 	}

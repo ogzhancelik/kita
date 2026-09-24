@@ -91,9 +91,10 @@ class _GameOverDialogState extends State<GameOverDialog> {
           ),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Reason description
           Text(
             _getLocalizedReason(widget.gameOverData.reason),
@@ -277,6 +278,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
             },
           ),
         ],
+        ),
       ),
       actions: [
         // Back to Menu button

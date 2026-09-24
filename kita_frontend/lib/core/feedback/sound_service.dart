@@ -1,4 +1,4 @@
-﻿import 'package:audioplayers/audioplayers.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 /// Singleton audio service for in-game sound effects.
 ///
@@ -19,7 +19,7 @@ class SoundService {
   int _poolIndex = 0;
 
   // Dedicated player for the game-over fanfare
-  final AudioPlayer _gameOverPlayer = AudioPlayer();
+  AudioPlayer? _gameOverPlayer;
 
   bool _initialized = false;
 
@@ -29,13 +29,16 @@ class SoundService {
     if (_initialized) return;
     _initialized = true;
 
-    for (int i = 0; i < _poolSize; i++) {
-      final player = AudioPlayer();
-      await player.setReleaseMode(ReleaseMode.stop);
-      _pool.add(player);
-    }
+    try {
+      for (int i = 0; i < _poolSize; i++) {
+        final player = AudioPlayer();
+        await player.setReleaseMode(ReleaseMode.stop);
+        _pool.add(player);
+      }
 
-    await _gameOverPlayer.setReleaseMode(ReleaseMode.stop);
+      _gameOverPlayer = AudioPlayer();
+      await _gameOverPlayer?.setReleaseMode(ReleaseMode.stop);
+    } catch (_) {}
   }
 
   // ─── Public API ────────────────────────────────────────────────────────
@@ -49,17 +52,22 @@ class SoundService {
   /// Play the end-of-game notification sound.
   Future<void> playGameOver() async {
     if (!enabled) return;
-    await _gameOverPlayer.stop();
-    await _gameOverPlayer.play(AssetSource('sounds/game_over.mp3'));
+    try {
+      _gameOverPlayer ??= AudioPlayer();
+      await _gameOverPlayer?.stop();
+      await _gameOverPlayer?.play(AssetSource('sounds/game_over.mp3'));
+    } catch (_) {}
   }
 
   // ─── Internals ─────────────────────────────────────────────────────────
 
   Future<void> _playPooled(String assetPath) async {
-    if (!enabled) return;
-    final player = _pool[_poolIndex % _poolSize];
-    _poolIndex++;
-    await player.stop();
-    await player.play(AssetSource(assetPath));
+    if (!enabled || _pool.isEmpty) return;
+    try {
+      final player = _pool[_poolIndex % _pool.length];
+      _poolIndex++;
+      await player.stop();
+      await player.play(AssetSource(assetPath));
+    } catch (_) {}
   }
 }

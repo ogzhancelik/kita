@@ -14,6 +14,7 @@ import '../../widgets/home/dashboard_match_history_card.dart';
 import '../../widgets/home/dashboard_open_rooms_card.dart';
 import '../../widgets/home/dashboard_top_bar.dart';
 import '../../widgets/home/home_notification_summary_card.dart';
+import '../../widgets/home/home_pending_game_card.dart';
 import '../../widgets/home/play_menu_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -31,7 +32,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<NotificationProvider>().setDashboardActive(true);
+      final notifProv = context.read<NotificationProvider>();
+      notifProv.setDashboardActive(true);
+      notifProv.loadNotifications();
       final authProv = context.read<AuthProvider>();
       final onlineProv = context.read<OnlineGameProvider>();
       onlineProv.connectAndListen(
@@ -82,6 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
+                    context.read<OnlineGameProvider>().requestRoomsList(page: 1, limit: 10);
                     await Future.wait([
                       context.read<AuthProvider>().refreshProfile(),
                       Future.delayed(const Duration(milliseconds: 200)),
@@ -138,6 +142,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 10),
                         ],
+
+                        // -1. Pending / Active Game Priority Section (Rejoin active game, open room, or pending challenge)
+                        const HomePendingGameCard(),
 
                         // 0. Notification Summary Card (Max 3 actionable notifications, priority sorted)
                         const HomeNotificationSummaryCard(),

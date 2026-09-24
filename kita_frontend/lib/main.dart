@@ -81,10 +81,17 @@ class _KitaAppState extends State<KitaApp> {
       _friendsProv?.addListener(_onFriendsChanged);
     }
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<NotificationProvider>().loadNotifications();
+      }
+    });
+
     _friendsPollTimer?.cancel();
     _friendsPollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (mounted) {
         _friendsProv?.loadAll();
+        context.read<NotificationProvider>().loadNotifications();
       }
     });
   }
@@ -102,7 +109,11 @@ class _KitaAppState extends State<KitaApp> {
   void _onFriendsChanged() {
     final incoming = _friendsProv?.incomingRequests;
     if (incoming != null && incoming.isNotEmpty && mounted) {
-      context.read<NotificationProvider>().syncFromFriendRequests(incoming);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<NotificationProvider>().syncFromFriendRequests(incoming);
+        }
+      });
     }
   }
 
@@ -129,11 +140,19 @@ class _KitaAppState extends State<KitaApp> {
     } else if (type == 'friend_request_accepted') {
       notifProv.addFriendRequestAcceptedNotification(event['accepter'] as String?);
       _friendsProv?.loadAll();
+    } else if (type == 'invitation_cancelled') {
+      final inviteId = event['invite_id'] as String?;
+      final inviterId = event['inviter_id'] as String?;
+      notifProv.removeOrExpireChallenge(inviteId: inviteId, inviterId: inviterId);
     }
   }
 
   void _onMatchStateChanged() {
     if (_onlineProv?.matchState.value == OnlineMatchState.inMatch && !_isMatchScreenOpen) {
+      if (_onlineProv?.isReconnectedMatch.value == true) {
+        // Player reconnected to an existing match on startup; stay on dashboard to let user Rejoin via card
+        return;
+      }
       _isMatchScreenOpen = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -190,6 +209,14 @@ class _KitaAppState extends State<KitaApp> {
             _isInviteDialogShowing = false;
           });
         });
+      }
+    } else {
+      if (_isInviteDialogShowing) {
+        final navContext = appNavigatorKey.currentContext;
+        if (navContext != null && Navigator.of(navContext, rootNavigator: true).canPop()) {
+          Navigator.of(navContext, rootNavigator: true).pop();
+        }
+        _isInviteDialogShowing = false;
       }
     }
   }

@@ -9,7 +9,7 @@ import '../widgets/game/kita_board_theme.dart';
 class GameSettingsProvider extends ChangeNotifier {
   final SecureStorageService _storage;
 
-  String _boardTheme = 'emerald';
+  String _boardTheme = 'amber_sunset';
   String _boardOrientation = 'horizontal';
   String _flipDirection = 'auto';
 
@@ -83,9 +83,8 @@ class GameSettingsProvider extends ChangeNotifier {
   /// Returns the corresponding [KitaBoardTheme] for current selection.
   KitaBoardTheme currentBoardTheme(bool isDark) {
     switch (_boardTheme) {
-      case 'amber_sunset':
-      case 'amberSunset':
-        return KitaBoardTheme.amberSunset();
+      case 'emerald':
+        return KitaBoardTheme.emerald(isDark);
       case 'ocean_azure':
       case 'oceanAzure':
         return KitaBoardTheme.oceanAzure();
@@ -97,9 +96,10 @@ class GameSettingsProvider extends ChangeNotifier {
         return KitaBoardTheme.slateMonochrome();
       case 'minecraft':
         return KitaBoardTheme.minecraft();
-      case 'emerald':
+      case 'amber_sunset':
+      case 'amberSunset':
       default:
-        return KitaBoardTheme.emerald(isDark);
+        return KitaBoardTheme.amberSunset();
     }
   }
 

@@ -198,8 +198,8 @@ class MatchSettingsDialog extends StatelessWidget {
     bool isDark,
   ) {
     final themes = [
-      {'key': 'emerald', 'nameKey': 'settings.boardThemeEmerald'},
       {'key': 'amber_sunset', 'nameKey': 'settings.boardThemeAmber'},
+      {'key': 'emerald', 'nameKey': 'settings.boardThemeEmerald'},
       {'key': 'ocean_azure', 'nameKey': 'settings.boardThemeOcean'},
       {'key': 'cyber_purple', 'nameKey': 'settings.boardThemePurple'},
       {'key': 'slate_monochrome', 'nameKey': 'settings.boardThemeSlate'},
@@ -306,9 +306,8 @@ class MatchSettingsDialog extends StatelessWidget {
 
   KitaBoardTheme _getPreviewTheme(String key, bool isDark) {
     switch (key) {
-      case 'amber_sunset':
-      case 'amberSunset':
-        return KitaBoardTheme.amberSunset();
+      case 'emerald':
+        return KitaBoardTheme.emerald(isDark);
       case 'ocean_azure':
       case 'oceanAzure':
         return KitaBoardTheme.oceanAzure();
@@ -320,9 +319,10 @@ class MatchSettingsDialog extends StatelessWidget {
         return KitaBoardTheme.slateMonochrome();
       case 'minecraft':
         return KitaBoardTheme.minecraft();
-      case 'emerald':
+      case 'amber_sunset':
+      case 'amberSunset':
       default:
-        return KitaBoardTheme.emerald(isDark);
+        return KitaBoardTheme.amberSunset();
     }
   }
 

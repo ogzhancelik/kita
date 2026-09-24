@@ -103,7 +103,18 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
             );
           }
 
-          final rooms = payload.rooms;
+          final rooms = payload.rooms.where((r) {
+            if (provider.myUserId != null && provider.myUserId!.isNotEmpty && r.hostId == provider.myUserId) {
+              return false;
+            }
+            if (provider.myUsername != null && provider.myUsername!.isNotEmpty && r.hostName == provider.myUsername) {
+              return false;
+            }
+            if (provider.currentRoomCode != null && provider.currentRoomCode!.isNotEmpty && r.roomCode == provider.currentRoomCode) {
+              return false;
+            }
+            return true;
+          }).toList();
           final totalPages = (payload.total / _limit).ceil().clamp(1, 999);
 
           return RefreshIndicator(

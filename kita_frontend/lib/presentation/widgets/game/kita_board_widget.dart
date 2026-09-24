@@ -5,6 +5,17 @@ import 'package:flutter/material.dart';
 import '../../../data/models/game_models.dart';
 import 'kita_board_theme.dart';
 
+/// Data payload carried when dragging a piece on the Kita board.
+class PieceDragData {
+  final String pieceId;
+  final KitaPos fromPos;
+
+  const PieceDragData({
+    required this.pieceId,
+    required this.fromPos,
+  });
+}
+
 class KitaBoardWidget extends StatelessWidget {
   /// Current piece locations mapped by Piece ID (e.g. 'BK': KitaPos(0, 0))
   final Map<String, KitaPos> pieces;
@@ -17,6 +28,18 @@ class KitaBoardWidget extends StatelessWidget {
 
   /// Callback when an active, valid tile is tapped
   final void Function(KitaPos pos)? onTileTap;
+
+  /// Callback when a piece is dropped onto a tile
+  final void Function(KitaPos fromPos, KitaPos toPos)? onPieceDropped;
+
+  /// Callback when dragging starts on a piece
+  final void Function(KitaPos pos)? onPieceDragStarted;
+
+  /// Callback when dragging of a piece is cancelled
+  final void Function(KitaPos pos)? onPieceDragCancelled;
+
+  /// Predicate determining if a piece at the position can be dragged
+  final bool Function(KitaPos pos)? isPieceDraggable;
 
   /// True: 7 cols x 4 rows (horizontal layout, default)
   /// False: 4 cols x 7 rows (vertical layout)
@@ -38,6 +61,10 @@ class KitaBoardWidget extends StatelessWidget {
     this.selectedPos,
     this.validMoves = const {},
     this.onTileTap,
+    this.onPieceDropped,
+    this.onPieceDragStarted,
+    this.onPieceDragCancelled,
+    this.isPieceDraggable,
     this.isHorizontal = true,
     this.flipBoard = false,
     this.theme,
@@ -46,8 +73,7 @@ class KitaBoardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentTheme = theme ?? KitaBoardTheme.emerald(isDark);
+    final currentTheme = theme ?? KitaBoardTheme.amberSunset();
 
     final int colsCount = isHorizontal ? 7 : 4;
     final int rowsCount = isHorizontal ? 4 : 7;
@@ -177,123 +203,216 @@ class KitaBoardWidget extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.all(theme.tileSpacing),
       child: SizedBox.expand(
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTileTap != null ? () => onTileTap!(canonicalPos) : null,
-            borderRadius: BorderRadius.circular(theme.tileBorderRadius),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? theme.selectedHighlightColor
-                    : cellBaseColor,
+        child: DragTarget<PieceDragData>(
+          onWillAcceptWithDetails: (details) => onPieceDropped != null,
+          onAcceptWithDetails: (details) {
+            onPieceDropped?.call(details.data.fromPos, canonicalPos);
+          },
+          builder: (context, candidateData, rejectedData) {
+            final isDragHovered = candidateData.isNotEmpty;
+            final isHoveredValidMove = isDragHovered && isValidMove;
+
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTileTap != null ? () => onTileTap!(canonicalPos) : null,
                 borderRadius: BorderRadius.circular(theme.tileBorderRadius),
-                border: Border.all(
-                  color: isSelected
-                      ? theme.selectedHighlightColor
-                      : isValidMove
-                      ? theme.validMoveHighlightColor
-                      : Colors.white.withValues(alpha: 0.15),
-                  width: (isSelected || isValidMove) ? 2.5 : 0.8,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    offset: const Offset(0, 2),
-                    blurRadius: 3,
-                  ),
-                ],
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                alignment: Alignment.center,
-                children: [
-                  // 1. Tile Step Value Badge (sol üst)
-                  if (theme.showTileValues)
-                    Positioned(
-                      top: 2,
-                      left: 4,
-                      child: Text(
-                        '$tileValue',
-                        style: TextStyle(
-                          fontSize: max(cellSize * 0.20, 9.5),
-                          fontWeight: FontWeight.w900,
-                          color: isSelected
-                              ? Colors.black87
-                              : theme.tileValueColor,
-                        ),
-                      ),
-                    ),
-
-                  // 2. Row Coordinate Label (sol alt - A, B, C, D)
-                  if (theme.showCoordinateLabels && isFirstCol)
-                    Positioned(
-                      bottom: 2,
-                      left: 4,
-                      child: Text(
-                        rowLabel,
-                        style: TextStyle(
-                          fontSize: labelFontSize,
-                          fontWeight: FontWeight.w800,
-                          color: isSelected
-                            ? Colors.black54
-                            : theme.coordinateLabelColor,
-                        ),
-                      ),
-                    ),
-
-                  // 3. Col Coordinate Label (sağ alt - 1, 2, 3, 4, 5, 6, 7)
-                  if (theme.showCoordinateLabels && isLastRow)
-                    Positioned(
-                      bottom: 2,
-                      right: 4,
-                      child: Text(
-                        colLabel,
-                        style: TextStyle(
-                          fontSize: labelFontSize,
-                          fontWeight: FontWeight.w800,
-                          color: isSelected
-                            ? Colors.black54
-                            : theme.coordinateLabelColor,
-                        ),
-                      ),
-                    ),
-
-                  // 4. Valid Move Target Indicator (Ring / Dot)
-                  if (isValidMove)
-                    Center(
-                      child: Container(
-                        width: cellSize * 0.32,
-                        height: cellSize * 0.32,
-                        decoration: BoxDecoration(
-                          color: piece == null
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? theme.selectedHighlightColor
+                        : isHoveredValidMove
+                            ? theme.validMoveHighlightColor.withValues(alpha: 0.35)
+                            : cellBaseColor,
+                    borderRadius: BorderRadius.circular(theme.tileBorderRadius),
+                    border: Border.all(
+                      color: isSelected
+                          ? theme.selectedHighlightColor
+                          : isHoveredValidMove
                               ? theme.validMoveHighlightColor
-                              : Colors.transparent,
-                          shape: BoxShape.circle,
-                          border: piece != null
-                              ? Border.all(
-                                  color: theme.validMoveHighlightColor,
-                                  width: 3.0,
-                                )
-                              : null,
-                        ),
+                              : isValidMove
+                                  ? theme.validMoveHighlightColor
+                                  : Colors.white.withValues(alpha: 0.15),
+                      width: isHoveredValidMove
+                          ? 3.5
+                          : (isSelected || isValidMove)
+                              ? 2.5
+                              : 0.8,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isHoveredValidMove
+                            ? theme.validMoveHighlightColor.withValues(alpha: 0.4)
+                            : Colors.black.withValues(alpha: 0.22),
+                        offset: const Offset(0, 2),
+                        blurRadius: isHoveredValidMove ? 6 : 3,
                       ),
-                    ),
+                    ],
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    alignment: Alignment.center,
+                    children: [
+                      // 1. Tile Step Value Badge (sol üst)
+                      if (theme.showTileValues)
+                        Positioned(
+                          top: 2,
+                          left: 4,
+                          child: Text(
+                            '$tileValue',
+                            style: TextStyle(
+                              fontSize: max(cellSize * 0.20, 9.5),
+                              fontWeight: FontWeight.w900,
+                              color: isSelected
+                                  ? Colors.black87
+                                  : theme.tileValueColor,
+                            ),
+                          ),
+                        ),
 
-                  // 5. Piece on Tile (tam ortada)
-                  if (piece != null)
-                    Center(
-                      child: _renderPiece(context, piece, pieceSize, theme),
-                    ),
-                ],
+                      // 2. Row Coordinate Label (sol alt - A, B, C, D)
+                      if (theme.showCoordinateLabels && isFirstCol)
+                        Positioned(
+                          bottom: 2,
+                          left: 4,
+                          child: Text(
+                            rowLabel,
+                            style: TextStyle(
+                              fontSize: labelFontSize,
+                              fontWeight: FontWeight.w800,
+                              color: isSelected
+                                  ? Colors.black54
+                                  : theme.coordinateLabelColor,
+                            ),
+                          ),
+                        ),
+
+                      // 3. Col Coordinate Label (sağ alt - 1, 2, 3, 4, 5, 6, 7)
+                      if (theme.showCoordinateLabels && isLastRow)
+                        Positioned(
+                          bottom: 2,
+                          right: 4,
+                          child: Text(
+                            colLabel,
+                            style: TextStyle(
+                              fontSize: labelFontSize,
+                              fontWeight: FontWeight.w800,
+                              color: isSelected
+                                  ? Colors.black54
+                                  : theme.coordinateLabelColor,
+                            ),
+                          ),
+                        ),
+
+                      // 4. Valid Move Target Indicator (Ring / Dot)
+                      if (isValidMove)
+                        Center(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 120),
+                            width: cellSize * (isHoveredValidMove ? 0.45 : 0.32),
+                            height: cellSize * (isHoveredValidMove ? 0.45 : 0.32),
+                            decoration: BoxDecoration(
+                              color: piece == null
+                                  ? theme.validMoveHighlightColor
+                                  : Colors.transparent,
+                              shape: BoxShape.circle,
+                              border: piece != null
+                                  ? Border.all(
+                                      color: theme.validMoveHighlightColor,
+                                      width: isHoveredValidMove ? 4.0 : 3.0,
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        ),
+
+                      // 5. Piece on Tile (tam ortada)
+                      if (piece != null)
+                        Center(
+                          child: _buildPieceWidget(
+                            context: context,
+                            piece: piece,
+                            pieceId: pieceId!,
+                            canonicalPos: canonicalPos,
+                            pieceSize: pieceSize,
+                            theme: theme,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPieceWidget({
+    required BuildContext context,
+    required KitaPiece piece,
+    required String pieceId,
+    required KitaPos canonicalPos,
+    required double pieceSize,
+    required KitaBoardTheme theme,
+  }) {
+    final renderedPiece = _renderPiece(context, piece, pieceSize, theme);
+    final canDrag = onPieceDropped != null &&
+        (isPieceDraggable == null || isPieceDraggable!(canonicalPos));
+
+    if (!canDrag) {
+      return renderedPiece;
+    }
+
+    return Draggable<PieceDragData>(
+      data: PieceDragData(pieceId: pieceId, fromPos: canonicalPos),
+      dragAnchorStrategy: childDragAnchorStrategy,
+      onDragStarted: () {
+        onPieceDragStarted?.call(canonicalPos);
+      },
+      onDraggableCanceled: (velocity, offset) {
+        onPieceDragCancelled?.call(canonicalPos);
+      },
+      feedback: Material(
+        color: Colors.transparent,
+        child: SizedBox(
+          width: pieceSize,
+          height: pieceSize,
+          child: Transform.scale(
+            scale: 1.55,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: pieceSize * 0.95,
+                  height: pieceSize * 0.95,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.50),
+                        blurRadius: 20,
+                        spreadRadius: 4,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                ),
+                renderedPiece,
+              ],
             ),
           ),
         ),
       ),
+      childWhenDragging: Opacity(
+        opacity: 0.25,
+        child: renderedPiece,
+      ),
+      child: renderedPiece,
     );
   }
 

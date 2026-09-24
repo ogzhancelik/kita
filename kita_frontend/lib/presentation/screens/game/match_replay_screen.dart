@@ -492,7 +492,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   KitaBoardTheme _getBoardTheme(bool isDark) {
     switch (_themeIndex) {
       case 1:
-        return KitaBoardTheme.amberSunset();
+        return KitaBoardTheme.emerald(isDark);
       case 2:
         return KitaBoardTheme.oceanAzure();
       case 3:
@@ -501,7 +501,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         return KitaBoardTheme.slateMonochrome();
       case 0:
       default:
-        return KitaBoardTheme.emerald(isDark);
+        return KitaBoardTheme.amberSunset();
     }
   }
 

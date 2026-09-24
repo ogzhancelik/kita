@@ -36,7 +36,7 @@ var (
 
 type UserSettings struct {
 	UserID            string    `json:"-" gorm:"primaryKey;type:uuid"`
-	BoardTheme        string    `json:"board_theme" gorm:"type:varchar(32);default:'emerald'"`
+	BoardTheme        string    `json:"board_theme" gorm:"type:varchar(32);default:'amber_sunset'"`
 	BoardOrientation  string    `json:"board_orientation" gorm:"type:varchar(32);default:'horizontal'"`
 	SoundEnabled      bool      `json:"sound_enabled" gorm:"default:true"`
 	HapticsEnabled    bool      `json:"haptics_enabled" gorm:"default:true"`
@@ -47,12 +47,14 @@ type UserSettings struct {
 	UpdatedAt         time.Time `json:"-"`
 }
 
+const DefaultBoardTheme = "amber_sunset"
+
 // DefaultSettings returns a new UserSettings struct populated with system defaults.
 func DefaultSettings(userID string) UserSettings {
 	now := time.Now().UTC()
 	return UserSettings{
 		UserID:            userID,
-		BoardTheme:        "minecraft",
+		BoardTheme:        DefaultBoardTheme,
 		BoardOrientation:  "horizontal",
 		SoundEnabled:      true,
 		HapticsEnabled:    true,

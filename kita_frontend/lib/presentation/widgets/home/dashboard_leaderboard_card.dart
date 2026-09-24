@@ -28,7 +28,9 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
   }
 
   Future<void> _fetchTopPlayers() async {
-    setState(() => _isLoading = true);
+    if (!_isLoading && mounted) {
+      setState(() => _isLoading = true);
+    }
     try {
       final list = await _apiService.getLeaderboard(
         limit: 3,

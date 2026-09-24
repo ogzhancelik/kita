@@ -95,8 +95,8 @@ func TestSettingsHandler_GetDefaults(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if res.BoardTheme != "emerald" {
-		t.Errorf("expected emerald, got %s", res.BoardTheme)
+	if res.BoardTheme != domain.DefaultBoardTheme {
+		t.Errorf("expected %s, got %s", domain.DefaultBoardTheme, res.BoardTheme)
 	}
 }
 
@@ -127,8 +127,8 @@ func TestSettingsHandler_GetSettings_Auth(t *testing.T) {
 	if err := json.Unmarshal(wAuth.Body.Bytes(), &res); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if res.BoardTheme != "emerald" {
-		t.Errorf("expected board_theme 'emerald', got %s", res.BoardTheme)
+	if res.BoardTheme != domain.DefaultBoardTheme {
+		t.Errorf("expected board_theme '%s', got %s", domain.DefaultBoardTheme, res.BoardTheme)
 	}
 }
 

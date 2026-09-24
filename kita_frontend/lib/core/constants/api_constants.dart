@@ -45,6 +45,12 @@ class ApiConstants {
   static String declineFriendRequest(String id) => '/api/friends/$id/decline';
   static String removeFriend(String id) => '/api/friends/$id';
 
+  // Notifications
+  static const String notifications = '/api/notifications';
+  static String notificationStatus(String id) => '/api/notifications/$id/status';
+  static const String markAllNotificationsRead = '/api/notifications/mark-all-read';
+  static String deleteNotification(String id) => '/api/notifications/$id';
+
   // WebSocket
   static String get wsUrl {
     final uri = Uri.parse(baseUrl);

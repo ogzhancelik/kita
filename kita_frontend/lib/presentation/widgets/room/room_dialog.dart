@@ -63,41 +63,44 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
       });
     }
 
-    return ValueListenableBuilder<OnlineMatchState>(
-      valueListenable: provider.matchState,
-      builder: (context, matchState, _) {
-        return ValueListenableBuilder<String?>(
-          valueListenable: provider.roomCode,
-          builder: (context, code, _) {
-            final isWaiting =
-                matchState == OnlineMatchState.inRoom && code != null && code.isNotEmpty;
+    return PopScope(
+      canPop: true,
+      child: ValueListenableBuilder<OnlineMatchState>(
+        valueListenable: provider.matchState,
+        builder: (context, matchState, _) {
+          return ValueListenableBuilder<String?>(
+            valueListenable: provider.roomCode,
+            builder: (context, code, _) {
+              final isWaiting =
+                  matchState == OnlineMatchState.inRoom && code != null && code.isNotEmpty;
 
-            if (isWaiting && _isSubmitting) {
-              _isSubmitting = false;
-            }
+              if (isWaiting && _isSubmitting) {
+                _isSubmitting = false;
+              }
 
-            return Dialog(
-              backgroundColor: AppColors.getCard(isDark),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: AnimatedSize(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
-                  child: isWaiting
-                      ? _buildWaitingContent(context, provider, isDark, code)
-                      : _buildCreateContent(context, provider, isDark),
+              return Dialog(
+                backgroundColor: AppColors.getCard(isDark),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ),
-            );
-          },
-        );
-      },
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    child: isWaiting
+                        ? _buildWaitingContent(context, provider, isDark, code)
+                        : _buildCreateContent(context, provider, isDark),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -362,22 +365,32 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
           ),
           const SizedBox(height: 20),
 
-          // Cancel / Leave Button
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () {
-                provider.leaveRoom();
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'online.cancel'.tr(),
-                style: const TextStyle(
-                  color: AppColors.lossRed,
-                  fontWeight: FontWeight.w600,
+          // Action Buttons: Close (keep in background) & Cancel Room
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                label: Text('online.keepRoomInBackground'.tr()),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.getTextSecondary(isDark),
                 ),
               ),
-            ),
+              TextButton(
+                onPressed: () {
+                  provider.leaveRoom();
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  'online.cancelRoom'.tr(),
+                  style: const TextStyle(
+                    color: AppColors.lossRed,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

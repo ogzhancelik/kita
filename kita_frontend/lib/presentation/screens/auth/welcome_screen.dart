@@ -1,10 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../providers/online_game_provider.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/responsive_layout.dart';
-import '../game/offline_ai_screen.dart';
+import '../game/online_match_screen.dart';
 import 'guest_setup_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
@@ -118,8 +120,13 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
+                    context.read<OnlineGameProvider>().startOfflineMatch(
+                      mode: PlayMode.vsAi,
+                    );
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const OfflineAiScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const OnlineMatchScreen(),
+                      ),
                     );
                   },
                 ),

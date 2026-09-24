@@ -104,8 +104,11 @@ class _ErrorInterceptor extends Interceptor {
       translated = messageKey;
     }
 
-    // Show floating toast
-    KitaToast.error(translated);
+    // Show floating toast if not marked silent
+    final isSilent = err.requestOptions.extra['silent'] == true;
+    if (!isSilent) {
+      KitaToast.error(translated);
+    }
 
     return handler.next(err);
   }

@@ -7,7 +7,7 @@ import (
 
 func TestMatchmakingQueueToss(t *testing.T) {
 	mockService := &mockMatchService{}
-	hub := NewHub(mockService, nil)
+	hub := NewHub(mockService, nil, nil)
 
 	sConn1, _ := setupTestWS(t)
 	sConn2, _ := setupTestWS(t)
@@ -59,7 +59,7 @@ func TestMatchmakingQueueToss(t *testing.T) {
 
 func TestDirectInviteColorPreference(t *testing.T) {
 	mockService := &mockMatchService{}
-	hub := NewHub(mockService, nil)
+	hub := NewHub(mockService, nil, nil)
 
 	sConn1, _ := setupTestWS(t)
 	sConn2, _ := setupTestWS(t)

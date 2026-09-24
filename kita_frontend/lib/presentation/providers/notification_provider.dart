@@ -5,14 +5,45 @@ import 'package:provider/provider.dart';
 import '../../data/models/friend_models.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/models/ws_message_models.dart';
+import '../../data/services/notification_api_service.dart';
 import 'friends_provider.dart';
 import 'online_game_provider.dart';
 
 class NotificationProvider extends ChangeNotifier {
+  final NotificationApiService _apiService;
   final List<KitaNotification> _notifications = [];
   bool _isDashboardActive = true;
+  bool _isLoading = false;
+
+  NotificationProvider([NotificationApiService? apiService])
+      : _apiService = apiService ?? NotificationApiService();
 
   bool get isDashboardActive => _isDashboardActive;
+  bool get isLoading => _isLoading;
+
+  /// Loads persistent notifications from the backend.
+  Future<void> loadNotifications() async {
+    _isLoading = true;
+
+    try {
+      final result = await _apiService.fetchNotifications();
+      // Keep any active live rematch notifications in memory
+      final rematches = _notifications.where((n) => n.type == KitaNotificationType.rematch).toList();
+      _notifications.clear();
+      _notifications.addAll(rematches);
+
+      for (final n in result.notifications) {
+        if (!_notifications.any((existing) => existing.id == n.id)) {
+          _notifications.add(n);
+        }
+      }
+    } catch (e) {
+      debugPrint('[NotificationProvider] Failed to load notifications: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   void setDashboardActive(bool active) {
     if (_isDashboardActive != active) {
@@ -79,6 +110,9 @@ class NotificationProvider extends ChangeNotifier {
     }
     if (changed) {
       notifyListeners();
+      _apiService.markAllAsRead().catchError((e) {
+        debugPrint('[NotificationProvider] Failed to sync markAllAsRead to backend: $e');
+      });
     }
   }
 
@@ -91,6 +125,9 @@ class NotificationProvider extends ChangeNotifier {
         status: NotificationStatus.ignored,
       );
       notifyListeners();
+      _apiService.updateStatus(id, NotificationStatus.ignored).catchError((e) {
+        debugPrint('[NotificationProvider] Failed to sync ignoreNotification to backend: $e');
+      });
     }
   }
 
@@ -103,6 +140,12 @@ class NotificationProvider extends ChangeNotifier {
     // Mark as accepted immediately in state
     _notifications[idx] = notif.copyWith(status: NotificationStatus.accepted);
     notifyListeners();
+
+    if (notif.type != KitaNotificationType.rematch) {
+      _apiService.updateStatus(id, NotificationStatus.accepted).catchError((e) {
+        debugPrint('[NotificationProvider] Failed to sync acceptNotification to backend: $e');
+      });
+    }
 
     try {
       if (notif.type == KitaNotificationType.rematch) {
@@ -134,6 +177,12 @@ class NotificationProvider extends ChangeNotifier {
     _notifications[idx] = notif.copyWith(status: NotificationStatus.declined);
     notifyListeners();
 
+    if (notif.type != KitaNotificationType.rematch) {
+      _apiService.updateStatus(id, NotificationStatus.declined).catchError((e) {
+        debugPrint('[NotificationProvider] Failed to sync declineNotification to backend: $e');
+      });
+    }
+
     try {
       if (notif.type == KitaNotificationType.rematch) {
         final onlineProv = context.read<OnlineGameProvider>();
@@ -161,6 +210,9 @@ class NotificationProvider extends ChangeNotifier {
     if (idx >= 0) {
       _notifications[idx] = _notifications[idx].copyWith(status: status);
       notifyListeners();
+      _apiService.updateStatus(id, status).catchError((e) {
+        debugPrint('[NotificationProvider] Failed to sync friendship action to backend: $e');
+      });
     }
   }
 
@@ -192,6 +244,28 @@ class NotificationProvider extends ChangeNotifier {
       timestamp: DateTime.now(),
     );
     addNotification(notif);
+  }
+
+  /// Remove or decline an incoming challenge that was cancelled by inviter.
+  void removeOrExpireChallenge({String? inviteId, String? inviterId}) {
+    bool removed = false;
+    _notifications.removeWhere((n) {
+      if (n.type != KitaNotificationType.challenge) return false;
+      final matchInvite = (inviteId != null && inviteId.isNotEmpty) &&
+          (n.inviteId == inviteId || n.id == 'challenge_$inviteId' || n.id == inviteId);
+      final matchInviter = (inviterId != null && inviterId.isNotEmpty) &&
+          (n.actorId == inviterId);
+      if (matchInvite || matchInviter) {
+        removed = true;
+        return true;
+      }
+      return false;
+    });
+
+    if (removed) {
+      notifyListeners();
+    }
+    loadNotifications();
   }
 
   /// Add informational notification for friend request rejection.
@@ -255,6 +329,9 @@ class NotificationProvider extends ChangeNotifier {
   void removeNotification(String id) {
     _notifications.removeWhere((n) => n.id == id);
     notifyListeners();
+    _apiService.deleteNotification(id).catchError((e) {
+      debugPrint('[NotificationProvider] Failed to sync deleteNotification to backend: $e');
+    });
   }
 
   /// Clear all read/actioned/ignored notifications.
@@ -290,6 +367,7 @@ class NotificationProvider extends ChangeNotifier {
       senderRating: req.senderRating,
       timeControl: req.timeControl,
       colorPreference: req.colorPreference,
+      actorId: req.senderId,
       matchId: notifType == KitaNotificationType.rematch ? req.id : null,
       inviteId: notifType == KitaNotificationType.challenge ? req.id : null,
       timestamp: DateTime.now(),
@@ -300,6 +378,7 @@ class NotificationProvider extends ChangeNotifier {
 
   /// Synchronize incoming friend requests from FriendsProvider.
   void syncFromFriendRequests(List<FriendItemModel> incoming) {
+    bool changed = false;
     for (final item in incoming) {
       final id = 'friend_request_${item.friendshipId}';
       final existingIdx = _notifications.indexWhere((n) => n.id == id);
@@ -316,8 +395,11 @@ class NotificationProvider extends ChangeNotifier {
           timestamp: item.createdAt,
         );
         _notifications.insert(0, notif);
+        changed = true;
       }
     }
-    notifyListeners();
+    if (changed) {
+      notifyListeners();
+    }
   }
 }

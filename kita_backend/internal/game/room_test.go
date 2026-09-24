@@ -73,7 +73,7 @@ func TestRoomMoveBufferingAndExecution(t *testing.T) {
 	mockService := &mockMatchService{
 		saveChan: make(chan *domain.Match, 1),
 	}
-	hub := NewHub(mockService, nil)
+	hub := NewHub(mockService, nil, nil)
 
 	sConn1, cConn1 := setupTestWS(t)
 	sConn2, cConn2 := setupTestWS(t)
@@ -153,7 +153,7 @@ func TestRoomClockNoElapsedLeakToOpponent(t *testing.T) {
 	mockService := &mockMatchService{
 		saveChan: make(chan *domain.Match, 1),
 	}
-	hub := NewHub(mockService, nil)
+	hub := NewHub(mockService, nil, nil)
 
 	sConn1, cConn1 := setupTestWS(t)
 	sConn2, cConn2 := setupTestWS(t)

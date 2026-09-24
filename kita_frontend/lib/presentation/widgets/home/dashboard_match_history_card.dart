@@ -47,10 +47,12 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
     }
 
     if (reset) {
-      setState(() {
-        _isLoading = true;
-        _offset = 0;
-      });
+      _offset = 0;
+      if (!_isLoading && mounted) {
+        setState(() {
+          _isLoading = true;
+        });
+      }
     }
 
     try {

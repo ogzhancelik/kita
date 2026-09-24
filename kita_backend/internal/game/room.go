@@ -50,6 +50,10 @@ type Room struct {
 	// Rematch tracking
 	RematchRequester string // UserID of who requested rematch
 
+	// Disconnect / Reconnect grace period
+	disconnectPlayerID string
+	disconnectTimer    *time.Timer
+
 	StartedAt    time.Time
 	mu           sync.RWMutex
 	matchService ports.MatchService
@@ -448,38 +452,154 @@ func (r *Room) Resign(playerID string) error {
 	return nil
 }
 
-// ─── Disconnect ───────────────────────────────────────────────────────
+// ─── Disconnect & Reconnect ──────────────────────────────────────────
 
 func (r *Room) HandleDisconnect(playerID string) {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	if r.isFinished {
+		r.mu.Unlock()
 		return
 	}
 
 	if r.Status == "waiting" {
+		r.mu.Unlock()
 		r.hub.CloseRoom(r.ID)
 		return
 	}
 
-	var winnerID *string
-	var winnerTeam string
-	var result string
+	// Active match: Give a grace period for reconnection (45s or remaining time if lower)
+	if r.disconnectTimer != nil {
+		r.disconnectTimer.Stop()
+	}
+	r.disconnectPlayerID = playerID
 
-	if playerID == r.WhitePlayer.UserID {
-		winnerID = &r.BlackPlayer.UserID
-		winnerTeam = "black"
-		result = string(domain.ResultBlackWins)
-	} else if playerID == r.BlackPlayer.UserID {
-		winnerID = &r.WhitePlayer.UserID
-		winnerTeam = "white"
-		result = string(domain.ResultWhiteWins)
-	} else {
-		return
+	graceDuration := 45 * time.Second
+	if r.TimeControl > 0 {
+		var remMs int64
+		if r.WhitePlayer != nil && playerID == r.WhitePlayer.UserID {
+			remMs = r.WhiteRemainingMs
+		} else if r.BlackPlayer != nil && playerID == r.BlackPlayer.UserID {
+			remMs = r.BlackRemainingMs
+		}
+		if remMs > 0 && time.Duration(remMs)*time.Millisecond < graceDuration {
+			graceDuration = time.Duration(remMs) * time.Millisecond
+		}
 	}
 
-	r.finishWithExplicitWinnerLocked(winnerID, winnerTeam, result, domain.ReasonDisconnected)
+	log.Printf("[Room %s] Player %s disconnected. Grace period %v started.", r.ID, playerID, graceDuration)
+
+	var opp *Client
+	if r.WhitePlayer != nil && playerID == r.WhitePlayer.UserID {
+		opp = r.BlackPlayer
+	} else if r.BlackPlayer != nil && playerID == r.BlackPlayer.UserID {
+		opp = r.WhitePlayer
+	}
+	if opp != nil {
+		opp.SendJSON("opponent_disconnected", map[string]any{
+			"player_id":     playerID,
+			"grace_seconds": int(graceDuration.Seconds()),
+		})
+	}
+
+	r.disconnectTimer = time.AfterFunc(graceDuration, func() {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+
+		if r.isFinished || r.disconnectPlayerID != playerID {
+			return
+		}
+
+		log.Printf("[Room %s] Disconnect grace period expired for %s. Forfeiting.", r.ID, playerID)
+		var winnerID *string
+		var winnerTeam string
+		var result string
+
+		if r.WhitePlayer != nil && playerID == r.WhitePlayer.UserID {
+			if r.BlackPlayer != nil {
+				winnerID = &r.BlackPlayer.UserID
+			}
+			winnerTeam = "black"
+			result = string(domain.ResultBlackWins)
+		} else if r.BlackPlayer != nil && playerID == r.BlackPlayer.UserID {
+			if r.WhitePlayer != nil {
+				winnerID = &r.WhitePlayer.UserID
+			}
+			winnerTeam = "white"
+			result = string(domain.ResultWhiteWins)
+		} else {
+			return
+		}
+
+		r.finishWithExplicitWinnerLocked(winnerID, winnerTeam, result, domain.ReasonDisconnected)
+	})
+	r.mu.Unlock()
+}
+
+func (r *Room) HandleReconnect(client *Client) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.isFinished || r.Status != "in_game" {
+		return false
+	}
+
+	var team string
+	var opp *Client
+	if r.WhitePlayer != nil && r.WhitePlayer.UserID == client.UserID {
+		team = "white"
+		r.WhitePlayer = client
+		opp = r.BlackPlayer
+	} else if r.BlackPlayer != nil && r.BlackPlayer.UserID == client.UserID {
+		team = "black"
+		r.BlackPlayer = client
+		opp = r.WhitePlayer
+	} else {
+		return false
+	}
+
+	client.CurrentMatchID = r.ID
+
+	if r.disconnectPlayerID == client.UserID {
+		if r.disconnectTimer != nil {
+			r.disconnectTimer.Stop()
+			r.disconnectTimer = nil
+		}
+		r.disconnectPlayerID = ""
+	}
+
+	log.Printf("[Room %s] Player %s reconnected as %s", r.ID, client.Username, team)
+
+	// Send MatchFound with IsReconnect: true
+	oppID := ""
+	oppName := ""
+	oppRating := 1200
+	if opp != nil {
+		oppID = opp.UserID
+		oppName = opp.Username
+		oppRating = opp.Rating
+	}
+
+	client.SendJSON(TypeMatchFound, MatchFoundDTO{
+		MatchID:        r.ID,
+		YourTeam:       team,
+		OpponentID:     oppID,
+		OpponentName:   oppName,
+		OpponentRating: oppRating,
+		TimeControl:    r.TimeControl,
+		IsReconnect:    true,
+	})
+
+	// Send authoritative current game state
+	r.sendStateToClientLocked(client)
+
+	if opp != nil {
+		opp.SendJSON("opponent_reconnected", map[string]any{
+			"player_id": client.UserID,
+		})
+	}
+
+	return true
 }
 
 // ─── Finish Game ──────────────────────────────────────────────────────
@@ -513,6 +633,13 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		r.timeoutTimer.Stop()
 		r.timeoutTimer = nil
 	}
+
+	// Stop disconnect grace timer
+	if r.disconnectTimer != nil {
+		r.disconnectTimer.Stop()
+		r.disconnectTimer = nil
+	}
+	r.disconnectPlayerID = ""
 
 	// Final time deduction
 	if r.TimeControl > 0 {
@@ -583,7 +710,10 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 
 // ─── Broadcast State ──────────────────────────────────────────────────
 
-func (r *Room) broadcastStateLocked() {
+func (r *Room) sendStateToClientLocked(client *Client) {
+	if client == nil {
+		return
+	}
 	legalGameMoves := r.Game.GetLegalMoves()
 	legalDTOs := make([]MoveDTO, 0, len(legalGameMoves))
 	for _, m := range legalGameMoves {
@@ -624,10 +754,14 @@ func (r *Room) broadcastStateLocked() {
 		LastMove:         r.LastMoveDTO,
 	}
 
-	r.WhitePlayer.SendJSON(TypeGameState, stateDTO)
-	r.BlackPlayer.SendJSON(TypeGameState, stateDTO)
+	client.SendJSON(TypeGameState, stateDTO)
+}
+
+func (r *Room) broadcastStateLocked() {
+	r.sendStateToClientLocked(r.WhitePlayer)
+	r.sendStateToClientLocked(r.BlackPlayer)
 	for _, spec := range r.Spectators {
-		spec.SendJSON(TypeGameState, stateDTO)
+		r.sendStateToClientLocked(spec)
 	}
 }
 

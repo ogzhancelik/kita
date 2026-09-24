@@ -69,11 +69,11 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Map model output value + negamax search back to valid `KitaMove` actions via legal move ranking.
   - [x] Legal move masking guaranteed by evaluating only `getLegalMoves()` candidates.
 - [x] **Difficulty & Sparring Configuration**:
-  - [x] Three AI difficulty tiers (Easy: depth=1/temp=0.5, Medium: depth=2/temp=0.2, Hard: depth=3/temp=0.1) in `offline_ai_screen.dart`.
+  - [x] Pre-game configuration dialogue (`VsAiConfigDialog`) with three AI difficulty tiers (Beginner: 1000 ELO / Intermediate: 1200 ELO / Grandmaster: 1400 ELO) and Side selection (White / Random / Black).
 - [x] **Frontend Integration (Offline)**:
-  - [x] AI Bot integrated into `offline_ai_screen.dart` as unified Easy / Medium / Hard difficulty options.
+  - [x] AI Bot and Local Pass & Play integrated directly into the unified modern `OnlineMatchScreen` architecture, eliminating legacy prototype screen.
   - [x] Opening book (923 positions) bundled as Flutter asset for instant lookup.
-  - [x] Player side selection (White / Black) with auto-opening move for AI when playing as White, perspective board flipping, and dynamic turn indicators.
+  - [x] Player side selection (White / Black / Random) with auto-opening move for AI when playing as White, perspective board flipping, and dynamic turn indicators.
 
 ---
 
@@ -85,12 +85,14 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Generate short room codes or shareable invite links
   - [x] Room state lifecycle (Waiting, In-Game, Finished, Closed)
   - [x] Paginated public rooms listing API with search & limits
+  - [x] Real-time public rooms list broadcasting & sync across all connected clients on room creation, joining, cancellation, and disconnection
 - [x] **Room Join & Invitation (Frontend)**:
   - [x] "Create Room" dialog with time controls (Bullet, Blitz, Rapid, Unlimited) & private toggle
   - [x] "Join by Code" dialog with 6-character room code input
   - [x] Paginated public room browser screen (`RoomBrowserScreen`) with pull-to-refresh
   - [x] Friend / user direct invite system & Rematch requests via unified top-of-screen animated notification banner (`TopMatchInviteBanner`) with countdown timer and one-tap accept/decline
   - [x] Friend invite side/color preference dialog (Random, White, Black) and recipient side indicator
+  - [x] Single-item priority Pending/Active Game section on Dashboard above notifications: seamless Rejoin for active matches (with backend disconnect grace period & reconnection support), open room info (synchronized with live rooms list, host room tracking, host room excluded from joinable open rooms list, and swipe to close), and outgoing friend challenges (swipe to cancel with real-time removal & database deletion from friend's notifications)
 
 ### 2. Matchmaking
 - [x] **Matchmaking Queue (Backend)**:
@@ -105,9 +107,23 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **WebSocket Chat Channel**:
   - [x] Room-scoped chat stream alongside game state packets
   - [x] Rate limiting (max 200 chars) and message validation
-- [x] **In-Game Chat Features**:
-  - [x] Slide-out chat panel (`ChatPanel`) with unread badge counter and auto-scroll
-  - [x] In-game control bar with resign confirm, total match elapsed timer, and chat toggle
+- [x] **In-Game Chat & Navigation Features**:
+  - [x] Inline chat panel (`ChatPanel`) with unread badge counter, auto-scroll, and sticked layout with player cards and board
+  - [x] In-game bottom bar with match elapsed timer and chat toggle
+  - [x] In-game Hamburger Menu: Quick access to Settings (`SettingsDialog` / `MatchSettingsDialog`), Resign, Draw Offer, and Rotate Board (dynamic board panel and chat panel resizing keeping all components sticked together)
+  - [x] In-game Board Interaction: Smooth drag-and-drop piece movement + tap-to-move; dynamic hover feedback on valid drop targets; deselect already selected tile on second tap; inspect own pieces & legal moves during opponent turn without moving
+
+### 4. Persistent Notifications (Backend-Driven)
+- [x] **Backend Infrastructure**:
+  - [x] PostgreSQL `notifications` table schema with GORM auto-migration (`domain.Notification`).
+  - [x] Repository and Service layer (`NotificationRepository`, `NotificationService`) supporting pagination, unread counts, status transitions, and dismissal.
+  - [x] REST API endpoints (`GET /api/notifications`, `PATCH /api/notifications/:id/status`, `POST /api/notifications/mark-all-read`, `DELETE /api/notifications/:id`).
+  - [x] Automatic database persistence of friend requests, accept/decline responses, friend match challenges, and challenge/rematch rejections in `FriendHandler` and `Hub`.
+- [x] **Frontend Synchronization**:
+  - [x] `NotificationApiService` with Dio client and API constants.
+  - [x] `KitaNotification` serialization (`fromJson` / `toJson`).
+  - [x] `NotificationProvider` optimistic state management with background API synchronization.
+  - [x] Automatic startup loading and polling synchronization across dashboard and notification views.
 
 ---
 
@@ -118,7 +134,6 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Rating adjustment rules for draws, resignations, and disconnects
 - [x] **Leaderboards**:
   - [x] Global top players ranking (Backend API & Frontend Leaderboard Screen with Top 3 Podium)
-  - [ ] User rank tier badges (e.g., Bronze, Silver, Gold, Grandmaster)
   - [x] Filter by friends leaderboard
 
 ---

@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"log"
 	"math/rand"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 )
@@ -22,22 +24,24 @@ type Hub struct {
 	Register   chan *Client
 	Unregister chan *Client
 
-	matchService   ports.MatchService
-	messageService ports.MessageService
+	matchService        ports.MatchService
+	messageService      ports.MessageService
+	notificationService ports.NotificationService
 
 	mu sync.RWMutex
 }
 
-func NewHub(matchService ports.MatchService, messageService ports.MessageService) *Hub {
+func NewHub(matchService ports.MatchService, messageService ports.MessageService, notificationService ports.NotificationService) *Hub {
 	return &Hub{
-		clients:          make(map[string]*Client),
-		rooms:            make(map[string]*Room),
-		roomCodes:        make(map[string]string),
-		matchmakingQueue: make([]*Client, 0),
-		Register:         make(chan *Client),
-		Unregister:       make(chan *Client),
-		matchService:     matchService,
-		messageService:   messageService,
+		clients:             make(map[string]*Client),
+		rooms:               make(map[string]*Room),
+		roomCodes:           make(map[string]string),
+		matchmakingQueue:    make([]*Client, 0),
+		Register:            make(chan *Client),
+		Unregister:          make(chan *Client),
+		matchService:        matchService,
+		messageService:      messageService,
+		notificationService: notificationService,
 	}
 }
 
@@ -50,20 +54,59 @@ func (h *Hub) Run() {
 		case client := <-h.Register:
 			h.mu.Lock()
 			h.clients[client.UserID] = client
+
+			// Check if client has an active match or waiting room to reconnect
+			var matchedRoom *Room
+			for _, r := range h.rooms {
+				r.mu.RLock()
+				if !r.isFinished && r.Status == "in_game" {
+					if (r.WhitePlayer != nil && r.WhitePlayer.UserID == client.UserID) ||
+						(r.BlackPlayer != nil && r.BlackPlayer.UserID == client.UserID) {
+						matchedRoom = r
+					}
+				} else if r.Status == "waiting" && r.Host != nil && r.Host.UserID == client.UserID {
+					matchedRoom = r
+				}
+				r.mu.RUnlock()
+				if matchedRoom != nil {
+					break
+				}
+			}
 			h.mu.Unlock()
+
 			client.SendJSON(TypeConnected, map[string]any{
 				"user_id":  client.UserID,
 				"username": client.Username,
 				"rating":   client.Rating,
 			})
 			log.Printf("[Hub] Client connected: %s (%s)", client.Username, client.UserID)
+
+			if matchedRoom != nil {
+				if matchedRoom.Status == "in_game" {
+					matchedRoom.HandleReconnect(client)
+				} else if matchedRoom.Status == "waiting" {
+					matchedRoom.mu.Lock()
+					matchedRoom.Host = client
+					client.CurrentMatchID = matchedRoom.ID
+					roomCode := matchedRoom.RoomCode
+					tc := matchedRoom.TimeControl
+					matchedRoom.mu.Unlock()
+					client.SendJSON(TypeRoomCreated, RoomCreatedDTO{
+						RoomCode:    roomCode,
+						TimeControl: tc,
+					})
+				}
+			}
+
 			h.BroadcastOnlineCount()
+			h.BroadcastRoomsList()
 
 		case client := <-h.Unregister:
 			h.handleDisconnect(client)
 
 		case <-ticker.C:
 			h.BroadcastOnlineCount()
+			h.BroadcastRoomsList()
 		}
 	}
 }
@@ -163,6 +206,9 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 	case TypeDeclineInvite:
 		h.handleDeclineInvite(client, msg.Payload)
 
+	case TypeCancelInvite:
+		h.handleCancelInvite(client, msg.Payload)
+
 	case TypeLeaveRoom:
 		h.handleLeaveRoom(client)
 
@@ -184,6 +230,7 @@ func (h *Hub) handleJoinQueue(client *Client) {
 			delete(h.roomCodes, oldRoom.RoomCode)
 			delete(h.rooms, client.CurrentMatchID)
 			client.CurrentMatchID = ""
+			h.broadcastRoomsListLocked()
 		} else {
 			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 			return
@@ -194,6 +241,18 @@ func (h *Hub) handleJoinQueue(client *Client) {
 		if queued.UserID == client.UserID {
 			client.SendError(errors.ErrAlreadyInQueue, "You are already in queue")
 			return
+		}
+	}
+
+	// Clean up any unstarted waiting room hosted by this client
+	for id, r := range h.rooms {
+		if r.Status == "waiting" && r.Host != nil && r.Host.UserID == client.UserID {
+			delete(h.roomCodes, r.RoomCode)
+			delete(h.rooms, id)
+			client.CurrentMatchID = ""
+			h.broadcastRoomsListLocked()
+			log.Printf("[Hub] Host %s cancelled waiting room %s to join queue", client.Username, id)
+			break
 		}
 	}
 
@@ -248,16 +307,23 @@ func (h *Hub) handleCreateRoom(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	// If client is already in an active playing match, reject
 	if client.CurrentMatchID != "" {
-		// If client is already the host of an unstarted waiting room, clean it up and recreate
-		if oldRoom, exists := h.rooms[client.CurrentMatchID]; exists && oldRoom.Status == "waiting" && oldRoom.Host != nil && oldRoom.Host.UserID == client.UserID {
-			log.Printf("[Hub] Host %s replacing unstarted waiting room %s (Code: %s)", client.Username, oldRoom.ID, oldRoom.RoomCode)
-			delete(h.roomCodes, oldRoom.RoomCode)
-			delete(h.rooms, client.CurrentMatchID)
-			client.CurrentMatchID = ""
-		} else {
+		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" {
 			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 			return
+		}
+	}
+
+	// Clean up ANY prior waiting room hosted by this client (guarantees strictly 1 room per player)
+	for id, r := range h.rooms {
+		if r.Status == "waiting" && r.Host != nil && r.Host.UserID == client.UserID {
+			log.Printf("[Hub] Host %s replacing unstarted waiting room %s (Code: %s)", client.Username, id, r.RoomCode)
+			delete(h.roomCodes, r.RoomCode)
+			delete(h.rooms, id)
+			if client.CurrentMatchID == id {
+				client.CurrentMatchID = ""
+			}
 		}
 	}
 
@@ -287,29 +353,36 @@ func (h *Hub) handleCreateRoom(client *Client, rawPayload json.RawMessage) {
 	room := NewCustomRoom(matchID, roomCode, client, dto.IsPrivate, timeControl, h.matchService, h)
 	h.rooms[matchID] = room
 	h.roomCodes[roomCode] = matchID
+	client.CurrentMatchID = matchID
 
 	client.SendJSON(TypeRoomCreated, RoomCreatedDTO{
 		RoomCode:    roomCode,
 		TimeControl: timeControl,
+		IsPrivate:   dto.IsPrivate,
 	})
 	log.Printf("[Hub] Custom room created: %s (Code: %s, TC: %dms) by %s", matchID, roomCode, timeControl, client.Username)
+	h.broadcastRoomsListLocked()
 }
 
 func (h *Hub) handleJoinRoom(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.CurrentMatchID != "" {
-		// If client was hosting an unstarted waiting room, clean it up so they can join another room
-		if oldRoom, exists := h.rooms[client.CurrentMatchID]; exists && oldRoom.Status == "waiting" && oldRoom.Host != nil && oldRoom.Host.UserID == client.UserID {
-			log.Printf("[Hub] Host %s abandoning unstarted room %s (Code: %s) to join another room", client.Username, oldRoom.ID, oldRoom.RoomCode)
-			delete(h.roomCodes, oldRoom.RoomCode)
-			delete(h.rooms, client.CurrentMatchID)
+	// If client was hosting an unstarted waiting room, clean it up so they can join another room
+	for id, r := range h.rooms {
+		if r.Status == "waiting" && r.Host != nil && r.Host.UserID == client.UserID {
+			log.Printf("[Hub] Host %s abandoning unstarted room %s (Code: %s) to join another room", client.Username, id, r.RoomCode)
+			delete(h.roomCodes, r.RoomCode)
+			delete(h.rooms, id)
 			client.CurrentMatchID = ""
-		} else {
-			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
-			return
+			h.broadcastRoomsListLocked()
+			break
 		}
+	}
+
+	if client.CurrentMatchID != "" {
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+		return
 	}
 
 	var dto JoinRoomDTO
@@ -330,6 +403,12 @@ func (h *Hub) handleJoinRoom(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
+	// A player cannot join their own room
+	if room.Host != nil && room.Host.UserID == client.UserID {
+		client.SendError(errors.ErrValidationFailed, "You cannot join your own room")
+		return
+	}
+
 	if err := room.Join(client); err != nil {
 		client.SendError(errors.ErrValidationFailed, err.Error())
 		return
@@ -337,25 +416,38 @@ func (h *Hub) handleJoinRoom(client *Client, rawPayload json.RawMessage) {
 	// Note: room.Join(client) already executes r.startLocked() which sends TypeMatchFound
 	// and initial game_state to both players!
 	log.Printf("[Hub] Client %s joined custom room %s and match started", client.Username, dto.RoomCode)
+	h.broadcastRoomsListLocked()
 }
 
 func (h *Hub) handleLeaveRoom(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.CurrentMatchID == "" {
-		client.SendJSON(TypeRoomLeft, map[string]string{"status": "idle"})
-		return
+	cleanedUp := false
+	if client.CurrentMatchID != "" {
+		matchID := client.CurrentMatchID
+		if room, exists := h.rooms[matchID]; exists && room.Status == "waiting" && room.Host != nil && room.Host.UserID == client.UserID {
+			delete(h.roomCodes, room.RoomCode)
+			delete(h.rooms, matchID)
+			log.Printf("[Hub] Host %s cancelled waiting room %s (Code: %s)", client.Username, matchID, room.RoomCode)
+			cleanedUp = true
+		}
+		client.CurrentMatchID = ""
 	}
 
-	matchID := client.CurrentMatchID
-	room, exists := h.rooms[matchID]
-	if exists && room.Status == "waiting" && room.Host != nil && room.Host.UserID == client.UserID {
-		delete(h.roomCodes, room.RoomCode)
-		delete(h.rooms, matchID)
-		log.Printf("[Hub] Host %s cancelled waiting room %s (Code: %s)", client.Username, matchID, room.RoomCode)
+	// Also scan for any other waiting room hosted by this client
+	for id, room := range h.rooms {
+		if room.Status == "waiting" && room.Host != nil && room.Host.UserID == client.UserID {
+			delete(h.roomCodes, room.RoomCode)
+			delete(h.rooms, id)
+			cleanedUp = true
+			log.Printf("[Hub] Host %s cancelled orphan waiting room %s (Code: %s)", client.Username, id, room.RoomCode)
+		}
 	}
-	client.CurrentMatchID = ""
+
+	if cleanedUp {
+		h.broadcastRoomsListLocked()
+	}
 	client.SendJSON(TypeRoomLeft, map[string]string{"status": "idle"})
 }
 
@@ -451,6 +543,88 @@ func (h *Hub) handleOnlineCount(client *Client) {
 
 // ─── Room Listing ─────────────────────────────────────────────────────
 
+func (h *Hub) getPublicRoomsDTOLocked(page, limit int) RoomsListDTO {
+	type roomItem struct {
+		dto       RoomInfoDTO
+		startedAt time.Time
+	}
+	var items []roomItem
+	for _, room := range h.rooms {
+		if room.Status == "waiting" && !room.IsPrivate && room.RoomCode != "" {
+			hostID := ""
+			hostName := "Unknown"
+			hostRating := 1200
+			if room.Host != nil {
+				hostID = room.Host.UserID
+				hostName = room.Host.Username
+				hostRating = room.Host.Rating
+			}
+			items = append(items, roomItem{
+				dto: RoomInfoDTO{
+					RoomCode:    room.RoomCode,
+					HostID:      hostID,
+					HostName:    hostName,
+					HostRating:  hostRating,
+					TimeControl: room.TimeControl,
+					IsPrivate:   room.IsPrivate,
+				},
+				startedAt: room.StartedAt,
+			})
+		}
+	}
+
+	// Sort newest first
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].startedAt.After(items[j].startedAt)
+	})
+
+	total := len(items)
+	if limit <= 0 {
+		limit = 20
+	}
+	totalPages := (total + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if page < 1 {
+		page = 1
+	}
+
+	start := (page - 1) * limit
+	end := start + limit
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+
+	pagedRooms := make([]RoomInfoDTO, 0, end-start)
+	for _, item := range items[start:end] {
+		pagedRooms = append(pagedRooms, item.dto)
+	}
+
+	return RoomsListDTO{
+		Rooms:      pagedRooms,
+		Page:       page,
+		TotalPages: totalPages,
+		Total:      total,
+	}
+}
+
+func (h *Hub) broadcastRoomsListLocked() {
+	dto := h.getPublicRoomsDTOLocked(1, 20)
+	for _, c := range h.clients {
+		c.SendJSON(TypeRoomsList, dto)
+	}
+}
+
+func (h *Hub) BroadcastRoomsList() {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	h.broadcastRoomsListLocked()
+}
+
 func (h *Hub) handleListRooms(client *Client, rawPayload json.RawMessage) {
 	var dto ListRoomsDTO
 	if rawPayload != nil {
@@ -464,49 +638,10 @@ func (h *Hub) handleListRooms(client *Client, rawPayload json.RawMessage) {
 	}
 
 	h.mu.RLock()
-	defer h.mu.RUnlock()
+	resp := h.getPublicRoomsDTOLocked(dto.Page, dto.Limit)
+	h.mu.RUnlock()
 
-	// Collect public, waiting rooms
-	var publicRooms []RoomInfoDTO
-	for _, room := range h.rooms {
-		if room.Status == "waiting" && !room.IsPrivate && room.RoomCode != "" {
-			hostName := "Unknown"
-			hostRating := 1200
-			if room.Host != nil {
-				hostName = room.Host.Username
-				hostRating = room.Host.Rating
-			}
-			publicRooms = append(publicRooms, RoomInfoDTO{
-				RoomCode:    room.RoomCode,
-				HostName:    hostName,
-				HostRating:  hostRating,
-				TimeControl: room.TimeControl,
-				IsPrivate:   room.IsPrivate,
-			})
-		}
-	}
-
-	total := len(publicRooms)
-	totalPages := (total + dto.Limit - 1) / dto.Limit
-	if totalPages < 1 {
-		totalPages = 1
-	}
-
-	start := (dto.Page - 1) * dto.Limit
-	end := start + dto.Limit
-	if start > total {
-		start = total
-	}
-	if end > total {
-		end = total
-	}
-
-	client.SendJSON(TypeRoomsList, RoomsListDTO{
-		Rooms:      publicRooms[start:end],
-		Page:       dto.Page,
-		TotalPages: totalPages,
-		Total:      total,
-	})
+	client.SendJSON(TypeRoomsList, resp)
 }
 
 // ─── Rematch ──────────────────────────────────────────────────────────
@@ -610,6 +745,19 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 	requester.PendingRematchID = ""
 	requester.mu.Unlock()
 
+	// Clean up any unstarted waiting room hosted by either client
+	for _, p := range []*Client{requester, client} {
+		for id, r := range h.rooms {
+			if r.Status == "waiting" && r.Host != nil && r.Host.UserID == p.UserID {
+				delete(h.roomCodes, r.RoomCode)
+				delete(h.rooms, id)
+				p.CurrentMatchID = ""
+				h.broadcastRoomsListLocked()
+				break
+			}
+		}
+	}
+
 	// Create new match with swapped colors
 	matchID := uuid.New().String()
 	room := NewRoomWithTimeControl(matchID, client, requester, TimeControl3Min, h.matchService, h)
@@ -641,6 +789,25 @@ func (h *Hub) handleRematchDecline(client *Client, rawPayload json.RawMessage) {
 					"match_id":      dto.MatchID,
 					"decliner_name": client.Username,
 				})
+				if h.notificationService != nil {
+					go func(targetUserID string, declinerName string) {
+						payloadBytes, _ := json.Marshal(map[string]any{
+							"match_id":      dto.MatchID,
+							"decliner_name": declinerName,
+						})
+						notif := &domain.Notification{
+							UserID:    targetUserID,
+							ActorID:   client.UserID,
+							ActorName: declinerName,
+							Type:      domain.NotificationTypeRematchDeclined,
+							Status:    domain.NotificationStatusUnread,
+							Title:     "notifications.rematchDeclinedTitle",
+							Subtitle:  "notifications.rematchDeclinedSubtitle",
+							Payload:   string(payloadBytes),
+						}
+						_, _ = h.notificationService.CreateNotification(context.Background(), notif)
+					}(c.UserID, client.Username)
+				}
 				break
 			}
 		}
@@ -698,6 +865,11 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 	client.PendingInviteColor = colorPref
 	client.mu.Unlock()
 
+	client.SendJSON(TypeMatchInvitationSent, MatchInvitationSentDTO{
+		InviteID: inviteID,
+		FriendID: dto.FriendID,
+	})
+
 	friend.SendJSON(TypeMatchInvitation, MatchInvitationDTO{
 		InviteID:        inviteID,
 		InviterID:       client.UserID,
@@ -706,6 +878,31 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 		TimeControl:     timeControl,
 		ColorPreference: colorPref,
 	})
+
+	if h.notificationService != nil {
+		go func(friendID string, inviterID string, inviterName string, rating int, tc int64, pref string, invID string) {
+			payloadBytes, _ := json.Marshal(map[string]any{
+				"invite_id":        invID,
+				"inviter_id":       inviterID,
+				"sender_name":      inviterName,
+				"sender_rating":    rating,
+				"time_control":     tc,
+				"color_preference": pref,
+			})
+			notif := &domain.Notification{
+				ID:        "challenge_" + invID,
+				UserID:    friendID,
+				ActorID:   inviterID,
+				ActorName: inviterName,
+				Type:      domain.NotificationTypeChallenge,
+				Status:    domain.NotificationStatusPending,
+				Title:     "notifications.challengeTitle",
+				Subtitle:  inviterName,
+				Payload:   string(payloadBytes),
+			}
+			_, _ = h.notificationService.CreateNotification(context.Background(), notif)
+		}(dto.FriendID, client.UserID, client.Username, client.Rating, timeControl, colorPref, inviteID)
+	}
 
 	log.Printf("[Hub] Match invite sent from %s to %s (pref: %s)", client.Username, friend.Username, colorPref)
 }
@@ -744,6 +941,11 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 
 	if inviter == nil || inviter.CurrentMatchID != "" {
 		client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
+		if h.notificationService != nil && dto.InviteID != "" {
+			go func(invID string, uID string) {
+				_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, uID)
+			}(dto.InviteID, client.UserID)
+		}
 		return
 	}
 
@@ -754,6 +956,12 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	inviter.PendingInviteTimeControl = 0
 	inviter.PendingInviteColor = ""
 	inviter.mu.Unlock()
+
+	if h.notificationService != nil {
+		go func(invID string, uID string) {
+			_ = h.notificationService.UpdateStatus(context.Background(), "challenge_"+invID, uID, domain.NotificationStatusAccepted)
+		}(dto.InviteID, client.UserID)
+	}
 
 	// Assign sides based on inviter's preference
 	var white, black *Client
@@ -767,6 +975,19 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 			white, black = inviter, client
 		} else {
 			white, black = client, inviter
+		}
+	}
+
+	// Clean up any unstarted waiting room hosted by either client
+	for _, p := range []*Client{inviter, client} {
+		for id, r := range h.rooms {
+			if r.Status == "waiting" && r.Host != nil && r.Host.UserID == p.UserID {
+				delete(h.roomCodes, r.RoomCode)
+				delete(h.rooms, id)
+				p.CurrentMatchID = ""
+				h.broadcastRoomsListLocked()
+				break
+			}
 		}
 	}
 
@@ -806,8 +1027,81 @@ func (h *Hub) handleDeclineInvite(client *Client, rawPayload json.RawMessage) {
 				"friend_id":     client.UserID,
 				"decliner_name": client.Username,
 			})
+
+			if h.notificationService != nil {
+				go func(inviterID string, declinerID string, declinerName string, invID string) {
+					_ = h.notificationService.UpdateStatus(context.Background(), "challenge_"+invID, declinerID, domain.NotificationStatusDeclined)
+					payloadBytes, _ := json.Marshal(map[string]any{
+						"invite_id":     invID,
+						"decliner_name": declinerName,
+					})
+					notif := &domain.Notification{
+						UserID:    inviterID,
+						ActorID:   declinerID,
+						ActorName: declinerName,
+						Type:      domain.NotificationTypeChallengeDeclined,
+						Status:    domain.NotificationStatusUnread,
+						Title:     "notifications.challengeDeclinedTitle",
+						Subtitle:  "notifications.challengeDeclinedSubtitle",
+						Payload:   string(payloadBytes),
+					}
+					_, _ = h.notificationService.CreateNotification(context.Background(), notif)
+				}(c.UserID, client.UserID, client.Username, dto.InviteID)
+			}
 			break
 		}
+	}
+}
+
+func (h *Hub) handleCancelInvite(client *Client, rawPayload json.RawMessage) {
+	var dto CancelInviteDTO
+	if len(rawPayload) > 0 {
+		_ = json.Unmarshal(rawPayload, &dto)
+	}
+
+	client.mu.Lock()
+	inviteID := client.PendingInviteID
+	friendID := client.PendingInviteFriendID
+	client.PendingInviteID = ""
+	client.PendingInviteFriendID = ""
+	client.PendingInviteTimeControl = 0
+	client.PendingInviteColor = ""
+	client.mu.Unlock()
+
+	if inviteID == "" && dto.InviteID != "" {
+		inviteID = dto.InviteID
+	}
+	if friendID == "" && dto.FriendID != "" {
+		friendID = dto.FriendID
+	}
+
+	if inviteID == "" && friendID == "" {
+		return
+	}
+
+	h.mu.RLock()
+	var friend *Client
+	if friendID != "" {
+		friend = h.clients[friendID]
+	}
+	h.mu.RUnlock()
+
+	if friend != nil {
+		friend.SendJSON(TypeInvitationCancelled, map[string]string{
+			"invite_id":  inviteID,
+			"inviter_id": client.UserID,
+		})
+	}
+
+	if h.notificationService != nil {
+		go func(invID string, fID string, uID string) {
+			if invID != "" && fID != "" {
+				_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, fID)
+			}
+			if uID != "" && fID != "" {
+				_ = h.notificationService.DeletePendingChallenge(context.Background(), uID, fID)
+			}
+		}(inviteID, friendID, client.UserID)
 	}
 }
 
@@ -830,11 +1124,20 @@ func (h *Hub) CloseRoom(matchID string) {
 			room.BlackPlayer.CurrentMatchID = ""
 			room.BlackPlayer.mu.Unlock()
 		}
+		if room.Host != nil && room.Status == "waiting" {
+			room.Host.mu.Lock()
+			if room.Host.CurrentMatchID == matchID {
+				room.Host.CurrentMatchID = ""
+			}
+			room.Host.mu.Unlock()
+			room.Host.SendJSON(TypeRoomLeft, map[string]string{"status": "idle"})
+		}
 		if room.RoomCode != "" {
 			delete(h.roomCodes, room.RoomCode)
 		}
 		delete(h.rooms, matchID)
 		log.Printf("[Hub] Room %s closed and removed from memory", matchID)
+		h.broadcastRoomsListLocked()
 	}
 }
 

@@ -6,6 +6,7 @@ import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
+import '../home/settings_dialog.dart';
 
 /// Modal bottom sheet for match actions: Resign, Offer Draw, Report Opponent.
 class MatchMenuDialog extends StatelessWidget {
@@ -14,6 +15,7 @@ class MatchMenuDialog extends StatelessWidget {
   static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const MatchMenuDialog(),
     );
@@ -25,6 +27,10 @@ class MatchMenuDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxWidth: 520,
+      ),
       padding: const EdgeInsets.only(top: 8, bottom: 20),
       decoration: BoxDecoration(
         color: AppColors.getSurface(isDark),
@@ -36,10 +42,11 @@ class MatchMenuDialog extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             // Handle bar
             Center(
               child: Container(
@@ -67,7 +74,48 @@ class MatchMenuDialog extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
-            // 1. Resign option
+            if (provider.isOffline) ...[
+              // Offline: New Game option
+              _MenuTile(
+                icon: Icons.replay_rounded,
+                iconColor: AppColors.primaryGreen,
+                title: 'game.newGame'.tr(),
+                textColor: AppColors.getTextPrimary(isDark),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  provider.requestRematch();
+                },
+              ),
+
+              // Offline VS AI: Difficulty option
+              if (provider.offlinePlayMode == PlayMode.vsAi)
+                _MenuTile(
+                  icon: Icons.smart_toy_outlined,
+                  iconColor: AppColors.accent,
+                  title: 'game.difficulty'.tr(),
+                  subtitle: _getDifficultyLabel(provider.offlineBotDifficulty),
+                  textColor: AppColors.getTextPrimary(isDark),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showDifficultyDialog(context, provider);
+                  },
+                ),
+            ],
+
+            // Return to Main Menu (leave game running in background)
+            _MenuTile(
+              icon: Icons.home_rounded,
+              iconColor: AppColors.accentGold,
+              title: 'online.returnToMenu'.tr(),
+              subtitle: 'online.returnToMenuDesc'.tr(),
+              textColor: AppColors.getTextPrimary(isDark),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+            ),
+
+            // Resign option
             _MenuTile(
               icon: Icons.flag_outlined,
               iconColor: AppColors.lossRed,
@@ -79,31 +127,33 @@ class MatchMenuDialog extends StatelessWidget {
               },
             ),
 
-            // 2. Offer Draw option
-            _MenuTile(
-              icon: Icons.handshake_outlined,
-              iconColor: AppColors.primaryGreen,
-              title: 'online.drawOffer'.tr(),
-              textColor: AppColors.getTextPrimary(isDark),
-              onTap: () {
-                Navigator.of(context).pop();
-                _confirmDrawOffer(context, provider);
-              },
-            ),
+            if (!provider.isOffline) ...[
+              // Online: Offer Draw option
+              _MenuTile(
+                icon: Icons.handshake_outlined,
+                iconColor: AppColors.primaryGreen,
+                title: 'online.drawOffer'.tr(),
+                textColor: AppColors.getTextPrimary(isDark),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _confirmDrawOffer(context, provider);
+                },
+              ),
 
-            // 3. Report Opponent option
-            _MenuTile(
-              icon: Icons.report_problem_outlined,
-              iconColor: AppColors.warning,
-              title: 'online.reportOpponent'.tr(),
-              textColor: AppColors.getTextPrimary(isDark),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showReportDialog(context);
-              },
-            ),
+              // Online: Report Opponent option
+              _MenuTile(
+                icon: Icons.report_problem_outlined,
+                iconColor: AppColors.warning,
+                title: 'online.reportOpponent'.tr(),
+                textColor: AppColors.getTextPrimary(isDark),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showReportDialog(context);
+                },
+              ),
+            ],
 
-            // 4. Rotate Board option
+            // Rotate Board option
             Builder(
               builder: (context) {
                 final gameSettings = context.watch<GameSettingsProvider>();
@@ -120,6 +170,19 @@ class MatchMenuDialog extends StatelessWidget {
                     gameSettings.toggleOrientation();
                   },
                 );
+              },
+            ),
+
+            // Settings option
+            _MenuTile(
+              icon: Icons.settings_rounded,
+              iconColor: AppColors.primaryGreen,
+              title: 'settings.title'.tr(),
+              subtitle: 'settings.matchSettingsDesc'.tr(),
+              textColor: AppColors.getTextPrimary(isDark),
+              onTap: () {
+                Navigator.of(context).pop();
+                SettingsDialog.show(context);
               },
             ),
 
@@ -140,6 +203,7 @@ class MatchMenuDialog extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -354,6 +418,70 @@ class MatchMenuDialog extends StatelessWidget {
         },
       ),
     );
+  }
+
+  void _showDifficultyDialog(BuildContext context, OnlineGameProvider provider) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.getCard(isDark),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'game.difficulty'.tr(),
+          style: TextStyle(
+            color: AppColors.getTextPrimary(isDark),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildDifficultyOption(ctx, provider, 0, 'game.easy'.tr(), isDark),
+            _buildDifficultyOption(ctx, provider, 1, 'game.medium'.tr(), isDark),
+            _buildDifficultyOption(ctx, provider, 2, 'game.hard'.tr(), isDark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDifficultyOption(
+    BuildContext ctx,
+    OnlineGameProvider provider,
+    int diffValue,
+    String title,
+    bool isDark,
+  ) {
+    final isSelected = provider.offlineBotDifficulty == diffValue;
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isSelected ? AppColors.primaryGreen : AppColors.getTextPrimary(isDark),
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryGreen, size: 20)
+          : null,
+      onTap: () {
+        provider.setOfflineBotDifficulty(diffValue);
+        Navigator.of(ctx).pop();
+      },
+    );
+  }
+
+  String _getDifficultyLabel(int diff) {
+    switch (diff) {
+      case 0:
+        return 'game.easy'.tr();
+      case 2:
+        return 'game.hard'.tr();
+      case 1:
+      default:
+        return 'game.medium'.tr();
+    }
   }
 }
 

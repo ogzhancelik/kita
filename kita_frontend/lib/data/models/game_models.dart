@@ -650,6 +650,22 @@ class KitaGameEngine {
     return allMoves;
   }
 
+  /// Gets legal moves for a specific team on the current board state.
+  /// When [team] == [turn], this is equivalent to [getLegalMoves].
+  /// When called for the non-active team, it calculates hypothetical legal moves
+  /// that team could make based on the current opponent king position.
+  List<KitaMove> getLegalMovesForTeam(PieceTeam team) {
+    if (getStatus() != GameStatus.ongoing) return [];
+    final allMoves = _getLegalMovesStatic(positions, team, lastMoveBlack, lastMoveWhite);
+    if (isLastStand && turn == team) {
+      final oppKingId = _getOpponentKingId(team);
+      final oppKingPos = positions[oppKingId];
+      if (oppKingPos == null) return [];
+      return allMoves.where((m) => m.toPos == oppKingPos).toList();
+    }
+    return allMoves;
+  }
+
   /// Gets legal destination positions for a single piece
   Set<KitaPos> getLegalMovesForPiece(String pieceId) {
     if (isGameOver) return {};
@@ -657,6 +673,20 @@ class KitaGameEngine {
     if (piece == null || piece.team != turn) return {};
 
     return getLegalMoves()
+        .where((m) => m.pieceId == pieceId)
+        .map((m) => m.toPos)
+        .toSet();
+  }
+
+  /// Gets valid destination positions for a piece regardless of whose turn it is.
+  /// During opponent turn, this allows players to inspect their pieces and see
+  /// hypothetical move ranges based on the opponent king position.
+  Set<KitaPos> getMovesForPiece(String pieceId) {
+    if (isGameOver) return {};
+    final piece = KitaPiece.allPieces[pieceId];
+    if (piece == null) return {};
+
+    return getLegalMovesForTeam(piece.team)
         .where((m) => m.pieceId == pieceId)
         .map((m) => m.toPos)
         .toSet();

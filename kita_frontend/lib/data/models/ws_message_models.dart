@@ -23,6 +23,7 @@ class WsClientType {
   static const String inviteToMatch = 'invite_to_match';
   static const String acceptInvitation = 'accept_invitation';
   static const String declineInvitation = 'decline_invitation';
+  static const String cancelInvitation = 'cancel_invitation';
   static const String leaveRoom = 'leave_room';
 }
 
@@ -46,7 +47,9 @@ class WsServerType {
   static const String rematchAccepted = 'rematch_accepted';
   static const String rematchDeclined = 'rematch_declined';
   static const String matchInvitation = 'match_invitation';
+  static const String matchInvitationSent = 'match_invitation_sent';
   static const String invitationDeclined = 'invitation_declined';
+  static const String invitationCancelled = 'invitation_cancelled';
   static const String queueLeft = 'queue_left';
   static const String friendRequest = 'friend_request';
   static const String friendRequestDeclined = 'friend_request_declined';
@@ -135,6 +138,7 @@ class MatchFoundPayload {
   final String opponentName;
   final int opponentRating;
   final int timeControl;
+  final bool isReconnect;
 
   const MatchFoundPayload({
     required this.matchId,
@@ -143,6 +147,7 @@ class MatchFoundPayload {
     required this.opponentName,
     required this.opponentRating,
     required this.timeControl,
+    this.isReconnect = false,
   });
 
   factory MatchFoundPayload.fromJson(Map<String, dynamic> json) {
@@ -153,6 +158,48 @@ class MatchFoundPayload {
       opponentName: json['opponent_name'] as String? ?? 'Opponent',
       opponentRating: (json['opponent_rating'] as num?)?.toInt() ?? 1200,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
+      isReconnect: json['is_reconnect'] as bool? ?? false,
+    );
+  }
+}
+
+/// Represents an outgoing friend challenge awaiting response.
+class PendingOutgoingChallenge {
+  final String? inviteId;
+  final String friendId;
+  final String friendName;
+  final int? friendRating;
+  final int timeControl;
+  final String colorPreference;
+  final DateTime sentAt;
+
+  const PendingOutgoingChallenge({
+    this.inviteId,
+    required this.friendId,
+    required this.friendName,
+    this.friendRating,
+    required this.timeControl,
+    required this.colorPreference,
+    required this.sentAt,
+  });
+
+  PendingOutgoingChallenge copyWith({
+    String? inviteId,
+    String? friendId,
+    String? friendName,
+    int? friendRating,
+    int? timeControl,
+    String? colorPreference,
+    DateTime? sentAt,
+  }) {
+    return PendingOutgoingChallenge(
+      inviteId: inviteId ?? this.inviteId,
+      friendId: friendId ?? this.friendId,
+      friendName: friendName ?? this.friendName,
+      friendRating: friendRating ?? this.friendRating,
+      timeControl: timeControl ?? this.timeControl,
+      colorPreference: colorPreference ?? this.colorPreference,
+      sentAt: sentAt ?? this.sentAt,
     );
   }
 }
@@ -335,13 +382,19 @@ class WsErrorPayload {
 class RoomCreatedPayload {
   final String roomCode;
   final int timeControl;
+  final bool isPrivate;
 
-  const RoomCreatedPayload({required this.roomCode, required this.timeControl});
+  const RoomCreatedPayload({
+    required this.roomCode,
+    required this.timeControl,
+    this.isPrivate = false,
+  });
 
   factory RoomCreatedPayload.fromJson(Map<String, dynamic> json) {
     return RoomCreatedPayload(
       roomCode: json['room_code'] as String? ?? '',
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
+      isPrivate: json['is_private'] as bool? ?? false,
     );
   }
 }
@@ -368,6 +421,7 @@ class OnlineCountPayload {
 
 class RoomInfoPayload {
   final String roomCode;
+  final String? hostId;
   final String hostName;
   final int hostRating;
   final int timeControl;
@@ -375,6 +429,7 @@ class RoomInfoPayload {
 
   const RoomInfoPayload({
     required this.roomCode,
+    this.hostId,
     required this.hostName,
     required this.hostRating,
     required this.timeControl,
@@ -384,6 +439,7 @@ class RoomInfoPayload {
   factory RoomInfoPayload.fromJson(Map<String, dynamic> json) {
     return RoomInfoPayload(
       roomCode: json['room_code'] as String? ?? '',
+      hostId: json['host_id'] as String?,
       hostName: json['host_name'] as String? ?? 'Unknown',
       hostRating: (json['host_rating'] as num?)?.toInt() ?? 1200,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
@@ -484,6 +540,7 @@ enum IncomingMatchRequestType {
 class IncomingMatchRequest {
   final IncomingMatchRequestType type;
   final String id; // matchId for rematch, inviteId for friend challenge
+  final String? senderId;
   final String senderName;
   final int senderRating;
   final int timeControl;
@@ -493,6 +550,7 @@ class IncomingMatchRequest {
   IncomingMatchRequest({
     required this.type,
     required this.id,
+    this.senderId,
     required this.senderName,
     this.senderRating = 1200,
     required this.timeControl,

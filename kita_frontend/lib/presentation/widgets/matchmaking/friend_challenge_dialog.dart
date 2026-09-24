@@ -206,6 +206,8 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
             Navigator.of(context).pop();
             widget.onlineProv.inviteToMatch(
               widget.friend.userId,
+              friendName: widget.friend.username,
+              friendRating: widget.friend.rating,
               timeControl: _selectedTimeControl,
               colorPreference: _selectedColor,
             );

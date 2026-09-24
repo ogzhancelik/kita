@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,16 +15,18 @@ type WsNotifier interface {
 }
 
 type FriendHandler struct {
-	friendService ports.FriendService
-	userService   ports.UserService
-	notifier      WsNotifier
+	friendService       ports.FriendService
+	userService         ports.UserService
+	notificationService ports.NotificationService
+	notifier            WsNotifier
 }
 
-func NewFriendHandler(friendService ports.FriendService, userService ports.UserService, notifier WsNotifier) *FriendHandler {
+func NewFriendHandler(friendService ports.FriendService, userService ports.UserService, notificationService ports.NotificationService, notifier WsNotifier) *FriendHandler {
 	return &FriendHandler{
-		friendService: friendService,
-		userService:   userService,
-		notifier:      notifier,
+		friendService:       friendService,
+		userService:         userService,
+		notificationService: notificationService,
+		notifier:            notifier,
 	}
 }
 
@@ -89,22 +92,45 @@ func (h *FriendHandler) SendRequest(c *gin.Context) {
 		return
 	}
 
-	if h.notifier != nil && friendship != nil {
-		senderName := ""
-		senderRating := 1200
-		if h.userService != nil {
-			if sender, err := h.userService.GetProfile(c.Request.Context(), userID); err == nil && sender != nil {
-				senderName = sender.Username
-				senderRating = sender.Rating
-			}
+	senderName := ""
+	senderRating := 1200
+	if h.userService != nil {
+		if sender, err := h.userService.GetProfile(c.Request.Context(), userID); err == nil && sender != nil {
+			senderName = sender.Username
+			senderRating = sender.Rating
 		}
-		h.notifier.SendToUser(friendship.AddresseeID, "friend_request", gin.H{
-			"friendship_id": friendship.ID,
-			"user_id":       userID,
-			"username":      senderName,
-			"rating":        senderRating,
-			"created_at":    friendship.CreatedAt,
-		})
+	}
+
+	if friendship != nil {
+		if h.notificationService != nil {
+			payloadBytes, _ := json.Marshal(map[string]any{
+				"friendship_id": friendship.ID,
+				"username":      senderName,
+				"rating":        senderRating,
+			})
+			notif := &domain.Notification{
+				ID:        "friend_request_" + friendship.ID,
+				UserID:    friendship.AddresseeID,
+				ActorID:   userID,
+				ActorName: senderName,
+				Type:      domain.NotificationTypeFriendRequest,
+				Status:    domain.NotificationStatusPending,
+				Title:     "notifications.friendRequestTitle",
+				Subtitle:  senderName,
+				Payload:   string(payloadBytes),
+			}
+			_, _ = h.notificationService.CreateNotification(c.Request.Context(), notif)
+		}
+
+		if h.notifier != nil {
+			h.notifier.SendToUser(friendship.AddresseeID, "friend_request", gin.H{
+				"friendship_id": friendship.ID,
+				"user_id":       userID,
+				"username":      senderName,
+				"rating":        senderRating,
+				"created_at":    friendship.CreatedAt,
+			})
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"friendship": friendship})
@@ -143,17 +169,42 @@ func (h *FriendHandler) AcceptRequest(c *gin.Context) {
 		return
 	}
 
-	if h.notifier != nil && requesterID != "" {
+	if h.notificationService != nil {
+		_ = h.notificationService.UpdateStatus(c.Request.Context(), "friend_request_"+id, userID, domain.NotificationStatusAccepted)
+	}
+
+	if requesterID != "" {
 		accepterName := ""
 		if h.userService != nil {
 			if accepter, err := h.userService.GetProfile(c.Request.Context(), userID); err == nil && accepter != nil {
 				accepterName = accepter.Username
 			}
 		}
-		h.notifier.SendToUser(requesterID, "friend_request_accepted", gin.H{
-			"friendship_id": id,
-			"accepter_name": accepterName,
-		})
+
+		if h.notificationService != nil {
+			payloadBytes, _ := json.Marshal(map[string]any{
+				"friendship_id": id,
+				"username":      accepterName,
+			})
+			notif := &domain.Notification{
+				UserID:    requesterID,
+				ActorID:   userID,
+				ActorName: accepterName,
+				Type:      domain.NotificationTypeFriendRequestAccepted,
+				Status:    domain.NotificationStatusUnread,
+				Title:     "notifications.friendRequestAcceptedTitle",
+				Subtitle:  "notifications.friendRequestAcceptedSubtitle",
+				Payload:   string(payloadBytes),
+			}
+			_, _ = h.notificationService.CreateNotification(c.Request.Context(), notif)
+		}
+
+		if h.notifier != nil {
+			h.notifier.SendToUser(requesterID, "friend_request_accepted", gin.H{
+				"friendship_id": id,
+				"accepter_name": accepterName,
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "accepted"})
@@ -192,17 +243,42 @@ func (h *FriendHandler) DeclineRequest(c *gin.Context) {
 		return
 	}
 
-	if h.notifier != nil && requesterID != "" {
+	if h.notificationService != nil {
+		_ = h.notificationService.UpdateStatus(c.Request.Context(), "friend_request_"+id, userID, domain.NotificationStatusDeclined)
+	}
+
+	if requesterID != "" {
 		declinerName := ""
 		if h.userService != nil {
 			if decliner, err := h.userService.GetProfile(c.Request.Context(), userID); err == nil && decliner != nil {
 				declinerName = decliner.Username
 			}
 		}
-		h.notifier.SendToUser(requesterID, "friend_request_declined", gin.H{
-			"friendship_id": id,
-			"decliner_name": declinerName,
-		})
+
+		if h.notificationService != nil {
+			payloadBytes, _ := json.Marshal(map[string]any{
+				"friendship_id": id,
+				"username":      declinerName,
+			})
+			notif := &domain.Notification{
+				UserID:    requesterID,
+				ActorID:   userID,
+				ActorName: declinerName,
+				Type:      domain.NotificationTypeFriendRequestDeclined,
+				Status:    domain.NotificationStatusUnread,
+				Title:     "notifications.friendRequestDeclinedTitle",
+				Subtitle:  "notifications.friendRequestDeclinedSubtitle",
+				Payload:   string(payloadBytes),
+			}
+			_, _ = h.notificationService.CreateNotification(c.Request.Context(), notif)
+		}
+
+		if h.notifier != nil {
+			h.notifier.SendToUser(requesterID, "friend_request_declined", gin.H{
+				"friendship_id": id,
+				"decliner_name": declinerName,
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "declined"})

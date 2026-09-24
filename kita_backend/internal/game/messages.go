@@ -28,6 +28,7 @@ const (
 	TypeInviteToMatch   = "invite_to_match"
 	TypeAcceptInvite    = "accept_invitation"
 	TypeDeclineInvite   = "decline_invitation"
+	TypeCancelInvite    = "cancel_invitation"
 	TypeLeaveRoom       = "leave_room"
 
 	// Server -> Client
@@ -44,15 +45,17 @@ const (
 	TypeError            = "error"
 
 	// Server -> Client (New)
-	TypeOnlineCount       = "online_count"
-	TypeRoomsList         = "rooms_list"
-	TypeRematchOffered    = "rematch_offered"
-	TypeRematchAccepted   = "rematch_accepted"
-	TypeRematchDeclined   = "rematch_declined"
-	TypeMatchInvitation    = "match_invitation"
-	TypeInvitationDeclined = "invitation_declined"
-	TypeTimeoutLoss        = "timeout_loss"
-	TypeFriendRequest      = "friend_request"
+	TypeOnlineCount          = "online_count"
+	TypeRoomsList            = "rooms_list"
+	TypeRematchOffered       = "rematch_offered"
+	TypeRematchAccepted      = "rematch_accepted"
+	TypeRematchDeclined      = "rematch_declined"
+	TypeMatchInvitation      = "match_invitation"
+	TypeMatchInvitationSent  = "match_invitation_sent"
+	TypeInvitationDeclined   = "invitation_declined"
+	TypeInvitationCancelled  = "invitation_cancelled"
+	TypeTimeoutLoss          = "timeout_loss"
+	TypeFriendRequest        = "friend_request"
 	TypeFriendRequestDeclined = "friend_request_declined"
 	TypeFriendRequestAccepted = "friend_request_accepted"
 )
@@ -126,6 +129,7 @@ type MatchFoundDTO struct {
 	OpponentName   string `json:"opponent_name"`
 	OpponentRating int    `json:"opponent_rating"`
 	TimeControl    int64  `json:"time_control"`
+	IsReconnect    bool   `json:"is_reconnect,omitempty"`
 }
 
 // ─── Game Over DTO ────────────────────────────────────────────────────
@@ -170,6 +174,7 @@ type JoinRoomDTO struct {
 type RoomCreatedDTO struct {
 	RoomCode    string `json:"room_code"`
 	TimeControl int64  `json:"time_control"`
+	IsPrivate   bool   `json:"is_private"`
 }
 
 // ─── Online Count DTO ─────────────────────────────────────────────────
@@ -188,6 +193,7 @@ type ListRoomsDTO struct {
 
 type RoomInfoDTO struct {
 	RoomCode     string `json:"room_code"`
+	HostID       string `json:"host_id,omitempty"`
 	HostName     string `json:"host_name"`
 	HostRating   int    `json:"host_rating"`
 	TimeControl  int64  `json:"time_control"`
@@ -233,4 +239,14 @@ type MatchInvitationDTO struct {
 
 type AcceptInviteDTO struct {
 	InviteID string `json:"invite_id"`
+}
+
+type CancelInviteDTO struct {
+	InviteID string `json:"invite_id,omitempty"`
+	FriendID string `json:"friend_id,omitempty"`
+}
+
+type MatchInvitationSentDTO struct {
+	InviteID string `json:"invite_id"`
+	FriendID string `json:"friend_id"`
 }
