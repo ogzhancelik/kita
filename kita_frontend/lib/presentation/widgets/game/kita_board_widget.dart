@@ -204,9 +204,16 @@ class KitaBoardWidget extends StatelessWidget {
             ? rowLetters[canonicalPos.row]
             : '${canonicalPos.row}');
 
-    final double innerSize = max(cellSize - (theme.tileSpacing * 2), 16.0);
+    final double effectiveTileSpacing = theme.effectiveTileSpacing(cellSize);
+    final double effectiveBorderRadius =
+        theme.effectiveTileBorderRadius(cellSize);
+
+    final double innerSize = max(cellSize - (effectiveTileSpacing * 2), 16.0);
     final double pieceSize = innerSize * 0.72;
-    final double labelFontSize = max(cellSize * 0.11, 7.0);
+    final double tileValueFontSize = theme.effectiveTileValueFontSize(cellSize);
+    final double labelFontSize = theme.effectiveCoordinateLabelFontSize(cellSize);
+    final double badgeVerticalOffset = min(cellSize * 0.04, 6.0);
+    final double badgeHorizontalOffset = min(cellSize * 0.07, 10.0);
 
     // Desaturated and softer highlight styling when inspecting during opponent's turn (tuned for clear visibility)
     final Color selectedBg = isCurrentTurn
@@ -233,7 +240,7 @@ class KitaBoardWidget extends StatelessWidget {
         : _desaturate(theme.validMoveHighlightColor, 0.40).withValues(alpha: 0.65);
 
     return Padding(
-      padding: EdgeInsets.all(theme.tileSpacing),
+      padding: EdgeInsets.all(effectiveTileSpacing),
       child: SizedBox.expand(
         child: DragTarget<PieceDragData>(
           onWillAcceptWithDetails: (details) => onPieceDropped != null,
@@ -255,7 +262,7 @@ class KitaBoardWidget extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: onTileTap != null ? () => onTileTap!(canonicalPos) : null,
-                borderRadius: BorderRadius.circular(theme.tileBorderRadius),
+                borderRadius: BorderRadius.circular(effectiveBorderRadius),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   width: double.infinity,
@@ -266,7 +273,7 @@ class KitaBoardWidget extends StatelessWidget {
                         : isHoveredValidMove
                             ? theme.validMoveHighlightColor.withValues(alpha: 0.35)
                             : cellBaseColor,
-                    borderRadius: BorderRadius.circular(theme.tileBorderRadius),
+                    borderRadius: BorderRadius.circular(effectiveBorderRadius),
                     border: Border.all(
                       color: isSelected
                           ? selectedBorderColor
@@ -294,12 +301,12 @@ class KitaBoardWidget extends StatelessWidget {
                       // 1. Tile Step Value Badge (sol üst)
                       if (theme.showTileValues)
                         Positioned(
-                          top: 2,
-                          left: 4,
+                          top: badgeVerticalOffset,
+                          left: badgeHorizontalOffset,
                           child: Text(
                             '$tileValue',
                             style: TextStyle(
-                              fontSize: max(cellSize * 0.20, 9.5),
+                              fontSize: tileValueFontSize,
                               fontWeight: FontWeight.w900,
                               color: isSelected
                                   ? (isCurrentTurn
@@ -313,8 +320,8 @@ class KitaBoardWidget extends StatelessWidget {
                       // 2. Row Coordinate Label (sol alt - A, B, C, D)
                       if (theme.showCoordinateLabels && isFirstCol)
                         Positioned(
-                          bottom: 2,
-                          left: 4,
+                          bottom: badgeVerticalOffset,
+                          left: badgeHorizontalOffset,
                           child: Text(
                             rowLabel,
                             style: TextStyle(
@@ -332,8 +339,8 @@ class KitaBoardWidget extends StatelessWidget {
                       // 3. Col Coordinate Label (sağ alt - 1, 2, 3, 4, 5, 6, 7)
                       if (theme.showCoordinateLabels && isLastRow)
                         Positioned(
-                          bottom: 2,
-                          right: 4,
+                          bottom: badgeVerticalOffset,
+                          right: badgeHorizontalOffset,
                           child: Text(
                             colLabel,
                             style: TextStyle(

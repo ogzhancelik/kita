@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -17,8 +19,50 @@ class KitaBoardTheme {
   final Color blackKingAccent;
   final bool showTileValues;
   final bool showCoordinateLabels;
-  final double tileBorderRadius;
-  final double tileSpacing;
+
+  /// If provided, overrides dynamic scaling with a fixed border radius in pixels.
+  final double? fixedTileBorderRadius;
+
+  /// If provided, overrides dynamic scaling with a fixed tile spacing in pixels.
+  final double? fixedTileSpacing;
+
+  /// If provided, overrides dynamic scaling with a fixed tile value font size in pixels.
+  final double? fixedTileValueFontSize;
+
+  /// If provided, overrides dynamic scaling with a fixed coordinate label font size in pixels.
+  final double? fixedCoordinateLabelFontSize;
+
+  /// Ratio of tile border radius relative to [cellSize].
+  /// Baseline: ~0.145 (~8.0px on a standard 19:9 phone horizontal board where cellSize ≈ 55px).
+  final double tileBorderRadiusRatio;
+
+  /// Ratio of tile padding (margin around each tile) relative to [cellSize].
+  /// Baseline: ~0.023 (~1.25px on a standard 19:9 phone horizontal board, half of the previous 2.5px spacing).
+  final double tileSpacingRatio;
+
+  /// Ratio of tile step value badge font size relative to [cellSize].
+  /// Baseline: ~0.20 (~11.0px on a standard 19:9 phone horizontal board where cellSize ≈ 55px).
+  final double tileValueFontSizeRatio;
+
+  /// Ratio of coordinate labels (row A-D, col 1-7) font size relative to [cellSize].
+  /// Baseline: ~0.128 (~7.0px on a standard 19:9 phone horizontal board where cellSize ≈ 55px).
+  final double coordinateLabelFontSizeRatio;
+
+  /// Maximum tile border radius in pixels.
+  /// Baseline: 8.0px (preferred max on 16:10 desktop screen and 19:9 phone).
+  final double maxTileBorderRadius;
+
+  /// Maximum tile spacing in pixels.
+  /// Baseline: 2.5px.
+  final double maxTileSpacing;
+
+  /// Maximum font size for the tile step value badge.
+  /// Baseline: 30.0px (previous value on 16:10 desktop screen).
+  final double maxTileValueFontSize;
+
+  /// Maximum font size for row & column coordinate labels.
+  /// Baseline: 16.5px (previous value on 16:10 desktop screen).
+  final double maxCoordinateLabelFontSize;
 
   const KitaBoardTheme({
     required this.valueColors,
@@ -33,9 +77,63 @@ class KitaBoardTheme {
     this.blackKingAccent = const Color(0xFFE74C3C),
     this.showTileValues = true,
     this.showCoordinateLabels = true,
-    this.tileBorderRadius = 8.0,
-    this.tileSpacing = 2.5,
-  });
+    double? tileBorderRadius,
+    double? tileSpacing,
+    double? tileValueFontSize,
+    double? coordinateLabelFontSize,
+    this.tileBorderRadiusRatio = 0.145,
+    this.tileSpacingRatio = 0.023,
+    this.tileValueFontSizeRatio = 0.20,
+    this.coordinateLabelFontSizeRatio = 0.128,
+    this.maxTileBorderRadius = 8.0,
+    this.maxTileSpacing = 2.5,
+    this.maxTileValueFontSize = 22.0,
+    this.maxCoordinateLabelFontSize = 14.5,
+  })  : fixedTileBorderRadius = tileBorderRadius,
+        fixedTileSpacing = tileSpacing,
+        fixedTileValueFontSize = tileValueFontSize,
+        fixedCoordinateLabelFontSize = coordinateLabelFontSize;
+
+  /// Backward-compatible fallback assuming baseline cell size of ~55px.
+  double get tileBorderRadius =>
+      fixedTileBorderRadius ?? (55.0 * tileBorderRadiusRatio);
+  double get tileSpacing => fixedTileSpacing ?? (55.0 * tileSpacingRatio);
+
+  /// Computes the effective border radius scaled dynamically to the given [cellSize]
+  /// and clamped to [maxTileBorderRadius] (with phone baseline as floor for max).
+  double effectiveTileBorderRadius(double cellSize) {
+    if (fixedTileBorderRadius != null) return fixedTileBorderRadius!;
+    final double phoneBaseline = 55.0 * tileBorderRadiusRatio;
+    final double ceiling = max(maxTileBorderRadius, phoneBaseline);
+    return min(cellSize * tileBorderRadiusRatio, ceiling);
+  }
+
+  /// Computes the effective tile spacing (half-gap between tiles)
+  /// scaled dynamically to the given [cellSize] and clamped to [maxTileSpacing].
+  double effectiveTileSpacing(double cellSize) {
+    if (fixedTileSpacing != null) return fixedTileSpacing!;
+    final double phoneBaseline = 55.0 * tileSpacingRatio;
+    final double ceiling = max(maxTileSpacing, phoneBaseline);
+    return min(cellSize * tileSpacingRatio, ceiling);
+  }
+
+  /// Computes the effective tile value badge font size scaled dynamically to the given [cellSize]
+  /// and clamped to [maxTileValueFontSize] (with phone baseline as floor for max).
+  double effectiveTileValueFontSize(double cellSize) {
+    if (fixedTileValueFontSize != null) return fixedTileValueFontSize!;
+    final double phoneBaseline = 55.0 * tileValueFontSizeRatio;
+    final double ceiling = max(maxTileValueFontSize, phoneBaseline);
+    return min(cellSize * tileValueFontSizeRatio, ceiling);
+  }
+
+  /// Computes the effective coordinate label font size scaled dynamically to the given [cellSize]
+  /// and clamped to [maxCoordinateLabelFontSize] (with phone baseline as floor for max).
+  double effectiveCoordinateLabelFontSize(double cellSize) {
+    if (fixedCoordinateLabelFontSize != null) return fixedCoordinateLabelFontSize!;
+    final double phoneBaseline = 55.0 * coordinateLabelFontSizeRatio;
+    final double ceiling = max(maxCoordinateLabelFontSize, phoneBaseline);
+    return min(cellSize * coordinateLabelFontSizeRatio, ceiling);
+  }
 
   Color getColorForValue(int value) {
     return valueColors[value] ?? const Color(0xFF4A4A4A);
