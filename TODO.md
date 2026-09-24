@@ -69,7 +69,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Map model output value + negamax search back to valid `KitaMove` actions via legal move ranking.
   - [x] Legal move masking guaranteed by evaluating only `getLegalMoves()` candidates.
 - [x] **Difficulty & Sparring Configuration**:
-  - [x] Pre-game configuration dialogue (`VsAiConfigDialog`) with three AI difficulty tiers (Beginner: 1000 ELO / Intermediate: 1200 ELO / Grandmaster: 1400 ELO) and Side selection (White / Random / Black).
+  - [x] Pre-game configuration dialogue (`VsAiConfigDialog`) with three AI difficulty tiers (Beginner: 1000 ELO / Intermediate: 1200 ELO / Grandmaster: 1400 ELO), Side selection (White / Random / Black), and local persistence of user preferences.
 - [x] **Frontend Integration (Offline)**:
   - [x] AI Bot and Local Pass & Play integrated directly into the unified modern `OnlineMatchScreen` architecture, eliminating legacy prototype screen.
   - [x] Opening book (923 positions) bundled as Flutter asset for instant lookup.
@@ -115,6 +115,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] In-game bottom bar with match elapsed timer and chat toggle
   - [x] In-game Hamburger Menu: Quick access to Settings (`SettingsDialog` / `MatchSettingsDialog`), Resign, Draw Offer, and Rotate Board (dynamic board panel and chat panel resizing keeping all components sticked together)
   - [x] In-game Board Interaction: Smooth drag-and-drop piece movement + tap-to-move; dynamic hover feedback on valid drop targets; deselect already selected tile on second tap; inspect own pieces & legal moves during opponent turn without moving
+  - [x] Post-Game Board & Match Review: Dismissible Game Over dialog with close button ('X'), backdrop tap-to-dismiss, and 'Review Board' action allowing players to freely inspect the final board, step through moves, and use in-game chat; persistent match outcome top banner with one-tap 'Show Results', Rematch, and Leave controls; and match menu post-game options.
 
 ### 4. Persistent Notifications (Backend-Driven)
 - [x] **Backend Infrastructure**:
@@ -145,9 +146,12 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 
 - [x] **Match Recording**:
   - [x] Persistent match logs in DB (compact single-table JSONB move sequence, think time `time_ms`, piece transitions, and outcome)
+  - [x] Offline Play vs Computer game saving in device storage (`LocalMatchHistoryService`)
+  - [x] Guest match isolation and automatic cleanup on guest logout or quit
+  - [x] Match History toggle filter to show/hide offline matches with synchronized replay viewer
 - [x] **Replay & Review Viewer**:
   - [x] Step-by-step game playback (Next move, Previous move, Jump to start/end, Auto-play with speed controls)
-  - [x] Post-game review workflow: Replay past recorded matches directly from match history
+  - [x] Post-game review workflow: Replay past recorded matches directly from match history (both online and offline matches)
 - [x] **Game Analysis & AI Evaluation**:
   - [x] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
   - [x] Post-game AI move review & quality indicators: Real-time advantage deltas (e.g. +0.1, -0.3, 0.0), semantic color badges (good, inaccuracy, mistake, blunder), and tooltips next to moves in Match History AI Review & Sandbox fork

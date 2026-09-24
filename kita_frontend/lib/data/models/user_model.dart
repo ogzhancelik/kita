@@ -14,12 +14,12 @@ class UserProfile {
     required this.id,
     required this.username,
     this.avatarIndex = 0,
-    required this.rating,
-    required this.wins,
-    required this.losses,
-    required this.draws,
-    required this.totalGames,
-    required this.winRate,
+    this.rating = 1200,
+    this.wins = 0,
+    this.losses = 0,
+    this.draws = 0,
+    this.totalGames = 0,
+    this.winRate = 0.0,
     this.createdAt,
   });
 

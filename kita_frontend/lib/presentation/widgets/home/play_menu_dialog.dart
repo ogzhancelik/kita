@@ -143,6 +143,11 @@ class PlayMenuDialog extends StatelessWidget {
                         Navigator.of(context).pop();
                         context.read<OnlineGameProvider>().startOfflineMatch(
                           mode: PlayMode.localCoop,
+                          playerId: authProv.currentUser?.id,
+                          playerName: authProv.currentUser?.username ??
+                              authProv.guestProfile?.nickname ??
+                              'Guest',
+                          isGuest: authProv.isGuest || authProv.currentUser == null,
                         );
                         Navigator.of(context).push(
                           MaterialPageRoute(

@@ -415,6 +415,9 @@ class KitaBoardWidget extends StatelessWidget {
       return renderedPiece;
     }
 
+    // Offset the feedback piece vertically upwards so it is not hidden under the user's finger.
+    final double dragLiftOffset = max(pieceSize * 0.95, 38.0);
+
     return Draggable<PieceDragData>(
       data: PieceDragData(pieceId: pieceId, fromPos: canonicalPos),
       dragAnchorStrategy: childDragAnchorStrategy,
@@ -429,28 +432,31 @@ class KitaBoardWidget extends StatelessWidget {
         child: SizedBox(
           width: pieceSize,
           height: pieceSize,
-          child: Transform.scale(
-            scale: 1.55,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: pieceSize * 0.95,
-                  height: pieceSize * 0.95,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.50),
-                        blurRadius: 20,
-                        spreadRadius: 4,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
+          child: Transform.translate(
+            offset: Offset(0, -dragLiftOffset),
+            child: Transform.scale(
+              scale: 1.55,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: pieceSize * 0.95,
+                    height: pieceSize * 0.95,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.50),
+                          blurRadius: 20,
+                          spreadRadius: 4,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                renderedPiece,
-              ],
+                  renderedPiece,
+                ],
+              ),
             ),
           ),
         ),

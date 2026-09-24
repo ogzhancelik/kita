@@ -5,6 +5,7 @@ import '../../core/network/connectivity_service.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/auth_api_service.dart';
+import '../../data/services/local_match_history_service.dart';
 import '../../data/services/user_api_service.dart';
 import '../widgets/common/guest_guard_dialog.dart';
 
@@ -185,6 +186,7 @@ class AuthProvider extends ChangeNotifier {
       await _storage.saveToken(res.token);
       await _storage.saveUser(res.user);
       await _storage.deleteGuestProfile();
+      await LocalMatchHistoryService.instance.clearGuestMatches();
 
       _state = AuthState.authenticated;
       _setLoading(false);
@@ -211,6 +213,7 @@ class AuthProvider extends ChangeNotifier {
       await _storage.saveToken(res.token);
       await _storage.saveUser(res.user);
       await _storage.deleteGuestProfile();
+      await LocalMatchHistoryService.instance.clearGuestMatches();
 
       _state = AuthState.authenticated;
       _setLoading(false);
@@ -223,6 +226,7 @@ class AuthProvider extends ChangeNotifier {
 
   // --- Continue as Guest (Gartic Phone style) ---
   Future<void> continueAsGuest(String nickname, int avatarIndex) async {
+    await LocalMatchHistoryService.instance.clearGuestMatches();
     final guest = GuestProfile(
       nickname: nickname.trim().isEmpty ? 'Guest${DateTime.now().millisecondsSinceEpoch % 10000}' : nickname.trim(),
       avatarIndex: avatarIndex,
@@ -242,11 +246,15 @@ class AuthProvider extends ChangeNotifier {
 
   // --- Logout ---
   Future<void> logout() async {
+    final wasGuest = isGuest;
     _setLoading(true);
     ApiClient.currentToken = null;
     await _storage.deleteToken();
     await _storage.deleteUser();
     await _storage.deleteGuestProfile();
+    if (wasGuest) {
+      await LocalMatchHistoryService.instance.clearGuestMatches();
+    }
     _currentUser = null;
     _guestProfile = null;
     _token = null;

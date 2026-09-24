@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
+import '../../../data/models/ws_message_models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
@@ -74,27 +75,30 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     // Show game over dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _isGameOverDialogShowing) return;
-      _isGameOverDialogShowing = true;
-      context.read<AuthProvider>().refreshProfile();
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => GameOverDialog(
-          gameOverData: data,
-          myUserId: provider.myUserId ?? '',
-          onRematch: () {
-            provider.requestRematch();
-          },
-          onBackToMenu: () {
-            _isGameOverDialogShowing = false;
-            provider.resetToIdle();
-            context.read<AuthProvider>().refreshProfile();
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-        ),
-      ).then((_) {
+      _showGameOverDialog(data);
+    });
+  }
+
+  void _showGameOverDialog(GameOverPayload data) {
+    if (!mounted || _isGameOverDialogShowing) return;
+    _isGameOverDialogShowing = true;
+    final provider = _provider ?? context.read<OnlineGameProvider>();
+    context.read<AuthProvider>().refreshProfile();
+    GameOverDialog.show(
+      context: context,
+      gameOverData: data,
+      myUserId: provider.myUserId ?? '',
+      onRematch: () {
+        provider.requestRematch();
+      },
+      onBackToMenu: () {
         _isGameOverDialogShowing = false;
-      });
+        provider.resetToIdle();
+        context.read<AuthProvider>().refreshProfile();
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+    ).then((_) {
+      _isGameOverDialogShowing = false;
     });
   }
 
@@ -149,6 +153,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
           _showLeaveConfirmation(context);
+        } else if (canLeaveFreely) {
+          provider.resetToIdle();
         }
       },
       child: Scaffold(
@@ -158,67 +164,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Rematch requested banner (fallback if dialog was dismissed)
-              if (!provider.isOffline)
-                ValueListenableBuilder<bool>(
-                  valueListenable: provider.isRematchRequested,
-                  builder: (ctx, isRequested, _) {
-                    if (!isRequested) return const SizedBox.shrink();
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.getCard(isDark),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: AppColors.primaryGreen,
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.primaryGreen),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'online.rematchRequestSent'.tr(),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.getTextPrimary(isDark),
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              provider.cancelRematchRequest();
-                              provider.resetToIdle();
-                              Navigator.of(context).pop();
-                            },
-                            child: Text(
-                              'online.backToMenu'.tr(),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.lossRed,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+              // Post-game status & controls banner (shown when dialog is dismissed)
+              if (provider.gameOverData.value != null && !isKeyboardOpen)
+                _buildGameOverBanner(context, provider, isDark),
 
               // 1. Moves ribbon (hidden when keyboard is open to maximize space)
               if (!isKeyboardOpen) const MoveHistoryPanel(),
@@ -355,6 +303,175 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     );
   }
 
+  Widget _buildGameOverBanner(
+    BuildContext context,
+    OnlineGameProvider provider,
+    bool isDark,
+  ) {
+    final data = provider.gameOverData.value;
+    if (data == null) return const SizedBox.shrink();
+
+    final isDraw = data.isDraw;
+    final isWinner = !isDraw &&
+        ((data.winnerId != null && data.winnerId == provider.myUserId) ||
+            (provider.myTeam != null && provider.myTeam == data.winner));
+
+    final Color statusColor = isDraw
+        ? AppColors.drawGray
+        : (isWinner ? AppColors.victory : AppColors.lossRed);
+
+    final IconData statusIcon = isDraw
+        ? Icons.handshake_outlined
+        : (isWinner ? Icons.emoji_events : Icons.sentiment_dissatisfied);
+
+    final String titleKey = isDraw
+        ? 'online.resultDraw'
+        : (isWinner ? 'online.resultVictory' : 'online.resultDefeat');
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: provider.isRematchRequested,
+      builder: (ctx, isRequested, _) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.getCard(isDark),
+            border: Border(
+              bottom: BorderSide(
+                color: statusColor.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
+            ),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Result badge
+                Icon(statusIcon, color: statusColor, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  titleKey.tr(),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Show Results dialog button
+                TextButton.icon(
+                  onPressed: () => _showGameOverDialog(data),
+                  icon: const Icon(Icons.analytics_outlined, size: 16),
+                  label: Text('online.showResults'.tr()),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.getTextPrimary(isDark),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Rematch action or waiting state
+                if (isRequested) ...[
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primaryGreen),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'online.waitingForRematch'.tr(),
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryGreen,
+                    ),
+                  ),
+                ] else if (provider.isOffline) ...[
+                  ElevatedButton.icon(
+                    onPressed: () => provider.requestRematch(),
+                    icon: const Icon(Icons.replay_rounded, size: 14),
+                    label: Text('game.newGame'.tr()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: AppColors.darkTextPrimary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  ElevatedButton.icon(
+                    onPressed: () => provider.requestRematch(),
+                    icon: const Icon(Icons.replay_rounded, size: 14),
+                    label: Text('online.rematch'.tr()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: AppColors.darkTextPrimary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(width: 8),
+
+                // Exit to menu button
+                IconButton(
+                  icon: const Icon(Icons.exit_to_app_rounded, size: 18),
+                  color: AppColors.lossRed,
+                  tooltip: 'online.backToMenu'.tr(),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    if (isRequested) {
+                      provider.cancelRematchRequest();
+                    }
+                    provider.resetToIdle();
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showLeaveConfirmation(BuildContext context) {
     final provider = context.read<OnlineGameProvider>();
     if (provider.matchState.value == OnlineMatchState.gameOver ||
@@ -365,24 +482,52 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     }
 
     if (provider.isOffline) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text('game.returnToMenu'.tr()),
-          content: Text('game.leaveMatchConfirm'.tr()),
+          backgroundColor: AppColors.getCard(isDark),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'online.returnToMenu'.tr(),
+            style: TextStyle(
+              color: AppColors.getTextPrimary(isDark),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'online.returnToMenuDesc'.tr(),
+            style: TextStyle(color: AppColors.getTextSecondary(isDark)),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('online.cancel'.tr()),
+              child: Text(
+                'online.cancel'.tr(),
+                style: TextStyle(color: AppColors.getTextMuted(isDark)),
+              ),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                provider.resetToIdle();
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
               child: Text(
-                'game.returnToMenu'.tr(),
+                'online.returnToMenu'.tr(),
+                style: TextStyle(
+                  color: isDark ? AppColors.accentGold : AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                provider.resign();
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: Text(
+                'online.resignAndLeave'.tr(),
                 style: const TextStyle(color: AppColors.lossRed),
               ),
             ),

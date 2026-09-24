@@ -73,6 +73,7 @@ class MatchRecordModel {
   final DateTime startedAt;
   final DateTime? endedAt;
   final List<MoveRecordModel> moves;
+  final bool isOffline;
 
   const MatchRecordModel({
     required this.id,
@@ -86,6 +87,7 @@ class MatchRecordModel {
     required this.startedAt,
     this.endedAt,
     this.moves = const [],
+    this.isOffline = false,
   });
 
   bool get isWhiteWinner => winnerId != null && winnerId == whitePlayerId;
@@ -94,8 +96,9 @@ class MatchRecordModel {
 
   factory MatchRecordModel.fromJson(Map<String, dynamic> json) {
     final rawMoves = json['moves'] as List<dynamic>? ?? [];
+    final matchId = json['id'] as String? ?? '';
     return MatchRecordModel(
-      id: json['id'] as String? ?? '',
+      id: matchId,
       whitePlayerId: json['white_player_id'] as String? ?? '',
       blackPlayerId: json['black_player_id'] as String? ?? '',
       whitePlayer: json['white_player'] != null
@@ -116,6 +119,7 @@ class MatchRecordModel {
       moves: rawMoves
           .map((m) => MoveRecordModel.fromJson(m as Map<String, dynamic>))
           .toList(),
+      isOffline: json['is_offline'] == true || matchId.startsWith('offline'),
     );
   }
 
@@ -131,6 +135,7 @@ class MatchRecordModel {
         'started_at': startedAt.toIso8601String(),
         'ended_at': endedAt?.toIso8601String(),
         'moves': moves.map((m) => m.toJson()).toList(),
+        'is_offline': isOffline,
       };
 
   /// Creates an exciting, verified demo match for demonstration & testing

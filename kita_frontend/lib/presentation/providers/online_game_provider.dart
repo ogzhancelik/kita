@@ -7,7 +7,10 @@ import '../../core/feedback/sound_service.dart';
 import '../../core/feedback/toast_service.dart';
 import '../../data/models/game_models.dart';
 import '../../data/models/kita_ai.dart';
+import '../../data/models/match_model.dart';
+import '../../data/models/user_model.dart';
 import '../../data/models/ws_message_models.dart';
+import '../../data/services/local_match_history_service.dart';
 import '../../data/services/websocket_service.dart';
 
 /// Represents whether the game is played offline vs AI, local pass & play, or online.
@@ -123,6 +126,11 @@ class OnlineGameProvider extends ChangeNotifier {
   PlayMode offlinePlayMode = PlayMode.vsAi;
   int offlineBotDifficulty = 1; // 0: Easy, 1: Medium, 2: Hard
   PieceTeam offlinePlayerTeam = PieceTeam.white;
+  String? offlinePlayerId;
+  String? offlinePlayerName;
+  int? offlinePlayerRating;
+  bool offlineIsGuest = false;
+  bool _offlineMatchSaved = false;
   final ValueNotifier<bool> isAiThinking = ValueNotifier(false);
 
   /// Localized difficulty label for offline AI match (Easy, Medium, Hard).
@@ -300,12 +308,21 @@ class OnlineGameProvider extends ChangeNotifier {
     required PlayMode mode,
     PieceTeam playerTeam = PieceTeam.white,
     int botDifficulty = 1,
+    String? playerId,
+    String? playerName,
+    int? playerRating,
+    bool isGuest = false,
   }) {
     resetToIdle();
     isOffline = true;
     offlinePlayMode = mode;
     offlineBotDifficulty = botDifficulty;
     offlinePlayerTeam = playerTeam;
+    offlinePlayerId = playerId;
+    offlinePlayerName = playerName;
+    offlinePlayerRating = playerRating;
+    offlineIsGuest = isGuest;
+    _offlineMatchSaved = false;
     myTeam = playerTeam.name;
 
     if (mode == PlayMode.vsAi) {
@@ -525,6 +542,7 @@ class OnlineGameProvider extends ChangeNotifier {
       matchState.value = OnlineMatchState.gameOver;
       _stopClockTimer();
       SoundService.instance.playGameOver();
+      _saveOfflineGameRecord(payload);
       notifyListeners();
       return;
     }
@@ -587,10 +605,86 @@ class OnlineGameProvider extends ChangeNotifier {
       matchState.value = OnlineMatchState.gameOver;
       _stopClockTimer();
       SoundService.instance.playGameOver();
+      _saveOfflineGameRecord(payload);
       notifyListeners();
       return;
     }
     _ws.send(WsClientType.resign);
+  }
+
+  Future<void> _saveOfflineGameRecord(GameOverPayload payload) async {
+    if (_offlineMatchSaved) return;
+    if (!isOffline || offlinePlayMode != PlayMode.vsAi) return;
+    _offlineMatchSaved = true;
+
+    try {
+      final isPlayerWhite = (offlinePlayerTeam == PieceTeam.white);
+      final botRating = 1000 + offlineBotDifficulty * 200;
+      final botDifficultyNames = ['Easy', 'Medium', 'Hard'];
+      final diffName = (offlineBotDifficulty >= 0 && offlineBotDifficulty <= 2)
+          ? botDifficultyNames[offlineBotDifficulty]
+          : 'Medium';
+      final botUsername = 'AI Bot ($diffName)';
+
+      final playerUser = UserProfile(
+        id: offlinePlayerId ?? (offlineIsGuest ? 'guest' : 'local_player'),
+        username: offlinePlayerName ?? (offlineIsGuest ? 'Guest' : 'Player'),
+        rating: offlinePlayerRating ?? 1200,
+      );
+
+      final botUser = UserProfile(
+        id: 'bot',
+        username: botUsername,
+        rating: botRating,
+      );
+
+      String? winnerId;
+      if (payload.winnerTeam == 'white') {
+        winnerId = isPlayerWhite ? playerUser.id : 'bot';
+      } else if (payload.winnerTeam == 'black') {
+        winnerId = isPlayerWhite ? 'bot' : playerUser.id;
+      } else {
+        winnerId = null;
+      }
+
+      final moveRecords = moveHistory.value.map((m) {
+        final isPlayer = (m.playerTeam == (offlinePlayerTeam == PieceTeam.white ? 'white' : 'black'));
+        return MoveRecordModel(
+          ply: m.plyIndex,
+          playerId: isPlayer ? playerUser.id : 'bot',
+          piece: m.pieceId,
+          fromCol: m.fromCol,
+          fromRow: m.fromRow,
+          toCol: m.toCol,
+          toRow: m.toRow,
+          timeMs: 0,
+          createdAt: DateTime.now(),
+        );
+      }).toList();
+
+      final record = MatchRecordModel(
+        id: matchId ?? 'offline_${DateTime.now().millisecondsSinceEpoch}',
+        whitePlayerId: isPlayerWhite ? playerUser.id : 'bot',
+        blackPlayerId: isPlayerWhite ? 'bot' : playerUser.id,
+        whitePlayer: isPlayerWhite ? playerUser : botUser,
+        blackPlayer: isPlayerWhite ? botUser : playerUser,
+        winnerId: winnerId,
+        result: payload.result,
+        totalMoves: moveRecords.length,
+        startedAt: _matchStartedAt ?? DateTime.now(),
+        endedAt: DateTime.now(),
+        moves: moveRecords,
+        isOffline: true,
+      );
+
+      await LocalMatchHistoryService.instance.saveMatch(
+        record,
+        isGuest: offlineIsGuest,
+        userId: offlinePlayerId,
+      );
+    } catch (e) {
+      debugPrint('[OnlineGameProvider] Failed to save offline match: $e');
+    }
   }
 
   void sendChat(String content) {
@@ -607,6 +701,10 @@ class OnlineGameProvider extends ChangeNotifier {
         mode: offlinePlayMode,
         playerTeam: offlinePlayerTeam,
         botDifficulty: offlineBotDifficulty,
+        playerId: offlinePlayerId,
+        playerName: offlinePlayerName,
+        playerRating: offlinePlayerRating,
+        isGuest: offlineIsGuest,
       );
       return;
     }
@@ -1319,6 +1417,11 @@ class OnlineGameProvider extends ChangeNotifier {
     whiteRemainingMs.value = 0;
     blackRemainingMs.value = 0;
     isOffline = false;
+    offlinePlayerId = null;
+    offlinePlayerName = null;
+    offlinePlayerRating = null;
+    offlineIsGuest = false;
+    _offlineMatchSaved = false;
     isAiThinking.value = false;
     _engineSnapshots.clear();
     _matchStartedAt = null;

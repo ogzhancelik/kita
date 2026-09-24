@@ -89,8 +89,15 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
                       icon: Icons.smart_toy_rounded,
                       variant: KitaButtonVariant.primary,
                       onPressed: () {
+                        final currentAuth = context.read<AuthProvider>();
                         context.read<OnlineGameProvider>().startOfflineMatch(
                           mode: PlayMode.vsAi,
+                          playerId: currentAuth.currentUser?.id,
+                          playerName: currentAuth.currentUser?.username ??
+                              currentAuth.guestProfile?.nickname ??
+                              'Guest',
+                          playerRating: currentAuth.currentUser?.rating ?? 1200,
+                          isGuest: currentAuth.isGuest || currentAuth.currentUser == null,
                         );
                         Navigator.of(context).push(
                           MaterialPageRoute(

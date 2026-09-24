@@ -316,7 +316,12 @@
     "emptyDesc": "Play a game against AI or find an opponent online to review your match history here!",
     "victory": "VICTORY",
     "defeat": "DEFEAT",
-    "draw": "DRAW"
+    "draw": "DRAW",
+    "showOfflineMatches": "Show Offline Matches",
+    "offlineMatches": "Offline Matches",
+    "offlineBadge": "OFFLINE",
+    "vsAi": "VS AI",
+    "guestOfflineNotice": "Showing offline games on this device. These will be deleted when you log off."
   },
   "replay": {
     "title": "Match Replay",
@@ -403,6 +408,8 @@
     "resultVictory": "Victory!",
     "resultDefeat": "Defeat",
     "resultDraw": "Draw",
+    "viewBoard": "Review Board",
+    "showResults": "Show Results",
     "reasonNormal": "Game finished normally by rules.",
     "reasonResigned": "Opponent resigned.",
     "reasonTimeout": "Time expired.",

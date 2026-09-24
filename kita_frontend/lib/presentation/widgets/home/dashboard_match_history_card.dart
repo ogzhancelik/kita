@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/match_model.dart';
+import '../../../data/services/local_match_history_service.dart';
 import '../../../data/services/match_api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../screens/game/match_replay_screen.dart';
@@ -34,17 +35,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
   Future<void> _fetchMatches({bool reset = false}) async {
     final authProv = context.read<AuthProvider>();
     final user = authProv.currentUser;
-
-    if (authProv.isGuest || user == null) {
-      if (mounted) {
-        setState(() {
-          _matches = [];
-          _isLoading = false;
-          _hasMore = false;
-        });
-      }
-      return;
-    }
+    final isGuest = authProv.isGuest || user == null;
 
     if (reset) {
       _offset = 0;
@@ -56,21 +47,50 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
     }
 
     try {
-      final list = await _matchApiService.getUserMatches(
-        user.id,
+      final showOffline =
+          await LocalMatchHistoryService.instance.getShowOfflineMatches();
+
+      final offlineList = showOffline
+          ? await LocalMatchHistoryService.instance.getMatches(
+              userId: user?.id,
+              isGuest: isGuest,
+            )
+          : <MatchRecordModel>[];
+
+      if (isGuest) {
+        if (mounted) {
+          setState(() {
+            _matches = offlineList;
+            _isLoading = false;
+            _hasMore = false;
+          });
+        }
+        return;
+      }
+
+      final onlineList = await _matchApiService.getUserMatches(
+        user!.id,
         limit: _pageSize,
         offset: _offset,
       );
 
       if (mounted) {
         setState(() {
+          final List<MatchRecordModel> current = reset ? [] : List.from(_matches);
           if (reset) {
-            _matches = list;
+            current.addAll(onlineList);
+            if (showOffline) {
+              current.addAll(offlineList);
+            }
+            current.sort((a, b) => b.startedAt.compareTo(a.startedAt));
+            _matches = current.take(_pageSize).toList();
           } else {
-            _matches.addAll(list);
+            current.addAll(onlineList);
+            current.sort((a, b) => b.startedAt.compareTo(a.startedAt));
+            _matches = current;
           }
-          _hasMore = list.length == _pageSize;
-          _offset += list.length;
+          _hasMore = onlineList.length == _pageSize;
+          _offset += onlineList.length;
           _isLoading = false;
         });
       }
@@ -82,9 +102,13 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
   }
 
   void _openReplay(MatchRecordModel match) {
+    final isOffline = match.isOffline || match.id.startsWith('offline');
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => MatchReplayScreen(matchId: match.id),
+        builder: (_) => MatchReplayScreen(
+          match: isOffline || match.moves.isNotEmpty ? match : null,
+          matchId: isOffline ? null : match.id,
+        ),
       ),
     );
   }
@@ -103,9 +127,13 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
         children: [
           // Header
           InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MatchHistoryScreen()),
-            ),
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MatchHistoryScreen()),
+              );
+              // Refresh on return in case offline toggle or games changed
+              _fetchMatches(reset: true);
+            },
             borderRadius: BorderRadius.circular(8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -160,7 +188,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
                 ),
               ),
             )
-          else if (isGuest || _matches.isEmpty)
+          else if (_matches.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 18),
               child: Center(
@@ -169,11 +197,15 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
                     Icon(
                       Icons.history_toggle_off_rounded,
                       size: 32,
-                      color: isDark ? AppColors.darkTextMuted.withValues(alpha: 0.5) : AppColors.lightTextMuted.withValues(alpha: 0.5),
+                      color: isDark
+                          ? AppColors.darkTextMuted.withValues(alpha: 0.5)
+                          : AppColors.lightTextMuted.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      isGuest ? 'dashboard.guestNotice'.tr() : 'dashboard.noRecentMatches'.tr(),
+                      isGuest
+                          ? 'dashboard.guestNotice'.tr()
+                          : 'dashboard.noRecentMatches'.tr(),
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
@@ -218,14 +250,31 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
   }
 
   Widget _buildMatchTile(MatchRecordModel match, String currentUserId, bool isDark) {
-    final isWhite = match.whitePlayerId == currentUserId;
+    final bool isOffline = match.isOffline || match.id.startsWith('offline');
+    final bool isWhite = isOffline
+        ? (match.blackPlayerId == 'bot')
+        : (match.whitePlayerId == currentUserId);
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
-    final opponentName = opponent?.username ?? (isWhite ? 'Black' : 'White');
+    final opponentName = opponent?.username ??
+        (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'Black' : 'White'));
     final opponentRating = opponent?.rating ?? 1200;
 
-    final isWinner = match.winnerId != null && match.winnerId == currentUserId;
-    final isLoser = match.winnerId != null && match.winnerId != currentUserId && match.result != 'draw';
     final isDraw = match.result == 'draw';
+    final bool isWinner;
+    final bool isLoser;
+
+    if (isOffline) {
+      final playerSide = isWhite ? 'white' : 'black';
+      final winningSide = match.winnerId == match.whitePlayerId
+          ? 'white'
+          : (match.winnerId == match.blackPlayerId ? 'black' : null);
+      isWinner = winningSide != null && winningSide == playerSide;
+      isLoser = winningSide != null && winningSide != playerSide && !isDraw;
+    } else {
+      isWinner = match.winnerId != null && match.winnerId == currentUserId;
+      isLoser =
+          match.winnerId != null && match.winnerId != currentUserId && !isDraw;
+    }
 
     final Color outcomeColor;
     final String outcomeText;
@@ -306,6 +355,24 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
                         color: AppColors.ratingGold,
                       ),
                     ),
+                    if (isOffline) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'history.vsAi'.tr(),
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 2),

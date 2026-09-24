@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../home/settings_dialog.dart';
+import 'game_over_dialog.dart';
 
 /// Modal bottom sheet for match actions: Resign, Offer Draw, Report Opponent.
 class MatchMenuDialog extends StatelessWidget {
@@ -87,19 +89,6 @@ class MatchMenuDialog extends StatelessWidget {
                 },
               ),
 
-              // Offline VS AI: Difficulty option
-              if (provider.offlinePlayMode == PlayMode.vsAi)
-                _MenuTile(
-                  icon: Icons.smart_toy_outlined,
-                  iconColor: AppColors.accent,
-                  title: 'game.difficulty'.tr(),
-                  subtitle: _getDifficultyLabel(provider.offlineBotDifficulty),
-                  textColor: AppColors.getTextPrimary(isDark),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _showDifficultyDialog(context, provider);
-                  },
-                ),
             ],
 
             // Return to Main Menu (leave game running in background)
@@ -115,31 +104,71 @@ class MatchMenuDialog extends StatelessWidget {
               },
             ),
 
-            // Resign option
-            _MenuTile(
-              icon: Icons.flag_outlined,
-              iconColor: AppColors.lossRed,
-              title: 'online.resign'.tr(),
-              textColor: AppColors.lossRed,
-              onTap: () {
-                Navigator.of(context).pop();
-                _confirmResign(context, provider);
-              },
-            ),
-
-            if (!provider.isOffline) ...[
-              // Online: Offer Draw option
+            if (provider.gameOverData.value != null) ...[
+              // Match is over: Show Results
               _MenuTile(
-                icon: Icons.handshake_outlined,
-                iconColor: AppColors.primaryGreen,
-                title: 'online.drawOffer'.tr(),
+                icon: Icons.analytics_outlined,
+                iconColor: AppColors.accentGold,
+                title: 'online.showResults'.tr(),
                 textColor: AppColors.getTextPrimary(isDark),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _confirmDrawOffer(context, provider);
+                  final data = provider.gameOverData.value;
+                  if (data != null) {
+                    GameOverDialog.show(
+                      context: context,
+                      gameOverData: data,
+                      myUserId: provider.myUserId ?? '',
+                      onRematch: () => provider.requestRematch(),
+                      onBackToMenu: () {
+                        provider.resetToIdle();
+                        context.read<AuthProvider>().refreshProfile();
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      },
+                    );
+                  }
+                },
+              ),
+              if (!provider.isOffline && !provider.isRematchRequested.value)
+                _MenuTile(
+                  icon: Icons.replay_rounded,
+                  iconColor: AppColors.primaryGreen,
+                  title: 'online.rematch'.tr(),
+                  textColor: AppColors.getTextPrimary(isDark),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    provider.requestRematch();
+                  },
+                ),
+            ] else ...[
+              // Resign option
+              _MenuTile(
+                icon: Icons.flag_outlined,
+                iconColor: AppColors.lossRed,
+                title: 'online.resign'.tr(),
+                textColor: AppColors.lossRed,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _confirmResign(context, provider);
                 },
               ),
 
+              if (!provider.isOffline) ...[
+                // Online: Offer Draw option
+                _MenuTile(
+                  icon: Icons.handshake_outlined,
+                  iconColor: AppColors.primaryGreen,
+                  title: 'online.drawOffer'.tr(),
+                  textColor: AppColors.getTextPrimary(isDark),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmDrawOffer(context, provider);
+                  },
+                ),
+              ],
+            ],
+
+            if (!provider.isOffline) ...[
               // Online: Report Opponent option
               _MenuTile(
                 icon: Icons.report_problem_outlined,
@@ -420,69 +449,6 @@ class MatchMenuDialog extends StatelessWidget {
     );
   }
 
-  void _showDifficultyDialog(BuildContext context, OnlineGameProvider provider) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.getCard(isDark),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'game.difficulty'.tr(),
-          style: TextStyle(
-            color: AppColors.getTextPrimary(isDark),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildDifficultyOption(ctx, provider, 0, 'game.easy'.tr(), isDark),
-            _buildDifficultyOption(ctx, provider, 1, 'game.medium'.tr(), isDark),
-            _buildDifficultyOption(ctx, provider, 2, 'game.hard'.tr(), isDark),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDifficultyOption(
-    BuildContext ctx,
-    OnlineGameProvider provider,
-    int diffValue,
-    String title,
-    bool isDark,
-  ) {
-    final isSelected = provider.offlineBotDifficulty == diffValue;
-    return ListTile(
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? AppColors.primaryGreen : AppColors.getTextPrimary(isDark),
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      trailing: isSelected
-          ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryGreen, size: 20)
-          : null,
-      onTap: () {
-        provider.setOfflineBotDifficulty(diffValue);
-        Navigator.of(ctx).pop();
-      },
-    );
-  }
-
-  String _getDifficultyLabel(int diff) {
-    switch (diff) {
-      case 0:
-        return 'game.easy'.tr();
-      case 2:
-        return 'game.hard'.tr();
-      case 1:
-      default:
-        return 'game.medium'.tr();
-    }
-  }
 }
 
 class _MenuTile extends StatelessWidget {
@@ -506,39 +472,42 @@ class _MenuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ListTile(
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
         ),
-        child: Icon(icon, color: iconColor, size: 20),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: textColor,
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
         ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.getTextMuted(isDark),
+                ),
+              )
+            : null,
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          size: 20,
+          color: AppColors.getTextMuted(isDark),
+        ),
+        onTap: onTap,
       ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle!,
-              style: TextStyle(
-                fontSize: 11,
-                color: AppColors.getTextMuted(isDark),
-              ),
-            )
-          : null,
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        size: 20,
-        color: AppColors.getTextMuted(isDark),
-      ),
-      onTap: onTap,
     );
   }
 }

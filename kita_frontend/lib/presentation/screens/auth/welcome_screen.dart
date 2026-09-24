@@ -122,6 +122,7 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: () {
                     context.read<OnlineGameProvider>().startOfflineMatch(
                       mode: PlayMode.vsAi,
+                      isGuest: true,
                     );
                     Navigator.of(context).push(
                       MaterialPageRoute(

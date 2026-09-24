@@ -3,9 +3,11 @@ import 'dart:math';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/online_match_screen.dart';
 
@@ -13,6 +15,9 @@ import '../../screens/game/online_match_screen.dart';
 /// Allows the player to select Bot Difficulty and Player Side.
 class VsAiConfigDialog extends StatefulWidget {
   const VsAiConfigDialog({super.key});
+
+  static const String prefDifficultyKey = 'kita_ai_difficulty';
+  static const String prefSideKey = 'kita_ai_side';
 
   static Future<void> show(BuildContext context) {
     return showDialog(
@@ -27,8 +32,52 @@ class VsAiConfigDialog extends StatefulWidget {
 }
 
 class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
-  int _selectedDifficulty = 1; // 0: Easy, 1: Medium, 2: Hard
-  String _selectedSide = 'random'; // 'white', 'random', 'black'
+  static int _cachedDifficulty = 1;
+  static String _cachedSide = 'random';
+
+  int _selectedDifficulty = _cachedDifficulty; // 0: Easy, 1: Medium, 2: Hard
+  String _selectedSide = _cachedSide; // 'white', 'random', 'black'
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPreferences();
+  }
+
+  Future<void> _loadSavedPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedDiff = prefs.getInt(VsAiConfigDialog.prefDifficultyKey);
+      final savedSide = prefs.getString(VsAiConfigDialog.prefSideKey);
+
+      bool changed = false;
+      if (savedDiff != null && savedDiff >= 0 && savedDiff <= 2) {
+        _cachedDifficulty = savedDiff;
+        _selectedDifficulty = savedDiff;
+        changed = true;
+      }
+      if (savedSide != null &&
+          (savedSide == 'white' || savedSide == 'random' || savedSide == 'black')) {
+        _cachedSide = savedSide;
+        _selectedSide = savedSide;
+        changed = true;
+      }
+
+      if (changed && mounted) {
+        setState(() {});
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistPreferences(int diff, String side) async {
+    _cachedDifficulty = diff;
+    _cachedSide = side;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(VsAiConfigDialog.prefDifficultyKey, diff);
+      await prefs.setString(VsAiConfigDialog.prefSideKey, side);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +289,10 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
     final activeColor = AppColors.primaryGreen;
 
     return InkWell(
-      onTap: () => setState(() => _selectedDifficulty = value),
+      onTap: () {
+        setState(() => _selectedDifficulty = value);
+        _persistPreferences(value, _selectedSide);
+      },
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -310,7 +362,10 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
     final activeColor = AppColors.primaryGreen;
 
     return InkWell(
-      onTap: () => setState(() => _selectedSide = sideKey),
+      onTap: () {
+        setState(() => _selectedSide = sideKey);
+        _persistPreferences(_selectedDifficulty, sideKey);
+      },
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -359,7 +414,16 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
   }
 
   void _startGame() {
+    _persistPreferences(_selectedDifficulty, _selectedSide);
     final prov = context.read<OnlineGameProvider>();
+    final authProv = context.read<AuthProvider>();
+
+    final isGuest = authProv.isGuest || authProv.currentUser == null;
+    final playerId = authProv.currentUser?.id;
+    final playerName = authProv.currentUser?.username ??
+        authProv.guestProfile?.nickname ??
+        'Guest';
+    final playerRating = authProv.currentUser?.rating ?? 1200;
 
     PieceTeam team;
     if (_selectedSide == 'random') {
@@ -374,6 +438,10 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       mode: PlayMode.vsAi,
       playerTeam: team,
       botDifficulty: _selectedDifficulty,
+      playerId: playerId,
+      playerName: playerName,
+      playerRating: playerRating,
+      isGuest: isGuest,
     );
 
     Navigator.of(context).pushReplacement(

@@ -21,6 +21,26 @@ class GameOverDialog extends StatefulWidget {
     required this.onBackToMenu,
   });
 
+  /// Presents the modal dialog with tap-to-dismiss enabled.
+  static Future<void> show({
+    required BuildContext context,
+    required GameOverPayload gameOverData,
+    required String myUserId,
+    required VoidCallback onRematch,
+    required VoidCallback onBackToMenu,
+  }) {
+    return showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => GameOverDialog(
+        gameOverData: gameOverData,
+        myUserId: myUserId,
+        onRematch: onRematch,
+        onBackToMenu: onBackToMenu,
+      ),
+    );
+  }
+
   @override
   State<GameOverDialog> createState() => _GameOverDialogState();
 }
@@ -67,27 +87,49 @@ class _GameOverDialogState extends State<GameOverDialog> {
     return AlertDialog(
       backgroundColor: AppColors.getCard(isDark),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      titlePadding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      actionsPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      title: Column(
+      actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      actionsOverflowButtonSpacing: 8,
+      title: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Icon(
-            isDraw
-                ? Icons.handshake_outlined
-                : (isWinner ? Icons.emoji_events : Icons.sentiment_dissatisfied),
-            size: 56,
-            color: statusColor,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            titleKey.tr(),
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: statusColor,
+          Align(
+            alignment: Alignment.topRight,
+            child: IconButton(
+              icon: const Icon(Icons.close_rounded),
+              iconSize: 22,
+              color: AppColors.getTextSecondary(isDark),
+              tooltip: 'common.close'.tr(),
+              onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
             ),
-            textAlign: TextAlign.center,
+          ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isDraw
+                        ? Icons.handshake_outlined
+                        : (isWinner ? Icons.emoji_events : Icons.sentiment_dissatisfied),
+                    size: 56,
+                    color: statusColor,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    titleKey.tr(),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -281,6 +323,16 @@ class _GameOverDialogState extends State<GameOverDialog> {
         ),
       ),
       actions: [
+        // Review Board button (dismisses dialog to view final board and chat)
+        TextButton.icon(
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+          icon: const Icon(Icons.grid_view_rounded, size: 16),
+          label: Text('online.viewBoard'.tr()),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.getTextSecondary(isDark),
+          ),
+        ),
+
         // Back to Menu button
         TextButton(
           onPressed: widget.onBackToMenu,

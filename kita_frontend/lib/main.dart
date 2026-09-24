@@ -14,6 +14,7 @@ import 'presentation/providers/theme_provider.dart';
 import 'dart:async';
 
 import 'data/models/ws_message_models.dart';
+import 'data/services/local_match_history_service.dart';
 import 'presentation/screens/game/online_match_screen.dart';
 import 'presentation/screens/splash_gate_screen.dart';
 import 'presentation/widgets/matchmaking/activity_conflict_dialog.dart';
@@ -54,12 +55,31 @@ class KitaApp extends StatefulWidget {
   State<KitaApp> createState() => _KitaAppState();
 }
 
-class _KitaAppState extends State<KitaApp> {
+class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   OnlineGameProvider? _onlineProv;
   FriendsProvider? _friendsProv;
   bool _isInviteDialogShowing = false;
   bool _isMatchScreenOpen = false;
   Timer? _friendsPollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.detached) {
+      try {
+        final authProv = context.read<AuthProvider>();
+        if (authProv.isGuest) {
+          LocalMatchHistoryService.instance.clearGuestMatches();
+        }
+      } catch (_) {}
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -110,6 +130,7 @@ class _KitaAppState extends State<KitaApp> {
     _onlineProv?.matchState.removeListener(_onMatchStateChanged);
     _friendsProv?.removeListener(_onFriendsChanged);
     _friendsPollTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
