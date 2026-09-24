@@ -35,7 +35,14 @@ class FriendsProvider extends ChangeNotifier {
         _apiService.getFriends(),
         _apiService.getPendingRequests(),
       ]);
-      _friends = results[0];
+      final friendsList = results[0];
+      friendsList.sort((a, b) {
+        if (a.isOnline != b.isOnline) {
+          return a.isOnline ? -1 : 1;
+        }
+        return 0;
+      });
+      _friends = friendsList;
       _pendingRequests = results[1];
     } catch (e) {
       _errorMessage = e.toString();

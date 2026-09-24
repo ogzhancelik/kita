@@ -111,8 +111,8 @@ class KitaBoardTheme {
         2: Color(0xFF3e8f66), // 2: Oceanic azure
         3: Color(0xFF52be80), // 3: Vibrant turquoise
       },
-      selectedHighlightColor: Color.fromARGB(255, 255, 217, 0),
-      validMoveHighlightColor: Color(0xFF0e93ee),
+      selectedHighlightColor: AppColors.boardOceanSelected,
+      validMoveHighlightColor: AppColors.boardOceanHighlight,
       tileValueColor: Colors.white,
     );
   }

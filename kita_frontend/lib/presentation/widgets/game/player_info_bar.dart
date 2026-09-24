@@ -18,6 +18,7 @@ class PlayerInfoBar extends StatelessWidget {
   final bool isOpponent;
   final String name;
   final int rating;
+  final String? ratingLabel;
   final String team; // "white" or "black"
   final ValueNotifier<int> remainingMs;
   final ValueNotifier<String> isActiveTurn;
@@ -29,6 +30,7 @@ class PlayerInfoBar extends StatelessWidget {
     required this.isOpponent,
     required this.name,
     required this.rating,
+    this.ratingLabel,
     required this.team,
     required this.remainingMs,
     required this.isActiveTurn,
@@ -98,7 +100,7 @@ class PlayerInfoBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            '$rating',
+            ratingLabel ?? '$rating',
             style: const TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,

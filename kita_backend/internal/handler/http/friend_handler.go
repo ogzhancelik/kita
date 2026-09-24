@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/oguzhancelik/kita/internal/core/domain"
@@ -12,6 +13,7 @@ import (
 
 type WsNotifier interface {
 	SendToUser(userID string, msgType string, payload any)
+	IsUserOnline(userID string) bool
 }
 
 type FriendHandler struct {
@@ -43,6 +45,20 @@ func (h *FriendHandler) GetFriends(c *gin.Context) {
 		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
 	}
+
+	if h.notifier != nil {
+		for i := range friends {
+			friends[i].IsOnline = h.notifier.IsUserOnline(friends[i].UserID)
+		}
+	}
+
+	// Sort friends: active (online) first, preserving activity/recency order
+	sort.SliceStable(friends, func(i, j int) bool {
+		if friends[i].IsOnline != friends[j].IsOnline {
+			return friends[i].IsOnline
+		}
+		return false
+	})
 
 	c.JSON(http.StatusOK, gin.H{"friends": friends})
 }

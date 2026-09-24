@@ -26,7 +26,7 @@ class HomePendingGameCard extends StatelessWidget {
     if (ms == TimeControlPreset.threeMin) return 'online.timeBlitz'.tr();
     if (ms == TimeControlPreset.fiveMin) return 'online.timeRapid'.tr();
     final mins = ms ~/ 60000;
-    return '$mins min';
+    return 'online.minuteShort'.tr(args: ['$mins']);
   }
 
   void _rejoinGame(BuildContext context) {
@@ -77,6 +77,12 @@ class HomePendingGameCard extends StatelessWidget {
         : (onlineProv.opponentInfo?.name ?? 'online.opponent'.tr());
 
     final opponentRating = onlineProv.opponentInfo?.rating ?? 1200;
+    final isBot = onlineProv.isOffline && onlineProv.offlinePlayMode == PlayMode.vsAi;
+    final isLocalCoop = onlineProv.isOffline && onlineProv.offlinePlayMode == PlayMode.localCoop;
+    final badgeLabel = !onlineProv.isOffline
+        ? '★ $opponentRating'
+        : (isBot ? onlineProv.offlineBotDifficultyLabel : (isLocalCoop ? '2P' : null));
+
     final isMyTurn = onlineProv.isOffline
         ? true
         : (onlineProv.currentTurn.value == onlineProv.myTeam);
@@ -183,7 +189,7 @@ class HomePendingGameCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (!onlineProv.isOffline) ...[
+                        if (badgeLabel != null) ...[
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -192,7 +198,7 @@ class HomePendingGameCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              '★ $opponentRating',
+                              badgeLabel,
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,

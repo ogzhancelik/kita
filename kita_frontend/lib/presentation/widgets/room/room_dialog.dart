@@ -7,13 +7,21 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/online_match_screen.dart';
+import '../matchmaking/activity_conflict_dialog.dart';
 
 /// Dialog to create a custom game room with time control and private options.
 class CreateRoomDialog extends StatefulWidget {
   const CreateRoomDialog({super.key});
 
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(BuildContext context) async {
     final provider = context.read<OnlineGameProvider>();
+    final canProceed = await ActivityConflictHelper.checkAndConfirm(
+      context: context,
+      provider: provider,
+    );
+    if (!canProceed) return;
+
+    if (!context.mounted) return;
     // If not already in an active waiting room, clean slate
     if (provider.matchState.value != OnlineMatchState.inRoom) {
       provider.resetToIdle();
@@ -426,7 +434,15 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
 class JoinRoomDialog extends StatefulWidget {
   const JoinRoomDialog({super.key});
 
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(BuildContext context) async {
+    final provider = context.read<OnlineGameProvider>();
+    final canProceed = await ActivityConflictHelper.checkAndConfirm(
+      context: context,
+      provider: provider,
+    );
+    if (!canProceed) return;
+
+    if (!context.mounted) return;
     return showDialog(
       context: context,
       builder: (_) => const JoinRoomDialog(),

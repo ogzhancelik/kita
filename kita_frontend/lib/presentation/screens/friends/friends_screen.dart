@@ -376,15 +376,45 @@ class _FriendCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: AppColors.ratingGold.withValues(alpha: 0.2),
-            child: Text(
-              friend.username.isNotEmpty ? friend.username[0].toUpperCase() : '?',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.ratingGold,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CircleAvatar(
+                backgroundColor: AppColors.ratingGold.withValues(alpha: 0.2),
+                child: Text(
+                  friend.username.isNotEmpty ? friend.username[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.ratingGold,
+                  ),
+                ),
               ),
-            ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
+                    color: friend.isOnline ? AppColors.online : AppColors.drawGray,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                      width: 1.5,
+                    ),
+                    boxShadow: friend.isOnline
+                        ? [
+                            BoxShadow(
+                              color: AppColors.online.withValues(alpha: 0.5),
+                              blurRadius: 3,
+                              spreadRadius: 0.5,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -399,26 +429,73 @@ class _FriendCard extends StatelessWidget {
                     color: AppColors.getTextPrimary(isDark),
                   ),
                 ),
-                Text(
-                  'Rating: ${friend.rating}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.ratingGold,
-                  ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      '★ ${friend.rating}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.ratingGold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: friend.isOnline ? AppColors.online : AppColors.drawGray,
+                        shape: BoxShape.circle,
+                        boxShadow: friend.isOnline
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.online.withValues(alpha: 0.5),
+                                  blurRadius: 2,
+                                ),
+                              ]
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      friend.isOnline ? 'online.onlineStatus'.tr() : 'online.offlineStatus'.tr(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: friend.isOnline ? FontWeight.w600 : FontWeight.normal,
+                        color: friend.isOnline
+                            ? AppColors.online
+                            : AppColors.getTextMuted(isDark),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           ElevatedButton.icon(
             onPressed: onInvite,
-            icon: const Icon(Icons.sports_esports, size: 16),
-            label: Text('online.sendInvite'.tr()),
+            icon: Icon(
+              Icons.sports_esports,
+              size: 16,
+              color: friend.isOnline ? AppColors.darkTextPrimary : AppColors.getTextSecondary(isDark),
+            ),
+            label: Text(
+              'online.sendInvite'.tr(),
+              style: TextStyle(
+                color: friend.isOnline ? AppColors.darkTextPrimary : AppColors.getTextSecondary(isDark),
+                fontWeight: friend.isOnline ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: AppColors.darkTextPrimary,
+              backgroundColor: friend.isOnline ? AppColors.primaryGreen : AppColors.getSurface(isDark),
+              elevation: friend.isOnline ? 1 : 0,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
+                side: friend.isOnline
+                    ? BorderSide.none
+                    : BorderSide(color: AppColors.getBorder(isDark)),
               ),
             ),
           ),
@@ -480,7 +557,7 @@ class _IncomingRequestCard extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.check_circle, color: AppColors.primaryGreen),
+            icon: const Icon(Icons.check_circle, color: AppColors.accentSecondary),
             onPressed: onAccept,
           ),
           IconButton(

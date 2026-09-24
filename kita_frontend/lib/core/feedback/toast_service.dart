@@ -16,7 +16,12 @@ class KitaToast {
     VoidCallback? onAction,
     String? actionLabel,
   }) {
-    final state = messengerKey.currentState;
+    ScaffoldMessengerState? state;
+    try {
+      state = messengerKey.currentState;
+    } catch (_) {
+      return;
+    }
     if (state == null) return;
 
     state.removeCurrentSnackBar();
@@ -27,8 +32,8 @@ class KitaToast {
 
     switch (type) {
       case ToastType.success:
-        bgColor = const Color(0xFF2A4220);
-        borderColor = AppColors.primaryGreen;
+        bgColor = AppColors.accentDark.withValues(alpha: 0.35);
+        borderColor = AppColors.accentSecondary;
         icon = Icons.check_circle_outline;
         break;
       case ToastType.error:

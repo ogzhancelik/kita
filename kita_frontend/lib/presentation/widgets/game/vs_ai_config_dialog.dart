@@ -28,7 +28,7 @@ class VsAiConfigDialog extends StatefulWidget {
 
 class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
   int _selectedDifficulty = 1; // 0: Easy, 1: Medium, 2: Hard
-  String _selectedSide = 'white'; // 'white', 'random', 'black'
+  String _selectedSide = 'random'; // 'white', 'random', 'black'
 
   @override
   Widget build(BuildContext context) {

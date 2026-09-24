@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
+import '../../widgets/matchmaking/activity_conflict_dialog.dart';
 import '../../widgets/room/room_dialog.dart';
 import '../game/online_match_screen.dart';
 
@@ -165,7 +166,13 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
                               room: room,
                               isDark: isDark,
                               isJoining: isJoining,
-                              onJoin: () {
+                              onJoin: () async {
+                                final canProceed = await ActivityConflictHelper.checkAndConfirm(
+                                  context: context,
+                                  provider: provider,
+                                );
+                                if (!canProceed) return;
+                                if (!context.mounted) return;
                                 setState(() => _joiningRoomCode = room.roomCode);
                                 provider.joinRoom(room.roomCode);
                               },
@@ -294,7 +301,7 @@ class _RoomCard extends StatelessWidget {
     final mins = room.timeControl ~/ 60000;
     final timeStr = room.timeControl == 0
         ? 'online.timeUnlimited'.tr()
-        : '$mins min';
+        : 'online.minuteShort'.tr(args: ['$mins']);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

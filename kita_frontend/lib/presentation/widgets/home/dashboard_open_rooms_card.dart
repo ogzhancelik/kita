@@ -7,6 +7,7 @@ import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/room/room_browser_screen.dart';
 import '../common/kita_card.dart';
+import '../matchmaking/activity_conflict_dialog.dart';
 import '../room/room_dialog.dart';
 
 class DashboardOpenRoomsCard extends StatefulWidget {
@@ -33,7 +34,7 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
     if (mins == 1) return 'online.timeBullet'.tr();
     if (mins == 3) return 'online.timeBlitz'.tr();
     if (mins == 5) return 'online.timeRapid'.tr();
-    return '$mins min';
+    return 'online.minuteShort'.tr(args: ['$mins']);
   }
 
   @override
@@ -165,9 +166,15 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryGreen,
+            decoration: BoxDecoration(
+              color: AppColors.online,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.online.withValues(alpha: 0.5),
+                  blurRadius: 3,
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -228,7 +235,12 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                 borderRadius: BorderRadius.circular(6),
               ),
             ),
-            onPressed: () {
+            onPressed: () async {
+              final canProceed = await ActivityConflictHelper.checkAndConfirm(
+                context: context,
+                provider: onlineProv,
+              );
+              if (!canProceed) return;
               onlineProv.joinRoom(room.roomCode);
             },
             child: Text(

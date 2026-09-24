@@ -54,13 +54,13 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
       return const SizedBox.shrink();
     }
 
-    // Sort friends: online first, then by rating/recency
+    // Sort friends: online first, then by activity/recency (consistent with Friends tab, not by ELO)
     final sortedFriends = List<FriendItemModel>.from(friendsProv.friends)
       ..sort((a, b) {
         if (a.isOnline != b.isOnline) {
           return a.isOnline ? -1 : 1;
         }
-        return b.rating.compareTo(a.rating);
+        return 0;
       });
 
     final hasMoreThanTen = sortedFriends.length >= 10;
@@ -195,15 +195,24 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                 bottom: 0,
                 right: 0,
                 child: Container(
-                  width: 10,
-                  height: 10,
+                  width: 11,
+                  height: 11,
                   decoration: BoxDecoration(
-                    color: friend.isOnline ? AppColors.primaryGreen : AppColors.drawGray,
+                    color: friend.isOnline ? AppColors.online : AppColors.drawGray,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isDark ? AppColors.darkBg : AppColors.lightBg,
                       width: 1.5,
                     ),
+                    boxShadow: friend.isOnline
+                        ? [
+                            BoxShadow(
+                              color: AppColors.online.withValues(alpha: 0.5),
+                              blurRadius: 3,
+                              spreadRadius: 0.5,
+                            ),
+                          ]
+                        : null,
                   ),
                 ),
               ),
@@ -238,21 +247,29 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
           // Direct Challenge Button
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: friend.isOnline
+                  ? AppColors.primaryGreen
+                  : AppColors.getSurface(isDark),
+              elevation: friend.isOnline ? 1 : 0,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(6),
+                side: friend.isOnline
+                    ? BorderSide.none
+                    : BorderSide(color: AppColors.getBorder(isDark)),
               ),
             ),
             onPressed: () => _quickInvite(friend),
             child: Text(
               'dashboard.quickChallenge'.tr(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                fontWeight: friend.isOnline ? FontWeight.bold : FontWeight.normal,
+                color: friend.isOnline
+                    ? AppColors.darkTextPrimary
+                    : AppColors.getTextSecondary(isDark),
               ),
             ),
           ),

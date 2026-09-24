@@ -1173,7 +1173,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   fontSize: 10.5,
                   fontWeight: FontWeight.w600,
                   color: player.winRate >= 50
-                      ? AppColors.primaryGreen
+                      ? AppColors.winStat
                       : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
                 ),
               ),
@@ -1357,7 +1357,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
                       color: userProfile.winRate >= 50
-                          ? AppColors.primaryGreen
+                          ? AppColors.winStat
                           : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
                     ),
                   ),

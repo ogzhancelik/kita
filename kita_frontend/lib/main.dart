@@ -16,6 +16,7 @@ import 'dart:async';
 import 'data/models/ws_message_models.dart';
 import 'presentation/screens/game/online_match_screen.dart';
 import 'presentation/screens/splash_gate_screen.dart';
+import 'presentation/widgets/matchmaking/activity_conflict_dialog.dart';
 import 'presentation/widgets/matchmaking/top_match_invite_banner.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
@@ -199,7 +200,14 @@ class _KitaAppState extends State<KitaApp> {
           TopMatchInviteDialog.show(
             context: navContext,
             request: req,
-            onAccept: () {
+            onAccept: () async {
+              if (navContext.mounted && _onlineProv != null) {
+                final canProceed = await ActivityConflictHelper.checkAndConfirm(
+                  context: navContext,
+                  provider: _onlineProv!,
+                );
+                if (!canProceed) return;
+              }
               _onlineProv?.acceptIncomingRequest();
             },
             onDecline: () {

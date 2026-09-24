@@ -58,7 +58,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
 
     final Color statusColor = isDraw
         ? AppColors.drawGray
-        : (isWinner ? AppColors.winBlue : AppColors.lossRed);
+        : (isWinner ? AppColors.victory : AppColors.lossRed);
 
     final String titleKey = isDraw
         ? 'online.resultDraw'
@@ -222,7 +222,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
                             ),
                           ),
                           Text(
-                            '${offer.requesterName} • 3 min',
+                            '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}',
                             style: TextStyle(
                               fontSize: 11.5,
                               color: AppColors.getTextSecondary(isDark),

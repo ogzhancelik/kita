@@ -96,7 +96,7 @@ class RecordChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildItem('${wins}W', AppColors.primaryGreen),
+          _buildItem('${wins}W', AppColors.winStat),
           _buildDivider(isDark),
           _buildItem('${draws}D', AppColors.drawGray),
           _buildDivider(isDark),

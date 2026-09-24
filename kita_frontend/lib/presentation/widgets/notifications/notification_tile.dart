@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/notification_model.dart';
 import '../../providers/notification_provider.dart';
 
-class NotificationTile extends StatelessWidget {
+class NotificationTile extends StatefulWidget {
   final KitaNotification notification;
   final VoidCallback? onDismissed;
   final bool compact;
@@ -17,6 +17,13 @@ class NotificationTile extends StatelessWidget {
     this.onDismissed,
     this.compact = false,
   });
+
+  @override
+  State<NotificationTile> createState() => _NotificationTileState();
+}
+
+class _NotificationTileState extends State<NotificationTile> {
+  bool _isExpanded = false;
 
   String _formatTimeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -32,15 +39,19 @@ class NotificationTile extends StatelessWidget {
   }
 
   String _formatTimeControl(int? ms) {
-    if (ms == null || ms == 0) {
-      return 'online.timeUnlimited'.tr();
+    if (ms == null || ms <= 0) {
+      return 'notifications.matchDurationUnlimited'.tr();
     }
     final mins = ms ~/ 60000;
-    return '$mins min';
+    return 'notifications.matchDurationMinutes'.tr(args: ['$mins']);
   }
 
   @override
   Widget build(BuildContext context) {
+    final notification = widget.notification;
+    final compact = widget.compact;
+    final onDismissed = widget.onDismissed;
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final notifProv = context.read<NotificationProvider>();
     final isPending = notification.isPending;
@@ -77,7 +88,10 @@ class NotificationTile extends StatelessWidget {
     }
 
     final String subtitleText;
-    final sender = notification.senderName ?? '';
+    final sender = (notification.senderName != null &&
+            notification.senderName!.trim().isNotEmpty)
+        ? notification.senderName!
+        : 'online.opponent'.tr();
     final timeStr = _formatTimeControl(notification.timeControl);
 
     switch (notification.type) {
@@ -117,165 +131,211 @@ class NotificationTile extends StatelessWidget {
               ]
             : null,
       ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 10.0 : 12.0,
-          vertical: compact ? 8.0 : 10.0,
-        ),
-        child: Row(
-          children: [
-            // Category Icon Badge
-            Container(
-              width: compact ? 36 : 40,
-              height: compact ? 36 : 40,
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 10.0 : 12.0,
+                vertical: compact ? 8.0 : 10.0,
               ),
-              child: Icon(
-                iconData,
-                color: accentColor,
-                size: compact ? 20 : 22,
-              ),
-            ),
-            const SizedBox(width: 10),
-
-            // Content Column
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+              child: Row(
+                crossAxisAlignment: _isExpanded
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
                 children: [
-                  // Title + Rating + Timestamp Row
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          titleText,
+                  // Category Icon Badge
+                  Container(
+                    width: compact ? 36 : 40,
+                    height: compact ? 36 : 40,
+                    margin: _isExpanded
+                        ? const EdgeInsets.only(top: 2)
+                        : EdgeInsets.zero,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      iconData,
+                      color: accentColor,
+                      size: compact ? 20 : 22,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Content Column
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Title + Rating + Timestamp Row
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                titleText,
+                                style: TextStyle(
+                                  fontSize: compact ? 13 : 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isPending
+                                      ? AppColors.getTextPrimary(isDark)
+                                      : AppColors.getTextMuted(isDark),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (notification.senderRating != null) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.getSurface(isDark),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '★ ${notification.senderRating}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.ratingGold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(width: 6),
+                            Text(
+                              _formatTimeAgo(notification.timestamp),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.getTextMuted(isDark),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+
+                        // Subtitle
+                        Text(
+                          subtitleText,
                           style: TextStyle(
-                            fontSize: compact ? 13 : 14,
-                            fontWeight: FontWeight.bold,
+                            fontSize: compact ? 11.5 : 12.5,
                             color: isPending
-                                ? AppColors.getTextPrimary(isDark)
+                                ? AppColors.getTextSecondary(isDark)
                                 : AppColors.getTextMuted(isDark),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (notification.senderRating != null) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.getSurface(isDark),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '★ ${notification.senderRating}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.ratingGold,
-                            ),
-                          ),
+                          maxLines: _isExpanded ? null : 1,
+                          overflow: _isExpanded
+                              ? TextOverflow.visible
+                              : TextOverflow.ellipsis,
                         ),
                       ],
-                      const SizedBox(width: 6),
-                      Text(
-                        _formatTimeAgo(notification.timestamp),
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          color: AppColors.getTextMuted(isDark),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Right-aligned Action Buttons or Status Badge
+                  if (isPending) ...[
+                    Padding(
+                      padding: _isExpanded
+                          ? const EdgeInsets.only(top: 2)
+                          : EdgeInsets.zero,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              notifProv.declineNotification(
+                                  context, notification.id);
+                            },
+                            tooltip: 'notifications.decline'.tr(),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: AppColors.lossRed,
+                              size: 18,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor:
+                                  AppColors.lossRed.withValues(alpha: 0.12),
+                              padding: const EdgeInsets.all(6),
+                              minimumSize: const Size(32, 32),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            onPressed: () {
+                              notifProv.acceptNotification(
+                                  context, notification.id);
+                            },
+                            tooltip: 'notifications.accept'.tr(),
+                            icon: const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.accentSecondary,
+                              padding: const EdgeInsets.all(6),
+                              minimumSize: const Size(32, 32),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    Padding(
+                      padding: _isExpanded
+                          ? const EdgeInsets.only(top: 4)
+                          : EdgeInsets.zero,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.getSurface(isDark),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          isIgnored
+                              ? 'notifications.ignored'.tr()
+                              : (notification.isExpired ||
+                                      notification.status ==
+                                          NotificationStatus.expired)
+                                  ? 'notifications.expired'.tr()
+                                  : notification.status ==
+                                          NotificationStatus.accepted
+                                      ? 'notifications.accept'.tr()
+                                      : notification.status ==
+                                              NotificationStatus.declined
+                                          ? 'notifications.decline'.tr()
+                                          : 'notifications.read'.tr(),
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.getTextMuted(isDark),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-
-                  // Subtitle
-                  Text(
-                    subtitleText,
-                    style: TextStyle(
-                      fontSize: compact ? 11.5 : 12.5,
-                      color: isPending
-                          ? AppColors.getTextSecondary(isDark)
-                          : AppColors.getTextMuted(isDark),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-
-            // Right-aligned Action Buttons or Status Badge
-            if (isPending) ...[
-              // Decline Button
-              IconButton(
-                onPressed: () {
-                  notifProv.declineNotification(context, notification.id);
-                },
-                tooltip: 'notifications.decline'.tr(),
-                icon: const Icon(
-                  Icons.close_rounded,
-                  color: AppColors.lossRed,
-                  size: 18,
-                ),
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.lossRed.withValues(alpha: 0.12),
-                  padding: const EdgeInsets.all(6),
-                  minimumSize: const Size(32, 32),
-                ),
-              ),
-              const SizedBox(width: 6),
-
-              // Accept Button
-              IconButton(
-                onPressed: () {
-                  notifProv.acceptNotification(context, notification.id);
-                },
-                tooltip: 'notifications.accept'.tr(),
-                icon: const Icon(
-                  Icons.check_rounded,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  padding: const EdgeInsets.all(6),
-                  minimumSize: const Size(32, 32),
-                ),
-              ),
-            ] else ...[
-              // Interacted Status Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.getSurface(isDark),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  isIgnored
-                      ? 'notifications.ignored'.tr()
-                      : notification.status == NotificationStatus.accepted
-                          ? 'notifications.accept'.tr()
-                          : notification.status == NotificationStatus.declined
-                              ? 'notifications.decline'.tr()
-                              : 'notifications.read'.tr(),
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.getTextMuted(isDark),
-                  ),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

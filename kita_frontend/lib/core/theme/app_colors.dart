@@ -42,6 +42,8 @@ class AppColors {
   static const Color boardDarkSquare = Color(0xFF769656);
   static const Color boardLightSquare = Color(0xFFEEEED2);
   static const Color boardHighlight = Color(0xFFF7F769);
+  static const Color boardOceanHighlight = Color(0xFF00F5D4); // Vibrant bioluminescent aquamarine for Ocean Azure theme
+  static const Color boardOceanSelected = Color(0xFFFFD166); // Sunlit warm gold for Ocean Azure theme
 
   // --- Rating & Badges ---
   static const Color ratingGold = Color(0xFFFFC83B);
@@ -52,6 +54,17 @@ class AppColors {
   static const Color winBlue = Color(0xFF3498DB);
   static const Color lossRed = Color(0xFFE74C3C);
   static const Color drawGray = Color(0xFF95A5A6);
+
+  // --- Positive & Status Indicators (Accents: #A8D8C6 / #75B69C) ---
+  static const Color online = accent; // #A8D8C6: Açık mint yeşili (çevrimiçi göstergesi)
+  static const Color onlineLight = accent; // #A8D8C6: Mint online glow/badge background
+  static const Color victory = accent; // #A8D8C6: Açık mint yeşili (Galibiyet rozeti & metni)
+  static const Color victoryLight = accent; // #A8D8C6: Victory tint / glow
+  static const Color winStat = accent; // #A8D8C6: Açık mint kazanma oranı/istatistik rengi
+  static const Color winStatLight = accent; // #A8D8C6: Mint tint for stat badges
+
+  static Color getVictory(bool isDark) => isDark ? accent : accentSecondary;
+  static Color getOnline(bool isDark) => isDark ? accent : accentSecondary;
 
   // --- Move Quality & Evaluation Indicators ---
   static const Color evalGood = Color(0xFF75B69C);

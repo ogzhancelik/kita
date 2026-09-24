@@ -48,6 +48,13 @@ class KitaBoardWidget extends StatelessWidget {
   /// Flips the board viewpoint (e.g. when playing as Black)
   final bool flipBoard;
 
+  /// When true (default), tile selection and valid moves are rendered in their
+  /// active, vibrant game colors.
+  /// When false, they are rendered in a paler, desaturated, softer style to
+  /// clearly signal that it is not the current turn to play (e.g. piece inspection
+  /// during the opponent's turn).
+  final bool isCurrentTurn;
+
   /// Customizable board theme/styling with heatmap colors
   final KitaBoardTheme? theme;
 
@@ -67,6 +74,7 @@ class KitaBoardWidget extends StatelessWidget {
     this.isPieceDraggable,
     this.isHorizontal = true,
     this.flipBoard = false,
+    this.isCurrentTurn = true,
     this.theme,
     this.pieceBuilder,
   });
@@ -183,7 +191,7 @@ class KitaBoardWidget extends StatelessWidget {
     // Last row: col numbers (1, 2, 3, 4, 5, 6, 7)
     final bool isLastRow = (displayRow == rowsCount - 1);
 
-    const rowLetters = ['A', 'B', 'C', 'D'];
+    const rowLetters = ['D', 'C', 'B', 'A'];
     final String rowLabel = isHorizontal
         ? ((canonicalPos.row >= 0 && canonicalPos.row < rowLetters.length)
             ? rowLetters[canonicalPos.row]
@@ -198,7 +206,31 @@ class KitaBoardWidget extends StatelessWidget {
 
     final double innerSize = max(cellSize - (theme.tileSpacing * 2), 16.0);
     final double pieceSize = innerSize * 0.72;
-    final double labelFontSize = max(cellSize * 0.17, 8.5);
+    final double labelFontSize = max(cellSize * 0.11, 7.0);
+
+    // Desaturated and softer highlight styling when inspecting during opponent's turn (tuned for clear visibility)
+    final Color selectedBg = isCurrentTurn
+        ? theme.selectedHighlightColor
+        : Color.alphaBlend(
+            _desaturate(theme.selectedHighlightColor, 0.45).withValues(alpha: 0.58),
+            cellBaseColor,
+          );
+
+    final Color selectedBorderColor = isCurrentTurn
+        ? theme.selectedHighlightColor
+        : _desaturate(theme.selectedHighlightColor, 0.35).withValues(alpha: 0.85);
+
+    final Color moveBorderColor = isCurrentTurn
+        ? theme.validMoveHighlightColor
+        : _desaturate(theme.validMoveHighlightColor, 0.40).withValues(alpha: 0.55);
+
+    final Color moveDotColor = isCurrentTurn
+        ? theme.validMoveHighlightColor
+        : _desaturate(theme.validMoveHighlightColor, 0.40).withValues(alpha: 0.72);
+
+    final Color moveRingColor = isCurrentTurn
+        ? theme.validMoveHighlightColor
+        : _desaturate(theme.validMoveHighlightColor, 0.40).withValues(alpha: 0.65);
 
     return Padding(
       padding: EdgeInsets.all(theme.tileSpacing),
@@ -211,6 +243,13 @@ class KitaBoardWidget extends StatelessWidget {
           builder: (context, candidateData, rejectedData) {
             final isDragHovered = candidateData.isNotEmpty;
             final isHoveredValidMove = isDragHovered && isValidMove;
+            final double effectiveBorderWidth = isHoveredValidMove
+                ? 3.5
+                : isSelected
+                    ? (isCurrentTurn ? 2.5 : 2.0)
+                    : isValidMove
+                        ? (isCurrentTurn ? 2.5 : 1.6)
+                        : 0.8;
 
             return Material(
               color: Colors.transparent,
@@ -223,24 +262,20 @@ class KitaBoardWidget extends StatelessWidget {
                   height: double.infinity,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? theme.selectedHighlightColor
+                        ? selectedBg
                         : isHoveredValidMove
                             ? theme.validMoveHighlightColor.withValues(alpha: 0.35)
                             : cellBaseColor,
                     borderRadius: BorderRadius.circular(theme.tileBorderRadius),
                     border: Border.all(
                       color: isSelected
-                          ? theme.selectedHighlightColor
+                          ? selectedBorderColor
                           : isHoveredValidMove
                               ? theme.validMoveHighlightColor
                               : isValidMove
-                                  ? theme.validMoveHighlightColor
+                                  ? moveBorderColor
                                   : Colors.white.withValues(alpha: 0.15),
-                      width: isHoveredValidMove
-                          ? 3.5
-                          : (isSelected || isValidMove)
-                              ? 2.5
-                              : 0.8,
+                      width: effectiveBorderWidth,
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -267,7 +302,9 @@ class KitaBoardWidget extends StatelessWidget {
                               fontSize: max(cellSize * 0.20, 9.5),
                               fontWeight: FontWeight.w900,
                               color: isSelected
-                                  ? Colors.black87
+                                  ? (isCurrentTurn
+                                      ? Colors.black87
+                                      : theme.tileValueColor)
                                   : theme.tileValueColor,
                             ),
                           ),
@@ -284,7 +321,9 @@ class KitaBoardWidget extends StatelessWidget {
                               fontSize: labelFontSize,
                               fontWeight: FontWeight.w800,
                               color: isSelected
-                                  ? Colors.black54
+                                  ? (isCurrentTurn
+                                      ? Colors.black54
+                                      : theme.coordinateLabelColor)
                                   : theme.coordinateLabelColor,
                             ),
                           ),
@@ -301,7 +340,9 @@ class KitaBoardWidget extends StatelessWidget {
                               fontSize: labelFontSize,
                               fontWeight: FontWeight.w800,
                               color: isSelected
-                                  ? Colors.black54
+                                  ? (isCurrentTurn
+                                      ? Colors.black54
+                                      : theme.coordinateLabelColor)
                                   : theme.coordinateLabelColor,
                             ),
                           ),
@@ -312,17 +353,23 @@ class KitaBoardWidget extends StatelessWidget {
                         Center(
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 120),
-                            width: cellSize * (isHoveredValidMove ? 0.45 : 0.32),
-                            height: cellSize * (isHoveredValidMove ? 0.45 : 0.32),
+                            width: cellSize * (isHoveredValidMove
+                                ? 0.45
+                                : (isCurrentTurn ? 0.32 : 0.26)),
+                            height: cellSize * (isHoveredValidMove
+                                ? 0.45
+                                : (isCurrentTurn ? 0.32 : 0.26)),
                             decoration: BoxDecoration(
                               color: piece == null
-                                  ? theme.validMoveHighlightColor
+                                  ? moveDotColor
                                   : Colors.transparent,
                               shape: BoxShape.circle,
                               border: piece != null
                                   ? Border.all(
-                                      color: theme.validMoveHighlightColor,
-                                      width: isHoveredValidMove ? 4.0 : 3.0,
+                                      color: moveRingColor,
+                                      width: isHoveredValidMove
+                                          ? 4.0
+                                          : (isCurrentTurn ? 3.0 : 2.2),
                                     )
                                   : null,
                             ),
@@ -445,6 +492,12 @@ class KitaBoardWidget extends StatelessWidget {
         accentColor: accentColor,
       );
     }
+  }
+
+  static Color _desaturate(Color color, double factor) {
+    final hsl = HSLColor.fromColor(color);
+    final newSat = (hsl.saturation * (1.0 - factor)).clamp(0.0, 1.0);
+    return hsl.withSaturation(newSat).toColor();
   }
 }
 

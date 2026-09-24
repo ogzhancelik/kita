@@ -230,7 +230,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
     final Color outcomeColor;
     final String outcomeText;
     if (isWinner) {
-      outcomeColor = AppColors.primaryGreen;
+      outcomeColor = AppColors.victory;
       outcomeText = 'history.victory'.tr();
     } else if (isLoser) {
       outcomeColor = AppColors.lossRed;

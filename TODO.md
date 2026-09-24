@@ -92,7 +92,10 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Paginated public room browser screen (`RoomBrowserScreen`) with pull-to-refresh
   - [x] Friend / user direct invite system & Rematch requests via unified top-of-screen animated notification banner (`TopMatchInviteBanner`) with countdown timer and one-tap accept/decline
   - [x] Friend invite side/color preference dialog (Random, White, Black) and recipient side indicator
+  - [x] Real-time friend online presence synchronization (`Hub.IsUserOnline`), offline challenge guard with clear UI warning, and server-confirmed invitation feedback (preventing false "invite sent" toasts when challenged friend is offline)
+  - [x] Ephemeral Live Challenge Lifecycle: 60-second automatic challenge timeout on Hub, automatic teardown and friend cancellation on disconnect (`handleDisconnect`), and notification inbox expiration guard (`isExpired` / "Süresi Doldu" badge) preventing invalid acceptance of dead challenges
   - [x] Single-item priority Pending/Active Game section on Dashboard above notifications: seamless Rejoin for active matches (with backend disconnect grace period & reconnection support), open room info (synchronized with live rooms list, host room tracking, host room excluded from joinable open rooms list, and swipe to close), and outgoing friend challenges (swipe to cancel with real-time removal & database deletion from friend's notifications)
+  - [x] Mutual Exclusivity & Activity Preemption Guard: Canonical state handling preventing overlapping activities (Active Match, Open Room, Outgoing Challenge, Queue). Soft states provide interactive confirmation prompts ("Change Activity?") across room creation, joining, friend invites, and incoming challenge acceptance, backed by unified backend teardown (`cleanupWaitingRoomLocked`, `cleanupPendingInviteLocked`).
 
 ### 2. Matchmaking
 - [x] **Matchmaking Queue (Backend)**:

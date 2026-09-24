@@ -217,7 +217,7 @@ class UserProfileDialog extends StatelessWidget {
                                   label: 'profile.winRate'.tr(),
                                   value: '${(user?.winRate ?? 0).toStringAsFixed(1)}%',
                                   icon: Icons.trending_up_rounded,
-                                  color: AppColors.primaryGreen,
+                                  color: AppColors.winStat,
                                   isDark: isDark,
                                 ),
                               ),

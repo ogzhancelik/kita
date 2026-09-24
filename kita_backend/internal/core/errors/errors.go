@@ -21,6 +21,7 @@ const (
 	ErrMatchNotFound   ErrorCode = "ERR_MATCH_NOT_FOUND"
 	ErrAlreadyInMatch  ErrorCode = "ERR_ALREADY_IN_MATCH"
 	ErrAlreadyInQueue  ErrorCode = "ERR_ALREADY_IN_QUEUE"
+	ErrPlayerOffline   ErrorCode = "ERR_PLAYER_OFFLINE"
 	ErrInvalidMove     ErrorCode = "ERR_INVALID_MOVE"
 	ErrNotYourTurn     ErrorCode = "ERR_NOT_YOUR_TURN"
 	ErrInvalidMessage  ErrorCode = "ERR_INVALID_MESSAGE"

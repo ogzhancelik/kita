@@ -42,7 +42,7 @@ class MatchInvitationDialog extends StatelessWidget {
     final mins = invitation.timeControl ~/ 60000;
     final timeStr = invitation.timeControl == 0
         ? 'online.timeUnlimited'.tr()
-        : '$mins min';
+        : 'online.minuteShort'.tr(args: ['$mins']);
 
     final String sideLabel;
     final IconData sideIcon;
@@ -197,7 +197,7 @@ class MatchInvitationDialog extends StatelessWidget {
             provider.acceptInvitation(invitation.inviteId);
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryGreen,
+            backgroundColor: AppColors.accentSecondary,
             foregroundColor: AppColors.darkTextPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

@@ -113,6 +113,12 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
 
     final opponentRating = provider.opponentInfo?.rating ?? 1200;
 
+    final isBot = provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi;
+    final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
+    final opponentRatingLabel = isBot
+        ? provider.offlineBotDifficultyLabel
+        : (isLocalCoop ? '2P' : null);
+
     final myDisplayName = provider.isOffline
         ? (provider.offlinePlayMode == PlayMode.localCoop
             ? (isBlack ? 'game.playBlack'.tr() : 'game.playWhite'.tr())
@@ -263,6 +269,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       isOpponent: true,
                       name: opponentName,
                       rating: opponentRating,
+                      ratingLabel: opponentRatingLabel,
                       team: isBlack ? 'white' : 'black',
                       remainingMs: isBlack
                           ? provider.whiteRemainingMs
@@ -506,10 +513,79 @@ class _BoardInteractionState extends State<_BoardInteraction> {
   @override
   void didUpdateWidget(covariant _BoardInteraction oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.displayEngine != widget.displayEngine) {
+    if (oldWidget.displayEngine != widget.displayEngine ||
+        oldWidget.isMyTurn != widget.isMyTurn ||
+        oldWidget.legalMoves != widget.legalMoves) {
+      if (_selectedPos != null) {
+        _updateOrReselectPiece();
+      }
+    }
+  }
+
+  void _updateOrReselectPiece() {
+    if (_selectedPos == null) return;
+    final pos = _selectedPos!;
+    final activePositions = widget.displayEngine.activePositions;
+    String? pieceId;
+    for (final entry in activePositions.entries) {
+      if (entry.value == pos) {
+        pieceId = entry.key;
+        break;
+      }
+    }
+    if (pieceId == null) {
       _selectedPos = null;
       _validMoves = {};
+      return;
     }
+    final piece = KitaPiece.allPieces[pieceId];
+    if (piece == null) {
+      _selectedPos = null;
+      _validMoves = {};
+      return;
+    }
+
+    final isOurPiece = widget.provider.isOffline
+        ? (widget.provider.offlinePlayMode == PlayMode.localCoop
+            ? true
+            : ((widget.provider.myTeam == 'white' && piece.isWhite) ||
+                (widget.provider.myTeam == 'black' && piece.isBlack)))
+        : ((widget.provider.myTeam == 'white' && piece.isWhite) ||
+            (widget.provider.myTeam == 'black' && piece.isBlack));
+
+    if (!isOurPiece) {
+      _selectedPos = null;
+      _validMoves = {};
+      return;
+    }
+
+    final Set<KitaPos> movesForPiece;
+    if (widget.isMyTurn &&
+        piece.team == widget.displayEngine.turn &&
+        widget.legalMoves.isNotEmpty) {
+      movesForPiece = widget.legalMoves
+          .where((m) => m.pieceId == pieceId)
+          .map((m) => m.toPos)
+          .toSet();
+    } else {
+      movesForPiece = widget.displayEngine.getMovesForPiece(pieceId);
+    }
+
+    _selectedPos = pos;
+    _validMoves = movesForPiece;
+  }
+
+  bool get _isCurrentTurnSelection {
+    if (!widget.isMyTurn) return false;
+    if (_selectedPos == null) return true;
+    final activePositions = widget.displayEngine.activePositions;
+    for (final entry in activePositions.entries) {
+      if (entry.value == _selectedPos) {
+        final piece = KitaPiece.allPieces[entry.key];
+        return piece?.team == widget.displayEngine.turn;
+      }
+    }
+    return true;
   }
 
   @override
@@ -526,6 +602,7 @@ class _BoardInteractionState extends State<_BoardInteraction> {
       validMoves: _validMoves,
       flipBoard: widget.flipBoard,
       isHorizontal: widget.isHorizontal,
+      isCurrentTurn: _isCurrentTurnSelection,
       theme: boardTheme,
       onTileTap: canInteract ? _onTileTap : null,
       onPieceDropped: canInteract ? _onPieceDropped : null,
@@ -536,6 +613,15 @@ class _BoardInteractionState extends State<_BoardInteraction> {
   }
 
   bool _isPieceDraggable(KitaPos pos) {
+    if (!widget.isMyTurn && !widget.provider.isOffline) {
+      return false;
+    }
+    if (widget.provider.isOffline &&
+        widget.provider.offlinePlayMode != PlayMode.localCoop &&
+        !widget.isMyTurn) {
+      return false;
+    }
+
     final activePositions = widget.displayEngine.activePositions;
     String? pieceId;
     for (final entry in activePositions.entries) {
@@ -547,6 +633,10 @@ class _BoardInteractionState extends State<_BoardInteraction> {
     if (pieceId == null) return false;
     final piece = KitaPiece.allPieces[pieceId];
     if (piece == null) return false;
+
+    if (piece.team != widget.displayEngine.turn) {
+      return false;
+    }
 
     if (widget.provider.isOffline &&
         widget.provider.offlinePlayMode == PlayMode.localCoop) {
@@ -666,9 +756,16 @@ class _BoardInteractionState extends State<_BoardInteraction> {
       return;
     }
 
-    // 2. If tapping a valid move destination → make the move
+    // 2. If tapping a valid move destination → make the move if our turn, otherwise deselect
     if (_selectedPos != null && _validMoves.contains(pos)) {
-      _onPieceDropped(_selectedPos!, pos);
+      if (widget.isMyTurn) {
+        _onPieceDropped(_selectedPos!, pos);
+      } else {
+        setState(() {
+          _selectedPos = null;
+          _validMoves = {};
+        });
+      }
       return;
     }
 

@@ -140,9 +140,9 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
     final isRematch = req.type == IncomingMatchRequestType.rematch;
 
     final mins = req.timeControl ~/ 60000;
-    final timeStr = req.timeControl == 0
-        ? 'online.timeUnlimited'.tr()
-        : '$mins min';
+    final timeStr = req.timeControl <= 0
+        ? 'notifications.matchDurationUnlimited'.tr()
+        : 'notifications.matchDurationMinutes'.tr(args: ['$mins']);
 
     final title = isRematch
         ? 'online.rematchOfferTitle'.tr()
@@ -158,7 +158,7 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
     }
 
     final subtitle = isRematch
-        ? 'online.rematchOfferSubtitle'.tr(args: [req.senderName, timeStr])
+        ? '${'online.rematchOfferSubtitle'.tr(args: [req.senderName, timeStr])} • $sideInfo'
         : '${'online.friendInviteSubtitle'.tr(args: [req.senderName, timeStr])} • $sideInfo';
 
     final accentColor = isRematch ? AppColors.winBlue : AppColors.ratingGold;
@@ -256,7 +256,7 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
                               fontSize: 12,
                               color: AppColors.getTextSecondary(isDark),
                             ),
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -291,7 +291,7 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
                       ),
                       label: Text('online.accept'.tr()),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
+                        backgroundColor: AppColors.accentSecondary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(

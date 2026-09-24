@@ -72,8 +72,6 @@ class _ChatPanelState extends State<ChatPanel> {
         ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           // 1. Thin header: ONLY shown when keyboard is open
           if (widget.isKeyboardOpen)
@@ -108,7 +106,10 @@ class _ChatPanelState extends State<ChatPanel> {
                     ),
                     const Spacer(),
                     GestureDetector(
-                      onTap: provider.toggleChat,
+                      onTap: () {
+                        FocusScope.of(context).unfocus();
+                        provider.toggleChat();
+                      },
                       child: Icon(
                         Icons.keyboard_arrow_down_rounded,
                         size: 16,
@@ -120,53 +121,46 @@ class _ChatPanelState extends State<ChatPanel> {
               ),
             ),
 
-          // 2. Messages list (compact when typing so board stays prominent)
-          Flexible(
-            fit: widget.isKeyboardOpen ? FlexFit.loose : FlexFit.tight,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: widget.isKeyboardOpen ? 95 : double.infinity,
-              ),
-              child: ValueListenableBuilder<List<ChatMessage>>(
-                valueListenable: provider.chatMessages,
-                builder: (ctx, messages, _) {
-                  if (messages.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Text(
-                          'online.noMessagesYet'.tr(),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.getTextMuted(isDark),
-                          ),
+          // 2. Messages list (occupies remaining chat space between header and input)
+          Expanded(
+            child: ValueListenableBuilder<List<ChatMessage>>(
+              valueListenable: provider.chatMessages,
+              builder: (ctx, messages, _) {
+                if (messages.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        'online.noMessagesYet'.tr(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.getTextMuted(isDark),
                         ),
                       ),
-                    );
-                  }
-
-                  _scrollToBottom();
-
-                  return ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
                     ),
-                    itemCount: messages.length,
-                    shrinkWrap: widget.isKeyboardOpen,
-                    itemBuilder: (ctx, index) {
-                      final msg = messages[index];
-                      final isMe = msg.senderId == provider.myUserId;
-                      return _ChatMessageBubble(
-                        message: msg,
-                        isMe: isMe,
-                        isDark: isDark,
-                      );
-                    },
                   );
-                },
-              ),
+                }
+
+                _scrollToBottom();
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  itemCount: messages.length,
+                  itemBuilder: (ctx, index) {
+                    final msg = messages[index];
+                    final isMe = msg.senderId == provider.myUserId;
+                    return _ChatMessageBubble(
+                      message: msg,
+                      isMe: isMe,
+                      isDark: isDark,
+                    );
+                  },
+                );
+              },
             ),
           ),
 

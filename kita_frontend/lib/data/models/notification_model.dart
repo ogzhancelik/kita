@@ -14,6 +14,7 @@ enum NotificationStatus {
   declined,
   ignored,
   read,     // read info notification
+  expired,
 }
 
 @immutable
@@ -64,13 +65,22 @@ class KitaNotification {
   }
 
   bool get isActionable => type != KitaNotificationType.info;
-  bool get isPending => status == NotificationStatus.pending;
+  bool get isExpired {
+    if (status == NotificationStatus.expired) return true;
+    if (type == KitaNotificationType.challenge || type == KitaNotificationType.rematch) {
+      return DateTime.now().difference(timestamp).inSeconds > 60;
+    }
+    return false;
+  }
+  bool get isPending => status == NotificationStatus.pending && !isExpired;
   bool get isIgnored => status == NotificationStatus.ignored;
   bool get isRead =>
       status == NotificationStatus.read ||
       status == NotificationStatus.ignored ||
       status == NotificationStatus.accepted ||
-      status == NotificationStatus.declined;
+      status == NotificationStatus.declined ||
+      status == NotificationStatus.expired ||
+      isExpired;
 
   KitaNotification copyWith({
     NotificationStatus? status,
@@ -125,6 +135,9 @@ class KitaNotification {
         break;
       case 'ignored':
         status = NotificationStatus.ignored;
+        break;
+      case 'expired':
+        status = NotificationStatus.expired;
         break;
       case 'read':
         status = NotificationStatus.read;

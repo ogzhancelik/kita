@@ -125,6 +125,19 @@ class OnlineGameProvider extends ChangeNotifier {
   PieceTeam offlinePlayerTeam = PieceTeam.white;
   final ValueNotifier<bool> isAiThinking = ValueNotifier(false);
 
+  /// Localized difficulty label for offline AI match (Easy, Medium, Hard).
+  String get offlineBotDifficultyLabel {
+    switch (offlineBotDifficulty) {
+      case 0:
+        return 'game.easy'.tr();
+      case 2:
+        return 'game.hard'.tr();
+      case 1:
+      default:
+        return 'game.medium'.tr();
+    }
+  }
+
   // ─── Game Engine (dual validation) ────────────────────────────────
 
   /// Frontend game engine for local move validation + board display.
@@ -911,6 +924,8 @@ class OnlineGameProvider extends ChangeNotifier {
           );
           notifyListeners();
         }
+        KitaToast.success('online.inviteSent'.tr());
+
 
       case WsServerType.matchInvitation:
         if (msg.payload != null) {
@@ -945,6 +960,7 @@ class OnlineGameProvider extends ChangeNotifier {
       case WsServerType.invitationCancelled:
         final cancelledInviteId = msg.payload?['invite_id'] as String?;
         final cancelledInviterId = msg.payload?['inviter_id'] as String?;
+        final cancelReason = msg.payload?['reason'] as String?;
         if (incomingMatchRequest.value?.id == cancelledInviteId ||
             (cancelledInviterId != null &&
                 incomingMatchRequest.value?.senderId == cancelledInviterId)) {
@@ -954,6 +970,14 @@ class OnlineGameProvider extends ChangeNotifier {
             (cancelledInviterId != null &&
                 matchInvitation.value?.inviterId == cancelledInviterId)) {
           matchInvitation.value = null;
+        }
+        if (pendingOutgoingChallenge.value != null &&
+            (cancelledInviteId == null ||
+                pendingOutgoingChallenge.value?.inviteId == cancelledInviteId)) {
+          pendingOutgoingChallenge.value = null;
+          if (cancelReason == 'timeout') {
+            KitaToast.info('online.inviteTimeout'.tr());
+          }
         }
         onWsNotificationEvent.value = {
           'type': 'invitation_cancelled',
@@ -1199,6 +1223,19 @@ class OnlineGameProvider extends ChangeNotifier {
     lastError.value = error;
     pendingOutgoingChallenge.value = null;
     notifyListeners();
+
+    String message;
+    if (error.code == 'ERR_PLAYER_OFFLINE' ||
+        error.message.toLowerCase().contains('not online')) {
+      message = 'online.friendOffline'.tr();
+    } else if (error.code == 'ERR_ALREADY_IN_MATCH' ||
+        error.message.toLowerCase().contains('already in a match') ||
+        error.message.toLowerCase().contains('already in match')) {
+      message = 'online.friendInMatch'.tr();
+    } else {
+      message = error.message;
+    }
+    KitaToast.error(message);
   }
 
   // ─── Clock Timer ──────────────────────────────────────────────────

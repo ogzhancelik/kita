@@ -326,16 +326,16 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     Color resultColor;
     String resultText;
     if (isWinner) {
-      resultColor = AppColors.primaryGreen;
+      resultColor = AppColors.victory;
       resultText = 'history.victory'.tr();
     } else if (isLoser) {
-      resultColor = Colors.redAccent;
+      resultColor = AppColors.lossRed;
       resultText = 'history.defeat'.tr();
     } else if (isDraw) {
-      resultColor = Colors.grey;
+      resultColor = AppColors.drawGray;
       resultText = 'history.draw'.tr();
     } else {
-      resultColor = Colors.orangeAccent;
+      resultColor = AppColors.accentGold;
       resultText = match.result.toUpperCase();
     }
 

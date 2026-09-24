@@ -6,6 +6,7 @@ import '../../data/models/friend_models.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/models/ws_message_models.dart';
 import '../../data/services/notification_api_service.dart';
+import '../widgets/matchmaking/activity_conflict_dialog.dart';
 import 'friends_provider.dart';
 import 'online_game_provider.dart';
 
@@ -148,15 +149,22 @@ class NotificationProvider extends ChangeNotifier {
     }
 
     try {
-      if (notif.type == KitaNotificationType.rematch) {
+      if (notif.type == KitaNotificationType.rematch || notif.type == KitaNotificationType.challenge) {
         final onlineProv = context.read<OnlineGameProvider>();
-        onlineProv.acceptRematch(notif.matchId);
-      } else if (notif.type == KitaNotificationType.challenge) {
-        final onlineProv = context.read<OnlineGameProvider>();
-        if (notif.inviteId != null && notif.inviteId!.isNotEmpty) {
-          onlineProv.acceptInvitation(notif.inviteId!);
+        final canProceed = await ActivityConflictHelper.checkAndConfirm(
+          context: context,
+          provider: onlineProv,
+        );
+        if (!canProceed) return;
+
+        if (notif.type == KitaNotificationType.rematch) {
+          onlineProv.acceptRematch(notif.matchId);
         } else {
-          onlineProv.acceptIncomingRequest();
+          if (notif.inviteId != null && notif.inviteId!.isNotEmpty) {
+            onlineProv.acceptInvitation(notif.inviteId!);
+          } else {
+            onlineProv.acceptIncomingRequest();
+          }
         }
       } else if (notif.type == KitaNotificationType.friendRequest && notif.friendshipId != null) {
         final friendsProv = context.read<FriendsProvider>();

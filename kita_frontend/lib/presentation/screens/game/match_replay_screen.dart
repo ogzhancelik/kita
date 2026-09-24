@@ -506,7 +506,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   }
 
   String _formatCoord(int col, int row) {
-    const rowLabels = ['A', 'B', 'C', 'D'];
+    const rowLabels = ['D', 'C', 'B', 'A'];
     final r = (row >= 0 && row < 4) ? rowLabels[row] : '$row';
     return '$r${col + 1}';
   }

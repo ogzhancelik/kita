@@ -102,9 +102,9 @@ class KitaMove {
   @override
   int get hashCode => Object.hash(pieceId, fromPos, toPos);
 
-  /// Formats coordinate (col, row) to standard notation (e.g. col 0, row 0 -> 'A1')
+  /// Formats coordinate (col, row) to standard notation (e.g. col 0, row 3 -> 'A1', col 0, row 0 -> 'D1')
   static String formatPos(KitaPos pos) {
-    const rowLabels = ['A', 'B', 'C', 'D'];
+    const rowLabels = ['D', 'C', 'B', 'A'];
     final r = (pos.row >= 0 && pos.row < rowLabels.length) ? rowLabels[pos.row] : '${pos.row}';
     return '$r${pos.col + 1}';
   }
