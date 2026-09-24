@@ -14,6 +14,7 @@ import '../../../data/models/move_evaluation.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/match_api_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/game_settings_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/game/ai_advantage_bar.dart';
 import '../../widgets/game/kita_board_theme.dart';
@@ -532,19 +533,24 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     );
   }
 
-  KitaBoardTheme _getBoardTheme(bool isDark) {
-    switch (_themeIndex) {
-      case 1:
-        return KitaBoardTheme.emerald(isDark);
-      case 2:
-        return KitaBoardTheme.oceanAzure();
-      case 3:
-        return KitaBoardTheme.cyberPurple();
-      case 4:
-        return KitaBoardTheme.slateMonochrome();
-      case 0:
-      default:
-        return KitaBoardTheme.amberSunset();
+  KitaBoardTheme _getBoardTheme(BuildContext context, bool isDark) {
+    try {
+      final gameSettings = Provider.of<GameSettingsProvider>(context, listen: true);
+      return gameSettings.currentBoardTheme(isDark);
+    } catch (_) {
+      switch (_themeIndex) {
+        case 1:
+          return KitaBoardTheme.emerald(isDark);
+        case 2:
+          return KitaBoardTheme.oceanAzure();
+        case 3:
+          return KitaBoardTheme.cyberPurple();
+        case 4:
+          return KitaBoardTheme.slateMonochrome();
+        case 0:
+        default:
+          return KitaBoardTheme.amberSunset();
+      }
     }
   }
 
@@ -557,6 +563,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    try {
+      Provider.of<GameSettingsProvider>(context, listen: true);
+    } catch (_) {}
 
     if (_isLoading) {
       return Scaffold(
@@ -633,7 +642,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                     isDark: isDark,
                   );
 
-                  final boardWidget = _buildBoardWidget(isDark);
+                  final boardWidget = _buildBoardWidget(context, isDark);
 
                   // Fixed vertical elements:
                   // Opponent Card (~44px) + Gap (8px) + User Card (~44px) + Gap (8px) + Advantage Bar (~26px + 8px padding) = 138px
@@ -1043,11 +1052,11 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   }
 
   /// Board Widget configured with active state, theme, perspective flip, and interactive taps
-  Widget _buildBoardWidget(bool isDark) {
+  Widget _buildBoardWidget(BuildContext context, bool isDark) {
     if (_states.isEmpty) return const SizedBox();
 
     final currentEngine = _activeEngine;
-    final boardTheme = _getBoardTheme(isDark);
+    final boardTheme = _getBoardTheme(context, isDark);
 
     // Highlight the move executed to reach current state
     final Set<KitaPos> lastMoveHighlights = {};
