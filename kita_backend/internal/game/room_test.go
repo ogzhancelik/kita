@@ -125,7 +125,21 @@ func TestRoomMoveBufferingAndExecution(t *testing.T) {
 		t.Fatalf("Expected turn black, got %s", room.Game.Turn)
 	}
 
-	// 5. Test Resign and deferred persistence
+	// 5. Black makes a legal move (making total 2 moves)
+	blackMoves := room.Game.GetLegalMoves()
+	if len(blackMoves) == 0 {
+		t.Fatal("Expected legal moves for Black, got none")
+	}
+	secondMoveDTO := FromGameMove(blackMoves[0])
+	err = room.MakeMove("user-black", secondMoveDTO)
+	if err != nil {
+		t.Fatalf("Expected successful move by black, got %v", err)
+	}
+	if len(room.MovesBuffer) != 2 {
+		t.Fatalf("Expected MovesBuffer length 2, got %d", len(room.MovesBuffer))
+	}
+
+	// 6. Test Resign and deferred persistence for 2-move game
 	err = room.Resign("user-white")
 	if err != nil {
 		t.Fatalf("Resign failed: %v", err)
@@ -139,13 +153,65 @@ func TestRoomMoveBufferingAndExecution(t *testing.T) {
 		if savedMatch.WinnerID == nil || *savedMatch.WinnerID != "user-black" {
 			t.Errorf("Expected black to win by white's resignation, got %+v", savedMatch.WinnerID)
 		}
-		if len(savedMatch.Moves) != 1 {
-			t.Errorf("Expected exactly 1 move saved, got %d", len(savedMatch.Moves))
+		if len(savedMatch.Moves) != 2 {
+			t.Errorf("Expected exactly 2 moves saved, got %d", len(savedMatch.Moves))
 		} else if savedMatch.Moves[0].TimeMs < 0 {
 			t.Errorf("Expected non-negative TimeMs, got %d", savedMatch.Moves[0].TimeMs)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("Timeout waiting for match to be saved via MatchService")
+	}
+}
+
+func TestRoom_ZeroAndOneMoveGamesNotRecorded(t *testing.T) {
+	mockService := &mockMatchService{
+		saveChan: make(chan *domain.Match, 5),
+	}
+	hub := NewHub(mockService, nil, nil)
+
+	sConn1, _ := setupTestWS(t)
+	sConn2, _ := setupTestWS(t)
+	clientWhite := NewClient(hub, sConn1, "user-white-0", "WhitePlayer", 1200)
+	clientBlack := NewClient(hub, sConn2, "user-black-0", "BlackPlayer", 1200)
+
+	// Scenario A: 0 moves, White resigns immediately
+	room0 := NewRoom("test-match-0moves", clientWhite, clientBlack, mockService, hub)
+	room0.Start()
+	if err := room0.Resign("user-white-0"); err != nil {
+		t.Fatalf("Resign failed on 0-move room: %v", err)
+	}
+
+	select {
+	case saved := <-mockService.saveChan:
+		t.Fatalf("Expected 0-move game not to be recorded, but got saved match: %+v", saved)
+	case <-time.After(150 * time.Millisecond):
+		// Expected: nothing saved
+	}
+
+	// Scenario B: 1 move, White moves and resigns
+	sConn3, _ := setupTestWS(t)
+	sConn4, _ := setupTestWS(t)
+	clientWhite1 := NewClient(hub, sConn3, "user-white-1", "WhitePlayer", 1200)
+	clientBlack1 := NewClient(hub, sConn4, "user-black-1", "BlackPlayer", 1200)
+
+	room1 := NewRoom("test-match-1move", clientWhite1, clientBlack1, mockService, hub)
+	room1.Start()
+	moves := room1.Game.GetLegalMoves()
+	if len(moves) == 0 {
+		t.Fatal("Expected legal moves")
+	}
+	if err := room1.MakeMove("user-white-1", FromGameMove(moves[0])); err != nil {
+		t.Fatalf("MakeMove failed: %v", err)
+	}
+	if err := room1.Resign("user-black-1"); err != nil {
+		t.Fatalf("Resign failed on 1-move room: %v", err)
+	}
+
+	select {
+	case saved := <-mockService.saveChan:
+		t.Fatalf("Expected 1-move game not to be recorded, but got saved match: %+v", saved)
+	case <-time.After(150 * time.Millisecond):
+		// Expected: nothing saved
 	}
 }
 

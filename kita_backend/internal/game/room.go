@@ -670,13 +670,15 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 	}
 
 	// 1. Veritabanına tek bir transaction ile toplu kayıt (Deferred Persistence)
+	totalMoves := len(r.MovesBuffer)
 	matchRecord := &domain.Match{
 		ID:            r.ID,
 		WhitePlayerID: r.WhitePlayer.UserID,
 		BlackPlayerID: r.BlackPlayer.UserID,
 		WinnerID:      winnerID,
 		Result:        domain.MatchResult(result),
-		TotalMoves:    len(r.MovesBuffer),
+		Reason:        reason,
+		TotalMoves:    totalMoves,
 		StartedAt:     r.StartedAt,
 		EndedAt:       &now,
 		Moves:         r.MovesBuffer, // Tüm hamle listesi tek seferde aktarılır
@@ -684,14 +686,18 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 
 	var ratingChanges map[string]interface{}
 	if r.matchService != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		var err error
-		ratingChanges, err = r.matchService.SaveFinishedMatch(ctx, matchRecord)
-		cancel()
-		if err != nil {
-			log.Printf("[Room %s] Error saving finished match to database: %v", r.ID, err)
+		if totalMoves > 1 {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			var err error
+			ratingChanges, err = r.matchService.SaveFinishedMatch(ctx, matchRecord)
+			cancel()
+			if err != nil {
+				log.Printf("[Room %s] Error saving finished match to database: %v", r.ID, err)
+			} else {
+				log.Printf("[Room %s] Match successfully saved with %d moves", r.ID, len(matchRecord.Moves))
+			}
 		} else {
-			log.Printf("[Room %s] Match successfully saved with %d moves", r.ID, len(matchRecord.Moves))
+			log.Printf("[Room %s] Match finished with %d moves (<= 1); skipped recording to match history", r.ID, totalMoves)
 		}
 	}
 

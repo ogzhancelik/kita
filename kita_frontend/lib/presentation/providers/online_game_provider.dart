@@ -692,6 +692,7 @@ class OnlineGameProvider extends ChangeNotifier {
   Future<void> _saveOfflineGameRecord(GameOverPayload payload) async {
     if (_offlineMatchSaved) return;
     if (!isOffline || offlinePlayMode != PlayMode.vsAi) return;
+    if (moveHistory.value.length <= 1) return;
     _offlineMatchSaved = true;
 
     try {
@@ -747,6 +748,7 @@ class OnlineGameProvider extends ChangeNotifier {
         blackPlayer: isPlayerWhite ? botUser : playerUser,
         winnerId: winnerId,
         result: payload.result,
+        reason: payload.reason,
         totalMoves: moveRecords.length,
         startedAt: _matchStartedAt ?? DateTime.now(),
         endedAt: DateTime.now(),
@@ -818,6 +820,7 @@ class OnlineGameProvider extends ChangeNotifier {
       blackPlayer: isPlayerWhite ? botUser : playerUser,
       winnerId: winnerId,
       result: payload?.result ?? 'in_progress',
+      reason: payload?.reason,
       totalMoves: moveRecords.length,
       startedAt: _matchStartedAt ?? DateTime.now(),
       endedAt: DateTime.now(),

@@ -10,6 +10,7 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showAuthActions;
   final bool showBack;
   final VoidCallback? onBack;
+  final List<Widget>? extraActions;
 
   const KitaAppBar({
     super.key,
@@ -17,6 +18,7 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showAuthActions = true,
     this.showBack = false,
     this.onBack,
+    this.extraActions,
   });
 
   @override
@@ -27,7 +29,10 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeProv = context.watch<ThemeProvider>();
     final authProv = context.watch<AuthProvider>();
-    final currentLocale = context.locale.languageCode;
+    String currentLocale = 'en';
+    try {
+      currentLocale = context.locale.languageCode;
+    } catch (_) {}
 
     return AppBar(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
@@ -83,6 +88,7 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
+        ...?extraActions,
         // Language Toggle (TR / EN)
         Container(
           margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),

@@ -50,3 +50,4 @@ app.*.map.json
 # Tests (ignore scratch tests, keep widget_test.dart)
 /test/*
 !/test/widget_test.dart
+!/test/replay_file_service_test.dart

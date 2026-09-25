@@ -25,6 +25,10 @@ func (r *matchRepo) SaveFinishedMatchWithMoves(
 	match *domain.Match,
 	whiteRating, whiteRD, whiteVol, blackRating, blackRD, blackVol float64,
 ) error {
+	if match.TotalMoves <= 1 || len(match.Moves) <= 1 {
+		return nil
+	}
+
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 1. Maç ve ilişkili tüm hamleleri kaydet (GORM match.Moves'u otomatik topluca insert eder)
 		if err := tx.Create(match).Error; err != nil {
@@ -169,7 +173,7 @@ func (r *matchRepo) FindUserMatches(ctx context.Context, userID string, limit, o
 	var matches []domain.Match
 	err := r.db.WithContext(ctx).
 		Omit("moves").
-		Where("white_player_id = ? OR black_player_id = ?", userID, userID).
+		Where("(white_player_id = ? OR black_player_id = ?) AND total_moves > 1", userID, userID).
 		Order("started_at DESC").
 		Limit(limit).
 		Offset(offset).

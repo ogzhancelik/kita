@@ -105,6 +105,8 @@
     "noOpenRooms": "Bekleyen açık oda bulunamadı",
     "friendsQuick": "Arkadaşlar & Hızlı Davet",
     "recentMatches": "Son Maçlar",
+    "vsOpponent": "vs {}",
+    "vsAi": "vs AI",
     "playMenu": "Kita Oyna",
     "playMenuSubtitle": "Oyun modunu seçin",
     "matchmakingWarning": "Hızlı eşleşme havuzu aktif online oyuncularla eşleştirir.",
@@ -372,7 +374,15 @@
     "matchInfo": "Maç Detayları",
     "settings": "Ayarlar",
     "firstMove": "İlk Hamle",
-    "lastMove": "Son Hamle"
+    "lastMove": "Son Hamle",
+    "downloadReplay": "Tekrarı İndir",
+    "loadReplay": "Tekrar Yükle",
+    "saveDialogTitle": "Kita Tekrarını Kaydet",
+    "pickDialogTitle": "Kita Tekrar Dosyası Seç",
+    "downloadSuccess": "Tekrar başarıyla indirildi",
+    "downloadError": "Tekrar indirilemedi",
+    "loadSuccess": "Tekrar başarıyla yüklendi",
+    "invalidFile": "Geçersiz veya bozuk tekrar dosyası"
   },
   "common": {
     "cancel": "İptal",

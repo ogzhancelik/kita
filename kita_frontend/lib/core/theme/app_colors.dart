@@ -51,19 +51,20 @@ class AppColors {
   static const Color silverMedal = Color(0xFFC0C0C0);
   static const Color bronzeMedal = Color(0xFFCD7F32);
   static const Color guestOrange = Color(0xFFF39C12);
+  static const Color winGreen = Color(0xFF70EFBF); // Vibrant Emerald Green for wins
   static const Color winBlue = Color(0xFF3498DB);
   static const Color lossRed = Color(0xFFE74C3C);
-  static const Color drawGray = Color(0xFF95A5A6);
+  static const Color drawGray = Color(0xFF3D4444);
 
   // --- Positive & Status Indicators (Accents: #A8D8C6 / #75B69C) ---
   static const Color online = accent; // #A8D8C6: Açık mint yeşili (çevrimiçi göstergesi)
   static const Color onlineLight = accent; // #A8D8C6: Mint online glow/badge background
-  static const Color victory = accent; // #A8D8C6: Açık mint yeşili (Galibiyet rozeti & metni)
-  static const Color victoryLight = accent; // #A8D8C6: Victory tint / glow
-  static const Color winStat = accent; // #A8D8C6: Açık mint kazanma oranı/istatistik rengi
-  static const Color winStatLight = accent; // #A8D8C6: Mint tint for stat badges
+  static const Color victory = winGreen; // #90F0CC: Vibrant saturated green (Galibiyet rozeti & metni)
+  static const Color victoryLight = winGreen; // Victory tint / glow
+  static const Color winStat = accent; // #A8D8C6: Saturated win rate/stat color
+  static const Color winStatLight = accent; // Win stat badge tint
 
-  static Color getVictory(bool isDark) => isDark ? accent : accentSecondary;
+  static Color getVictory(bool isDark) => victory;
   static Color getOnline(bool isDark) => isDark ? accent : accentSecondary;
 
   // --- Active Turn Profile Panel Colors (Mint theme) ---

@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/match_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../../data/services/local_match_history_service.dart';
 import '../../../data/services/match_api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../screens/game/match_replay_screen.dart';
 import '../../screens/home/match_history_screen.dart';
+import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
 
 class DashboardMatchHistoryCard extends StatefulWidget {
@@ -66,7 +68,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
       }
 
       final onlineList = await _matchApiService.getUserMatches(
-        user!.id,
+        user.id,
         limit: _pageSize,
         offset: _offset,
       );
@@ -246,12 +248,104 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
     );
   }
 
+  String _getAiDifficultyLabel(UserProfile? opponent) {
+    final rating = opponent?.rating ?? 1200;
+    final username = (opponent?.username ?? '').toLowerCase();
+
+    if (rating <= 1000 || username.contains('easy') || username.contains('beginner')) {
+      return 'game.easy'.tr();
+    } else if (rating >= 1400 || username.contains('hard') || username.contains('grandmaster')) {
+      return 'game.hard'.tr();
+    } else {
+      return 'game.medium'.tr();
+    }
+  }
+
+  Widget _buildPlayerAvatar(UserProfile? player, bool isDark) {
+    final int avatarIndex = player?.avatarIndex ?? 0;
+    final avatarItem = AvatarPicker.avatars[avatarIndex % AvatarPicker.avatars.length];
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: avatarItem.accentColor.withValues(alpha: 0.2),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: avatarItem.accentColor.withValues(alpha: 0.6),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          avatarItem.icon,
+          size: 16,
+          color: avatarItem.accentColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAiAvatar(bool isDark) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(
+          color: AppColors.primaryLight.withValues(alpha: 0.7),
+          width: 1.2,
+        ),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.smart_toy_rounded,
+          size: 17,
+          color: AppColors.primaryLight,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEndReasonBadge(MatchRecordModel match) {
+    final bool isTimeout = match.isTimeout;
+    final icon = isTimeout ? Icons.timer_outlined : Icons.flag_outlined;
+    final tooltip = isTimeout ? 'online.reasonTimeout'.tr() : 'online.reasonResigned'.tr();
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          color: AppColors.lossRed.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: AppColors.lossRed.withValues(alpha: 0.6),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            size: 11,
+            color: AppColors.lossRed,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMatchTile(MatchRecordModel match, String currentUserId, bool isDark) {
     final bool isOffline = match.isOffline || match.id.startsWith('offline');
     final bool isWhite = isOffline
         ? (match.blackPlayerId == 'bot')
         : (match.whitePlayerId == currentUserId);
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
+    final bool isVsAi = isOffline ||
+        match.blackPlayerId == 'bot' ||
+        match.whitePlayerId == 'bot' ||
+        (opponent?.id == 'bot') ||
+        (opponent?.username.toLowerCase().contains('bot') ?? false);
     final opponentName = opponent?.username ??
         (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'Black' : 'White'));
     final opponentRating = opponent?.rating ?? 1200;
@@ -274,22 +368,17 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
     }
 
     final Color outcomeColor;
-    final String outcomeText;
     if (isWinner) {
       outcomeColor = AppColors.victory;
-      outcomeText = 'history.victory'.tr();
     } else if (isLoser) {
       outcomeColor = AppColors.lossRed;
-      outcomeText = 'history.defeat'.tr();
     } else if (isDraw) {
       outcomeColor = AppColors.drawGray;
-      outcomeText = 'history.draw'.tr();
     } else {
       outcomeColor = AppColors.accentGold;
-      outcomeText = match.result.toUpperCase();
     }
 
-    final dateStr = DateFormat('dd.MM HH:mm').format(match.startedAt.toLocal());
+    final dateStr = DateFormat('dd.MM').format(match.startedAt.toLocal());
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -302,73 +391,68 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
       ),
       child: Row(
         children: [
-          // Outcome Badge
+          // Left: Result Indicator Color Bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            width: 4,
+            height: 36,
             decoration: BoxDecoration(
-              color: outcomeColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: outcomeColor.withValues(alpha: 0.4),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              outcomeText,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: outcomeColor,
-              ),
+              color: outcomeColor,
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(width: 10),
 
-          // Match Details
+          // Player / AI PP (vertically centered next to text block)
+          if (isVsAi) _buildAiAvatar(isDark) else _buildPlayerAvatar(opponent, isDark),
+          const SizedBox(width: 10),
+
+          // Match Details (Top: Name / AI Difficulty, Bottom: Moves & Date)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
-                    Flexible(
-                      child: Text(
-                        'vs $opponentName',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '($opponentRating)',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.ratingGold,
-                      ),
-                    ),
-                    if (isOffline) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                    if (isVsAi) ...[
+                      Flexible(
                         child: Text(
-                          'history.vsAi'.tr(),
-                          style: const TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryGreen,
+                          _getAiDifficultyLabel(opponent),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                    ] else ...[
+                      Flexible(
+                        child: Text(
+                          opponentName,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '($opponentRating)',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.ratingGold,
+                        ),
+                      ),
+                    ],
+                    if (match.isTimeout || match.isResigned) ...[
+                      const SizedBox(width: 6),
+                      _buildEndReasonBadge(match),
                     ],
                   ],
                 ),
@@ -376,7 +460,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard> {
                 Text(
                   '${match.totalMoves} ${'game.moveCount'.tr(args: ['']).trim()} • $dateStr',
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 11,
                     color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                   ),
                 ),

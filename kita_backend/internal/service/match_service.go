@@ -22,6 +22,11 @@ func NewMatchService(matchRepo ports.MatchRepository, userRepo ports.UserReposit
 }
 
 func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Match) (map[string]interface{}, error) {
+	// Do not save 0-move and 1-move games in match history
+	if match.TotalMoves <= 1 || len(match.Moves) <= 1 {
+		return nil, nil
+	}
+
 	var whiteUser *domain.User
 	if !strings.HasPrefix(match.WhitePlayerID, "guest-") {
 		whiteUser, _ = s.userRepo.FindByID(ctx, match.WhitePlayerID)

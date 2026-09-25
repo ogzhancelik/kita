@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/match_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../../data/services/local_match_history_service.dart';
 import '../../../data/services/match_api_service.dart';
+import '../../../data/services/replay_file_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/kita_card.dart';
@@ -126,6 +129,92 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     );
   }
 
+  Future<void> _loadReplayFromFile() async {
+    try {
+      final loadedMatch = await ReplayFileService.instance.pickAndLoadReplay(
+        dialogTitle: 'replay.pickDialogTitle'.tr(),
+      );
+
+      if (loadedMatch == null) return;
+
+      await LocalMatchHistoryService.instance.saveMatch(loadedMatch);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.primaryGreen,
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'replay.loadSuccess'.tr(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MatchReplayScreen(
+            match: loadedMatch,
+          ),
+        ),
+      );
+
+      if (mounted) {
+        _fetchMatches();
+      }
+    } on FormatException catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.lossRed,
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'replay.invalidFile'.tr(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.lossRed,
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'replay.invalidFile'.tr(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -137,6 +226,18 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
         showAuthActions: false,
         showBack: true,
         title: 'history.title'.tr(),
+        extraActions: [
+          IconButton(
+            tooltip: 'replay.loadReplay'.tr(),
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(
+              Icons.file_open_rounded,
+              color: AppColors.primaryGreen,
+              size: 20,
+            ),
+            onPressed: _loadReplayFromFile,
+          ),
+        ],
       ),
       body: ResponsiveLayout(
         child: _isLoading
@@ -259,55 +360,63 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: _showOfflineMatches
-                      ? AppColors.primaryGreen.withValues(alpha: 0.15)
-                      : (isDark
-                          ? AppColors.darkSurfaceElevated
-                          : AppColors.lightSurface),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.smart_toy_rounded,
-                  size: 18,
-                  color: _showOfflineMatches
-                      ? AppColors.primaryGreen
-                      : (isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.lightTextMuted),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'history.showOfflineMatches'.tr(),
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.lightTextPrimary,
-                    ),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: _showOfflineMatches
+                        ? AppColors.primaryGreen.withValues(alpha: 0.15)
+                        : (isDark
+                            ? AppColors.darkSurfaceElevated
+                            : AppColors.lightSurface),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 1),
-                  Text(
-                    'game.aiBot'.tr(),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.lightTextMuted,
-                    ),
+                  child: Icon(
+                    Icons.smart_toy_rounded,
+                    size: 18,
+                    color: _showOfflineMatches
+                        ? AppColors.primaryGreen
+                        : (isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'history.showOfflineMatches'.tr(),
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        'game.aiBot'.tr(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           Switch.adaptive(
             value: _showOfflineMatches,
@@ -426,6 +535,93 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     );
   }
 
+  String _getAiDifficultyLabel(UserProfile? opponent) {
+    final rating = opponent?.rating ?? 1200;
+    final username = (opponent?.username ?? '').toLowerCase();
+
+    if (rating <= 1000 || username.contains('easy') || username.contains('beginner')) {
+      return 'game.easy'.tr();
+    } else if (rating >= 1400 || username.contains('hard') || username.contains('grandmaster')) {
+      return 'game.hard'.tr();
+    } else {
+      return 'game.medium'.tr();
+    }
+  }
+
+  Widget _buildPlayerAvatar(UserProfile? player, bool isDark) {
+    final int avatarIndex = player?.avatarIndex ?? 0;
+    final avatarItem = AvatarPicker.avatars[avatarIndex % AvatarPicker.avatars.length];
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: avatarItem.accentColor.withValues(alpha: 0.2),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: avatarItem.accentColor.withValues(alpha: 0.6),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          avatarItem.icon,
+          size: 16,
+          color: avatarItem.accentColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAiAvatar(bool isDark) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(
+          color: AppColors.primaryLight.withValues(alpha: 0.7),
+          width: 1.2,
+        ),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.smart_toy_rounded,
+          size: 17,
+          color: AppColors.primaryLight,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEndReasonBadge(MatchRecordModel match) {
+    final bool isTimeout = match.isTimeout;
+    final icon = isTimeout ? Icons.timer_outlined : Icons.flag_outlined;
+    final tooltip = isTimeout ? 'online.reasonTimeout'.tr() : 'online.reasonResigned'.tr();
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          color: AppColors.lossRed.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(
+            color: AppColors.lossRed.withValues(alpha: 0.6),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            size: 11,
+            color: AppColors.lossRed,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMatchCard(BuildContext context, MatchRecordModel match,
       String myUserId, bool isDark) {
     final bool isOffline = match.isOffline || match.id.startsWith('offline');
@@ -439,6 +635,11 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     }
 
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
+    final bool isVsAi = isOffline ||
+        match.blackPlayerId == 'bot' ||
+        match.whitePlayerId == 'bot' ||
+        (opponent?.id == 'bot') ||
+        (opponent?.username.toLowerCase().contains('bot') ?? false);
     final opponentName = opponent?.username ??
         (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'Black' : 'White'));
     final opponentRating = opponent?.rating ?? 1200;
@@ -461,22 +662,17 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     }
 
     Color resultColor;
-    String resultText;
     if (isWinner) {
       resultColor = AppColors.victory;
-      resultText = 'history.victory'.tr();
     } else if (isLoser) {
       resultColor = AppColors.lossRed;
-      resultText = 'history.defeat'.tr();
     } else if (isDraw) {
       resultColor = AppColors.drawGray;
-      resultText = 'history.draw'.tr();
     } else {
       resultColor = AppColors.accentGold;
-      resultText = match.result.toUpperCase();
     }
 
-    final dateStr = DateFormat('dd MMM yyyy, HH:mm').format(match.startedAt.toLocal());
+    final dateStr = DateFormat('dd.MM').format(match.startedAt.toLocal());
 
     return KitaCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -486,98 +682,102 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           // Left: Result Indicator Pillar
           Container(
             width: 4,
-            height: 48,
+            height: 44,
             decoration: BoxDecoration(
               color: resultColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
 
-          // Team Badge (White vs Black)
+          // B/W Team Badge
           Container(
-            width: 28,
-            height: 28,
+            width: 22,
+            height: 22,
             decoration: BoxDecoration(
               color: isWhite ? Colors.white : Colors.black,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey, width: 1.5),
+              border: Border.all(color: Colors.grey, width: 1.2),
             ),
             child: Center(
               child: Text(
                 isWhite ? 'W' : 'B',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: FontWeight.w900,
                   color: isWhite ? Colors.black : Colors.white,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
+
+          // Player / AI PP
+          if (isVsAi) _buildAiAvatar(isDark) else _buildPlayerAvatar(opponent, isDark),
+          const SizedBox(width: 10),
 
           // Match details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
-                    Text(
-                      resultText,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: resultColor,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'vs $opponentName ($opponentRating)',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (isOffline) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1.5),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen
-                              .withValues(alpha: isDark ? 0.22 : 0.14),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: AppColors.primaryGreen
-                                .withValues(alpha: 0.4),
-                            width: 0.8,
-                          ),
-                        ),
+                    if (isVsAi) ...[
+                      Flexible(
                         child: Text(
-                          'history.vsAi'.tr(),
-                          style: const TextStyle(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primaryGreen,
+                          _getAiDifficultyLabel(opponent),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                    ] else ...[
+                      Flexible(
+                        child: Text(
+                          opponentName,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '($opponentRating)',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.ratingGold,
+                        ),
+                      ),
+                    ],
+                    if (match.isTimeout || match.isResigned) ...[
+                      const SizedBox(width: 6),
+                      _buildEndReasonBadge(match),
                     ],
                   ],
                 ),
                 const SizedBox(height: 3),
-                Row(
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      dateStr,
+                      '${'replay.movesCount'.tr(args: ['${match.totalMoves}'])} • $dateStr',
                       style: TextStyle(
                         fontSize: 11,
                         color: isDark
@@ -585,28 +785,16 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                             : AppColors.lightTextMuted,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '•  ${'replay.movesCount'.tr(args: ['${match.totalMoves}'])}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted,
-                      ),
-                    ),
-                    if (match.endedAt != null) ...[
-                      const SizedBox(width: 8),
+                    if (match.endedAt != null)
                       Text(
                         '•  ${_formatDuration(match.endedAt!.difference(match.startedAt).inSeconds)}',
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark
-                              ? AppColors.darkTextMuted
-                              : AppColors.lightTextMuted,
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                         ),
                       ),
-                    ],
                   ],
                 ),
               ],

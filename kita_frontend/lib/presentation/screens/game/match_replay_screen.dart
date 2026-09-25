@@ -13,6 +13,7 @@ import '../../../data/models/match_model.dart';
 import '../../../data/models/move_evaluation.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/match_api_service.dart';
+import '../../../data/services/replay_file_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
@@ -1713,6 +1714,25 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 style: TextStyle(fontSize: 12, color: AppColors.getTextMuted(isDark)),
               ),
             ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.download_rounded, size: 18),
+                label: Text(
+                  'replay.downloadReplay'.tr(),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                onPressed: () => _downloadReplay(ctx),
+              ),
+            ),
           ],
         ),
         actions: [
@@ -1724,4 +1744,59 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       ),
     );
   }
+
+  Future<void> _downloadReplay(BuildContext dialogContext) async {
+    if (_match == null) return;
+    try {
+      final savedPath = await ReplayFileService.instance.exportReplay(
+        _match!,
+        dialogTitle: 'replay.saveDialogTitle'.tr(),
+      );
+      if (savedPath != null && mounted) {
+        if (dialogContext.mounted) {
+          Navigator.of(dialogContext).pop();
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.primaryGreen,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'replay.downloadSuccess'.tr(),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.lossRed,
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'replay.downloadError'.tr(),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
 }
+

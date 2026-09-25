@@ -105,6 +105,8 @@
     "noOpenRooms": "No open rooms waiting for players",
     "friendsQuick": "Friends & Challenges",
     "recentMatches": "Recent Matches",
+    "vsOpponent": "vs {}",
+    "vsAi": "vs AI",
     "playMenu": "Play Kita",
     "playMenuSubtitle": "Select game mode",
     "matchmakingWarning": "Queue pool pairs with currently active online players.",
@@ -373,7 +375,15 @@
     "matchInfo": "Match Details",
     "settings": "Settings",
     "firstMove": "First Move",
-    "lastMove": "Last Move"
+    "lastMove": "Last Move",
+    "downloadReplay": "Download Replay",
+    "loadReplay": "Load Replay",
+    "saveDialogTitle": "Save Kita Replay",
+    "pickDialogTitle": "Select Kita Replay File",
+    "downloadSuccess": "Replay downloaded successfully",
+    "downloadError": "Failed to download replay",
+    "loadSuccess": "Replay loaded successfully",
+    "invalidFile": "Invalid or corrupted replay file"
   },
   "common": {
     "cancel": "Cancel",

@@ -98,3 +98,6 @@ cd .\kita_frontend
 flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000
 ```
 Telefon veya başka bir cihazdan: `http://<BİLGİSAYAR_IP>:3000` adresine girmeniz yeterlidir.
+
+### 5. Backend göstermeyle Build et
+flutter build apk --dart-define=SHOW_API_CONFIG=true

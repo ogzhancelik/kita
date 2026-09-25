@@ -45,6 +45,7 @@ Foundational systems to establish early so game strings and rules are never hard
   - [x] Custom display name and avatar selection (Guest onboarding, logged-in user profile avatar picker & backend sync)
   - [x] Player statistics (total matches, wins, losses, win rate, current streak)
   - [x] Match history summary list (recent opponents, results, dates)
+    - [x] Filter out and prevent recording 0-move and 1-move games in match history across backend & offline storage
   - [x] Dedicated User Profile modal dialog & detailed stats view
 - [ ] **Settings & Preferences**:
   - [x] Backend settings API (`/api/settings`) & DB persistence (board themes, audio, orientation, move highlights)
@@ -151,6 +152,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Offline Play vs Computer game saving in device storage (`LocalMatchHistoryService`)
   - [x] Guest match isolation and automatic cleanup on guest logout or quit
   - [x] Match History toggle filter to show/hide offline matches with synchronized replay viewer
+  - [x] End-reason tracking & persistence (timeout, resignation) across PostgreSQL database, offline storage, and match history indicator badges
 - [x] **Replay & Review Viewer**:
   - [x] Step-by-step game playback (Next move, Previous move, Jump to start/end, Auto-play with speed controls)
   - [x] Post-game review workflow: Replay past recorded matches directly from match history (both online and offline matches)
@@ -160,6 +162,10 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
   - [x] Post-game AI move review & quality indicators: Real-time advantage deltas (e.g. +0.1, -0.3, 0.0), semantic color badges (good, inaccuracy, mistake, blunder), and tooltips next to moves in Match History AI Review & Sandbox fork
   - [x] Interactive "sandbox" fork: test alternate moves from any board state in the replay
+- [x] **Match Replay Export & Import Sharing**:
+  - [x] Cross-platform match replay file exporter/downloader (`ReplayFileService.exportReplay`) saving standard `.kita` / `.json` replay packages with metadata and complete move sequences.
+  - [x] In-Replay download action: Prominent "Download Replay" button integrated directly inside the top-bar match info modal (`_showMatchDetailsDialog` in `MatchReplayScreen`).
+  - [x] Top-bar replay loader in Match History (`MatchHistoryScreen`): One-tap "Load Replay" file picker in `KitaAppBar` allowing players to pick `.kita` / `.json` replay files received from friends, automatically saving them to local device history and launching them directly in `MatchReplayScreen` with full AI evaluation and sandbox fork capabilities.
 
 ---
 

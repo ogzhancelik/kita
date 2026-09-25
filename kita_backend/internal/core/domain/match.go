@@ -27,6 +27,7 @@ type Match struct {
 	BlackPlayer   *User        `json:"black_player,omitempty" gorm:"-"`
 	WinnerID      *string      `json:"winner_id" gorm:"type:varchar(64);index"`
 	Result        MatchResult  `json:"result" gorm:"type:varchar(32);not null"`
+	Reason        string       `json:"reason,omitempty" gorm:"type:varchar(32)"`
 	TotalMoves    int          `json:"total_moves" gorm:"default:0"`
 	StartedAt     time.Time    `json:"started_at"`
 	EndedAt       *time.Time   `json:"ended_at"`

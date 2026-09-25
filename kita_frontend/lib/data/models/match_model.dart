@@ -69,6 +69,7 @@ class MatchRecordModel {
   final UserProfile? blackPlayer;
   final String? winnerId;
   final String result;
+  final String? reason;
   final int totalMoves;
   final DateTime startedAt;
   final DateTime? endedAt;
@@ -83,6 +84,7 @@ class MatchRecordModel {
     this.blackPlayer,
     this.winnerId,
     required this.result,
+    this.reason,
     required this.totalMoves,
     required this.startedAt,
     this.endedAt,
@@ -93,6 +95,17 @@ class MatchRecordModel {
   bool get isWhiteWinner => winnerId != null && winnerId == whitePlayerId;
   bool get isBlackWinner => winnerId != null && winnerId == blackPlayerId;
   bool get isDraw => result == 'draw';
+
+  bool get isTimeout =>
+      reason == 'timeout' ||
+      reason == 'reason_timeout' ||
+      result == 'timeout';
+
+  bool get isResigned =>
+      reason == 'resignation' ||
+      reason == 'reason_resigned' ||
+      reason == 'resigned' ||
+      result == 'resigned';
 
   factory MatchRecordModel.fromJson(Map<String, dynamic> json) {
     final rawMoves = json['moves'] as List<dynamic>? ?? [];
@@ -109,6 +122,7 @@ class MatchRecordModel {
           : null,
       winnerId: json['winner_id'] as String?,
       result: json['result'] as String? ?? 'ongoing',
+      reason: json['reason'] as String?,
       totalMoves: (json['total_moves'] as num?)?.toInt() ?? rawMoves.length,
       startedAt: json['started_at'] != null
           ? DateTime.tryParse(json['started_at'].toString()) ?? DateTime.now()
@@ -131,6 +145,7 @@ class MatchRecordModel {
         'black_player': blackPlayer?.toJson(),
         'winner_id': winnerId,
         'result': result,
+        'reason': reason,
         'total_moves': totalMoves,
         'started_at': startedAt.toIso8601String(),
         'ended_at': endedAt?.toIso8601String(),

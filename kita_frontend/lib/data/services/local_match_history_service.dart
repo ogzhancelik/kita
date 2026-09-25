@@ -20,6 +20,12 @@ class LocalMatchHistoryService {
     bool? isGuest,
     String? userId,
   }) async {
+    final moveCount = match.totalMoves > 0 ? match.totalMoves : match.moves.length;
+    if (moveCount <= 1) {
+      debugPrint('[LocalMatchHistoryService] Skipping saving 0-move or 1-move match: ${match.id}');
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_keyMatches);
@@ -71,7 +77,11 @@ class LocalMatchHistoryService {
         if (item is! Map<String, dynamic>) continue;
         final matchMap = (item['match'] as Map<String, dynamic>?) ?? item;
         try {
-          results.add(MatchRecordModel.fromJson(matchMap));
+          final parsed = MatchRecordModel.fromJson(matchMap);
+          final count = parsed.totalMoves > 0 ? parsed.totalMoves : parsed.moves.length;
+          if (count > 1) {
+            results.add(parsed);
+          }
         } catch (e) {
           debugPrint('[LocalMatchHistoryService] Error parsing match: $e');
         }

@@ -32,3 +32,35 @@ func TestGlickoScenario(t *testing.T) {
 		t.Errorf("expected RD 290, got %v and %v", wRD2, bRD2)
 	}
 }
+
+func TestSaveFinishedMatch_ZeroOrOneMoveIgnored(t *testing.T) {
+	svc := NewMatchService(nil, nil)
+
+	// Case 1: 0 moves
+	match0 := &domain.Match{
+		ID:         "m-0",
+		TotalMoves: 0,
+		Moves:      []domain.MoveRecord{},
+	}
+	res0, err0 := svc.SaveFinishedMatch(nil, match0)
+	if err0 != nil {
+		t.Fatalf("expected nil error, got %v", err0)
+	}
+	if res0 != nil {
+		t.Fatalf("expected nil rating changes for 0-move game, got %v", res0)
+	}
+
+	// Case 2: 1 move
+	match1 := &domain.Match{
+		ID:         "m-1",
+		TotalMoves: 1,
+		Moves:      []domain.MoveRecord{{PlyIndex: 0}},
+	}
+	res1, err1 := svc.SaveFinishedMatch(nil, match1)
+	if err1 != nil {
+		t.Fatalf("expected nil error, got %v", err1)
+	}
+	if res1 != nil {
+		t.Fatalf("expected nil rating changes for 1-move game, got %v", res1)
+	}
+}
