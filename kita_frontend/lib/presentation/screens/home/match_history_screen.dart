@@ -126,15 +126,6 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     );
   }
 
-  void _openDemoReplay() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            MatchReplayScreen(match: MatchRecordModel.sampleDemoMatch()),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -159,10 +150,6 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Featured Demo Match Banner
-                      _buildDemoBanner(isDark),
-                      const SizedBox(height: 12),
-
                       // Offline Games Toggle Filter Bar
                       _buildOfflineFilterToggle(isDark),
                       const SizedBox(height: 14),
@@ -362,85 +349,6 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                 height: 1.3,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDemoBanner(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryGreen.withValues(alpha: isDark ? 0.35 : 0.2),
-            const Color(0xFF2C3E50).withValues(alpha: isDark ? 0.4 : 0.1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.primaryGreen.withValues(alpha: 0.4),
-          width: 1.2,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.movie_filter_rounded,
-                color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'history.demoReplayTitle'.tr(),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.lightTextPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'history.demoReplayDesc'.tr(),
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          KitaButton(
-            text: 'history.watchDemo'.tr(),
-            height: 38,
-            width: 120,
-            fontSize: 13,
-            icon: Icons.play_arrow_rounded,
-            onPressed: _openDemoReplay,
           ),
         ],
       ),

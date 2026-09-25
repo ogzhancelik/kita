@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/online_game_provider.dart';
+import '../matchmaking/activity_conflict_dialog.dart';
 
 /// Pre-game configuration dialog for "Play vs Computer" (AI).
 /// Allows the player to select Bot Difficulty and Player Side.
@@ -18,7 +19,15 @@ class VsAiConfigDialog extends StatefulWidget {
   static const String prefDifficultyKey = 'kita_ai_difficulty';
   static const String prefSideKey = 'kita_ai_side';
 
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(BuildContext context) async {
+    final provider = context.read<OnlineGameProvider>();
+    final canProceed = await ActivityConflictHelper.checkAndConfirm(
+      context: context,
+      provider: provider,
+    );
+    if (!canProceed) return;
+    if (!context.mounted) return;
+
     return showDialog(
       context: context,
       barrierDismissible: true,

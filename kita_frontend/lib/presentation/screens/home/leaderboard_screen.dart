@@ -12,6 +12,7 @@ import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/kita_card.dart';
 import '../../widgets/common/responsive_layout.dart';
+import '../../widgets/home/user_profile_dialog.dart';
 import '../friends/friends_screen.dart';
 
 enum _UserRowPosition {
@@ -925,9 +926,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildPodiumColumn({
+  }  Widget _buildPodiumColumn({
     required UserProfile player,
     required int rank,
     required Color medalColor,
@@ -935,93 +934,106 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required bool isDark,
     required bool isCurrentUser,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Crown or rank badge
-        Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            CircleAvatar(
-              radius: rank == 1 ? 26 : 22,
-              backgroundColor: medalColor.withValues(alpha: 0.25),
-              child: CircleAvatar(
-                radius: rank == 1 ? 23 : 19,
-                backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                child: Text(
-                  player.username.isNotEmpty ? player.username[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontSize: rank == 1 ? 16 : 14,
-                    fontWeight: FontWeight.bold,
-                    color: medalColor,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: medalColor,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: medalColor.withValues(alpha: 0.5),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        UserProfileDialog.show(
+          context,
+          userId: player.id,
+          profile: player,
+          fallbackName: player.username,
+          fallbackAvatarIndex: player.avatarIndex,
+          fallbackRating: player.rating,
+        );
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Crown or rank badge
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              CircleAvatar(
+                radius: rank == 1 ? 26 : 22,
+                backgroundColor: medalColor.withValues(alpha: 0.25),
+                child: CircleAvatar(
+                  radius: rank == 1 ? 23 : 19,
+                  backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                  child: Text(
+                    player.username.isNotEmpty ? player.username[0].toUpperCase() : '?',
+                    style: TextStyle(
+                      fontSize: rank == 1 ? 16 : 14,
+                      fontWeight: FontWeight.bold,
+                      color: medalColor,
                     ),
-                  ],
-                ),
-                child: Text(
-                  '#$rank',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black,
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        // Username
-        Text(
-          player.username,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: isCurrentUser ? FontWeight.w900 : FontWeight.bold,
-            color: isCurrentUser
-                ? AppColors.primaryGreen
-                : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+              Positioned(
+                bottom: -6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: medalColor,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: medalColor.withValues(alpha: 0.5),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    '$rank',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 10),
 
-        const SizedBox(height: 2),
-
-        // Rating
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: medalColor.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            '${player.rating} ELO',
+          // Username
+          Text(
+            player.username,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: medalColor,
+              fontSize: 12.5,
+              fontWeight: isCurrentUser ? FontWeight.w900 : FontWeight.bold,
+              color: isCurrentUser
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
             ),
           ),
-        ),
-      ],
+
+          const SizedBox(height: 2),
+
+          // Rating
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: medalColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${player.rating} ELO',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: medalColor,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1044,6 +1056,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     return KitaCard(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
       borderColor: isCurrentUser ? AppColors.primaryGreen : null,
+      onTap: () {
+        UserProfileDialog.show(
+          context,
+          userId: player.id,
+          profile: player,
+          fallbackName: player.username,
+          fallbackAvatarIndex: player.avatarIndex,
+          fallbackRating: player.rating,
+        );
+      },
       backgroundColor: isCurrentUser
           ? (isDark
               ? AppColors.primaryGreen.withValues(alpha: 0.08)

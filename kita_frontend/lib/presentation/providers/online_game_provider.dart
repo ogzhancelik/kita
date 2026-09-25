@@ -45,6 +45,27 @@ class OnlineMoveRecord {
     required this.toRow,
     required this.playerTeam,
   });
+
+  Map<String, dynamic> toJson() => {
+    'plyIndex': plyIndex,
+    'pieceId': pieceId,
+    'fromCol': fromCol,
+    'fromRow': fromRow,
+    'toCol': toCol,
+    'toRow': toRow,
+    'playerTeam': playerTeam,
+  };
+
+  factory OnlineMoveRecord.fromJson(Map<String, dynamic> json) =>
+      OnlineMoveRecord(
+        plyIndex: (json['plyIndex'] as num?)?.toInt() ?? 0,
+        pieceId: json['pieceId'] as String? ?? '',
+        fromCol: (json['fromCol'] as num?)?.toInt() ?? 0,
+        fromRow: (json['fromRow'] as num?)?.toInt() ?? 0,
+        toCol: (json['toCol'] as num?)?.toInt() ?? 0,
+        toRow: (json['toRow'] as num?)?.toInt() ?? 0,
+        playerTeam: json['playerTeam'] as String? ?? 'white',
+      );
 }
 
 /// Chat message model for in-game messaging.
@@ -240,6 +261,7 @@ class OnlineGameProvider extends ChangeNotifier {
   OnlineGameProvider() {
     _wsSubscription = _ws.messages.listen(_handleWsMessage);
     matchState.addListener(notifyListeners);
+    _restoreActiveOfflineMatch();
   }
 
   void clearError() {
@@ -381,6 +403,7 @@ class OnlineGameProvider extends ChangeNotifier {
     _matchStartedAt = DateTime.now();
     matchState.value = OnlineMatchState.inMatch;
     _startClockTimer();
+    _persistActiveOfflineMatch();
     notifyListeners();
 
     // If human plays Black vs Bot, Bot is White and moves first!
@@ -572,11 +595,13 @@ class OnlineGameProvider extends ChangeNotifier {
       _stopClockTimer();
       SoundService.instance.playGameOver();
       _saveOfflineGameRecord(payload);
+      _clearPersistedActiveOfflineMatch();
       notifyListeners();
       return;
     }
 
     legalMoves.value = engine.getLegalMoves();
+    _persistActiveOfflineMatch();
 
     if (offlinePlayMode == PlayMode.vsAi && engine.turn != offlinePlayerTeam) {
       _triggerBotMove();
@@ -636,6 +661,7 @@ class OnlineGameProvider extends ChangeNotifier {
       _stopClockTimer();
       SoundService.instance.playGameOver();
       _saveOfflineGameRecord(payload);
+      _clearPersistedActiveOfflineMatch();
       notifyListeners();
       return;
     }
@@ -650,6 +676,7 @@ class OnlineGameProvider extends ChangeNotifier {
       return;
     }
     if (isOffline) {
+      _clearPersistedActiveOfflineMatch();
       resign();
       resetToIdle();
       return;
@@ -799,6 +826,144 @@ class OnlineGameProvider extends ChangeNotifier {
     );
     _lastOfflineMatchRecord = record;
     return record;
+  }
+
+  // ─── Active Offline Match Persistence ──────────────────────────────
+
+  Future<void> _persistActiveOfflineMatch() async {
+    if (!isOffline || matchState.value != OnlineMatchState.inMatch || matchId == null) {
+      return;
+    }
+    try {
+      final data = ActiveOfflineGameData(
+        matchId: matchId!,
+        playMode: offlinePlayMode == PlayMode.localCoop ? 'localCoop' : 'vsAi',
+        botDifficulty: offlineBotDifficulty,
+        playerTeam: offlinePlayerTeam.name,
+        playerId: offlinePlayerId,
+        playerName: offlinePlayerName,
+        playerRating: offlinePlayerRating,
+        isGuest: offlineIsGuest,
+        elapsedSeconds: elapsedSeconds.value,
+        moveHistory: moveHistory.value.map((m) => m.toJson()).toList(),
+        startedAt: _matchStartedAt ?? DateTime.now(),
+      );
+      await LocalMatchHistoryService.instance.saveActiveOfflineGame(data);
+    } catch (e) {
+      debugPrint('[OnlineGame] Error persisting active offline match: $e');
+    }
+  }
+
+  Future<void> _clearPersistedActiveOfflineMatch() async {
+    try {
+      await LocalMatchHistoryService.instance.clearActiveOfflineGame();
+    } catch (e) {
+      debugPrint('[OnlineGame] Error clearing active offline match: $e');
+    }
+  }
+
+  Future<void> _restoreActiveOfflineMatch() async {
+    try {
+      final saved = await LocalMatchHistoryService.instance.getActiveOfflineGame();
+      if (saved == null) return;
+
+      // Don't overwrite if an online activity is already in progress
+      if (matchState.value != OnlineMatchState.idle) return;
+
+      isOffline = true;
+      offlinePlayMode = saved.playMode == 'localCoop' ? PlayMode.localCoop : PlayMode.vsAi;
+      offlineBotDifficulty = saved.botDifficulty;
+      offlinePlayerTeam = saved.playerTeam == 'black' ? PieceTeam.black : PieceTeam.white;
+      offlinePlayerId = saved.playerId;
+      offlinePlayerName = saved.playerName;
+      offlinePlayerRating = saved.playerRating;
+      offlineIsGuest = saved.isGuest;
+      _offlineMatchSaved = false;
+      _lastOfflineMatchRecord = null;
+      myTeam = offlinePlayerTeam.name;
+
+      if (offlinePlayMode == PlayMode.vsAi) {
+        final botRating = 1000 + offlineBotDifficulty * 200;
+        opponentInfo = OpponentInfo(
+          id: 'bot',
+          name: 'game.aiBot'.tr(),
+          rating: botRating,
+          avatarIndex: 7,
+        );
+      } else {
+        opponentInfo = OpponentInfo(
+          id: 'local_player',
+          name: offlinePlayerTeam == PieceTeam.white ? 'game.playBlack'.tr() : 'game.playWhite'.tr(),
+          rating: 1200,
+          avatarIndex: 1,
+        );
+      }
+
+      matchId = saved.matchId;
+      timeControl = 0;
+      roomCode.value = null;
+      isRoomPrivate = false;
+
+      // Reconstruct game engine & snapshots by sequentially applying the moves
+      var engine = KitaGameEngine();
+      _engineSnapshots.clear();
+      _engineSnapshots.add(engine.clone());
+
+      final moves = saved.moveHistory.map((m) => OnlineMoveRecord.fromJson(m)).toList();
+      KitaMove? lastM;
+
+      for (final rec in moves) {
+        final km = KitaMove(
+          pieceId: rec.pieceId,
+          fromPos: KitaPos(rec.fromCol, rec.fromRow),
+          toPos: KitaPos(rec.toCol, rec.toRow),
+        );
+        engine = engine.applyMove(km);
+        _engineSnapshots.add(engine.clone());
+        lastM = km;
+      }
+
+      gameEngine.value = engine;
+      lastMove.value = lastM;
+      moveHistory.value = moves;
+      viewingMoveIndex.value = -1;
+      chatMessages.value = [];
+      unreadChatCount.value = 0;
+      isChatOpen = true;
+      gameOverData.value = null;
+      rematchOffer.value = null;
+      matchInvitation.value = null;
+      incomingMatchRequest.value = null;
+      isRematchRequested.value = false;
+      isGameOverDialogActive.value = false;
+      pendingOutgoingChallenge.value = null;
+      isReconnectedMatch.value = false;
+      isAiThinking.value = false;
+      currentTurn.value = engine.turn.name;
+      whiteRemainingMs.value = 0;
+      blackRemainingMs.value = 0;
+      elapsedSeconds.value = saved.elapsedSeconds;
+      _matchStartedAt = saved.startedAt;
+
+      // Safety check: if reconstructed engine is already over, clear and abort
+      if (engine.isGameOver) {
+        await LocalMatchHistoryService.instance.clearActiveOfflineGame();
+        resetToIdle();
+        return;
+      }
+
+      legalMoves.value = engine.getLegalMoves();
+      matchState.value = OnlineMatchState.inMatch;
+      _startClockTimer();
+      notifyListeners();
+
+      // If it was the AI's turn when the app was closed, resume AI thinking
+      if (offlinePlayMode == PlayMode.vsAi && engine.turn != offlinePlayerTeam) {
+        _triggerBotMove();
+      }
+    } catch (e) {
+      debugPrint('[OnlineGame] Error restoring active offline match: $e');
+    }
   }
 
   void sendChat(String content) {
@@ -1099,8 +1264,10 @@ class OnlineGameProvider extends ChangeNotifier {
 
       case WsServerType.matchClosed:
         debugPrint('[OnlineGame] Server notified that match is closed.');
-        resetToIdle();
-        KitaToast.info('dashboard.pendingSection.matchClosedDesc'.tr());
+        if (matchState.value != OnlineMatchState.gameOver) {
+          resetToIdle();
+          KitaToast.info('dashboard.pendingSection.matchClosedDesc'.tr());
+        }
 
       case WsServerType.onlineCount:
         if (msg.payload != null) {
@@ -1572,6 +1739,9 @@ class OnlineGameProvider extends ChangeNotifier {
     elapsedSeconds.value = 0;
     whiteRemainingMs.value = 0;
     blackRemainingMs.value = 0;
+    if (isOffline) {
+      _clearPersistedActiveOfflineMatch();
+    }
     isOffline = false;
     offlinePlayerId = null;
     offlinePlayerName = null;

@@ -630,6 +630,7 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		return
 	}
 	r.isFinished = true
+	r.Status = "finished"
 	now := time.Now()
 
 	// Stop chess clock timer
@@ -644,6 +645,24 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		r.disconnectTimer = nil
 	}
 	r.disconnectPlayerID = ""
+
+	// Free players from active match lock so they can queue/join/invite without waiting 5 min
+	if r.WhitePlayer != nil {
+		r.WhitePlayer.mu.Lock()
+		r.WhitePlayer.LastFinishedMatchID = r.ID
+		if r.WhitePlayer.CurrentMatchID == r.ID {
+			r.WhitePlayer.CurrentMatchID = ""
+		}
+		r.WhitePlayer.mu.Unlock()
+	}
+	if r.BlackPlayer != nil {
+		r.BlackPlayer.mu.Lock()
+		r.BlackPlayer.LastFinishedMatchID = r.ID
+		if r.BlackPlayer.CurrentMatchID == r.ID {
+			r.BlackPlayer.CurrentMatchID = ""
+		}
+		r.BlackPlayer.mu.Unlock()
+	}
 
 	// Final time deduction
 	if r.TimeControl > 0 {
@@ -706,8 +725,9 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		spec.SendJSON(TypeGameOver, gameOverData)
 	}
 
-	// 3. Hub üzerinden odayı temizle
+	// 3. Hub üzerinden odayı belirli bir süre sonra temizle (oyuncuların inceleme, sohbet ve rövanş yapabilmesi için)
 	go func() {
+		time.Sleep(5 * time.Minute)
 		r.hub.CloseRoom(r.ID)
 	}()
 }

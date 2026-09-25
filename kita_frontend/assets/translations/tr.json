@@ -372,8 +372,7 @@
     "matchInfo": "Maç Detayları",
     "settings": "Ayarlar",
     "firstMove": "İlk Hamle",
-    "lastMove": "Son Hamle",
-    "toMove": "Hamle Sırası"
+    "lastMove": "Son Hamle"
   },
   "common": {
     "cancel": "İptal",
@@ -504,7 +503,9 @@
     "conflictCancelChallengeDesc": "Şu anda {} kullanıcısına bekleyen bir meydan okumanız var. Devam etmek bu daveti iptal edecektir. Devam etmek istiyor musunuz?",
     "conflictLeaveQueueDesc": "Şu anda eşleştirme kuyruğundasınız. Devam etmek sizi kuyruktan çıkaracaktır. Devam etmek istiyor musunuz?",
     "conflictInMatchDesc": "Şu anda aktif bir maçtasınız. Lütfen önce maçınızı tamamlayın veya çekilin.",
+    "conflictAbandonOfflineDesc": "Şu anda devam eden çevrimdışı bir oyununuz var. Devam etmek bu oyundan çekilmenize neden olacak. Devam etmek istiyor musunuz?",
     "closeAndProceed": "Kapat ve Devam Et",
+    "abandonAndProceed": "Çekil ve Devam Et",
     "cancelAndProceed": "İptal Et ve Devam Et",
     "leaveAndProceed": "Ayrıl ve Devam Et",
     "proceed": "Devam Et"
@@ -553,11 +554,14 @@
     "memberSince": "Hesap Durumu",
     "registeredPlayer": "Kayıtlı Oyuncu",
     "guestPlayer": "Misafir Oyuncu",
+    "botPlayer": "Yapay Zeka",
     "stats": "Performans Özeti",
     "matchesCount": "Toplam Karşılaşma",
     "winRate": "Galibiyet Oranı",
     "rating": "Mevcut ELO",
-    "wld": "Galibiyet / Mağlubiyet / Beraberlik"
+    "wld": "Galibiyet / Mağlubiyet / Beraberlik",
+    "loading": "Profil yükleniyor...",
+    "loadError": "Profil istatistikleri yüklenemedi."
   },
   "apiConfig": {
     "label": "API SUNUCU URL",

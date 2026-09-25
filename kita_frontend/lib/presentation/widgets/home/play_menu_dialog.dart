@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/friends/friends_screen.dart';
 import '../game/vs_ai_config_dialog.dart';
+import '../matchmaking/activity_conflict_dialog.dart';
 import '../matchmaking/matchmaking_sheet.dart';
 import '../room/room_dialog.dart';
 
@@ -108,7 +109,7 @@ class PlayMenuDialog extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     // Mode 2: Rooms (Create & Join)
-                    _buildRoomsActionRow(context, isDark),
+                    _buildRoomsActionRow(context, onlineProv, isDark),
                     const SizedBox(height: 12),
 
                     // Mode 3: VS Computer AI
@@ -121,9 +122,20 @@ class PlayMenuDialog extends StatelessWidget {
                       badge: 'dashboard.badgeOffline'.tr(),
                       badgeColor: AppColors.primaryGreen,
                       isDark: isDark,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        VsAiConfigDialog.show(context);
+                      onTap: () async {
+                        final canProceed = await ActivityConflictHelper.checkAndConfirm(
+                          context: context,
+                          provider: onlineProv,
+                        );
+                        if (!canProceed) {
+                          if (context.mounted) Navigator.of(context).pop();
+                          return;
+                        }
+
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          VsAiConfigDialog.show(context);
+                        }
                       },
                     ),
                     const SizedBox(height: 12),
@@ -138,9 +150,20 @@ class PlayMenuDialog extends StatelessWidget {
                       badge: 'dashboard.badgeOffline'.tr(),
                       badgeColor: AppColors.accent,
                       isDark: isDark,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        context.read<OnlineGameProvider>().startOfflineMatch(
+                      onTap: () async {
+                        final canProceed = await ActivityConflictHelper.checkAndConfirm(
+                          context: context,
+                          provider: onlineProv,
+                        );
+                        if (!canProceed) {
+                          if (context.mounted) Navigator.of(context).pop();
+                          return;
+                        }
+
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                        onlineProv.startOfflineMatch(
                           mode: PlayMode.localCoop,
                           playerId: authProv.currentUser?.id,
                           playerName: authProv.currentUser?.username ??
@@ -197,9 +220,20 @@ class PlayMenuDialog extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          Navigator.of(context).pop();
-          MatchmakingSheet.show(context);
+        onTap: () async {
+          final canProceed = await ActivityConflictHelper.checkAndConfirm(
+            context: context,
+            provider: onlineProv,
+          );
+          if (!canProceed) {
+            if (context.mounted) Navigator.of(context).pop();
+            return;
+          }
+
+          if (context.mounted) {
+            Navigator.of(context).pop();
+            MatchmakingSheet.show(context);
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -328,7 +362,11 @@ class PlayMenuDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildRoomsActionRow(BuildContext context, bool isDark) {
+  Widget _buildRoomsActionRow(
+    BuildContext context,
+    OnlineGameProvider onlineProv,
+    bool isDark,
+  ) {
     return Row(
       children: [
         // Create Room
@@ -339,9 +377,20 @@ class PlayMenuDialog extends StatelessWidget {
             icon: Icons.meeting_room_rounded,
             iconColor: AppColors.ratingGold,
             isDark: isDark,
-            onTap: () {
-              Navigator.of(context).pop();
-              CreateRoomDialog.show(context);
+            onTap: () async {
+              final canProceed = await ActivityConflictHelper.checkAndConfirm(
+                context: context,
+                provider: onlineProv,
+              );
+              if (!canProceed) {
+                if (context.mounted) Navigator.of(context).pop();
+                return;
+              }
+
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                CreateRoomDialog.show(context);
+              }
             },
           ),
         ),
@@ -354,9 +403,20 @@ class PlayMenuDialog extends StatelessWidget {
             icon: Icons.vpn_key_rounded,
             iconColor: AppColors.drawGray,
             isDark: isDark,
-            onTap: () {
-              Navigator.of(context).pop();
-              JoinRoomDialog.show(context);
+            onTap: () async {
+              final canProceed = await ActivityConflictHelper.checkAndConfirm(
+                context: context,
+                provider: onlineProv,
+              );
+              if (!canProceed) {
+                if (context.mounted) Navigator.of(context).pop();
+                return;
+              }
+
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                JoinRoomDialog.show(context);
+              }
             },
           ),
         ),

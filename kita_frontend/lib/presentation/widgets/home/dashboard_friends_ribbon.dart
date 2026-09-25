@@ -10,6 +10,7 @@ import '../../providers/online_game_provider.dart';
 import '../../screens/friends/friends_screen.dart';
 import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
+import 'user_profile_dialog.dart';
 
 import '../matchmaking/friend_challenge_dialog.dart';
 
@@ -157,7 +158,6 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
 
     return Container(
       width: 108,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBg : AppColors.lightBg,
         borderRadius: BorderRadius.circular(12),
@@ -165,113 +165,133 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Avatar + Online status indicator
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: avatar.accentColor.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: avatar.accentColor,
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(
-                  avatar.icon,
-                  color: avatar.accentColor,
-                  size: 20,
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 11,
-                  height: 11,
-                  decoration: BoxDecoration(
-                    color: friend.isOnline ? AppColors.online : AppColors.drawGray,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                      width: 1.5,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            UserProfileDialog.show(
+              context,
+              userId: friend.userId,
+              fallbackName: friend.username,
+              fallbackAvatarIndex: friend.avatarIndex,
+              fallbackRating: friend.rating,
+              onInvite: () => _quickInvite(friend),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Avatar + Online status indicator
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: avatar.accentColor.withValues(alpha: 0.18),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: avatar.accentColor,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        avatar.icon,
+                        color: avatar.accentColor,
+                        size: 20,
+                      ),
                     ),
-                    boxShadow: friend.isOnline
-                        ? [
-                            BoxShadow(
-                              color: AppColors.online.withValues(alpha: 0.5),
-                              blurRadius: 3,
-                              spreadRadius: 0.5,
-                            ),
-                          ]
-                        : null,
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 11,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          color: friend.isOnline ? AppColors.online : AppColors.drawGray,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                            width: 1.5,
+                          ),
+                          boxShadow: friend.isOnline
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.online.withValues(alpha: 0.5),
+                                    blurRadius: 3,
+                                    spreadRadius: 0.5,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+
+                // Friend Username
+                Text(
+                  friend.username,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 1),
+
+                // Rating
+                Text(
+                  '${friend.rating}',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.ratingGold,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
+                const SizedBox(height: 6),
 
-          // Friend Username
-          Text(
-            friend.username,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 1),
-
-          // Rating
-          Text(
-            '${friend.rating}',
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: AppColors.ratingGold,
-            ),
-          ),
-          const SizedBox(height: 6),
-
-          // Direct Challenge Button
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: friend.isOnline
-                  ? AppColors.primaryGreen
-                  : AppColors.getSurface(isDark),
-              elevation: friend.isOnline ? 1 : 0,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
-                side: friend.isOnline
-                    ? BorderSide.none
-                    : BorderSide(color: AppColors.getBorder(isDark)),
-              ),
-            ),
-            onPressed: () => _quickInvite(friend),
-            child: Text(
-              'dashboard.quickChallenge'.tr(),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: friend.isOnline ? FontWeight.bold : FontWeight.normal,
-                color: friend.isOnline
-                    ? AppColors.darkTextPrimary
-                    : AppColors.getTextSecondary(isDark),
-              ),
+                // Direct Challenge Button
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: friend.isOnline
+                        ? AppColors.primaryGreen
+                        : AppColors.getSurface(isDark),
+                    elevation: friend.isOnline ? 1 : 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: friend.isOnline
+                          ? BorderSide.none
+                          : BorderSide(color: AppColors.getBorder(isDark)),
+                    ),
+                  ),
+                  onPressed: () => _quickInvite(friend),
+                  child: Text(
+                    'dashboard.quickChallenge'.tr(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: friend.isOnline ? FontWeight.bold : FontWeight.normal,
+                      color: friend.isOnline
+                          ? AppColors.darkTextPrimary
+                          : AppColors.getTextSecondary(isDark),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

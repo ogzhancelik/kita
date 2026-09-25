@@ -66,6 +66,17 @@ class AppColors {
   static Color getVictory(bool isDark) => isDark ? accent : accentSecondary;
   static Color getOnline(bool isDark) => isDark ? accent : accentSecondary;
 
+  // --- Active Turn Profile Panel Colors (Mint theme) ---
+  static const Color turnActiveCardDark = Color(0xFF29372F); // Deep tactical mint for dark mode
+  static const Color turnActiveCardLight = Color(0xFFD6F0E6); // Refreshing soft mint for light mode
+  static const Color turnActiveBorderDark = Color(0xFF3B7260); // Mint border highlight dark
+  static const Color turnActiveBorderLight = Color(0xFF8DCFB7); // Mint border highlight light
+
+  static Color getTurnActiveCard(bool isDark) =>
+      isDark ? turnActiveCardDark : turnActiveCardLight;
+  static Color getTurnActiveBorder(bool isDark) =>
+      isDark ? turnActiveBorderDark : turnActiveBorderLight;
+
   // --- Move Quality & Evaluation Indicators ---
   static const Color evalGood = Color(0xFF75B69C);
   static const Color evalGoodBg = Color(0x2A75B69C);

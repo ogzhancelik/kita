@@ -16,6 +16,7 @@ import '../../widgets/game/kita_board_widget.dart';
 import '../../widgets/game/match_bottom_bar.dart';
 import '../../widgets/game/move_history_panel.dart';
 import '../../widgets/game/player_info_bar.dart';
+import '../../widgets/home/user_profile_dialog.dart';
 import 'match_replay_screen.dart';
 
 /// Online match screen (Portrait/Default) with space-efficient layout.
@@ -246,6 +247,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       );
                     }
 
+                    final isGameOver = provider.matchState.value == OnlineMatchState.gameOver;
+
                     final opponentCard = PlayerInfoBar(
                       isOpponent: true,
                       name: opponentName,
@@ -258,6 +261,21 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                           : provider.blackRemainingMs,
                       isActiveTurn: provider.currentTurn,
                       timeControl: provider.timeControl,
+                      isGameOver: isGameOver,
+                      onTap: () {
+                        final opp = provider.opponentInfo;
+                        final isBot = provider.offlinePlayMode == PlayMode.vsAi || opp?.id == 'bot';
+                        final isGuest = opp?.id.startsWith('guest-') ?? false;
+                        UserProfileDialog.show(
+                          context,
+                          userId: opp?.id,
+                          fallbackName: opponentName,
+                          fallbackAvatarIndex: opp?.avatarIndex,
+                          fallbackRating: opponentRating,
+                          isBot: isBot,
+                          isGuest: isGuest,
+                        );
+                      },
                     );
 
                     final userCard = PlayerInfoBar(
@@ -271,6 +289,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                           : provider.whiteRemainingMs,
                       isActiveTurn: provider.currentTurn,
                       timeControl: provider.timeControl,
+                      isGameOver: isGameOver,
+                      onTap: () => UserProfileDialog.show(context),
                     );
 
                     const double cardsHeight = 96.0; // Two PlayerInfoBars (~48px each)

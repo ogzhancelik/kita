@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
@@ -21,6 +22,22 @@ func NewUserService(userRepo ports.UserRepository, friendRepo ports.FriendReposi
 }
 
 func (s *userService) GetProfile(ctx context.Context, userID string) (*domain.UserProfile, error) {
+	if strings.HasPrefix(userID, "guest-") {
+		return &domain.UserProfile{
+			ID:          userID,
+			Username:    "Guest",
+			AvatarIndex: 0,
+			Rating:      1200,
+		}, nil
+	}
+	if userID == "bot" {
+		return &domain.UserProfile{
+			ID:          "bot",
+			Username:    "AI Bot",
+			AvatarIndex: 7,
+			Rating:      1200,
+		}, nil
+	}
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err

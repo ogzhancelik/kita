@@ -95,7 +95,9 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Real-time friend online presence synchronization (`Hub.IsUserOnline`), offline challenge guard with clear UI warning, and server-confirmed invitation feedback (preventing false "invite sent" toasts when challenged friend is offline)
   - [x] Ephemeral Live Challenge Lifecycle: 60-second automatic challenge timeout on Hub, automatic teardown and friend cancellation on disconnect (`handleDisconnect`), and notification inbox expiration guard (`isExpired` / "Süresi Doldu" badge) preventing invalid acceptance of dead challenges
   - [x] Single-item priority Pending/Active Game section on Dashboard above notifications: seamless Rejoin for active matches (with backend disconnect grace period & reconnection support), open room info (synchronized with live rooms list, host room tracking, host room excluded from joinable open rooms list, and swipe to close), and outgoing friend challenges (swipe to cancel with real-time removal & database deletion from friend's notifications)
-  - [x] Mutual Exclusivity & Activity Preemption Guard: Canonical state handling preventing overlapping activities (Active Match, Open Room, Outgoing Challenge, Queue). Soft states provide interactive confirmation prompts ("Change Activity?") across room creation, joining, friend invites, and incoming challenge acceptance, backed by unified backend teardown (`cleanupWaitingRoomLocked`, `cleanupPendingInviteLocked`).
+  - [x] Offline match state persistence via SharedPreferences: In-progress AI and local coop matches survive app close/restart, automatically reviving board state, moves, snapshots, and displaying the Active Match bar with quick Rejoin or swipe-to-resign.
+  - [x] Mutual Exclusivity & Activity Preemption Guard: Canonical state handling preventing overlapping activities (Active Match, Open Room, Outgoing Challenge, Queue, Offline Game modes). Blocks opening room, challenge, matchmaking, or offline games (VS AI difficulty panel, Local Co-op) during an active match with standard warning toast. Soft states provide interactive confirmation prompts ("Change Activity?") across room creation, joining, friend invites, and incoming challenge acceptance, backed by unified backend teardown (`cleanupWaitingRoomLocked`, `cleanupPendingInviteLocked`).
+  - [x] Backend Active Match Lifecycle Fix: Room status transitions to "finished" and clears players' `CurrentMatchID` immediately upon match completion, eliminating phantom 5-minute locks where users were falsely blocked with "You are already in an active match".
 
 ### 2. Matchmaking
 - [x] **Matchmaking Queue (Backend)**:
@@ -180,7 +182,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - Inline responsive chat (`ChatPanel`): open by default; when toggled closed, board cleanly centers via distributed vertical alignment; when soft keyboard opens, secondary elements hide and board shrinks to fit without overflow.
   - Bottom control bar (`MatchBottomBar`): menu with Resign, Draw Offer, and Report Opponent dialogs; Chat toggle; and `<` / `>` move history step buttons.
   - Strict zero page margins with balanced, equal horizontal container padding.
-- [ ] **Drag & Drop Piece Movement**:
+- [x] **Drag & Drop Piece Movement**:
   - Support dragging and dropping pieces onto valid target tiles as an intuitive alternative/addition to tap-to-select and tap-to-move.
   - Visual feedback during drag (lifted piece preview, hover / valid drop target highlights, snap-to-tile).
 - [x] **In-Game Move History Panel**:
@@ -201,4 +203,11 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Reusable notification tile with right-aligned accept/decline buttons and horizontal swipe-to-ignore (`Dismissible`).
   - [x] Main Notifications Screen (`NotificationsScreen`) displaying chronological notifications, auto-marking informational alerts as read on mount, and dimming read/ignored items.
   - [x] Intelligent top floating dialog: suppressed on home dashboard screen, displayed on other screens (e.g. Settings, Leaderboard, Friends, In-Game).
+- [x] **Interactive Player Profiles & Stats Inspection**:
+  - [x] Clickable player profiles in online matches (`PlayerInfoBar`), match review/replays (`MatchReplayScreen`), friends list & friend requests (`FriendsScreen`), dashboard friends ribbon (`DashboardFriendsRibbon`), and leaderboards (`LeaderboardScreen`).
+  - [x] Enhanced `UserProfileDialog` modal to support inspecting any player (self, opponent, friends, leaderboard players, bots, and guests) with real-time stats fetching, loading states, and direct match challenge actions.
+  - [x] Backend resilience for guest, bot, and registered user profiles via `/api/users/profile/:id`.
+  - [x] Active turn profile panel mint indicator:
+    - [x] Dynamic mint background transition (`turnActiveCardDark` / `turnActiveCardLight`) on player profile panels across all game modes (Online, Offline vs AI, Offline Local Co-op, Replay).
+    - [x] Removed redundant "To Move" indicator badge from replay mode.
 

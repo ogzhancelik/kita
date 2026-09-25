@@ -373,8 +373,7 @@
     "matchInfo": "Match Details",
     "settings": "Settings",
     "firstMove": "First Move",
-    "lastMove": "Last Move",
-    "toMove": "To Move"
+    "lastMove": "Last Move"
   },
   "common": {
     "cancel": "Cancel",
@@ -505,7 +504,9 @@
     "conflictCancelChallengeDesc": "You currently have a pending challenge to {}. Proceeding will cancel this challenge. Do you want to proceed?",
     "conflictLeaveQueueDesc": "You are currently in matchmaking queue. Proceeding will remove you from the queue. Do you want to proceed?",
     "conflictInMatchDesc": "You are currently in an active match. Please finish or resign your match first.",
+    "conflictAbandonOfflineDesc": "You currently have an active offline game in progress. Proceeding will resign this game. Do you want to proceed?",
     "closeAndProceed": "Close & Proceed",
+    "abandonAndProceed": "Resign & Proceed",
     "cancelAndProceed": "Cancel & Proceed",
     "leaveAndProceed": "Leave & Proceed",
     "proceed": "Proceed"
@@ -554,11 +555,14 @@
     "memberSince": "Account Status",
     "registeredPlayer": "Registered Player",
     "guestPlayer": "Guest Account",
+    "botPlayer": "AI Bot",
     "stats": "Performance Summary",
     "matchesCount": "Total Matches",
     "winRate": "Win Rate",
     "rating": "Current ELO",
-    "wld": "Wins / Losses / Draws"
+    "wld": "Wins / Losses / Draws",
+    "loading": "Loading profile...",
+    "loadError": "Could not load profile statistics."
   },
   "apiConfig": {
     "label": "API SERVER URL",

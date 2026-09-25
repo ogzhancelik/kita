@@ -23,9 +23,24 @@ class ActivityConflictHelper {
     required OnlineGameProvider provider,
     String? customMessage,
   }) async {
-    // 1. Hard Lock: Active Match in progress
+    // 1. Active Match in progress
     if (provider.matchState.value == OnlineMatchState.inMatch) {
-      KitaToast.warning('online.conflictInMatchDesc'.tr());
+      if (!provider.isOffline) {
+        // Hard Lock: Real online opponent match
+        KitaToast.warning('online.conflictInMatchDesc'.tr());
+        return false;
+      }
+      // Soft Lock: Offline match vs AI or local coop -> confirmation prompt to resign & proceed
+      final confirmed = await _showConfirmDialog(
+        context: context,
+        title: 'online.conflictDialogTitle'.tr(),
+        message: customMessage ?? 'online.conflictAbandonOfflineDesc'.tr(),
+        confirmLabel: 'online.abandonAndProceed'.tr(),
+      );
+      if (confirmed) {
+        provider.resignAndClear();
+        return true;
+      }
       return false;
     }
 

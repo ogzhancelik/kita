@@ -25,6 +25,7 @@ class PlayerInfoBar extends StatelessWidget {
   final int timeControl;
   final int? avatarIndex;
   final VoidCallback? onTap;
+  final bool isGameOver;
 
   const PlayerInfoBar({
     super.key,
@@ -38,6 +39,7 @@ class PlayerInfoBar extends StatelessWidget {
     required this.timeControl,
     this.avatarIndex,
     this.onTap,
+    this.isGameOver = false,
   });
 
   @override
@@ -121,10 +123,12 @@ class PlayerInfoBar extends StatelessWidget {
             remainingMs: remainingMs,
             isActiveTurn: isActiveTurn,
             playerTeam: team,
+            isGameOver: isGameOver,
           )
         : _UnlimitedClockBadge(
             isActiveTurn: isActiveTurn,
             playerTeam: team,
+            isGameOver: isGameOver,
           );
 
     final content = InkWell(
@@ -156,26 +160,40 @@ class PlayerInfoBar extends StatelessWidget {
       ),
     );
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        border: Border(
-          bottom: isOpponent
-              ? BorderSide(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  width: 0.8,
-                )
-              : BorderSide.none,
-          top: !isOpponent
-              ? BorderSide(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  width: 0.8,
-                )
-              : BorderSide.none,
-        ),
-      ),
-      child: content,
+    return ValueListenableBuilder<String>(
+      valueListenable: isActiveTurn,
+      builder: (ctx, turn, _) {
+        final isTurn = !isGameOver && (turn == team);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: isTurn
+                ? AppColors.getTurnActiveCard(isDark)
+                : AppColors.getCard(isDark),
+            border: Border(
+              bottom: isOpponent
+                  ? BorderSide(
+                      color: isTurn
+                          ? AppColors.getTurnActiveBorder(isDark)
+                          : AppColors.getBorder(isDark),
+                      width: isTurn ? 1.2 : 0.8,
+                    )
+                  : BorderSide.none,
+              top: !isOpponent
+                  ? BorderSide(
+                      color: isTurn
+                          ? AppColors.getTurnActiveBorder(isDark)
+                          : AppColors.getBorder(isDark),
+                      width: isTurn ? 1.2 : 0.8,
+                    )
+                  : BorderSide.none,
+            ),
+          ),
+          child: content,
+        );
+      },
     );
   }
 }
@@ -185,11 +203,13 @@ class _ChessClock extends StatelessWidget {
   final ValueNotifier<int> remainingMs;
   final ValueNotifier<String> isActiveTurn;
   final String playerTeam;
+  final bool isGameOver;
 
   const _ChessClock({
     required this.remainingMs,
     required this.isActiveTurn,
     required this.playerTeam,
+    this.isGameOver = false,
   });
 
   @override
@@ -197,7 +217,7 @@ class _ChessClock extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: isActiveTurn,
       builder: (ctx, turn, _) {
-        final isActive = turn == playerTeam;
+        final isActive = !isGameOver && (turn == playerTeam);
         return ValueListenableBuilder<int>(
           valueListenable: remainingMs,
           builder: (c, ms, _) {
@@ -265,10 +285,12 @@ class _ChessClock extends StatelessWidget {
 class _UnlimitedClockBadge extends StatelessWidget {
   final ValueNotifier<String> isActiveTurn;
   final String playerTeam;
+  final bool isGameOver;
 
   const _UnlimitedClockBadge({
     required this.isActiveTurn,
     required this.playerTeam,
+    this.isGameOver = false,
   });
 
   @override
@@ -277,7 +299,7 @@ class _UnlimitedClockBadge extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: isActiveTurn,
       builder: (ctx, turn, _) {
-        final isActive = turn == playerTeam;
+        final isActive = !isGameOver && (turn == playerTeam);
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),

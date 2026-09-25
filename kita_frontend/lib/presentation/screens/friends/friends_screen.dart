@@ -8,6 +8,8 @@ import '../../../data/models/notification_model.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
+import '../../widgets/common/avatar_picker.dart';
+import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
 import '../game/online_match_screen.dart';
 
@@ -185,6 +187,16 @@ class _FriendsScreenState extends State<FriendsScreen>
             isDark: isDark,
             onInvite: () => _inviteFriendToMatch(context, onlineProv, friend),
             onRemove: () => friendsProv.removeFriend(friend.userId),
+            onTap: () {
+              UserProfileDialog.show(
+                context,
+                userId: friend.userId,
+                fallbackName: friend.username,
+                fallbackAvatarIndex: friend.avatarIndex,
+                fallbackRating: friend.rating,
+                onInvite: () => _inviteFriendToMatch(context, onlineProv, friend),
+              );
+            },
           );
         },
       ),
@@ -235,6 +247,15 @@ class _FriendsScreenState extends State<FriendsScreen>
               (r) => _IncomingRequestCard(
                 request: r,
                 isDark: isDark,
+                onTap: () {
+                  UserProfileDialog.show(
+                    context,
+                    userId: r.userId,
+                    fallbackName: r.username,
+                    fallbackAvatarIndex: r.avatarIndex,
+                    fallbackRating: r.rating,
+                  );
+                },
                 onAccept: () async {
                   final notifId = 'friend_request_${r.friendshipId}';
                   final notifProv = context.read<NotificationProvider>();
@@ -255,7 +276,7 @@ class _FriendsScreenState extends State<FriendsScreen>
           ],
           if (outgoing.isNotEmpty) ...[
             Text(
-              'Sent Requests',
+              'online.friendRequests'.tr(),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
@@ -267,6 +288,15 @@ class _FriendsScreenState extends State<FriendsScreen>
               (r) => _OutgoingRequestCard(
                 request: r,
                 isDark: isDark,
+                onTap: () {
+                  UserProfileDialog.show(
+                    context,
+                    userId: r.userId,
+                    fallbackName: r.username,
+                    fallbackAvatarIndex: r.avatarIndex,
+                    fallbackRating: r.rating,
+                  );
+                },
                 onCancel: () => friendsProv.declineRequest(r.friendshipId),
               ),
             ),
@@ -357,154 +387,175 @@ class _FriendCard extends StatelessWidget {
   final bool isDark;
   final VoidCallback onInvite;
   final VoidCallback onRemove;
+  final VoidCallback? onTap;
 
   const _FriendCard({
     required this.friend,
     required this.isDark,
     required this.onInvite,
     required this.onRemove,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final avatarItem = AvatarPicker.avatars[friend.avatarIndex % AvatarPicker.avatars.length];
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.getBorder(isDark)),
       ),
-      child: Row(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              CircleAvatar(
-                backgroundColor: AppColors.ratingGold.withValues(alpha: 0.2),
-                child: Text(
-                  friend.username.isNotEmpty ? friend.username[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.ratingGold,
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 11,
-                  height: 11,
-                  decoration: BoxDecoration(
-                    color: friend.isOnline ? AppColors.online : AppColors.drawGray,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                      width: 1.5,
-                    ),
-                    boxShadow: friend.isOnline
-                        ? [
-                            BoxShadow(
-                              color: AppColors.online.withValues(alpha: 0.5),
-                              blurRadius: 3,
-                              spreadRadius: 0.5,
-                            ),
-                          ]
-                        : null,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
               children: [
-                Text(
-                  friend.username,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: AppColors.getTextPrimary(isDark),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
+                Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Text(
-                      '★ ${friend.rating}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ratingGold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
                     Container(
-                      width: 6,
-                      height: 6,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: friend.isOnline ? AppColors.online : AppColors.drawGray,
+                        color: avatarItem.accentColor.withValues(alpha: 0.18),
                         shape: BoxShape.circle,
-                        boxShadow: friend.isOnline
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.online.withValues(alpha: 0.5),
-                                  blurRadius: 2,
-                                ),
-                              ]
-                            : null,
+                        border: Border.all(
+                          color: avatarItem.accentColor,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Icon(
+                        avatarItem.icon,
+                        color: avatarItem.accentColor,
+                        size: 22,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      friend.isOnline ? 'online.onlineStatus'.tr() : 'online.offlineStatus'.tr(),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: friend.isOnline ? FontWeight.w600 : FontWeight.normal,
-                        color: friend.isOnline
-                            ? AppColors.online
-                            : AppColors.getTextMuted(isDark),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 11,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          color: friend.isOnline ? AppColors.online : AppColors.drawGray,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                            width: 1.5,
+                          ),
+                          boxShadow: friend.isOnline
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.online.withValues(alpha: 0.5),
+                                    blurRadius: 3,
+                                    spreadRadius: 0.5,
+                                  ),
+                                ]
+                              : null,
+                        ),
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        friend.username,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.getTextPrimary(isDark),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            '★ ${friend.rating}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.ratingGold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: friend.isOnline ? AppColors.online : AppColors.drawGray,
+                              shape: BoxShape.circle,
+                              boxShadow: friend.isOnline
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.online.withValues(alpha: 0.5),
+                                        blurRadius: 2,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            friend.isOnline ? 'online.onlineStatus'.tr() : 'online.offlineStatus'.tr(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: friend.isOnline ? FontWeight.w600 : FontWeight.normal,
+                              color: friend.isOnline
+                                  ? AppColors.online
+                                  : AppColors.getTextMuted(isDark),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: onInvite,
+                  icon: Icon(
+                    Icons.sports_esports,
+                    size: 16,
+                    color: friend.isOnline ? AppColors.darkTextPrimary : AppColors.getTextSecondary(isDark),
+                  ),
+                  label: Text(
+                    'online.sendInvite'.tr(),
+                    style: TextStyle(
+                      color: friend.isOnline ? AppColors.darkTextPrimary : AppColors.getTextSecondary(isDark),
+                      fontWeight: friend.isOnline ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: friend.isOnline ? AppColors.primaryGreen : AppColors.getSurface(isDark),
+                    elevation: friend.isOnline ? 1 : 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: friend.isOnline
+                          ? BorderSide.none
+                          : BorderSide(color: AppColors.getBorder(isDark)),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.more_vert, size: 18),
+                  color: AppColors.getTextMuted(isDark),
+                  onPressed: onRemove,
+                ),
               ],
             ),
           ),
-          ElevatedButton.icon(
-            onPressed: onInvite,
-            icon: Icon(
-              Icons.sports_esports,
-              size: 16,
-              color: friend.isOnline ? AppColors.darkTextPrimary : AppColors.getTextSecondary(isDark),
-            ),
-            label: Text(
-              'online.sendInvite'.tr(),
-              style: TextStyle(
-                color: friend.isOnline ? AppColors.darkTextPrimary : AppColors.getTextSecondary(isDark),
-                fontWeight: friend.isOnline ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: friend.isOnline ? AppColors.primaryGreen : AppColors.getSurface(isDark),
-              elevation: friend.isOnline ? 1 : 0,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: friend.isOnline
-                    ? BorderSide.none
-                    : BorderSide(color: AppColors.getBorder(isDark)),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, size: 18),
-            color: AppColors.getTextMuted(isDark),
-            onPressed: onRemove,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -515,56 +566,89 @@ class _IncomingRequestCard extends StatelessWidget {
   final bool isDark;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
+  final VoidCallback? onTap;
 
   const _IncomingRequestCard({
     required this.request,
     required this.isDark,
     required this.onAccept,
     required this.onDecline,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final avatarItem = AvatarPicker.avatars[request.avatarIndex % AvatarPicker.avatars.length];
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.getBorder(isDark)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
               children: [
-                Text(
-                  request.username,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.getTextPrimary(isDark),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: avatarItem.accentColor.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: avatarItem.accentColor,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Icon(
+                    avatarItem.icon,
+                    color: avatarItem.accentColor,
+                    size: 18,
                   ),
                 ),
-                Text(
-                  'Rating: ${request.rating}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.getTextMuted(isDark),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        request.username,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.getTextPrimary(isDark),
+                        ),
+                      ),
+                      Text(
+                        '★ ${request.rating}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ratingGold,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.check_circle, color: AppColors.accentSecondary),
+                  onPressed: onAccept,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.cancel, color: AppColors.lossRed),
+                  onPressed: onDecline,
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.check_circle, color: AppColors.accentSecondary),
-            onPressed: onAccept,
-          ),
-          IconButton(
-            icon: const Icon(Icons.cancel, color: AppColors.lossRed),
-            onPressed: onDecline,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -574,49 +658,85 @@ class _OutgoingRequestCard extends StatelessWidget {
   final FriendItemModel request;
   final bool isDark;
   final VoidCallback onCancel;
+  final VoidCallback? onTap;
 
   const _OutgoingRequestCard({
     required this.request,
     required this.isDark,
     required this.onCancel,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final avatarItem = AvatarPicker.avatars[request.avatarIndex % AvatarPicker.avatars.length];
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.getBorder(isDark)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              request.username,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.getTextSecondary(isDark),
-              ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: avatarItem.accentColor.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: avatarItem.accentColor,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Icon(
+                    avatarItem.icon,
+                    color: avatarItem.accentColor,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        request.username,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.getTextSecondary(isDark),
+                        ),
+                      ),
+                      Text(
+                        '★ ${request.rating}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ratingGold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  color: AppColors.getTextMuted(isDark),
+                  onPressed: onCancel,
+                ),
+              ],
             ),
           ),
-          Text(
-            'Pending...',
-            style: TextStyle(
-              fontSize: 12,
-              fontStyle: FontStyle.italic,
-              color: AppColors.getTextMuted(isDark),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            color: AppColors.getTextMuted(isDark),
-            onPressed: onCancel,
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -264,7 +264,7 @@ func (h *Hub) handleJoinQueue(client *Client) {
 	defer h.mu.Unlock()
 
 	if client.CurrentMatchID != "" {
-		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" {
+		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" && !activeRoom.isFinished {
 			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 			return
 		}
@@ -395,7 +395,7 @@ func (h *Hub) handleCreateRoom(client *Client, rawPayload json.RawMessage) {
 
 	// If client is already in an active playing match, reject
 	if client.CurrentMatchID != "" {
-		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" {
+		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" && !activeRoom.isFinished {
 			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 			return
 		}
@@ -451,8 +451,10 @@ func (h *Hub) handleJoinRoom(client *Client, rawPayload json.RawMessage) {
 	h.cleanupPendingInviteLocked(client)
 
 	if client.CurrentMatchID != "" {
-		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
-		return
+		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" && !activeRoom.isFinished {
+			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+			return
+		}
 	}
 
 	var dto JoinRoomDTO
@@ -878,7 +880,7 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 	defer h.mu.Unlock()
 
 	if client.CurrentMatchID != "" {
-		if r, exists := h.rooms[client.CurrentMatchID]; exists && r.Status != "waiting" {
+		if r, exists := h.rooms[client.CurrentMatchID]; exists && r.Status != "waiting" && !r.isFinished {
 			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 			return
 		}
@@ -899,7 +901,7 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 	}
 
 	if friend.CurrentMatchID != "" {
-		if fRoom, fExists := h.rooms[friend.CurrentMatchID]; fExists && fRoom.Status != "waiting" {
+		if fRoom, fExists := h.rooms[friend.CurrentMatchID]; fExists && fRoom.Status != "waiting" && !fRoom.isFinished {
 			client.SendError(errors.ErrAlreadyInMatch, "Friend is already in a match")
 			return
 		}
@@ -1020,7 +1022,7 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	defer h.mu.Unlock()
 
 	if client.CurrentMatchID != "" {
-		if r, exists := h.rooms[client.CurrentMatchID]; exists && r.Status != "waiting" {
+		if r, exists := h.rooms[client.CurrentMatchID]; exists && r.Status != "waiting" && !r.isFinished {
 			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 			return
 		}
@@ -1221,25 +1223,46 @@ func (h *Hub) CloseRoom(matchID string) {
 	defer h.mu.Unlock()
 
 	if room, exists := h.rooms[matchID]; exists {
-		if room.WhitePlayer != nil {
-			room.WhitePlayer.mu.Lock()
-			room.WhitePlayer.LastFinishedMatchID = matchID
-			room.WhitePlayer.CurrentMatchID = ""
-			room.WhitePlayer.mu.Unlock()
-			room.WhitePlayer.SendJSON(TypeMatchClosed, map[string]string{
-				"match_id": matchID,
-				"reason":   "closed",
-			})
-		}
-		if room.BlackPlayer != nil {
-			room.BlackPlayer.mu.Lock()
-			room.BlackPlayer.LastFinishedMatchID = matchID
-			room.BlackPlayer.CurrentMatchID = ""
-			room.BlackPlayer.mu.Unlock()
-			room.BlackPlayer.SendJSON(TypeMatchClosed, map[string]string{
-				"match_id": matchID,
-				"reason":   "closed",
-			})
+		if !room.isFinished {
+			if room.WhitePlayer != nil {
+				room.WhitePlayer.mu.Lock()
+				if room.WhitePlayer.CurrentMatchID == matchID {
+					room.WhitePlayer.CurrentMatchID = ""
+				}
+				room.WhitePlayer.mu.Unlock()
+				room.WhitePlayer.SendJSON(TypeMatchClosed, map[string]string{
+					"match_id": matchID,
+					"reason":   "closed",
+				})
+			}
+			if room.BlackPlayer != nil {
+				room.BlackPlayer.mu.Lock()
+				if room.BlackPlayer.CurrentMatchID == matchID {
+					room.BlackPlayer.CurrentMatchID = ""
+				}
+				room.BlackPlayer.mu.Unlock()
+				room.BlackPlayer.SendJSON(TypeMatchClosed, map[string]string{
+					"match_id": matchID,
+					"reason":   "closed",
+				})
+			}
+		} else {
+			if room.WhitePlayer != nil {
+				room.WhitePlayer.mu.Lock()
+				room.WhitePlayer.LastFinishedMatchID = matchID
+				if room.WhitePlayer.CurrentMatchID == matchID {
+					room.WhitePlayer.CurrentMatchID = ""
+				}
+				room.WhitePlayer.mu.Unlock()
+			}
+			if room.BlackPlayer != nil {
+				room.BlackPlayer.mu.Lock()
+				room.BlackPlayer.LastFinishedMatchID = matchID
+				if room.BlackPlayer.CurrentMatchID == matchID {
+					room.BlackPlayer.CurrentMatchID = ""
+				}
+				room.BlackPlayer.mu.Unlock()
+			}
 		}
 		if room.Host != nil && room.Status == "waiting" {
 			room.Host.mu.Lock()

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/online_match_screen.dart';
+import 'activity_conflict_dialog.dart';
 
 /// Modal bottom sheet for queueing into matchmaking.
 /// Shows online player count, low activity warning, elapsed wait timer, and cancel option.
@@ -14,6 +15,13 @@ class MatchmakingSheet extends StatefulWidget {
   static Future<void> show(BuildContext context) async {
     final nav = Navigator.of(context);
     final provider = context.read<OnlineGameProvider>();
+
+    final canProceed = await ActivityConflictHelper.checkAndConfirm(
+      context: context,
+      provider: provider,
+    );
+    if (!canProceed) return;
+    if (!context.mounted) return;
 
     await showModalBottomSheet(
       context: context,

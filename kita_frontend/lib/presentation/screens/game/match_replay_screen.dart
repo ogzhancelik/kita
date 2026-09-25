@@ -20,6 +20,7 @@ import '../../widgets/game/ai_advantage_bar.dart';
 import '../../widgets/game/kita_board_theme.dart';
 import '../../widgets/game/kita_board_widget.dart';
 import '../../widgets/home/settings_dialog.dart';
+import '../../widgets/home/user_profile_dialog.dart';
 
 /// Redesigned Match Review / Replay screen adhering strictly to the
 /// online/offline in-game screen template.
@@ -858,11 +859,12 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final playerRating = player?.rating ?? 1200;
 
     final avatarIdx = (player?.avatarIndex != null)
-        ? player!.avatarIndex!
+        ? player!.avatarIndex
         : (playerName.hashCode.abs() % AvatarPicker.avatars.length);
     final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
 
-    final isTurnToMove = _activeEngine.turn == (isWhite ? PieceTeam.white : PieceTeam.black);
+    final isTurnToMove = !_activeEngine.isGameOver &&
+        _activeEngine.turn == (isWhite ? PieceTeam.white : PieceTeam.black);
 
     // Player color badge (Black if black, white if white)
     final colorBadge = Container(
@@ -970,84 +972,71 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       ],
     );
 
-    final turnBadge = isTurnToMove
-        ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(5),
-              border: Border.all(
-                color: AppColors.accentSecondary.withValues(alpha: 0.5),
-                width: 0.8,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.accentSecondary,
-                  ),
-                ),
-                const SizedBox(width: 4.5),
-                Text(
-                  'replay.toMove'.tr(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.accent : AppColors.accentSecondary,
-                  ),
-                ),
-              ],
-            ),
-          )
-        : const SizedBox.shrink();
-
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
       width: double.infinity,
       height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.getCard(isDark),
+        color: isTurnToMove
+            ? AppColors.getTurnActiveCard(isDark)
+            : AppColors.getCard(isDark),
         border: Border(
           bottom: !isBottom
-              ? BorderSide(color: AppColors.getBorder(isDark), width: 0.8)
+              ? BorderSide(
+                  color: isTurnToMove
+                      ? AppColors.getTurnActiveBorder(isDark)
+                      : AppColors.getBorder(isDark),
+                  width: isTurnToMove ? 1.2 : 0.8,
+                )
               : BorderSide.none,
           top: isBottom
-              ? BorderSide(color: AppColors.getBorder(isDark), width: 0.8)
+              ? BorderSide(
+                  color: isTurnToMove
+                      ? AppColors.getTurnActiveBorder(isDark)
+                      : AppColors.getBorder(isDark),
+                  width: isTurnToMove ? 1.2 : 0.8,
+                )
               : BorderSide.none,
         ),
       ),
-      child: isBottom
-          ? Row(
-              children: [
-                // Left: turn indicator
-                turnBadge,
-                const Spacer(),
-                // Right: Name/rating, avatar, and player's color on bottom-right!
-                nameAndRating,
-                const SizedBox(width: 8),
-                avatarWidget,
-                const SizedBox(width: 8),
-                colorBadge,
-              ],
-            )
-          : Row(
-              children: [
-                // Left: Avatar, Name/rating
-                avatarWidget,
-                const SizedBox(width: 8),
-                nameAndRating,
-                const Spacer(),
-                // Right: Opponent's color badge and turn indicator
-                turnBadge,
-                const SizedBox(width: 8),
-                colorBadge,
-              ],
-            ),
+      child: InkWell(
+        onTap: () {
+          final isGuest = player?.id.startsWith('guest-') ?? false;
+          UserProfileDialog.show(
+            context,
+            userId: player?.id,
+            profile: player,
+            fallbackName: playerName,
+            fallbackAvatarIndex: avatarIdx,
+            fallbackRating: playerRating,
+            isGuest: isGuest,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: isBottom
+              ? Row(
+                  children: [
+                    const Spacer(),
+                    nameAndRating,
+                    const SizedBox(width: 8),
+                    avatarWidget,
+                    const SizedBox(width: 8),
+                    colorBadge,
+                  ],
+                )
+              : Row(
+                  children: [
+                    avatarWidget,
+                    const SizedBox(width: 8),
+                    nameAndRating,
+                    const Spacer(),
+                    colorBadge,
+                  ],
+                ),
+        ),
+      ),
     );
   }
 

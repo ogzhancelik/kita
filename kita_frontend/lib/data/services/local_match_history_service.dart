@@ -121,4 +121,104 @@ class LocalMatchHistoryService {
       debugPrint('[LocalMatchHistoryService] Error saving showOfflineMatches preference: $e');
     }
   }
+
+  // ─── Active Offline Match Persistence ──────────────────────────────
+  static const String _keyActiveOfflineGame = 'kita_active_offline_game_v1';
+
+  /// Saves an active, in-progress offline game to SharedPreferences.
+  Future<void> saveActiveOfflineGame(ActiveOfflineGameData data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyActiveOfflineGame, jsonEncode(data.toJson()));
+    } catch (e) {
+      debugPrint('[LocalMatchHistoryService] Error saving active offline game: $e');
+    }
+  }
+
+  /// Retrieves the active in-progress offline game from SharedPreferences, if any.
+  Future<ActiveOfflineGameData?> getActiveOfflineGame() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keyActiveOfflineGame);
+      if (raw == null || raw.isEmpty) return null;
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      return ActiveOfflineGameData.fromJson(map);
+    } catch (e) {
+      debugPrint('[LocalMatchHistoryService] Error reading active offline game: $e');
+      return null;
+    }
+  }
+
+  /// Clears the active offline game from SharedPreferences (on game over or resignation).
+  Future<void> clearActiveOfflineGame() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyActiveOfflineGame);
+    } catch (e) {
+      debugPrint('[LocalMatchHistoryService] Error clearing active offline game: $e');
+    }
+  }
+}
+
+/// Data class representing an active in-progress offline match for local storage persistence.
+class ActiveOfflineGameData {
+  final String matchId;
+  final String playMode; // "vsAi" or "localCoop"
+  final int botDifficulty;
+  final String playerTeam; // "white" or "black"
+  final String? playerId;
+  final String? playerName;
+  final int? playerRating;
+  final bool isGuest;
+  final int elapsedSeconds;
+  final List<Map<String, dynamic>> moveHistory;
+  final DateTime startedAt;
+
+  const ActiveOfflineGameData({
+    required this.matchId,
+    required this.playMode,
+    required this.botDifficulty,
+    required this.playerTeam,
+    this.playerId,
+    this.playerName,
+    this.playerRating,
+    required this.isGuest,
+    required this.elapsedSeconds,
+    required this.moveHistory,
+    required this.startedAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'matchId': matchId,
+    'playMode': playMode,
+    'botDifficulty': botDifficulty,
+    'playerTeam': playerTeam,
+    'playerId': playerId,
+    'playerName': playerName,
+    'playerRating': playerRating,
+    'isGuest': isGuest,
+    'elapsedSeconds': elapsedSeconds,
+    'moveHistory': moveHistory,
+    'startedAt': startedAt.toIso8601String(),
+  };
+
+  factory ActiveOfflineGameData.fromJson(Map<String, dynamic> json) =>
+      ActiveOfflineGameData(
+        matchId: json['matchId'] as String,
+        playMode: json['playMode'] as String? ?? 'vsAi',
+        botDifficulty: (json['botDifficulty'] as num?)?.toInt() ?? 1,
+        playerTeam: json['playerTeam'] as String? ?? 'white',
+        playerId: json['playerId'] as String?,
+        playerName: json['playerName'] as String?,
+        playerRating: (json['playerRating'] as num?)?.toInt(),
+        isGuest: json['isGuest'] as bool? ?? false,
+        elapsedSeconds: (json['elapsedSeconds'] as num?)?.toInt() ?? 0,
+        moveHistory: (json['moveHistory'] as List<dynamic>?)
+                ?.map((e) => Map<String, dynamic>.from(e as Map))
+                .toList() ??
+            [],
+        startedAt: json['startedAt'] != null
+            ? DateTime.tryParse(json['startedAt'] as String) ?? DateTime.now()
+            : DateTime.now(),
+      );
 }
