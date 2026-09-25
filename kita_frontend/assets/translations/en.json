@@ -559,5 +559,14 @@
     "winRate": "Win Rate",
     "rating": "Current ELO",
     "wld": "Wins / Losses / Draws"
+  },
+  "apiConfig": {
+    "label": "API SERVER URL",
+    "hint": "https://example.trycloudflare.com",
+    "save": "Save",
+    "paste": "Paste",
+    "saved": "API URL saved successfully!",
+    "unreachable": "Server unreachable. Check the URL and try again."
   }
 }
+

@@ -1,9 +1,13 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
   ApiConstants._();
 
   static const String _envApiUrl = String.fromEnvironment('API_URL');
+  static const bool showApiConfig = bool.fromEnvironment('SHOW_API_CONFIG', defaultValue: false);
+
+  static const String _persistedApiUrlKey = 'kita_api_url_override';
 
   // For Android emulator vs Web/Desktop/Physical device
   static String get defaultBaseUrl {
@@ -22,6 +26,47 @@ class ApiConstants {
   }
 
   static String baseUrl = defaultBaseUrl;
+
+  /// Load a persisted API URL override from SharedPreferences.
+  /// Should be called once during app startup before any network call.
+  static Future<void> initializeBaseUrl() async {
+    if (!showApiConfig) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final override = prefs.getString(_persistedApiUrlKey);
+      if (override != null && override.isNotEmpty) {
+        baseUrl = override;
+      }
+    } catch (_) {
+      // Fallback to default if prefs unavailable
+    }
+  }
+
+  /// Persist a new API URL override and update the runtime baseUrl.
+  static Future<void> setAndPersistBaseUrl(String url) async {
+    String clean = url.trim();
+    while (clean.endsWith('/')) {
+      clean = clean.substring(0, clean.length - 1);
+    }
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = 'https://$clean';
+    }
+    baseUrl = clean;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_persistedApiUrlKey, clean);
+    } catch (_) {}
+  }
+
+  /// Get the currently persisted API URL override (if any).
+  static Future<String?> getPersistedApiUrl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_persistedApiUrlKey);
+    } catch (_) {
+      return null;
+    }
+  }
 
   // Auth endpoints
   static const String register = '/api/auth/register';

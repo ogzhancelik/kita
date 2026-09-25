@@ -7,11 +7,13 @@ import '../storage/secure_storage_service.dart';
 class ApiClient {
   static String? currentToken;
 
+  static ApiClient? _instance;
+
   late final Dio dio;
   final SecureStorageService _storage;
-  final void Function()? onUnauthorized;
+  void Function()? onUnauthorized;
 
-  ApiClient({
+  ApiClient._internal({
     SecureStorageService? storage,
     this.onUnauthorized,
   }) : _storage = storage ?? SecureStorageService() {
@@ -29,12 +31,39 @@ class ApiClient {
 
     dio.interceptors.addAll([
       _AuthInterceptor(_storage),
-      _ErrorInterceptor(_storage, onUnauthorized: onUnauthorized),
+      _ErrorInterceptor(_storage, onUnauthorized: () => onUnauthorized?.call()),
     ]);
   }
 
+  /// Returns the shared singleton instance.
+  /// [onUnauthorized] is only used during the first creation.
+  factory ApiClient({
+    SecureStorageService? storage,
+    void Function()? onUnauthorized,
+  }) {
+    _instance ??= ApiClient._internal(
+      storage: storage,
+      onUnauthorized: onUnauthorized,
+    );
+    if (onUnauthorized != null) {
+      _instance!.onUnauthorized = onUnauthorized;
+    }
+    return _instance!;
+  }
+
+  /// The shared singleton instance (same as calling the factory).
+  static ApiClient get instance => ApiClient();
+
   void updateBaseUrl(String newUrl) {
-    dio.options.baseUrl = newUrl;
+    String clean = newUrl.trim();
+    while (clean.endsWith('/')) {
+      clean = clean.substring(0, clean.length - 1);
+    }
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = 'https://$clean';
+    }
+    ApiConstants.baseUrl = clean;
+    dio.options.baseUrl = clean;
   }
 }
 

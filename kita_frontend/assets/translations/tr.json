@@ -558,5 +558,14 @@
     "winRate": "Galibiyet Oranı",
     "rating": "Mevcut ELO",
     "wld": "Galibiyet / Mağlubiyet / Beraberlik"
+  },
+  "apiConfig": {
+    "label": "API SUNUCU URL",
+    "hint": "https://example.trycloudflare.com",
+    "save": "Kaydet",
+    "paste": "Yapıştır",
+    "saved": "API URL başarıyla kaydedildi!",
+    "unreachable": "Sunucuya ulaşılamıyor. URL'yi kontrol edip tekrar deneyin."
   }
 }
+

@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'core/constants/api_constants.dart';
 import 'core/feedback/sound_service.dart';
 import 'core/feedback/toast_service.dart';
 import 'core/theme/app_theme.dart';
@@ -25,6 +26,7 @@ final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
+  await ApiConstants.initializeBaseUrl();
   SoundService.instance.initialize(); // fire-and-forget pre-warm
 
   runApp(

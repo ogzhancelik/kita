@@ -1,8 +1,10 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/online_game_provider.dart';
+import '../../widgets/common/api_url_config_bar.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/responsive_layout.dart';
@@ -19,6 +21,7 @@ class WelcomeScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: const KitaAppBar(showAuthActions: false),
       body: ResponsiveLayout(
         child: SingleChildScrollView(
@@ -137,6 +140,10 @@ class WelcomeScreen extends StatelessWidget {
           ),
         ),
       ),
+      // Sticky API URL config bar at the bottom (only when SHOW_API_CONFIG=true)
+      bottomNavigationBar: ApiConstants.showApiConfig
+          ? const ApiUrlConfigBar()
+          : null,
     );
   }
 }
