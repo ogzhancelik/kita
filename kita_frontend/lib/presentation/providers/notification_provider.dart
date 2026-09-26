@@ -372,10 +372,6 @@ class NotificationProvider extends ChangeNotifier {
 
     final id = '${notifType.name}_${req.id}';
     final existingIdx = _notifications.indexWhere((n) => n.id == id);
-    if (existingIdx >= 0) {
-      // Already tracked
-      return;
-    }
 
     final notif = KitaNotification(
       id: id,
@@ -395,7 +391,11 @@ class NotificationProvider extends ChangeNotifier {
       timestamp: DateTime.now(),
     );
 
-    addNotification(notif);
+    if (existingIdx >= 0) {
+      _notifications.removeAt(existingIdx);
+    }
+    _notifications.insert(0, notif);
+    notifyListeners();
   }
 
   /// Synchronize incoming friend requests from FriendsProvider.
@@ -418,6 +418,50 @@ class NotificationProvider extends ChangeNotifier {
         );
         _notifications.insert(0, notif);
         changed = true;
+      }
+    }
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  /// Resolves pending rematch notifications (e.g. when accepted or declined in-game).
+  void resolveRematchNotification({String? matchId, bool accepted = true}) {
+    bool changed = false;
+    for (int i = 0; i < _notifications.length; i++) {
+      final n = _notifications[i];
+      if (n.type == KitaNotificationType.rematch && n.isPending) {
+        if (matchId == null ||
+            matchId.isEmpty ||
+            n.matchId == matchId ||
+            n.id == 'rematch_$matchId') {
+          _notifications[i] = n.copyWith(
+            status: accepted ? NotificationStatus.accepted : NotificationStatus.declined,
+          );
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  /// Resolves pending challenge notifications (e.g. when accepted or declined via floating banner).
+  void resolveChallengeNotification({String? inviteId, bool accepted = true}) {
+    bool changed = false;
+    for (int i = 0; i < _notifications.length; i++) {
+      final n = _notifications[i];
+      if (n.type == KitaNotificationType.challenge && n.isPending) {
+        if (inviteId == null ||
+            inviteId.isEmpty ||
+            n.inviteId == inviteId ||
+            n.id == 'challenge_$inviteId') {
+          _notifications[i] = n.copyWith(
+            status: accepted ? NotificationStatus.accepted : NotificationStatus.declined,
+          );
+          changed = true;
+        }
       }
     }
     if (changed) {

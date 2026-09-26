@@ -117,6 +117,21 @@ func (h *Hub) Run() {
 						TimeControl: tc,
 					})
 				}
+			} else {
+				// Reconnecting client might be from a recently finished match: refresh player reference for rematch
+				for _, r := range h.rooms {
+					r.mu.Lock()
+					if r.isFinished {
+						if r.WhitePlayer != nil && r.WhitePlayer.UserID == client.UserID {
+							r.WhitePlayer = client
+							client.LastFinishedMatchID = r.ID
+						} else if r.BlackPlayer != nil && r.BlackPlayer.UserID == client.UserID {
+							r.BlackPlayer = client
+							client.LastFinishedMatchID = r.ID
+						}
+					}
+					r.mu.Unlock()
+				}
 			}
 
 			h.BroadcastOnlineCount()
@@ -145,9 +160,10 @@ func (h *Hub) handleDisconnect(client *Client) {
 	delete(h.clients, client.UserID)
 	h.removeFromQueueLocked(client)
 
-	// Clean up any unstarted waiting room & pending outgoing invites hosted by this client
+	// Clean up any unstarted waiting room, pending outgoing invites & rematch requests hosted by this client
 	h.cleanupWaitingRoomLocked(client)
 	h.cleanupPendingInviteLocked(client)
+	h.cleanupPendingRematchLocked(client)
 
 	// Eğer oyuncu aktif bir maçtaysa, odanın disconnect mantığını çalıştır
 	if client.CurrentMatchID != "" {
@@ -777,16 +793,22 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
-	h.mu.RLock()
-	// Find the opponent from the finished match
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	// Find the opponent from the finished match using active connection
 	var opponentClient *Client
 
 	// 1. Check if room still exists in memory
 	if room, exists := h.rooms[dto.MatchID]; exists {
+		var opponentUserID string
 		if room.WhitePlayer != nil && room.WhitePlayer.UserID != client.UserID {
-			opponentClient = room.WhitePlayer
+			opponentUserID = room.WhitePlayer.UserID
 		} else if room.BlackPlayer != nil && room.BlackPlayer.UserID != client.UserID {
-			opponentClient = room.BlackPlayer
+			opponentUserID = room.BlackPlayer.UserID
+		}
+		if opponentUserID != "" {
+			opponentClient = h.clients[opponentUserID]
 		}
 	}
 
@@ -805,11 +827,62 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 			}
 		}
 	}
-	h.mu.RUnlock()
+
+	if opponentClient == nil {
+		client.SendError(errors.ErrMatchNotFound, "Opponent is no longer online")
+		return
+	}
 
 	var tc int64 = TimeControl3Min
 	if room, exists := h.rooms[dto.MatchID]; exists && room.TimeControl > 0 {
 		tc = room.TimeControl
+	}
+
+	// 3. Mutual Rematch Check: Did opponent ALREADY request a rematch for this match?
+	opponentClient.mu.RLock()
+	oppPending := opponentClient.PendingRematchID
+	opponentClient.mu.RUnlock()
+
+	if oppPending == dto.MatchID {
+		// Both players requested rematch! Auto-start the match immediately!
+		client.mu.Lock()
+		client.PendingRematchID = ""
+		client.PendingRematchTimeControl = 0
+		client.mu.Unlock()
+
+		opponentClient.mu.Lock()
+		opponentClient.PendingRematchID = ""
+		opponentClient.PendingRematchTimeControl = 0
+		opponentClient.mu.Unlock()
+
+		// Clean up any unstarted waiting room hosted by either client
+		for _, p := range []*Client{client, opponentClient} {
+			for id, r := range h.rooms {
+				if r.Status == "waiting" && r.Host != nil && r.Host.UserID == p.UserID {
+					delete(h.roomCodes, r.RoomCode)
+					delete(h.rooms, id)
+					p.CurrentMatchID = ""
+					h.broadcastRoomsListLocked()
+					break
+				}
+			}
+		}
+
+		matchID := uuid.New().String()
+		white := client
+		black := opponentClient
+		if prevRoom, exists := h.rooms[dto.MatchID]; exists {
+			if prevRoom.WhitePlayer != nil && prevRoom.WhitePlayer.UserID == client.UserID {
+				white = opponentClient
+				black = client
+			}
+		}
+		room := NewRoomWithTimeControl(matchID, white, black, tc, h.matchService, h)
+		h.rooms[matchID] = room
+
+		log.Printf("[Hub] Mutual rematch auto-started: %s between %s and %s", matchID, white.Username, black.Username)
+		go room.Start()
+		return
 	}
 
 	// Store rematch request on client for opponent to accept
@@ -817,11 +890,6 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 	client.PendingRematchID = dto.MatchID
 	client.PendingRematchTimeControl = tc
 	client.mu.Unlock()
-
-	if opponentClient == nil {
-		client.SendError(errors.ErrMatchNotFound, "Opponent is no longer online")
-		return
-	}
 
 	opponentClient.SendJSON(TypeRematchOffered, RematchOfferedDTO{
 		MatchID:              dto.MatchID,
@@ -873,11 +941,16 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 		tc = TimeControl3Min
 	}
 
-	// Clear pending rematch
+	// Clear pending rematch on both players
 	requester.mu.Lock()
 	requester.PendingRematchID = ""
 	requester.PendingRematchTimeControl = 0
 	requester.mu.Unlock()
+
+	client.mu.Lock()
+	client.PendingRematchID = ""
+	client.PendingRematchTimeControl = 0
+	client.mu.Unlock()
 
 	// Clean up any unstarted waiting room hosted by either client
 	for _, p := range []*Client{requester, client} {
@@ -894,10 +967,18 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 
 	// Create new match with swapped colors
 	matchID := uuid.New().String()
-	room := NewRoomWithTimeControl(matchID, client, requester, tc, h.matchService, h)
+	white := client
+	black := requester
+	if prevRoom, exists := h.rooms[dto.MatchID]; exists {
+		if prevRoom.WhitePlayer != nil && prevRoom.WhitePlayer.UserID == client.UserID {
+			white = requester
+			black = client
+		}
+	}
+	room := NewRoomWithTimeControl(matchID, white, black, tc, h.matchService, h)
 	h.rooms[matchID] = room
 
-	log.Printf("[Hub] Rematch created: %s between %s and %s", matchID, client.Username, requester.Username)
+	log.Printf("[Hub] Rematch created: %s between %s and %s", matchID, white.Username, black.Username)
 	go room.Start()
 }
 
@@ -948,6 +1029,11 @@ func (h *Hub) handleRematchDecline(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
+	client.mu.Lock()
+	client.PendingRematchID = ""
+	client.PendingRematchTimeControl = 0
+	client.mu.Unlock()
+
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -959,6 +1045,7 @@ func (h *Hub) handleRematchDecline(client *Client, rawPayload json.RawMessage) {
 			if pending == dto.MatchID {
 				c.mu.Lock()
 				c.PendingRematchID = ""
+				c.PendingRematchTimeControl = 0
 				c.mu.Unlock()
 				c.SendJSON(TypeRematchDeclined, map[string]string{
 					"match_id":      dto.MatchID,
@@ -1335,6 +1422,35 @@ func (h *Hub) handleCancelInvite(client *Client, rawPayload json.RawMessage) {
 				_ = h.notificationService.DeletePendingChallenge(context.Background(), uID, fID)
 			}
 		}(inviteID, friendID, client.UserID)
+	}
+}
+
+func (h *Hub) cleanupPendingRematchLocked(client *Client) {
+	client.mu.Lock()
+	matchID := client.PendingRematchID
+	client.PendingRematchID = ""
+	client.PendingRematchTimeControl = 0
+	client.mu.Unlock()
+
+	if matchID == "" {
+		return
+	}
+
+	for _, c := range h.clients {
+		if c.UserID != client.UserID {
+			c.mu.RLock()
+			lastMatch := c.LastFinishedMatchID
+			currentMatch := c.CurrentMatchID
+			c.mu.RUnlock()
+			if lastMatch == matchID || currentMatch == matchID {
+				c.SendJSON(TypeRematchDeclined, map[string]string{
+					"match_id":      matchID,
+					"decliner_name": client.Username,
+					"reason":        "disconnected",
+				})
+				break
+			}
+		}
 	}
 }
 

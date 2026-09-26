@@ -562,6 +562,8 @@
     "challengeSubtitle": "{} seni {} maça davet etti",
     "minuteMatch": "{} dakikalık",
     "unlimitedMatch": "süresiz",
+    "matchDurationUnlimited": "Süresiz",
+    "matchDurationMinutes": "{} dk",
     "friendRequestTitle": "Arkadaşlık İsteği",
     "friendRequestSubtitle": "{} sana arkadaşlık isteği gönderdi",
     "infoTitle": "Sistem Bildirimi",

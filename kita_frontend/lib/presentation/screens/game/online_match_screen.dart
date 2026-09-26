@@ -184,7 +184,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
           _showLeaveConfirmation(context);
-        } else if (canLeaveFreely) {
+        } else if (didPop &&
+            (provider.matchState.value == OnlineMatchState.gameOver ||
+             provider.matchState.value == OnlineMatchState.idle)) {
           provider.leaveFinishedMatch();
         }
       },

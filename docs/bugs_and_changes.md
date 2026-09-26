@@ -1,0 +1,1 @@
+- [] "notifications.rematchDeclinedSubtitle", "notifications.challengeDeclinedSubtitle", "notifications.friendRequest..." etc are emtpy. Also for these notifications do not put X and check, just one buttone (can be check) to imply "i read/i got it"

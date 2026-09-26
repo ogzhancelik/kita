@@ -563,6 +563,8 @@
     "challengeSubtitle": "{} invited you to a {} match",
     "minuteMatch": "{}-minute",
     "unlimitedMatch": "untimed",
+    "matchDurationUnlimited": "Unlimited",
+    "matchDurationMinutes": "{} min",
     "friendRequestTitle": "Friend Request",
     "friendRequestSubtitle": "{} sent you a friend request",
     "infoTitle": "System Notification",

@@ -162,6 +162,11 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
 
     if (type == 'rematch_declined') {
       notifProv.addRematchDeclinedNotification(event['decliner'] as String?);
+      notifProv.resolveRematchNotification(accepted: false);
+    } else if (type == 'rematch_resolved') {
+      final matchId = event['match_id'] as String?;
+      final accepted = (event['accepted'] as bool?) ?? true;
+      notifProv.resolveRematchNotification(matchId: matchId, accepted: accepted);
     } else if (type == 'invitation_declined') {
       notifProv.addChallengeDeclinedNotification(event['decliner'] as String?);
     } else if (type == 'friend_request') {
@@ -200,9 +205,12 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   }
 
   void _onMatchStateChanged() {
-    if (_onlineProv?.matchState.value == OnlineMatchState.inMatch &&
-        !_isMatchScreenOpen &&
-        !OnlineMatchScreen.isMatchScreenOpen) {
+    final state = _onlineProv?.matchState.value;
+    if (state != OnlineMatchState.inMatch) {
+      _isMatchScreenOpen = false;
+      return;
+    }
+    if (!_isMatchScreenOpen && !OnlineMatchScreen.isMatchScreenOpen) {
       if (_onlineProv?.isReconnectedMatch.value == true) {
         // Player reconnected to an existing match on startup; stay on dashboard to let user Rejoin via card
         return;
@@ -230,13 +238,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     if (req != null) {
       if (mounted) {
         context.read<NotificationProvider>().syncFromIncomingMatchRequest(req);
-      }
-
-      // Do NOT show floating dialog on home dashboard screen.
-      // Only show it when user is navigated away to a subscreen (canPop == true).
-      final isSubScreenActive = appNavigatorKey.currentState?.canPop() ?? false;
-      if (!isSubScreenActive) {
-        return;
+        SoundService.instance.playMove();
       }
 
       // If rematch offer arrives while GameOverDialog is active on screen,
@@ -252,11 +254,23 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
           final navContext = appNavigatorKey.currentContext;
           if (navContext == null) return;
 
+          // Capture the invite ID now so we can resolve the notification later.
+          final capturedReqId = req.id;
+          final isChallenge = req.type == IncomingMatchRequestType.friendInvite;
+
           _isInviteDialogShowing = true;
           TopMatchInviteDialog.show(
             context: navContext,
             request: req,
             onAccept: () async {
+              _isInviteDialogShowing = false;
+              // Resolve the matching challenge notification so it disappears from the panel.
+              if (mounted && isChallenge) {
+                context.read<NotificationProvider>().resolveChallengeNotification(
+                  inviteId: capturedReqId,
+                  accepted: true,
+                );
+              }
               if (navContext.mounted && _onlineProv != null) {
                 final canProceed = await ActivityConflictHelper.checkAndConfirm(
                   context: navContext,
@@ -268,6 +282,14 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
               _onlineProv?.acceptIncomingRequest();
             },
             onDecline: () {
+              _isInviteDialogShowing = false;
+              // Resolve the matching challenge notification so it disappears from the panel.
+              if (mounted && isChallenge) {
+                context.read<NotificationProvider>().resolveChallengeNotification(
+                  inviteId: capturedReqId,
+                  accepted: false,
+                );
+              }
               _onlineProv?.declineIncomingRequest();
             },
           ).then((_) {
@@ -276,12 +298,17 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
         });
       }
     } else {
+      if (mounted) {
+        context.read<NotificationProvider>().resolveRematchNotification(accepted: true);
+        // Also resolve any pending challenge notification that was cleared server-side.
+        context.read<NotificationProvider>().resolveChallengeNotification(accepted: true);
+      }
       if (_isInviteDialogShowing) {
+        _isInviteDialogShowing = false;
         final navContext = appNavigatorKey.currentContext;
         if (navContext != null && Navigator.of(navContext, rootNavigator: true).canPop()) {
           Navigator.of(navContext, rootNavigator: true).pop();
         }
-        _isInviteDialogShowing = false;
       }
     }
   }

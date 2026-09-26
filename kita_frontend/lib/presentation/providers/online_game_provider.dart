@@ -1021,6 +1021,11 @@ class OnlineGameProvider extends ChangeNotifier {
     incomingMatchRequest.value = null;
     pendingOutgoingRematch.value = null;
     isRematchRequested.value = false;
+    onWsNotificationEvent.value = {
+      'type': 'rematch_resolved',
+      'match_id': mId,
+      'accepted': true,
+    };
     notifyListeners();
   }
 
@@ -1032,6 +1037,11 @@ class OnlineGameProvider extends ChangeNotifier {
     }
     rematchOffer.value = null;
     incomingMatchRequest.value = null;
+    onWsNotificationEvent.value = {
+      'type': 'rematch_resolved',
+      'match_id': mId,
+      'accepted': false,
+    };
     notifyListeners();
   }
 
@@ -1513,6 +1523,11 @@ class OnlineGameProvider extends ChangeNotifier {
     matchInvitation.value = null;
     drawOffer.value = null;
     isDrawOfferPending.value = false;
+    onWsNotificationEvent.value = {
+      'type': 'rematch_resolved',
+      'match_id': data.matchId,
+      'accepted': true,
+    };
 
     if (data.isReconnect) {
       // Reconnected match: restore move history, snapshots, chat, and elapsed time!

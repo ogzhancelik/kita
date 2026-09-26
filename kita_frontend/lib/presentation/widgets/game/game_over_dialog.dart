@@ -52,6 +52,13 @@ class GameOverDialog extends StatefulWidget {
 
 class _GameOverDialogState extends State<GameOverDialog> {
   OnlineGameProvider? _provider;
+  bool _isPopping = false;
+
+  void _safePop() {
+    if (_isPopping || !mounted) return;
+    _isPopping = true;
+    Navigator.of(context, rootNavigator: true).pop();
+  }
 
   @override
   void didChangeDependencies() {
@@ -67,12 +74,13 @@ class _GameOverDialogState extends State<GameOverDialog> {
 
   void _onMatchStateChanged() {
     if (_provider?.matchState.value == OnlineMatchState.inMatch && mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
+      _safePop();
     }
   }
 
   @override
   void dispose() {
+    _isPopping = true;
     _provider?.matchState.removeListener(_onMatchStateChanged);
     _provider?.isGameOverDialogActive.value = false;
     super.dispose();
@@ -261,8 +269,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
               if (offer == null) return const SizedBox.shrink();
               return Container(
                 margin: const EdgeInsets.only(top: 14),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.winBlue.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -271,83 +278,111 @@ class _GameOverDialogState extends State<GameOverDialog> {
                     width: 1.5,
                   ),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.winBlue.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.replay_rounded,
-                        color: AppColors.winBlue,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'online.rematchOfferTitle'.tr(),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.winBlue,
-                            ),
+                    // Top: Replay Icon + Text Information
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.winBlue.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
                           ),
-                          Text(
-                            '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: AppColors.getTextSecondary(isDark),
-                            ),
+                          child: const Icon(
+                            Icons.replay_rounded,
+                            color: AppColors.winBlue,
+                            size: 20,
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Reddet
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded,
-                          color: AppColors.lossRed, size: 20),
-                      style: IconButton.styleFrom(
-                        backgroundColor:
-                            AppColors.lossRed.withValues(alpha: 0.12),
-                        padding: const EdgeInsets.all(6),
-                        minimumSize: const Size(34, 34),
-                      ),
-                      onPressed: () {
-                        provider.declineRematch();
-                        Navigator.of(context, rootNavigator: true).pop();
-                      },
-                      tooltip: 'online.decline'.tr(),
-                    ),
-                    const SizedBox(width: 6),
-                    // Kabul Et
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.check_rounded, size: 16),
-                      label: Text('online.accept'.tr()),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'online.rematchOfferTitle'.tr(),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.winBlue,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors.getTextSecondary(isDark),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      onPressed: () {
-                        provider.acceptRematch();
-                        Navigator.of(context, rootNavigator: true).pop();
-                      },
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Bottom: Decline & Accept Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            label: Text('online.decline'.tr()),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.lossRed,
+                              side: BorderSide(
+                                color: AppColors.lossRed.withValues(alpha: 0.5),
+                              ),
+                              backgroundColor:
+                                  AppColors.lossRed.withValues(alpha: 0.08),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                              minimumSize: const Size(0, 36),
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () {
+                              provider.declineRematch();
+                              _safePop();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.check_rounded, size: 16),
+                            label: Text('online.accept'.tr()),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                              minimumSize: const Size(0, 36),
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () {
+                              provider.acceptRematch();
+                              _safePop();
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -370,7 +405,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
           )
         else
           TextButton.icon(
-            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+            onPressed: () => _safePop(),
             icon: const Icon(Icons.grid_view_rounded, size: 16),
             label: Text('online.viewBoard'.tr()),
             style: TextButton.styleFrom(
