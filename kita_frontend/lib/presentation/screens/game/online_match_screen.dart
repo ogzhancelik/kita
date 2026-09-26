@@ -208,6 +208,36 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
               if (provider.gameOverData.value != null && !isKeyboardOpen)
                 _buildGameOverBanner(context, provider, isDark),
 
+              // Connecting to match banner
+              if (provider.matchState.value == OnlineMatchState.connecting)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'online.connectingToMatch'.tr(),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // 1. Moves ribbon (hidden when keyboard is open to maximize space)
               if (!isKeyboardOpen) const MoveHistoryPanel(),
 
@@ -790,15 +820,22 @@ class _BoardSection extends StatelessWidget {
                         isLive))
                 : (provider.myTeam == displayEngine.turn.name && isLive);
 
+            final gameSettings = context.watch<GameSettingsProvider>();
             final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
             final isBlackTurn = displayEngine.turn == PieceTeam.black;
             final activePlayerIsAtTop = flipBoard ? !isBlackTurn : isBlackTurn;
-            final pieceRotation = isLocalCoop ? (activePlayerIsAtTop ? 0.5 : 0.0) : 0.0;
+            final double baseRotation = gameSettings.isLocalCoopHorizontal ? 0.25 : 0.0;
+            final double pieceRotation = isLocalCoop
+                ? (gameSettings.localCoopAutoRotate
+                    ? (baseRotation + (activePlayerIsAtTop ? 0.5 : 0.0))
+                    : baseRotation)
+                : 0.0;
 
             return ValueListenableBuilder<List<KitaMove>>(
               valueListenable: provider.legalMoves,
               builder: (c2, legal, _) {
                 return _BoardInteraction(
+                  key: ValueKey('board_interaction_${provider.matchId}_${provider.isOffline}'),
                   provider: provider,
                   displayEngine: displayEngine,
                   flipBoard: flipBoard,
@@ -827,6 +864,7 @@ class _BoardInteraction extends StatefulWidget {
   final List<KitaMove> legalMoves;
 
   const _BoardInteraction({
+    super.key,
     required this.provider,
     required this.displayEngine,
     required this.flipBoard,

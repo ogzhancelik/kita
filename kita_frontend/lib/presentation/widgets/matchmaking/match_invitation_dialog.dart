@@ -7,6 +7,7 @@ import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/online_match_screen.dart';
 import '../common/avatar_picker.dart';
+import 'activity_conflict_dialog.dart';
 
 /// Modal dialog presented when a friend challenges the user to a match.
 class MatchInvitationDialog extends StatelessWidget {
@@ -207,7 +208,13 @@ class MatchInvitationDialog extends StatelessWidget {
           ),
         ),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
+            final canProceed = await ActivityConflictHelper.checkAndConfirm(
+              context: context,
+              provider: provider,
+              isTransitioningToNewMatch: true,
+            );
+            if (!canProceed) return;
             provider.acceptInvitation(invitation.inviteId);
           },
           style: ElevatedButton.styleFrom(

@@ -225,6 +225,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       appBar: KitaAppBar(
         showAuthActions: false,
         showBack: true,
+        showLanguageToggle: false,
+        showThemeToggle: false,
         title: 'history.title'.tr(),
         extraActions: [
           IconButton(
@@ -594,20 +596,63 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     );
   }
 
-  Widget _buildEndReasonBadge(MatchRecordModel match) {
+  Widget _buildLocalCoopAvatar(bool isDark) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(
+          color: AppColors.accent.withValues(alpha: 0.7),
+          width: 1.2,
+        ),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.people_outline_rounded,
+          size: 17,
+          color: AppColors.accent,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEndReasonBadge(MatchRecordModel match, bool isDark) {
     final bool isTimeout = match.isTimeout;
-    final icon = isTimeout ? Icons.timer_outlined : Icons.flag_outlined;
-    final tooltip = isTimeout ? 'online.reasonTimeout'.tr() : 'online.reasonResigned'.tr();
+    final bool isResigned = match.isResigned;
+    final bool isDrawOffer = match.isDrawAgreement;
+
+    final IconData icon;
+    final String tooltip;
+    final Color badgeColor;
+
+    if (isTimeout) {
+      icon = Icons.timer_outlined;
+      tooltip = 'online.reasonTimeout'.tr();
+      badgeColor = AppColors.lossRed;
+    } else if (isResigned) {
+      icon = Icons.flag_outlined;
+      tooltip = 'online.reasonResigned'.tr();
+      badgeColor = AppColors.lossRed;
+    } else if (isDrawOffer) {
+      icon = Icons.handshake_outlined;
+      tooltip = 'online.reasonDrawAgreement'.tr();
+      badgeColor = AppColors.getTextSecondary(isDark);
+    } else {
+      return const SizedBox.shrink();
+    }
+
     return Tooltip(
       message: tooltip,
       child: Container(
         width: 18,
         height: 18,
         decoration: BoxDecoration(
-          color: AppColors.lossRed.withValues(alpha: 0.15),
+          color: badgeColor.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(4),
           border: Border.all(
-            color: AppColors.lossRed.withValues(alpha: 0.6),
+            color: badgeColor.withValues(alpha: 0.6),
             width: 1,
           ),
         ),
@@ -615,7 +660,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           child: Icon(
             icon,
             size: 11,
-            color: AppColors.lossRed,
+            color: badgeColor,
           ),
         ),
       ),
@@ -712,21 +757,9 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             ),
           const SizedBox(width: 10),
 
-          // Player / AI PP
+          // Player / AI / Coop PP
           if (isCoop)
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.people_outline_rounded,
-                size: 20,
-                color: AppColors.accent,
-              ),
-            )
+            _buildLocalCoopAvatar(isDark)
           else if (isVsAi)
             _buildAiAvatar(isDark)
           else
@@ -817,9 +850,9 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                         ),
                       ),
                     ],
-                    if (match.isTimeout || match.isResigned) ...[
+                    if (match.isTimeout || match.isResigned || match.isDrawAgreement) ...[
                       const SizedBox(width: 6),
-                      _buildEndReasonBadge(match),
+                      _buildEndReasonBadge(match, isDark),
                     ],
                   ],
                 ),

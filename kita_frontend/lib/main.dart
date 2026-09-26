@@ -261,6 +261,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
                 final canProceed = await ActivityConflictHelper.checkAndConfirm(
                   context: navContext,
                   provider: _onlineProv!,
+                  isTransitioningToNewMatch: true,
                 );
                 if (!canProceed) return;
               }

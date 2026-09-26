@@ -167,6 +167,7 @@ class NotificationProvider extends ChangeNotifier {
         final canProceed = await ActivityConflictHelper.checkAndConfirm(
           context: context,
           provider: onlineProv,
+          isTransitioningToNewMatch: true,
         );
         if (!canProceed) return;
 

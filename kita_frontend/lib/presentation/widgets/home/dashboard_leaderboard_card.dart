@@ -160,11 +160,14 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
               ),
               borderRadius: BorderRadius.circular(12),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   // If 2nd exists
                   if (_topPlayers.length > 1)
-                    Expanded(child: _buildPodiumItem(_topPlayers[1], 2, isDark)),
+                    Expanded(child: _buildPodiumItem(_topPlayers[1], 2, isDark))
+                  else if (_topPlayers.length == 1)
+                    const Spacer(),
                   // 1st place
                   Expanded(child: _buildPodiumItem(_topPlayers[0], 1, isDark)),
                   // If 3rd exists
@@ -214,16 +217,16 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
 
     switch (rank) {
       case 1:
-        medalColor = const Color(0xFFFFD700);
+        medalColor = AppColors.ratingGold;
         avatarSize = 52.0;
         break;
       case 2:
-        medalColor = const Color(0xFFC0C0C0);
+        medalColor = AppColors.silverMedal;
         avatarSize = 44.0;
         break;
       case 3:
       default:
-        medalColor = const Color(0xFFCD7F32);
+        medalColor = AppColors.bronzeMedal;
         avatarSize = 40.0;
         break;
     }
@@ -277,8 +280,9 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
           player.username,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: rank == 1 ? 13 : 12,
+            fontSize: 12,
             fontWeight: rank == 1 ? FontWeight.w800 : FontWeight.w600,
             color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
           ),
@@ -286,6 +290,7 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
         const SizedBox(height: 2),
         Text(
           '${player.rating}',
+          textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,

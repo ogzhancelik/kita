@@ -139,6 +139,73 @@ class KitaBoardTheme {
     return valueColors[value] ?? const Color(0xFF4A4A4A);
   }
 
+  KitaBoardTheme copyWith({
+    Map<int, Color>? valueColors,
+    Color? borderColor,
+    Color? selectedHighlightColor,
+    Color? validMoveHighlightColor,
+    Color? tileValueColor,
+    Color? coordinateLabelColor,
+    Color? whitePieceColor,
+    Color? blackPieceColor,
+    Color? whiteKingAccent,
+    Color? blackKingAccent,
+    bool? showTileValues,
+    bool? showCoordinateLabels,
+    double? tileBorderRadius,
+    double? tileSpacing,
+    double? tileValueFontSize,
+    double? coordinateLabelFontSize,
+    double? tileBorderRadiusRatio,
+    double? tileSpacingRatio,
+    double? tileValueFontSizeRatio,
+    double? coordinateLabelFontSizeRatio,
+    double? maxTileBorderRadius,
+    double? maxTileSpacing,
+    double? maxTileValueFontSize,
+    double? maxCoordinateLabelFontSize,
+  }) {
+    return KitaBoardTheme(
+      valueColors: valueColors ?? this.valueColors,
+      borderColor: borderColor ?? this.borderColor,
+      selectedHighlightColor: selectedHighlightColor ?? this.selectedHighlightColor,
+      validMoveHighlightColor: validMoveHighlightColor ?? this.validMoveHighlightColor,
+      tileValueColor: tileValueColor ?? this.tileValueColor,
+      coordinateLabelColor: coordinateLabelColor ?? this.coordinateLabelColor,
+      whitePieceColor: whitePieceColor ?? this.whitePieceColor,
+      blackPieceColor: blackPieceColor ?? this.blackPieceColor,
+      whiteKingAccent: whiteKingAccent ?? this.whiteKingAccent,
+      blackKingAccent: blackKingAccent ?? this.blackKingAccent,
+      showTileValues: showTileValues ?? this.showTileValues,
+      showCoordinateLabels: showCoordinateLabels ?? this.showCoordinateLabels,
+      tileBorderRadius: tileBorderRadius ?? fixedTileBorderRadius,
+      tileSpacing: tileSpacing ?? fixedTileSpacing,
+      tileValueFontSize: tileValueFontSize ?? fixedTileValueFontSize,
+      coordinateLabelFontSize: coordinateLabelFontSize ?? fixedCoordinateLabelFontSize,
+      tileBorderRadiusRatio: tileBorderRadiusRatio ?? this.tileBorderRadiusRatio,
+      tileSpacingRatio: tileSpacingRatio ?? this.tileSpacingRatio,
+      tileValueFontSizeRatio: tileValueFontSizeRatio ?? this.tileValueFontSizeRatio,
+      coordinateLabelFontSizeRatio: coordinateLabelFontSizeRatio ?? this.coordinateLabelFontSizeRatio,
+      maxTileBorderRadius: maxTileBorderRadius ?? this.maxTileBorderRadius,
+      maxTileSpacing: maxTileSpacing ?? this.maxTileSpacing,
+      maxTileValueFontSize: maxTileValueFontSize ?? this.maxTileValueFontSize,
+      maxCoordinateLabelFontSize: maxCoordinateLabelFontSize ?? this.maxCoordinateLabelFontSize,
+    );
+  }
+
+  /// Returns a copy of the theme with colors for tile values 1 and 3 swapped.
+  KitaBoardTheme withSwappedColors([bool swap = true]) {
+    if (!swap) return this;
+    final swapped = Map<int, Color>.from(valueColors);
+    final c1 = valueColors[1];
+    final c3 = valueColors[3];
+    if (c1 != null && c3 != null) {
+      swapped[1] = c3;
+      swapped[3] = c1;
+    }
+    return copyWith(valueColors: swapped);
+  }
+
   factory KitaBoardTheme.minecraft() {
     return KitaBoardTheme(
       valueColors: const {

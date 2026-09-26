@@ -31,14 +31,17 @@ class SecureStorageService {
   }
 
   Future<String?> _readSafe(String key) async {
-    try {
-      final val = await _storage.read(key: key);
-      if (val != null) return val;
-    } catch (e) {
-      debugPrint('SecureStorage read warning ($key): $e. Using fallback.');
-    }
     if (_memoryFallback.containsKey(key)) {
       return _memoryFallback[key];
+    }
+    try {
+      final val = await _storage.read(key: key);
+      if (val != null) {
+        _memoryFallback[key] = val;
+        return val;
+      }
+    } catch (e) {
+      debugPrint('SecureStorage read warning ($key): $e. Using fallback.');
     }
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -62,6 +65,19 @@ class SecureStorageService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(key);
     } catch (_) {}
+  }
+
+  // --- Generic Key-Value Storage ---
+  Future<void> writeString(String key, String value) async {
+    await _writeSafe(key, value);
+  }
+
+  Future<String?> readString(String key) async {
+    return await _readSafe(key);
+  }
+
+  Future<void> deleteKey(String key) async {
+    await _deleteSafe(key);
   }
 
   // --- JWT Token ---

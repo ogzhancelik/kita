@@ -641,6 +641,51 @@ class OnlineGameProvider extends ChangeNotifier {
     _ws.send(WsClientType.resign);
   }
 
+  /// Silently abandons an active offline match without triggering Game Over UI / defeat sounds.
+  /// Saves the offline record as resigned, clears persistent storage,
+  /// and prepares client state for an upcoming match or resets to idle.
+  void abandonOfflineMatch({bool resetToIdleState = false}) {
+    if (!isOffline || matchState.value != OnlineMatchState.inMatch) {
+      if (resetToIdleState) resetToIdle();
+      return;
+    }
+    final winnerTeam = offlinePlayMode == PlayMode.localCoop
+        ? (currentTurn.value == 'white' ? 'black' : 'white')
+        : (myTeam == 'white' ? 'black' : 'white');
+    final payload = GameOverPayload(
+      matchId: matchId ?? 'offline',
+      winnerTeam: winnerTeam,
+      result: winnerTeam == 'white' ? 'white_wins' : 'black_wins',
+      reason: 'resignation',
+      ratingChanges: {},
+    );
+    if (_matchStartedAt != null) {
+      elapsedSeconds.value =
+          DateTime.now().difference(_matchStartedAt!).inSeconds;
+    }
+    _saveOfflineGameRecord(payload);
+    _clearPersistedActiveOfflineMatch();
+    _stopClockTimer();
+
+    isOffline = false;
+    offlinePlayerId = null;
+    offlinePlayerName = null;
+    offlinePlayerRating = null;
+    offlineIsGuest = false;
+    _offlineMatchSaved = false;
+    isAiThinking.value = false;
+    _engineSnapshots.clear();
+    _matchStartedAt = null;
+
+    if (resetToIdleState) {
+      resetToIdle();
+    } else {
+      // Transitioning directly to a new match: set to connecting so active match screen stays open
+      matchState.value = OnlineMatchState.connecting;
+      notifyListeners();
+    }
+  }
+
   /// Resigns/forfeits the match and immediately resets client state to idle.
   /// Used when dismissing an active game card from the dashboard or abandoning a defunct match.
   void resignAndClear() {
@@ -649,9 +694,7 @@ class OnlineGameProvider extends ChangeNotifier {
       return;
     }
     if (isOffline) {
-      _clearPersistedActiveOfflineMatch();
-      resign();
-      resetToIdle();
+      abandonOfflineMatch(resetToIdleState: true);
       return;
     }
     try {
@@ -1391,6 +1434,9 @@ class OnlineGameProvider extends ChangeNotifier {
             KitaToast.info('online.inviteTimeout'.tr());
           }
         }
+        if (matchState.value == OnlineMatchState.connecting) {
+          resetToIdle();
+        }
         onWsNotificationEvent.value = {
           'type': 'invitation_cancelled',
           'invite_id': cancelledInviteId,
@@ -1717,7 +1763,8 @@ class OnlineGameProvider extends ChangeNotifier {
 
     if (isMatchNotFound) {
       if (matchState.value == OnlineMatchState.inMatch ||
-          matchState.value == OnlineMatchState.inRoom) {
+          matchState.value == OnlineMatchState.inRoom ||
+          matchState.value == OnlineMatchState.connecting) {
         debugPrint(
           '[OnlineGame] Server indicated match/room not found. Resetting state to idle.',
         );
@@ -1725,6 +1772,10 @@ class OnlineGameProvider extends ChangeNotifier {
       }
       KitaToast.info('online.matchNotFoundOrClosed'.tr());
       return;
+    }
+
+    if (matchState.value == OnlineMatchState.connecting) {
+      resetToIdle();
     }
 
     String message;

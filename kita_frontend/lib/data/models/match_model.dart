@@ -12,6 +12,8 @@ class MoveRecordModel {
   final int timeMs;
   final DateTime? createdAt;
 
+  final String? action; // 'move', 'resign', 'timeout', 'draw_offer', 'draw_agreement'
+
   const MoveRecordModel({
     required this.ply,
     required this.playerId,
@@ -22,15 +24,50 @@ class MoveRecordModel {
     required this.toRow,
     this.timeMs = 0,
     this.createdAt,
+    this.action,
   });
 
-  KitaMove toKitaMove() => KitaMove(
-        pieceId: piece,
-        fromPos: KitaPos(fromCol, fromRow),
-        toPos: KitaPos(toCol, toRow),
-      );
+  bool get isSpecialIndicator =>
+      (action != null && action != 'move') ||
+      piece.contains('RESIGN') ||
+      piece.contains('TIMEOUT') ||
+      piece.contains('DRAW');
 
-  String get notation => toKitaMove().notation;
+  bool get isResign =>
+      action == 'resign' ||
+      action == 'resignation' ||
+      piece.contains('RESIGN');
+
+  bool get isTimeout =>
+      action == 'timeout' ||
+      piece.contains('TIMEOUT');
+
+  bool get isDrawOffer =>
+      action == 'draw_offer' ||
+      action == 'draw_agreement' ||
+      piece.contains('DRAW');
+
+  KitaMove toKitaMove() {
+    if (isSpecialIndicator) {
+      return const KitaMove(
+        pieceId: 'WK',
+        fromPos: KitaPos(0, 0),
+        toPos: KitaPos(0, 0),
+      );
+    }
+    return KitaMove(
+      pieceId: piece,
+      fromPos: KitaPos(fromCol, fromRow),
+      toPos: KitaPos(toCol, toRow),
+    );
+  }
+
+  String get notation {
+    if (isResign) return '🏳️ Resigned';
+    if (isTimeout) return '⏱️ Timeout';
+    if (isDrawOffer) return '🤝 Draw';
+    return toKitaMove().notation;
+  }
 
   factory MoveRecordModel.fromJson(Map<String, dynamic> json) {
     return MoveRecordModel(
@@ -45,6 +82,7 @@ class MoveRecordModel {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
+      action: json['action'] as String?,
     );
   }
 
@@ -58,6 +96,7 @@ class MoveRecordModel {
         'to_row': toRow,
         'time_ms': timeMs,
         'created_at': createdAt?.toIso8601String(),
+        if (action != null) 'action': action,
       };
 }
 
@@ -168,6 +207,94 @@ class MatchRecordModel {
       reason == 'reason_resigned' ||
       reason == 'resigned' ||
       result == 'resigned';
+
+  bool get isDrawAgreement =>
+      reason == 'draw_agreement' ||
+      reason == 'reason_draw_agreement' ||
+      reason == 'draw_offered' ||
+      reason == 'draw_offer' ||
+      reason == 'draw_accepted' ||
+      reason == 'agreement';
+
+  bool get isDrawOffered => isDrawAgreement;
+
+  bool get isDrawOutcome =>
+      isDraw ||
+      isDrawAgreement ||
+      (reason != null && reason!.toLowerCase().contains('draw'));
+
+  /// Returns the move sequence including any terminal indicator move
+  /// (resignation, timeout, draw offer/agreement) aligned to the proper player's turn.
+  List<MoveRecordModel> getEffectiveReplayMoves() {
+    final effective = List<MoveRecordModel>.from(moves);
+    if (effective.any((m) => m.isSpecialIndicator)) {
+      return effective;
+    }
+
+    final hasResign = isResigned;
+    final hasTimeout = isTimeout;
+    final hasDraw = isDrawOutcome;
+
+    if (!hasResign && !hasTimeout && !hasDraw) {
+      return effective;
+    }
+
+    final bool isWhite;
+    final String action;
+    final String pieceId;
+
+    if (hasResign) {
+      action = 'resign';
+      if (winnerId == whitePlayerId || result == 'white_wins') {
+        isWhite = false;
+      } else if (winnerId == blackPlayerId || result == 'black_wins') {
+        isWhite = true;
+      } else {
+        isWhite = (moves.length % 2 == 0);
+      }
+      pieceId = isWhite ? 'W_RESIGN' : 'B_RESIGN';
+    } else if (hasTimeout) {
+      action = 'timeout';
+      if (winnerId == whitePlayerId || result == 'white_wins') {
+        isWhite = false;
+      } else if (winnerId == blackPlayerId || result == 'black_wins') {
+        isWhite = true;
+      } else {
+        isWhite = (moves.length % 2 == 0);
+      }
+      pieceId = isWhite ? 'W_TIMEOUT' : 'B_TIMEOUT';
+    } else {
+      action = (reason?.contains('offer') ?? false) ? 'draw_offer' : 'draw_agreement';
+      if (reason == 'draw_agreement:white' || reason == 'draw_offer:white') {
+        isWhite = true;
+      } else if (reason == 'draw_agreement:black' || reason == 'draw_offer:black') {
+        isWhite = false;
+      } else {
+        isWhite = (moves.length % 2 == 0);
+      }
+      pieceId = isWhite ? 'W_DRAW' : 'B_DRAW';
+    }
+
+    final nextNormalPly = moves.length + 1;
+    final isNextPlyWhite = (nextNormalPly % 2 == 1);
+    final indicatorPly = (isWhite == isNextPlyWhite) ? nextNormalPly : (nextNormalPly + 1);
+    final playerId = isWhite ? whitePlayerId : blackPlayerId;
+
+    effective.add(MoveRecordModel(
+      ply: indicatorPly,
+      playerId: playerId,
+      piece: pieceId,
+      fromCol: 0,
+      fromRow: 0,
+      toCol: 0,
+      toRow: 0,
+      timeMs: 0,
+      createdAt: endedAt ?? DateTime.now(),
+      action: action,
+    ));
+
+    return effective;
+  }
 
   factory MatchRecordModel.fromJson(Map<String, dynamic> json) {
     final rawMoves = json['moves'] as List<dynamic>? ?? [];

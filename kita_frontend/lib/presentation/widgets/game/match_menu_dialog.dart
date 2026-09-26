@@ -8,7 +8,6 @@ import '../../../data/models/ws_message_models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
-import '../home/game_guide_dialog.dart';
 import '../home/settings_dialog.dart';
 import '../../screens/game/match_replay_screen.dart';
 import 'game_over_dialog.dart';
@@ -207,17 +206,16 @@ class MatchMenuDialog extends StatelessWidget {
                     return ValueListenableBuilder<bool>(
                       valueListenable: provider.isDrawOfferPending,
                       builder: (context, isPending, _) {
+                        final drawColor = isPending
+                            ? AppColors.getTextMuted(isDark)
+                            : AppColors.getDraw(isDark);
                         return _MenuTile(
                           icon: Icons.handshake_outlined,
-                          iconColor: isPending
-                              ? AppColors.drawGray
-                              : AppColors.primaryGreen,
+                          iconColor: drawColor,
                           title: isPending
                               ? 'online.drawOfferSent'.tr()
                               : 'online.drawOffer'.tr(),
-                          textColor: isPending
-                              ? AppColors.getTextSecondary(isDark)
-                              : AppColors.getTextPrimary(isDark),
+                          textColor: drawColor,
                           onTap: isPending
                               ? null
                               : () {
@@ -232,19 +230,19 @@ class MatchMenuDialog extends StatelessWidget {
               ],
             ],
 
-            if (!provider.isOffline) ...[
-              // Online: Report Opponent option
-              _MenuTile(
-                icon: Icons.report_problem_outlined,
-                iconColor: AppColors.warning,
-                title: 'online.reportOpponent'.tr(),
-                textColor: AppColors.getTextPrimary(isDark),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showReportDialog(context);
-                },
-              ),
-            ],
+            // Report Opponent temporarily hidden until reporting backend is implemented:
+            // if (!provider.isOffline) ...[
+            //   _MenuTile(
+            //     icon: Icons.report_problem_outlined,
+            //     iconColor: AppColors.warning,
+            //     title: 'online.reportOpponent'.tr(),
+            //     textColor: AppColors.getTextPrimary(isDark),
+            //     onTap: () {
+            //       Navigator.of(context).pop();
+            //       _showReportDialog(context);
+            //     },
+            //   ),
+            // ],
 
             // Rotate Board option
             Builder(
@@ -274,25 +272,13 @@ class MatchMenuDialog extends StatelessWidget {
               },
             ),
 
-            // How to Play / Guide option
-            _MenuTile(
-              icon: Icons.menu_book_rounded,
-              iconColor: AppColors.accentGold,
-              title: 'game.howToPlay'.tr(),
-              subtitle: 'settings.rulesGuideDesc'.tr(),
-              textColor: AppColors.getTextPrimary(isDark),
-              onTap: () {
-                Navigator.of(context).pop();
-                GameGuideDialog.show(context);
-              },
-            ),
 
-            // Settings option
+            // General Settings option (Audio, Theme mode, Language)
             _MenuTile(
               icon: Icons.settings_rounded,
               iconColor: AppColors.primaryGreen,
               title: 'settings.title'.tr(),
-              subtitle: 'settings.matchSettingsDesc'.tr(),
+              subtitle: 'settings.generalSection'.tr(),
               textColor: AppColors.getTextPrimary(isDark),
               onTap: () {
                 Navigator.of(context).pop();
@@ -401,8 +387,8 @@ class MatchMenuDialog extends StatelessWidget {
               KitaToast.info('online.drawOfferSent'.tr());
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.getDraw(isDark),
+              foregroundColor: isDark ? AppColors.darkBg : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -414,6 +400,7 @@ class MatchMenuDialog extends StatelessWidget {
     );
   }
 
+  /*
   void _showReportDialog(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     String selectedReason = 'online.reportHarassment'.tr();
@@ -533,6 +520,7 @@ class MatchMenuDialog extends StatelessWidget {
       ),
     );
   }
+  */
 
 }
 

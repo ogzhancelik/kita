@@ -59,6 +59,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   // Board engine states for each ply: index 0 is initial state, 1..N after each move
   List<KitaGameEngine> _states = [];
   int _currentStep = 0;
+  List<MoveRecordModel> _effectiveMoves = [];
+  Map<int, MoveRecordModel> _movesByPly = {};
+  bool _hasTerminalIndicator = false;
 
   // Playback
   bool _isPlaying = false;
@@ -101,6 +104,11 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.match != null) {
+      _match = widget.match;
+      _isLoading = false;
+      _computeEngineStates();
+    }
     _initAI();
     _loadMatchData();
   }
@@ -129,10 +137,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
   Future<void> _loadMatchData() async {
     if (widget.match != null) {
-      _match = widget.match;
-      _computeEngineStates();
       _initPlayerPerspective();
-      setState(() => _isLoading = false);
       return;
     }
 
@@ -182,18 +187,27 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
   void _computeEngineStates() {
     if (_match == null) return;
+    _effectiveMoves = _match!.getEffectiveReplayMoves();
+    _movesByPly = {for (final m in _effectiveMoves) m.ply: m};
+    _hasTerminalIndicator = _effectiveMoves.any((m) => m.isSpecialIndicator);
+
     final List<KitaGameEngine> computed = [];
     KitaGameEngine current = KitaGameEngine();
     computed.add(current);
 
-    for (final moveRecord in _match!.moves) {
-      try {
-        final kitaMove = moveRecord.toKitaMove();
-        current = current.applyMove(kitaMove);
-        computed.add(current);
-      } catch (_) {
-        break;
+    final int maxPly = _effectiveMoves.isEmpty
+        ? 0
+        : _effectiveMoves.map((m) => m.ply).reduce(max);
+
+    for (int p = 1; p <= maxPly; p++) {
+      final moveRecord = _movesByPly[p];
+      if (moveRecord != null && !moveRecord.isSpecialIndicator) {
+        try {
+          final kitaMove = moveRecord.toKitaMove();
+          current = current.applyMove(kitaMove);
+        } catch (_) {}
       }
+      computed.add(current);
     }
 
     _states = computed;
@@ -214,6 +228,11 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
     final List<MoveEvaluation?> evals = [];
     for (int i = 1; i < _states.length; i++) {
+      final move = _movesByPly[i];
+      if (move == null || move.isSpecialIndicator) {
+        evals.add(null);
+        continue;
+      }
       final isWhite = i % 2 == 1; // 1-based ply: 1 is White, 2 is Black, etc.
       evals.add(MoveEvaluation.compute(
         whiteScoreBefore: stateScores[i - 1],
@@ -864,7 +883,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         : (playerName.hashCode.abs() % AvatarPicker.avatars.length);
     final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
 
-    final isTurnToMove = !_activeEngine.isGameOver &&
+    final isTerminalStep = _hasTerminalIndicator && _currentStep == _states.length - 1;
+    final isTurnToMove = !isTerminalStep &&
+        !_activeEngine.isGameOver &&
         _activeEngine.turn == (isWhite ? PieceTeam.white : PieceTeam.black);
 
     // Player color badge (Black if black, white if white)
@@ -1081,7 +1102,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       return _buildSandboxBranchPanel(isDark);
     }
 
-    if (_match == null || _match!.moves.isEmpty) {
+    if (_effectiveMoves.isEmpty) {
       return Container(
         color: AppColors.getCard(isDark),
         alignment: Alignment.center,
@@ -1092,8 +1113,8 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       );
     }
 
-    final moves = _match!.moves;
-    final int turnPairsCount = ((moves.length + 1) / 2).floor();
+    final int maxPly = _effectiveMoves.map((m) => m.ply).reduce(max);
+    final int turnPairsCount = ((maxPly + 1) / 2).floor();
 
     return Container(
       width: double.infinity,
@@ -1111,10 +1132,8 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
           final whitePlyIndex = turnIndex * 2 + 1; // 1-based ply
           final blackPlyIndex = turnIndex * 2 + 2;
 
-          final whiteMove =
-              whitePlyIndex <= moves.length ? moves[whitePlyIndex - 1] : null;
-          final blackMove =
-              blackPlyIndex <= moves.length ? moves[blackPlyIndex - 1] : null;
+          final whiteMove = _movesByPly[whitePlyIndex];
+          final blackMove = _movesByPly[blackPlyIndex];
 
           final isWhiteActive = _currentStep == whitePlyIndex;
           final isBlackActive = _currentStep == blackPlyIndex;
@@ -1150,7 +1169,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 // White ply
                 Expanded(
                   child: whiteMove != null
-                      ? _buildMoveButton(
+                      ? _buildAnyMoveButton(
                           move: whiteMove,
                           plyIndex: whitePlyIndex,
                           isActive: isWhiteActive,
@@ -1164,7 +1183,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 // Black ply
                 Expanded(
                   child: blackMove != null
-                      ? _buildMoveButton(
+                      ? _buildAnyMoveButton(
                           move: blackMove,
                           plyIndex: blackPlyIndex,
                           isActive: isBlackActive,
@@ -1177,6 +1196,119 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildAnyMoveButton({
+    required MoveRecordModel move,
+    required int plyIndex,
+    required bool isActive,
+    required bool isWhite,
+    required bool isDark,
+  }) {
+    if (move.isSpecialIndicator) {
+      return _buildIndicatorMoveButton(
+        move: move,
+        plyIndex: plyIndex,
+        isActive: isActive,
+        isWhite: isWhite,
+        isDark: isDark,
+      );
+    }
+    return _buildMoveButton(
+      move: move,
+      plyIndex: plyIndex,
+      isActive: isActive,
+      isWhite: isWhite,
+      isDark: isDark,
+    );
+  }
+
+  Widget _buildIndicatorMoveButton({
+    required MoveRecordModel move,
+    required int plyIndex,
+    required bool isActive,
+    required bool isWhite,
+    required bool isDark,
+  }) {
+    final IconData icon;
+    final String label;
+    final Color indicatorColor;
+
+    if (move.isResign) {
+      icon = Icons.flag_rounded;
+      label = 'replay.resigned'.tr();
+      indicatorColor = AppColors.lossRed;
+    } else if (move.isTimeout) {
+      icon = Icons.timer_off_rounded;
+      label = 'replay.timeout'.tr();
+      indicatorColor = isDark ? AppColors.accentGold : AppColors.ratingGold;
+    } else {
+      icon = Icons.handshake_rounded;
+      label = (move.action == 'draw_offer')
+          ? 'replay.drawOffered'.tr()
+          : 'replay.drawAgreed'.tr();
+      indicatorColor = AppColors.drawGray;
+    }
+
+    final Color bgColor = isActive
+        ? indicatorColor
+        : (isDark ? AppColors.darkSurface : AppColors.lightSurface);
+    final Color borderColor = isActive
+        ? indicatorColor
+        : indicatorColor.withValues(alpha: 0.6);
+    final Color textColor = isActive
+        ? Colors.white
+        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
+    final Color iconColor = isActive ? Colors.white : indicatorColor;
+
+    return InkWell(
+      onTap: () => _jumpToStep(plyIndex),
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6.5),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: borderColor, width: 1.0),
+        ),
+        child: Row(
+          children: [
+            // Team disc
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: isWhite ? Colors.white : Colors.black,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isActive ? Colors.white : Colors.grey,
+                  width: 0.9,
+                ),
+              ),
+            ),
+            const SizedBox(width: 5),
+
+            // Indicator Icon
+            Icon(icon, size: 13, color: iconColor),
+            const SizedBox(width: 4),
+
+            // Label
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
+                  color: textColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

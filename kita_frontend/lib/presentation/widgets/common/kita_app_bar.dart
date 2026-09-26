@@ -11,6 +11,8 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBack;
   final VoidCallback? onBack;
   final List<Widget>? extraActions;
+  final bool showLanguageToggle;
+  final bool showThemeToggle;
 
   const KitaAppBar({
     super.key,
@@ -19,6 +21,8 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBack = false,
     this.onBack,
     this.extraActions,
+    this.showLanguageToggle = true,
+    this.showThemeToggle = true,
   });
 
   @override
@@ -90,54 +94,56 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         ...?extraActions,
         // Language Toggle (TR / EN)
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-              width: 1,
+        if (showLanguageToggle)
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                width: 1,
+              ),
             ),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              final newLocale = currentLocale == 'en' ? const Locale('tr') : const Locale('en');
-              context.setLocale(newLocale);
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.language_rounded, size: 15, color: AppColors.primaryGreen),
-                  const SizedBox(width: 3),
-                  Text(
-                    currentLocale.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                final newLocale = currentLocale == 'en' ? const Locale('tr') : const Locale('en');
+                context.setLocale(newLocale);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.language_rounded, size: 15, color: AppColors.primaryGreen),
+                    const SizedBox(width: 3),
+                    Text(
+                      currentLocale.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
 
         // Theme Toggle (Dark / Light)
-        IconButton(
-          tooltip: 'settings.theme'.tr(),
-          visualDensity: VisualDensity.compact,
-          icon: Icon(
-            themeProv.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-            color: isDark ? AppColors.ratingGold : AppColors.darkSurfaceElevated,
-            size: 20,
+        if (showThemeToggle)
+          IconButton(
+            tooltip: 'settings.theme'.tr(),
+            visualDensity: VisualDensity.compact,
+            icon: Icon(
+              themeProv.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: isDark ? AppColors.ratingGold : AppColors.darkSurfaceElevated,
+              size: 20,
+            ),
+            onPressed: () => themeProv.toggleTheme(),
           ),
-          onPressed: () => themeProv.toggleTheme(),
-        ),
 
         // Logout action if authenticated/guest and requested
         if (showAuthActions && (authProv.isAuthenticated || authProv.isGuest))

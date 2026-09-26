@@ -9,8 +9,11 @@ import 'settings_dialog.dart';
 
 /// Bottom sheet dialog for in-game presentation & match preferences:
 /// - Board Theme (emerald, amber_sunset, ocean_azure, cyber_purple, slate_monochrome, minecraft)
+/// - Swap tile colors 1 and 3 (1s lighter, 3s darker)
 /// - Board Orientation (horizontal, vertical)
 /// - Flip Direction (auto, white, black)
+/// - 2P Local Coop: Auto-rotate pieces
+/// - 2P Local Coop: Default piece orientation (vertical 0°, horizontal 90°)
 class MatchSettingsDialog extends StatelessWidget {
   const MatchSettingsDialog({super.key});
 
@@ -30,7 +33,7 @@ class MatchSettingsDialog extends StatelessWidget {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
         maxWidth: 520,
       ),
       decoration: BoxDecoration(
@@ -121,6 +124,18 @@ class MatchSettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     _buildThemeGrid(context, gameSettings, isDark),
+                    const SizedBox(height: 12),
+
+                    // Swap 1 and 3 Tile Colors Toggle
+                    _buildToggleTile(
+                      isDark: isDark,
+                      icon: Icons.swap_vert_circle_rounded,
+                      iconColor: AppColors.accentGold,
+                      title: 'settings.swapTileColors'.tr(),
+                      subtitle: 'settings.swapTileColorsDesc'.tr(),
+                      value: gameSettings.swapTileColors,
+                      onChanged: (val) => gameSettings.setSwapTileColors(val),
+                    ),
                     const SizedBox(height: 20),
 
                     // Section 2: Board Orientation
@@ -153,6 +168,27 @@ class MatchSettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     _buildFlipSelector(context, gameSettings, isDark),
+                    const SizedBox(height: 20),
+
+                    // Section 4: 2P Local Coop Settings
+                    _buildSectionHeader(
+                      context: context,
+                      isDark: isDark,
+                      title: 'settings.localCoopSection'.tr(),
+                      icon: Icons.people_outline_rounded,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildToggleTile(
+                      isDark: isDark,
+                      icon: Icons.rotate_right_rounded,
+                      iconColor: AppColors.primaryGreen,
+                      title: 'settings.localCoopAutoRotate'.tr(),
+                      subtitle: 'settings.localCoopAutoRotateDesc'.tr(),
+                      value: gameSettings.localCoopAutoRotate,
+                      onChanged: (val) => gameSettings.setLocalCoopAutoRotate(val),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLocalCoopRotationSelector(context, gameSettings, isDark),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -192,6 +228,74 @@ class MatchSettingsDialog extends StatelessWidget {
     );
   }
 
+  Widget _buildToggleTile({
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBg : AppColors.lightBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeThumbColor: AppColors.primaryGreen,
+            activeTrackColor: AppColors.primaryGreen.withValues(alpha: 0.4),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildThemeGrid(
     BuildContext context,
     GameSettingsProvider gameSettings,
@@ -221,7 +325,7 @@ class MatchSettingsDialog extends StatelessWidget {
         final key = t['key']!;
         final name = t['nameKey']!.tr();
         final isSelected = gameSettings.boardTheme == key;
-        final previewTheme = _getPreviewTheme(key, isDark);
+        final previewTheme = gameSettings.previewTheme(key, isDark);
 
         return Material(
           color: Colors.transparent,
@@ -302,28 +406,6 @@ class MatchSettingsDialog extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  KitaBoardTheme _getPreviewTheme(String key, bool isDark) {
-    switch (key) {
-      case 'emerald':
-        return KitaBoardTheme.emerald(isDark);
-      case 'ocean_azure':
-      case 'oceanAzure':
-        return KitaBoardTheme.oceanAzure();
-      case 'cyber_purple':
-      case 'cyberPurple':
-        return KitaBoardTheme.cyberPurple();
-      case 'slate_monochrome':
-      case 'slateMonochrome':
-        return KitaBoardTheme.slateMonochrome();
-      case 'minecraft':
-        return KitaBoardTheme.minecraft();
-      case 'amber_sunset':
-      case 'amberSunset':
-      default:
-        return KitaBoardTheme.amberSunset();
-    }
   }
 
   Widget _buildOrientationSelector(
@@ -493,6 +575,111 @@ class MatchSettingsDialog extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildLocalCoopRotationSelector(
+    BuildContext context,
+    GameSettingsProvider gameSettings,
+    bool isDark,
+  ) {
+    final options = [
+      {
+        'key': 'vertical',
+        'title': 'settings.pieceOrientationVertical'.tr(),
+        'icon': Icons.stay_current_portrait_rounded,
+      },
+      {
+        'key': 'horizontal',
+        'title': 'settings.pieceOrientationHorizontal'.tr(),
+        'icon': Icons.stay_current_landscape_rounded,
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'settings.localCoopPieceOrientation'.tr(),
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'settings.localCoopPieceOrientationDesc'.tr(),
+          style: TextStyle(
+            fontSize: 11.5,
+            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: options.map((opt) {
+            final key = opt['key'] as String;
+            final title = opt['title'] as String;
+            final icon = opt['icon'] as IconData;
+            final isSelected = gameSettings.localCoopDefaultRotation == key;
+
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => gameSettings.setLocalCoopDefaultRotation(key),
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primaryGreen
+                              : (isDark
+                                  ? AppColors.darkBorder
+                                  : AppColors.lightBorder),
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            icon,
+                            size: 20,
+                            color: isSelected
+                                ? AppColors.primaryGreen
+                                : (isDark
+                                    ? AppColors.darkTextMuted
+                                    : AppColors.lightTextMuted),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight:
+                                  isSelected ? FontWeight.bold : FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.lightTextPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }

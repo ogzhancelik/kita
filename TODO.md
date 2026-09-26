@@ -47,6 +47,7 @@ Foundational systems to establish early so game strings and rules are never hard
   - [x] Match history summary list (recent opponents, results, dates)
     - [x] Filter out and prevent recording 0-move and 1-move games in match history across backend & offline storage
     - [x] Auto-refresh dashboard recent matches on match completion, route return, and pull-to-refresh
+    - [x] Display match termination badges (timeout timer, resignation flag, draw offer handshake) on dashboard and match history cards
   - [x] Dedicated User Profile modal dialog & detailed stats view
 - [ ] **Settings & Preferences**:
   - [x] Backend settings API (`/api/settings`) & DB persistence (board themes, audio, orientation, move highlights)
@@ -99,7 +100,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Single-item priority Pending/Active Game section on Dashboard above notifications: seamless Rejoin for active matches (with backend disconnect grace period & reconnection support), outgoing rematch requests (swipe or tap to cancel), open room info (synchronized with live rooms list, host room tracking, host room excluded from joinable open rooms list, and swipe to close), and outgoing friend challenges (swipe to cancel with real-time removal & database deletion from friend's notifications)
   - [x] Offline match state persistence via SharedPreferences: In-progress AI and local coop matches survive app close/restart, automatically reviving board state, moves, snapshots, and displaying the Active Match bar with quick Rejoin or swipe-to-resign.
   - [x] Local Co-op (Pass & Play) gameplay enhancements: Default to vertical board mode on match start (keeping horizontal setting intact for online & vs AI), dynamic piece rotation (`AnimatedRotation`) orienting pieces to the active player whose turn it currently is, and local match history persistence enabling full replay analysis.
-  - [x] Mutual Exclusivity & Activity Preemption Guard: Canonical state handling preventing overlapping activities (Active Match, Open Room, Outgoing Challenge, Queue, Offline Game modes). Blocks opening room, challenge, matchmaking, or offline games (VS AI difficulty panel, Local Co-op) during an active match with standard warning toast. Soft states provide interactive confirmation prompts ("Change Activity?") across room creation, joining, friend invites, and incoming challenge acceptance, backed by unified backend teardown (`cleanupWaitingRoomLocked`, `cleanupPendingInviteLocked`).
+  - [x] Mutual Exclusivity & Activity Preemption Guard: Canonical state handling preventing overlapping activities (Active Match, Open Room, Outgoing Challenge, Queue, Offline Game modes). Blocks opening room, challenge, matchmaking, or offline games (VS AI difficulty panel, Local Co-op) during an active match with standard warning toast. Soft states provide interactive confirmation prompts ("Change Activity?") across room creation, joining, friend invites, and incoming challenge acceptance, backed by unified backend teardown (`cleanupWaitingRoomLocked`, `cleanupPendingInviteLocked`). Fixed offline game transition so accepting a friend challenge silently resigns the offline game and seamlessly transitions straight into the live online match without popping to main menu or showing game over dialogs.
   - [x] Backend Active Match Lifecycle Fix: Room status transitions to "finished" and clears players' `CurrentMatchID` immediately upon match completion, eliminating phantom 5-minute locks where users were falsely blocked with "You are already in an active match".
 
 ### 2. Matchmaking
@@ -160,6 +161,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Post-game review workflow: Replay past recorded matches directly from match history (both online and offline matches)
   - [x] Direct post-game AI review entry: "Review Match" on Play vs Computer game over panel directly opens AI Match Replay screen
   - [x] Unified In-Game Template Redesign: Modern layout matching online/offline game screens (Exit & settings top panel, Opponent info bar, Board, Player info bar with player's color on bottom-right, AI advantage bar below player's info, expanded move list where chat is located, and bottom playback controls panel)
+  - [x] Terminal outcome move indicators in Match Replay: Display resignation, timeout, and draw offer/agreement as interactive moves in the replay move notation list with player-aligned slots and dedicated action badges.
 - [x] **Game Analysis & AI Evaluation**:
   - [x] AI Advantage Bar: Visual evaluation bar showing real-time board balance and which team (White vs. Black) is advantageous at any board state
   - [x] Post-game AI move review & quality indicators: Real-time advantage deltas (e.g. +0.1, -0.3, 0.0), semantic color badges (good, inaccuracy, mistake, blunder), and tooltips next to moves in Match History AI Review & Sandbox fork
@@ -218,4 +220,12 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Active turn profile panel mint indicator:
     - [x] Dynamic mint background transition (`turnActiveCardDark` / `turnActiveCardLight`) on player profile panels across all game modes (Online, Offline vs AI, Offline Local Co-op, Replay).
     - [x] Removed redundant "To Move" indicator badge from replay mode.
+- [x] **In-Match & Audio Settings System**:
+  - [x] Audio toggle (Sound effects on/off) in Settings dialog with persistence across sessions.
+  - [x] Persistent board theme, orientation, and perspective preferences across app restarts in `GameSettingsProvider`.
+  - [x] 2P Local Coop piece rotation settings:
+    - [x] Toggle auto-rotation of pieces on turn switch.
+    - [x] Set default piece rotation orientation (Vertical 0° / Horizontal 90°).
+  - [x] Swap tile colors for 1 and 3 (1s lighter, 3s darker) with live board and theme preview synchronization.
+
 

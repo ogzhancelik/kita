@@ -22,6 +22,7 @@ class ActivityConflictHelper {
     required BuildContext context,
     required OnlineGameProvider provider,
     String? customMessage,
+    bool isTransitioningToNewMatch = false,
   }) async {
     // 1. Active Match in progress
     if (provider.matchState.value == OnlineMatchState.inMatch) {
@@ -38,7 +39,11 @@ class ActivityConflictHelper {
         confirmLabel: 'online.abandonAndProceed'.tr(),
       );
       if (confirmed) {
-        provider.resignAndClear();
+        if (isTransitioningToNewMatch) {
+          provider.abandonOfflineMatch(resetToIdleState: false);
+        } else {
+          provider.resignAndClear();
+        }
         return true;
       }
       return false;

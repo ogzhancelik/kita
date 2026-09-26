@@ -66,6 +66,7 @@ class AppColors {
 
   static Color getVictory(bool isDark) => victory;
   static Color getOnline(bool isDark) => isDark ? accent : accentSecondary;
+  static Color getDraw(bool isDark) => isDark ? evalNeutral : drawGray;
 
   // --- Active Turn Profile Panel Colors (Mint theme) ---
   static const Color turnActiveCardDark = Color(0xFF29372F); // Deep tactical mint for dark mode

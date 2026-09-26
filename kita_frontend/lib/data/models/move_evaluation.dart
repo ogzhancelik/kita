@@ -16,10 +16,10 @@ class MoveEvaluation {
   /// Positive means position improved, negative means position worsened.
   final double delta;
 
-  /// Absolute position score from White's perspective [-10.0, 10.0] after this move.
+  /// Absolute position score from White's perspective [-1.0, 1.0] after this move.
   final double whiteAdvantageAfter;
 
-  /// Position score from moving player's perspective after this move.
+  /// Position score from moving player's perspective [-1.0, 1.0] after this move.
   final double playerAdvantageAfter;
 
   /// Whether this move was played by White.
@@ -36,25 +36,29 @@ class MoveEvaluation {
   });
 
   /// Factory to compute evaluation between state before move and state after move.
+  /// Inputs are clamped to [-1.0, 1.0] so point differences (delta) are strictly within [-2.0, 2.0].
   factory MoveEvaluation.compute({
     required double whiteScoreBefore,
     required double whiteScoreAfter,
     required bool isWhiteMove,
   }) {
+    final double clampedBefore = whiteScoreBefore.clamp(-1.0, 1.0);
+    final double clampedAfter = whiteScoreAfter.clamp(-1.0, 1.0);
+
     // Delta from moving player's perspective:
     // If White moved: delta = W_after - W_before
     // If Black moved: delta = (-W_after) - (-W_before) = W_before - W_after
     final double delta = isWhiteMove
-        ? (whiteScoreAfter - whiteScoreBefore)
-        : (whiteScoreBefore - whiteScoreAfter);
+        ? (clampedAfter - clampedBefore)
+        : (clampedBefore - clampedAfter);
 
-    final double playerAdvantageAfter = isWhiteMove ? whiteScoreAfter : -whiteScoreAfter;
+    final double playerAdvantageAfter = isWhiteMove ? clampedAfter : -clampedAfter;
 
     // Classification
     MoveQuality quality;
-    if (playerAdvantageAfter >= 9.5 && delta >= 2.0) {
+    if (playerAdvantageAfter >= 0.95 && delta >= 0.3) {
       quality = MoveQuality.brilliant;
-    } else if (playerAdvantageAfter <= -9.5 && delta <= -2.0) {
+    } else if (playerAdvantageAfter <= -0.95 && delta <= -0.3) {
       quality = MoveQuality.blunder;
     } else if (delta < -0.50) {
       quality = MoveQuality.blunder;
@@ -70,7 +74,7 @@ class MoveEvaluation {
 
     return MoveEvaluation(
       delta: delta,
-      whiteAdvantageAfter: whiteScoreAfter,
+      whiteAdvantageAfter: clampedAfter,
       playerAdvantageAfter: playerAdvantageAfter,
       isWhiteMove: isWhiteMove,
       quality: quality,
@@ -79,11 +83,13 @@ class MoveEvaluation {
 
   /// Compact delta label, e.g. "+0.1", "-0.3", "0.0", "+WIN", "-BLN"
   String get deltaLabel {
-    if (whiteAdvantageAfter >= 9.5 && delta >= 2.0) {
-      return isWhiteMove ? '+WIN' : '-BLN';
+    if (whiteAdvantageAfter >= 0.99) {
+      if (isWhiteMove && delta >= 0.3) return '+WIN';
+      if (!isWhiteMove && delta <= -0.3) return '-BLN';
     }
-    if (whiteAdvantageAfter <= -9.5 && delta <= -2.0) {
-      return isWhiteMove ? '-BLN' : '+WIN';
+    if (whiteAdvantageAfter <= -0.99) {
+      if (!isWhiteMove && delta >= 0.3) return '+WIN';
+      if (isWhiteMove && delta <= -0.3) return '-BLN';
     }
 
     if (delta.abs() < 0.04) {
@@ -94,10 +100,10 @@ class MoveEvaluation {
     return '$sign${delta.toStringAsFixed(1)}';
   }
 
-  /// Position score formatted label, e.g. "+0.4"
+  /// Position score formatted label, e.g. "+0.4", "W WIN", "B WIN"
   String get positionScoreLabel {
-    if (whiteAdvantageAfter >= 9.5) return 'W WIN';
-    if (whiteAdvantageAfter <= -9.5) return 'B WIN';
+    if (whiteAdvantageAfter >= 0.99) return 'W WIN';
+    if (whiteAdvantageAfter <= -0.99) return 'B WIN';
     if (whiteAdvantageAfter.abs() < 0.04) return '0.0';
     final sign = whiteAdvantageAfter > 0 ? '+' : '';
     return '$sign${whiteAdvantageAfter.toStringAsFixed(1)}';

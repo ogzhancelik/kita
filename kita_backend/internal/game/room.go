@@ -541,8 +541,15 @@ func (r *Room) AcceptDraw(playerID string) error {
 	}
 
 	log.Printf("[Room %s] Draw offer accepted by %s", r.ID, playerID)
+	offeredBy := r.DrawOfferBy
 	r.DrawOfferBy = ""
-	r.finishWithExplicitWinnerLocked(nil, "draw", string(domain.ResultDraw), domain.ReasonDrawAgreement)
+	reason := domain.ReasonDrawAgreement
+	if r.WhitePlayer != nil && offeredBy == r.WhitePlayer.UserID {
+		reason = "draw_agreement:white"
+	} else if r.BlackPlayer != nil && offeredBy == r.BlackPlayer.UserID {
+		reason = "draw_agreement:black"
+	}
+	r.finishWithExplicitWinnerLocked(nil, "draw", string(domain.ResultDraw), reason)
 	return nil
 }
 

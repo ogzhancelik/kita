@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/user_api_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/kita_card.dart';
@@ -255,6 +256,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         title: 'leaderboard.title'.tr(),
         showBack: true,
         showAuthActions: false,
+        showLanguageToggle: false,
+        showThemeToggle: false,
       ),
       body: ResponsiveLayout(
         maxWidth: 640,
@@ -934,6 +937,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required bool isDark,
     required bool isCurrentUser,
   }) {
+    final avatarItem = AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
+    final double avatarSize = rank == 1 ? 52.0 : 44.0;
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
@@ -954,19 +960,29 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              CircleAvatar(
-                radius: rank == 1 ? 26 : 22,
-                backgroundColor: medalColor.withValues(alpha: 0.25),
-                child: CircleAvatar(
-                  radius: rank == 1 ? 23 : 19,
-                  backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                  child: Text(
-                    player.username.isNotEmpty ? player.username[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      fontSize: rank == 1 ? 16 : 14,
-                      fontWeight: FontWeight.bold,
-                      color: medalColor,
+              Container(
+                width: avatarSize,
+                height: avatarSize,
+                decoration: BoxDecoration(
+                  color: avatarItem.accentColor.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: medalColor,
+                    width: rank == 1 ? 2.5 : 1.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: medalColor.withValues(alpha: 0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    avatarItem.icon,
+                    color: avatarItem.accentColor,
+                    size: avatarSize * 0.55,
                   ),
                 ),
               ),
@@ -1052,6 +1068,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (isCurrentUser) rankColor = AppColors.primaryGreen;
 
     final displayRank = rankLabel ?? '#$rank';
+    final avatarItem = AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
 
     return KitaCard(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
@@ -1087,15 +1104,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           ),
 
           // Avatar
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            child: Text(
-              player.username.isNotEmpty ? player.username[0].toUpperCase() : '?',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: avatarItem.accentColor.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: avatarItem.accentColor.withValues(alpha: 0.6),
+                width: 1.2,
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                avatarItem.icon,
+                color: avatarItem.accentColor,
+                size: 18,
               ),
             ),
           ),
@@ -1214,6 +1238,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required String rankDisplay,
     required VoidCallback onTap,
   }) {
+    final avatarItem = AvatarPicker.avatars[userProfile.avatarIndex % AvatarPicker.avatars.length];
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1274,15 +1300,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               const SizedBox(width: 4),
 
               // Avatar
-              CircleAvatar(
-                radius: 15,
-                backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                child: Text(
-                  userProfile.username.isNotEmpty ? userProfile.username[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: avatarItem.accentColor.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: avatarItem.accentColor.withValues(alpha: 0.6),
+                    width: 1.2,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    avatarItem.icon,
+                    color: avatarItem.accentColor,
+                    size: 16,
                   ),
                 ),
               ),

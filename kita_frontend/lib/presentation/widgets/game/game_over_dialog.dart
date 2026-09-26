@@ -530,17 +530,21 @@ class _GameOverDialogState extends State<GameOverDialog> {
   }
 
   String _getLocalizedReason(String reason) {
+    if (reason.startsWith('draw_agreement') || reason.startsWith('draw_offer')) {
+      return 'online.reasonDrawAgreement'.tr();
+    }
     switch (reason) {
       case 'resignation':
+      case 'reason_resigned':
         return 'online.reasonResigned'.tr();
       case 'timeout':
+      case 'reason_timeout':
         return 'online.reasonTimeout'.tr();
       case 'disconnection':
+      case 'reason_disconnected':
         return 'online.reasonDisconnected'.tr();
       case 'checkmate':
         return 'online.reasonCheckmate'.tr();
-      case 'draw_agreement':
-        return 'online.reasonDrawAgreement'.tr();
       default:
         return 'online.reasonNormal'.tr();
     }

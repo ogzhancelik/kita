@@ -1,21 +1,34 @@
 import 'package:flutter/material.dart';
+import '../../core/feedback/sound_service.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../widgets/game/kita_board_theme.dart';
 
-/// Provider for in-match board presentation settings:
+/// Provider for in-match board presentation & gameplay settings:
 /// - Board Theme (emerald, amber_sunset, ocean_azure, cyber_purple, slate_monochrome, minecraft)
 /// - Board Orientation (horizontal, vertical)
 /// - Flip Direction (auto, white, black)
+/// - Audio / Sound Effects (enabled / disabled)
+/// - 2P Local Coop: Auto-rotate pieces on turn switch (enabled / disabled)
+/// - 2P Local Coop: Default piece orientation ('vertical' = 0°, 'horizontal' = 90°)
+/// - Swap tile colors for 1 and 3 (1s lighter, 3s darker)
 class GameSettingsProvider extends ChangeNotifier {
   final SecureStorageService _storage;
 
   String _boardTheme = 'amber_sunset';
   String _boardOrientation = 'horizontal';
   String _flipDirection = 'auto';
+  bool _soundEnabled = true;
+  bool _localCoopAutoRotate = true;
+  String _localCoopDefaultRotation = 'vertical';
+  bool _swapTileColors = false;
 
   static const String _themeStorageKey = 'kita_board_theme';
   static const String _orientationStorageKey = 'kita_board_orientation';
   static const String _flipStorageKey = 'kita_flip_direction';
+  static const String _soundStorageKey = 'kita_sound_enabled';
+  static const String _localCoopAutoRotateKey = 'kita_local_coop_auto_rotate';
+  static const String _localCoopDefaultRotationKey = 'kita_local_coop_default_rotation';
+  static const String _swapTileColorsKey = 'kita_swap_tile_colors';
 
   GameSettingsProvider([SecureStorageService? storage])
       : _storage = storage ?? SecureStorageService() {
@@ -25,64 +38,141 @@ class GameSettingsProvider extends ChangeNotifier {
   String get boardTheme => _boardTheme;
   String get boardOrientation => _boardOrientation;
   String get flipDirection => _flipDirection;
+  bool get soundEnabled => _soundEnabled;
+  bool get localCoopAutoRotate => _localCoopAutoRotate;
+  String get localCoopDefaultRotation => _localCoopDefaultRotation;
+  bool get isLocalCoopHorizontal => _localCoopDefaultRotation == 'horizontal';
+  bool get swapTileColors => _swapTileColors;
 
   bool get isHorizontal => _boardOrientation == 'horizontal';
 
   Future<void> _loadSettings() async {
-    final savedTheme = await _readStorage(_themeStorageKey);
-    if (savedTheme != null && savedTheme.isNotEmpty) {
-      _boardTheme = savedTheme;
-    }
-
-    final savedOrientation = await _readStorage(_orientationStorageKey);
-    if (savedOrientation != null && savedOrientation.isNotEmpty) {
-      _boardOrientation = savedOrientation;
-    }
-
-    final savedFlip = await _readStorage(_flipStorageKey);
-    if (savedFlip != null && savedFlip.isNotEmpty) {
-      _flipDirection = savedFlip;
-    }
-
-    notifyListeners();
-  }
-
-  Future<String?> _readStorage(String key) async {
     try {
-      // Use fallback memory/preferences through SecureStorageService
-      if (key == _themeStorageKey) {
-        return await _storage.getToken(); // not token, just a placeholder if read custom key is needed
+      final results = await Future.wait([
+        _storage.readString(_themeStorageKey),
+        _storage.readString(_orientationStorageKey),
+        _storage.readString(_flipStorageKey),
+        _storage.readString(_soundStorageKey),
+        _storage.readString(_localCoopAutoRotateKey),
+        _storage.readString(_localCoopDefaultRotationKey),
+        _storage.readString(_swapTileColorsKey),
+      ]);
+
+      final savedTheme = results[0];
+      if (savedTheme != null && savedTheme.isNotEmpty) {
+        _boardTheme = savedTheme;
       }
+
+      final savedOrientation = results[1];
+      if (savedOrientation != null && savedOrientation.isNotEmpty) {
+        _boardOrientation = savedOrientation;
+      }
+
+      final savedFlip = results[2];
+      if (savedFlip != null && savedFlip.isNotEmpty) {
+        _flipDirection = savedFlip;
+      }
+
+      final savedSound = results[3];
+      if (savedSound != null && savedSound.isNotEmpty) {
+        _soundEnabled = savedSound == 'true';
+        SoundService.instance.enabled = _soundEnabled;
+      }
+
+      final savedAutoRotate = results[4];
+      if (savedAutoRotate != null && savedAutoRotate.isNotEmpty) {
+        _localCoopAutoRotate = savedAutoRotate == 'true';
+      }
+
+      final savedDefaultRotation = results[5];
+      if (savedDefaultRotation != null && savedDefaultRotation.isNotEmpty) {
+        _localCoopDefaultRotation = savedDefaultRotation;
+      }
+
+      final savedSwapTileColors = results[6];
+      if (savedSwapTileColors != null && savedSwapTileColors.isNotEmpty) {
+        _swapTileColors = savedSwapTileColors == 'true';
+      }
+
+      notifyListeners();
     } catch (_) {}
-    return null;
   }
 
   Future<void> setBoardTheme(String theme) async {
     if (_boardTheme == theme) return;
     _boardTheme = theme;
     notifyListeners();
+    await _storage.writeString(_themeStorageKey, theme);
   }
 
   Future<void> setBoardOrientation(String orientation) async {
     if (_boardOrientation == orientation) return;
     _boardOrientation = orientation;
     notifyListeners();
+    await _storage.writeString(_orientationStorageKey, orientation);
   }
 
   Future<void> toggleOrientation() async {
     _boardOrientation = _boardOrientation == 'horizontal' ? 'vertical' : 'horizontal';
     notifyListeners();
+    await _storage.writeString(_orientationStorageKey, _boardOrientation);
   }
 
   Future<void> setFlipDirection(String flip) async {
     if (_flipDirection == flip) return;
     _flipDirection = flip;
     notifyListeners();
+    await _storage.writeString(_flipStorageKey, flip);
   }
 
-  /// Returns the corresponding [KitaBoardTheme] for current selection.
+  Future<void> setSoundEnabled(bool enabled) async {
+    if (_soundEnabled == enabled) return;
+    _soundEnabled = enabled;
+    SoundService.instance.enabled = enabled;
+    notifyListeners();
+    await _storage.writeString(_soundStorageKey, enabled.toString());
+  }
+
+  Future<void> toggleSound() async {
+    await setSoundEnabled(!_soundEnabled);
+  }
+
+  Future<void> setLocalCoopAutoRotate(bool autoRotate) async {
+    if (_localCoopAutoRotate == autoRotate) return;
+    _localCoopAutoRotate = autoRotate;
+    notifyListeners();
+    await _storage.writeString(_localCoopAutoRotateKey, autoRotate.toString());
+  }
+
+  Future<void> setLocalCoopDefaultRotation(String rotation) async {
+    if (_localCoopDefaultRotation == rotation) return;
+    _localCoopDefaultRotation = rotation;
+    notifyListeners();
+    await _storage.writeString(_localCoopDefaultRotationKey, rotation);
+  }
+
+  Future<void> setSwapTileColors(bool swap) async {
+    if (_swapTileColors == swap) return;
+    _swapTileColors = swap;
+    notifyListeners();
+    await _storage.writeString(_swapTileColorsKey, swap.toString());
+  }
+
+  /// Returns the corresponding [KitaBoardTheme] for current selection,
+  /// with tile colors 1 and 3 swapped if [_swapTileColors] is enabled.
   KitaBoardTheme currentBoardTheme(bool isDark) {
-    switch (_boardTheme) {
+    final base = _resolveThemeByKey(_boardTheme, isDark);
+    return base.withSwappedColors(_swapTileColors);
+  }
+
+  /// Returns a preview [KitaBoardTheme] by key with tile swap applied.
+  KitaBoardTheme previewTheme(String themeKey, bool isDark) {
+    final base = _resolveThemeByKey(themeKey, isDark);
+    return base.withSwappedColors(_swapTileColors);
+  }
+
+  KitaBoardTheme _resolveThemeByKey(String key, bool isDark) {
+    switch (key) {
       case 'emerald':
         return KitaBoardTheme.emerald(isDark);
       case 'ocean_azure':

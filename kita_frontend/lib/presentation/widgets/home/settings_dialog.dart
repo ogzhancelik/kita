@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/game_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
@@ -27,6 +28,7 @@ class SettingsDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeProv = context.watch<ThemeProvider>();
     final authProv = context.watch<AuthProvider>();
+    final gameSettings = context.watch<GameSettingsProvider>();
     final currentLocale = context.locale.languageCode;
 
     return Container(
@@ -102,6 +104,22 @@ class SettingsDialog extends StatelessWidget {
                         activeThumbImage: null,
                         activeThumbColor: AppColors.ratingGold,
                         onChanged: (_) => themeProv.toggleTheme(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- Audio Setting (Sound Effects) ---
+                    _buildSettingsTile(
+                      isDark: isDark,
+                      icon: gameSettings.soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                      iconColor: AppColors.accentGold,
+                      title: 'settings.soundEffects'.tr(),
+                      subtitle: 'settings.soundEffectsDesc'.tr(),
+                      trailing: Switch(
+                        value: gameSettings.soundEnabled,
+                        activeThumbColor: AppColors.accentGold,
+                        activeTrackColor: AppColors.accentGold.withValues(alpha: 0.4),
+                        onChanged: (val) => gameSettings.setSoundEnabled(val),
                       ),
                     ),
                     const SizedBox(height: 10),
