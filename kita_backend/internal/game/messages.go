@@ -25,12 +25,16 @@ const (
 	TypeRematchRequest  = "rematch_request"
 	TypeRematchAccept   = "rematch_accept"
 	TypeRematchDecline  = "rematch_decline"
+	TypeRematchCancel   = "rematch_cancel"
 	TypeInviteToMatch   = "invite_to_match"
 	TypeAcceptInvite    = "accept_invitation"
 	TypeDeclineInvite   = "decline_invitation"
 	TypeCancelInvite    = "cancel_invitation"
 	TypeLeaveRoom       = "leave_room"
 	TypeUpdateAvatar    = "update_avatar"
+	TypeDrawOffer       = "draw_offer"
+	TypeDrawAccept      = "draw_accept"
+	TypeDrawDecline     = "draw_decline"
 
 	// Server -> Client
 	TypeConnected        = "connected"
@@ -60,6 +64,9 @@ const (
 	TypeFriendRequest        = "friend_request"
 	TypeFriendRequestDeclined = "friend_request_declined"
 	TypeFriendRequestAccepted = "friend_request_accepted"
+	TypeFriendPresence       = "friend_presence"
+	TypeDrawOffered          = "draw_offered"
+	TypeDrawDeclined         = "draw_declined"
 )
 
 // Time control presets (in milliseconds)
@@ -120,19 +127,37 @@ type GameStateDTO struct {
 	TimeControl      int64                    `json:"time_control"`
 	// Last move for highlighting
 	LastMove         *MoveDTO                 `json:"last_move,omitempty"`
+	StartedAt        *time.Time               `json:"started_at,omitempty"`
+	ElapsedSeconds   int                      `json:"elapsed_seconds,omitempty"`
+}
+
+// ─── Move Record DTO (History Sync) ──────────────────────────────────
+
+type MoveRecordDTO struct {
+	PlyIndex   int    `json:"ply_index"`
+	PieceID    string `json:"piece_id"`
+	FromCol    int    `json:"from_col"`
+	FromRow    int    `json:"from_row"`
+	ToCol      int    `json:"to_col"`
+	ToRow      int    `json:"to_row"`
+	PlayerTeam string `json:"player_team"`
 }
 
 // ─── Match Found DTO ──────────────────────────────────────────────────
 
 type MatchFoundDTO struct {
-	MatchID             string `json:"match_id"`
-	YourTeam            string `json:"your_team"` // "white" or "black"
-	OpponentID          string `json:"opponent_id"`
-	OpponentName        string `json:"opponent_name"`
-	OpponentRating      int    `json:"opponent_rating"`
-	OpponentAvatarIndex int    `json:"opponent_avatar_index"`
-	TimeControl         int64  `json:"time_control"`
-	IsReconnect         bool   `json:"is_reconnect,omitempty"`
+	MatchID             string             `json:"match_id"`
+	YourTeam            string             `json:"your_team"` // "white" or "black"
+	OpponentID          string             `json:"opponent_id"`
+	OpponentName        string             `json:"opponent_name"`
+	OpponentRating      int                `json:"opponent_rating"`
+	OpponentAvatarIndex int                `json:"opponent_avatar_index"`
+	TimeControl         int64              `json:"time_control"`
+	IsReconnect         bool               `json:"is_reconnect,omitempty"`
+	StartedAt           *time.Time         `json:"started_at,omitempty"`
+	ElapsedSeconds      int                `json:"elapsed_seconds,omitempty"`
+	MoveHistory         []MoveRecordDTO    `json:"move_history,omitempty"`
+	ChatHistory         []ChatBroadcastDTO `json:"chat_history,omitempty"`
 }
 
 // ─── Game Over DTO ────────────────────────────────────────────────────
@@ -255,4 +280,22 @@ type CancelInviteDTO struct {
 type MatchInvitationSentDTO struct {
 	InviteID string `json:"invite_id"`
 	FriendID string `json:"friend_id"`
+}
+
+// ─── Draw Offer DTOs ──────────────────────────────────────────────────
+
+type DrawOfferedDTO struct {
+	MatchID  string `json:"match_id"`
+	PlayerID string `json:"player_id"`
+	Username string `json:"username"`
+}
+
+type DrawDeclinedDTO struct {
+	MatchID  string `json:"match_id"`
+	PlayerID string `json:"player_id"`
+}
+
+type FriendPresenceDTO struct {
+	UserID   string `json:"user_id"`
+	IsOnline bool   `json:"is_online"`
 }

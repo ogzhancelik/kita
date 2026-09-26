@@ -75,10 +75,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
       return;
     }
-    if (state == OnlineMatchState.inMatch &&
-        (_isGameOverDialogShowing || (_provider?.isGameOverDialogActive.value ?? false)) &&
-        mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
+    if (state == OnlineMatchState.inMatch) {
       _isGameOverDialogShowing = false;
     }
   }
@@ -113,7 +110,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
       },
       onBackToMenu: () {
         _isGameOverDialogShowing = false;
-        provider.resetToIdle();
+        provider.leaveFinishedMatch();
         context.read<AuthProvider>().refreshProfile();
         Navigator.of(context).popUntil((route) => route.isFirst);
       },
@@ -188,7 +185,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
         if (!didPop) {
           _showLeaveConfirmation(context);
         } else if (canLeaveFreely) {
-          provider.resetToIdle();
+          provider.leaveFinishedMatch();
         }
       },
       child: Scaffold(
@@ -198,6 +195,15 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Draw offer banner (shown when opponent offers a draw)
+              ValueListenableBuilder<DrawOfferPayload?>(
+                valueListenable: provider.drawOffer,
+                builder: (context, drawOffer, _) {
+                  if (drawOffer == null) return const SizedBox.shrink();
+                  return _buildDrawOfferBanner(context, provider, isDark, drawOffer);
+                },
+              ),
+
               // Post-game status & controls banner (shown when dialog is dismissed)
               if (provider.gameOverData.value != null && !isKeyboardOpen)
                 _buildGameOverBanner(context, provider, isDark),
@@ -212,7 +218,10 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final gameSettings = context.watch<GameSettingsProvider>();
-                    final isHorizontal = gameSettings.isHorizontal;
+                    final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
+                    final isHorizontal = isLocalCoop
+                        ? provider.localCoopIsHorizontal
+                        : gameSettings.isHorizontal;
                     final effectiveFlip = gameSettings.shouldFlipBoard(provider.myTeam ?? 'white');
 
                     final totalHeight = constraints.maxHeight;
@@ -264,8 +273,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       isGameOver: isGameOver,
                       onTap: () {
                         final opp = provider.opponentInfo;
-                        final isBot = provider.offlinePlayMode == PlayMode.vsAi || opp?.id == 'bot';
-                        final isGuest = opp?.id.startsWith('guest-') ?? false;
+                        final isBot = (provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi) || opp?.id == 'bot';
+                        final isGuest = (opp?.id != null && opp!.id.startsWith('guest-')) ||
+                            (opponentName.toLowerCase().startsWith('guest') && !isBot);
                         UserProfileDialog.show(
                           context,
                           userId: opp?.id,
@@ -358,6 +368,89 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     );
   }
 
+  Widget _buildDrawOfferBanner(
+    BuildContext context,
+    OnlineGameProvider provider,
+    bool isDark,
+    DrawOfferPayload offer,
+  ) {
+    final opponentName = offer.username.isNotEmpty
+        ? offer.username
+        : (provider.opponentInfo?.name ?? 'online.opponent'.tr());
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.primaryGreen.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
+        ),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.handshake_rounded, color: AppColors.primaryGreen, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'online.drawOfferReceived'.tr(args: [opponentName]),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.getTextPrimary(isDark),
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: () => provider.acceptDrawOffer(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text('online.accept'.tr()),
+            ),
+            const SizedBox(width: 6),
+            OutlinedButton(
+              onPressed: () => provider.declineDrawOffer(),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.lossRed,
+                side: const BorderSide(color: AppColors.lossRed),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text('online.decline'.tr()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildGameOverBanner(
     BuildContext context,
     OnlineGameProvider provider,
@@ -436,49 +529,106 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                 ),
                 const SizedBox(width: 8),
 
-                // Rematch action or waiting state
-                if (isRequested) ...[
-                  const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryGreen),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'online.waitingForRematch'.tr(),
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryGreen,
-                    ),
-                  ),
-                ] else ...[
-                  ElevatedButton.icon(
-                    onPressed: () => provider.requestRematch(),
-                    icon: const Icon(Icons.replay_rounded, size: 14),
-                    label: Text('online.rematch'.tr()),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: AppColors.darkTextPrimary,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      textStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                // Rematch action: Incoming offer, Waiting for requested rematch, or Request button
+                ValueListenableBuilder<RematchOfferedPayload?>(
+                  valueListenable: provider.rematchOffer,
+                  builder: (ctx, offer, _) {
+                    if (offer != null) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => provider.acceptRematch(),
+                            icon: const Icon(Icons.check_rounded, size: 14),
+                            label: Text('online.accept'.tr()),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            onPressed: () => provider.declineRematch(),
+                            tooltip: 'online.decline'.tr(),
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            color: AppColors.lossRed,
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      );
+                    }
+
+                    if (isRequested) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.primaryGreen),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'online.waitingForRematch'.tr(),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            onPressed: () => provider.cancelRematchRequest(),
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            color: AppColors.lossRed,
+                            tooltip: 'online.cancelRematch'.tr(),
+                            padding: const EdgeInsets.all(2),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return ElevatedButton.icon(
+                      onPressed: () => provider.requestRematch(),
+                      icon: const Icon(Icons.replay_rounded, size: 14),
+                      label: Text('online.rematch'.tr()),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: AppColors.darkTextPrimary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
 
                 const SizedBox(width: 8),
 
@@ -490,10 +640,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                   padding: const EdgeInsets.all(4),
                   constraints: const BoxConstraints(),
                   onPressed: () {
-                    if (isRequested) {
-                      provider.cancelRematchRequest();
-                    }
-                    provider.resetToIdle();
+                    provider.leaveFinishedMatch();
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                 ),
@@ -509,7 +656,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     final provider = context.read<OnlineGameProvider>();
     if (provider.matchState.value == OnlineMatchState.gameOver ||
         provider.matchState.value == OnlineMatchState.idle) {
-      provider.resetToIdle();
+      provider.leaveFinishedMatch();
       Navigator.of(context).popUntil((route) => route.isFirst);
       return;
     }
@@ -643,6 +790,11 @@ class _BoardSection extends StatelessWidget {
                         isLive))
                 : (provider.myTeam == displayEngine.turn.name && isLive);
 
+            final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
+            final isBlackTurn = displayEngine.turn == PieceTeam.black;
+            final activePlayerIsAtTop = flipBoard ? !isBlackTurn : isBlackTurn;
+            final pieceRotation = isLocalCoop ? (activePlayerIsAtTop ? 0.5 : 0.0) : 0.0;
+
             return ValueListenableBuilder<List<KitaMove>>(
               valueListenable: provider.legalMoves,
               builder: (c2, legal, _) {
@@ -651,6 +803,7 @@ class _BoardSection extends StatelessWidget {
                   displayEngine: displayEngine,
                   flipBoard: flipBoard,
                   isHorizontal: isHorizontal,
+                  pieceRotation: pieceRotation,
                   isMyTurn: isMyTurn,
                   legalMoves: isLive ? legal : [],
                 );
@@ -669,6 +822,7 @@ class _BoardInteraction extends StatefulWidget {
   final KitaGameEngine displayEngine;
   final bool flipBoard;
   final bool isHorizontal;
+  final double pieceRotation;
   final bool isMyTurn;
   final List<KitaMove> legalMoves;
 
@@ -677,6 +831,7 @@ class _BoardInteraction extends StatefulWidget {
     required this.displayEngine,
     required this.flipBoard,
     this.isHorizontal = true,
+    this.pieceRotation = 0.0,
     required this.isMyTurn,
     required this.legalMoves,
   });
@@ -781,6 +936,7 @@ class _BoardInteractionState extends State<_BoardInteraction> {
       validMoves: _validMoves,
       flipBoard: widget.flipBoard,
       isHorizontal: widget.isHorizontal,
+      pieceRotation: widget.pieceRotation,
       isCurrentTurn: _isCurrentTurnSelection,
       theme: boardTheme,
       onTileTap: canInteract ? _onTileTap : null,

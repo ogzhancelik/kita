@@ -60,6 +60,23 @@ class ActivityConflictHelper {
       return false;
     }
 
+    // 2.5 Soft Lock: Pending Outgoing Rematch
+    final pendingRematch = provider.pendingOutgoingRematch.value;
+    if (pendingRematch != null) {
+      final oppName = pendingRematch.opponentName.isNotEmpty ? pendingRematch.opponentName : 'online.opponent'.tr();
+      final confirmed = await _showConfirmDialog(
+        context: context,
+        title: 'online.conflictDialogTitle'.tr(),
+        message: customMessage ?? 'online.conflictCancelRematchDesc'.tr(args: [oppName]),
+        confirmLabel: 'online.cancelAndProceed'.tr(),
+      );
+      if (confirmed) {
+        provider.cancelRematchRequest();
+        return true;
+      }
+      return false;
+    }
+
     // 3. Soft Lock: Pending Outgoing Challenge
     final outgoing = provider.pendingOutgoingChallenge.value;
     if (outgoing != null) {

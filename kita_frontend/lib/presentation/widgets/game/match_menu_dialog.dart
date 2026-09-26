@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/ws_message_models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
+import '../home/game_guide_dialog.dart';
 import '../home/settings_dialog.dart';
 import '../../screens/game/match_replay_screen.dart';
 import 'game_over_dialog.dart';
@@ -169,15 +171,62 @@ class MatchMenuDialog extends StatelessWidget {
               ),
 
               if (!provider.isOffline) ...[
-                // Online: Offer Draw option
-                _MenuTile(
-                  icon: Icons.handshake_outlined,
-                  iconColor: AppColors.primaryGreen,
-                  title: 'online.drawOffer'.tr(),
-                  textColor: AppColors.getTextPrimary(isDark),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _confirmDrawOffer(context, provider);
+                // If opponent offered a draw, show Accept Draw & Decline Draw options
+                ValueListenableBuilder<DrawOfferPayload?>(
+                  valueListenable: provider.drawOffer,
+                  builder: (context, incomingOffer, _) {
+                    if (incomingOffer != null) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _MenuTile(
+                            icon: Icons.check_circle_outline,
+                            iconColor: AppColors.primaryGreen,
+                            title: 'online.acceptDraw'.tr(),
+                            textColor: AppColors.primaryGreen,
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              provider.acceptDrawOffer();
+                            },
+                          ),
+                          _MenuTile(
+                            icon: Icons.highlight_off_rounded,
+                            iconColor: AppColors.lossRed,
+                            title: 'online.declineDraw'.tr(),
+                            textColor: AppColors.lossRed,
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              provider.declineDrawOffer();
+                            },
+                          ),
+                        ],
+                      );
+                    }
+
+                    // Otherwise show Offer Draw option (or pending indicator)
+                    return ValueListenableBuilder<bool>(
+                      valueListenable: provider.isDrawOfferPending,
+                      builder: (context, isPending, _) {
+                        return _MenuTile(
+                          icon: Icons.handshake_outlined,
+                          iconColor: isPending
+                              ? AppColors.drawGray
+                              : AppColors.primaryGreen,
+                          title: isPending
+                              ? 'online.drawOfferSent'.tr()
+                              : 'online.drawOffer'.tr(),
+                          textColor: isPending
+                              ? AppColors.getTextSecondary(isDark)
+                              : AppColors.getTextPrimary(isDark),
+                          onTap: isPending
+                              ? null
+                              : () {
+                                  Navigator.of(context).pop();
+                                  _confirmDrawOffer(context, provider);
+                                },
+                        );
+                      },
+                    );
                   },
                 ),
               ],
@@ -200,8 +249,12 @@ class MatchMenuDialog extends StatelessWidget {
             // Rotate Board option
             Builder(
               builder: (context) {
+                final onlineProv = context.watch<OnlineGameProvider>();
+                final isLocalCoop = onlineProv.isOffline && onlineProv.offlinePlayMode == PlayMode.localCoop;
                 final gameSettings = context.watch<GameSettingsProvider>();
-                final isHorizontal = gameSettings.isHorizontal;
+                final isHorizontal = isLocalCoop
+                    ? onlineProv.localCoopIsHorizontal
+                    : gameSettings.isHorizontal;
                 return _MenuTile(
                   icon: Icons.rotate_90_degrees_cw_rounded,
                   iconColor: AppColors.primaryGreen,
@@ -211,9 +264,26 @@ class MatchMenuDialog extends StatelessWidget {
                       : 'game.orientationVertical'.tr(),
                   textColor: AppColors.getTextPrimary(isDark),
                   onTap: () {
-                    gameSettings.toggleOrientation();
+                    if (isLocalCoop) {
+                      onlineProv.toggleLocalCoopOrientation();
+                    } else {
+                      gameSettings.toggleOrientation();
+                    }
                   },
                 );
+              },
+            ),
+
+            // How to Play / Guide option
+            _MenuTile(
+              icon: Icons.menu_book_rounded,
+              iconColor: AppColors.accentGold,
+              title: 'game.howToPlay'.tr(),
+              subtitle: 'settings.rulesGuideDesc'.tr(),
+              textColor: AppColors.getTextPrimary(isDark),
+              onTap: () {
+                Navigator.of(context).pop();
+                GameGuideDialog.show(context);
               },
             ),
 
@@ -472,7 +542,7 @@ class _MenuTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Color textColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _MenuTile({
     required this.icon,
@@ -480,7 +550,7 @@ class _MenuTile extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.textColor,
-    required this.onTap,
+    this.onTap,
   });
 
   @override

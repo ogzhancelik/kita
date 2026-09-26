@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'core/constants/api_constants.dart';
 import 'core/feedback/sound_service.dart';
 import 'core/feedback/toast_service.dart';
+import 'core/navigation/app_route_observer.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/friends_provider.dart';
@@ -91,10 +92,12 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
       _onlineProv?.incomingMatchRequest.removeListener(_onIncomingRequestChanged);
       _onlineProv?.onWsNotificationEvent.removeListener(_onWsNotificationEvent);
       _onlineProv?.matchState.removeListener(_onMatchStateChanged);
+      _onlineProv?.onWsFriendPresence.removeListener(_onWsFriendPresence);
       _onlineProv = online;
       _onlineProv?.incomingMatchRequest.addListener(_onIncomingRequestChanged);
       _onlineProv?.onWsNotificationEvent.addListener(_onWsNotificationEvent);
       _onlineProv?.matchState.addListener(_onMatchStateChanged);
+      _onlineProv?.onWsFriendPresence.addListener(_onWsFriendPresence);
     }
 
     final friends = context.read<FriendsProvider>();
@@ -114,7 +117,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     });
 
     _friendsPollTimer?.cancel();
-    _friendsPollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    _friendsPollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) {
         final authProv = context.read<AuthProvider>();
         if (authProv.isAuthenticated && !authProv.isGuest) {
@@ -130,6 +133,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     _onlineProv?.incomingMatchRequest.removeListener(_onIncomingRequestChanged);
     _onlineProv?.onWsNotificationEvent.removeListener(_onWsNotificationEvent);
     _onlineProv?.matchState.removeListener(_onMatchStateChanged);
+    _onlineProv?.onWsFriendPresence.removeListener(_onWsFriendPresence);
     _friendsProv?.removeListener(_onFriendsChanged);
     _friendsPollTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
@@ -182,6 +186,16 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
       final inviteId = event['invite_id'] as String?;
       final inviterId = event['inviter_id'] as String?;
       notifProv.removeOrExpireChallenge(inviteId: inviteId, inviterId: inviterId);
+    }
+  }
+
+  void _onWsFriendPresence() {
+    final event = _onlineProv?.onWsFriendPresence.value;
+    if (event == null || !mounted) return;
+    final userId = event['user_id'] as String?;
+    final isOnline = event['is_online'] as bool?;
+    if (userId != null && isOnline != null) {
+      _friendsProv?.updateFriendPresence(userId, isOnline);
     }
   }
 
@@ -277,6 +291,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
 
     return MaterialApp(
       navigatorKey: appNavigatorKey,
+      navigatorObservers: [appRouteObserver],
       title: 'Kita Fullstack',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: KitaToast.messengerKey,

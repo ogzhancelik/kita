@@ -13,6 +13,14 @@ class LocalMatchHistoryService {
   static const String _keyShowOffline = 'kita_show_offline_matches';
   static const int _maxStoredMatches = 50;
 
+  /// ValueNotifier that increments on any match changes (saving, clearing, visibility toggle, or game over).
+  final ValueNotifier<int> matchHistoryRevision = ValueNotifier<int>(0);
+
+  /// Notifies listeners that match history has been updated.
+  void notifyMatchesChanged() {
+    matchHistoryRevision.value++;
+  }
+
   /// Saves an offline match to local device storage.
   /// Offline matches are device-based, persisting on the local device.
   Future<void> saveMatch(
@@ -54,6 +62,7 @@ class LocalMatchHistoryService {
       }
 
       await prefs.setString(_keyMatches, jsonEncode(list));
+      notifyMatchesChanged();
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error saving match: $e');
     }
@@ -100,6 +109,7 @@ class LocalMatchHistoryService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyMatches);
+      notifyMatchesChanged();
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error clearing offline matches: $e');
     }
@@ -127,6 +137,7 @@ class LocalMatchHistoryService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyShowOffline, show);
+      notifyMatchesChanged();
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error saving showOfflineMatches preference: $e');
     }

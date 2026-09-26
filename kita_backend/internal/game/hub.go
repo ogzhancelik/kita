@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,11 +28,16 @@ type Hub struct {
 	matchService        ports.MatchService
 	messageService      ports.MessageService
 	notificationService ports.NotificationService
+	friendService       ports.FriendService
 
 	mu sync.RWMutex
 }
 
-func NewHub(matchService ports.MatchService, messageService ports.MessageService, notificationService ports.NotificationService) *Hub {
+func NewHub(matchService ports.MatchService, messageService ports.MessageService, notificationService ports.NotificationService, friendService ...ports.FriendService) *Hub {
+	var fs ports.FriendService
+	if len(friendService) > 0 {
+		fs = friendService[0]
+	}
 	return &Hub{
 		clients:             make(map[string]*Client),
 		rooms:               make(map[string]*Room),
@@ -42,6 +48,7 @@ func NewHub(matchService ports.MatchService, messageService ports.MessageService
 		matchService:        matchService,
 		messageService:      messageService,
 		notificationService: notificationService,
+		friendService:       fs,
 	}
 }
 
@@ -114,6 +121,7 @@ func (h *Hub) Run() {
 
 			h.BroadcastOnlineCount()
 			h.BroadcastRoomsList()
+			go h.notifyFriendsPresence(client.UserID, true)
 
 		case client := <-h.Unregister:
 			h.handleDisconnect(client)
@@ -151,6 +159,7 @@ func (h *Hub) handleDisconnect(client *Client) {
 	client.Close()
 	log.Printf("[Hub] Client disconnected: %s (%s)", client.Username, client.UserID)
 	h.broadcastOnlineCountLocked()
+	go h.notifyFriendsPresence(client.UserID, false)
 }
 
 func (h *Hub) broadcastOnlineCountLocked() {
@@ -194,6 +203,15 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 	case TypeResign:
 		h.handleResign(client)
 
+	case TypeDrawOffer:
+		h.handleDrawOffer(client)
+
+	case TypeDrawAccept:
+		h.handleDrawAccept(client)
+
+	case TypeDrawDecline:
+		h.handleDrawDecline(client)
+
 	case TypeCreateRoom:
 		h.handleCreateRoom(client, msg.Payload)
 
@@ -214,6 +232,9 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 
 	case TypeRematchDecline:
 		h.handleRematchDecline(client, msg.Payload)
+
+	case TypeRematchCancel:
+		h.handleRematchCancel(client, msg.Payload)
 
 	case TypeInviteToMatch:
 		h.handleInviteToMatch(client, msg.Payload)
@@ -576,6 +597,54 @@ func (h *Hub) handleResign(client *Client) {
 	}
 }
 
+func (h *Hub) handleDrawOffer(client *Client) {
+	h.mu.RLock()
+	matchID := client.CurrentMatchID
+	room, exists := h.rooms[matchID]
+	h.mu.RUnlock()
+
+	if !exists || room == nil {
+		client.SendError(errors.ErrMatchNotFound, "No active match found")
+		return
+	}
+
+	if err := room.OfferDraw(client.UserID); err != nil {
+		client.SendError(errors.ErrValidationFailed, err.Error())
+	}
+}
+
+func (h *Hub) handleDrawAccept(client *Client) {
+	h.mu.RLock()
+	matchID := client.CurrentMatchID
+	room, exists := h.rooms[matchID]
+	h.mu.RUnlock()
+
+	if !exists || room == nil {
+		client.SendError(errors.ErrMatchNotFound, "No active match found")
+		return
+	}
+
+	if err := room.AcceptDraw(client.UserID); err != nil {
+		client.SendError(errors.ErrValidationFailed, err.Error())
+	}
+}
+
+func (h *Hub) handleDrawDecline(client *Client) {
+	h.mu.RLock()
+	matchID := client.CurrentMatchID
+	room, exists := h.rooms[matchID]
+	h.mu.RUnlock()
+
+	if !exists || room == nil {
+		client.SendError(errors.ErrMatchNotFound, "No active match found")
+		return
+	}
+
+	if err := room.DeclineDraw(client.UserID); err != nil {
+		client.SendError(errors.ErrValidationFailed, err.Error())
+	}
+}
+
 // ─── Online Count ─────────────────────────────────────────────────────
 
 func (h *Hub) handleOnlineCount(client *Client) {
@@ -738,9 +807,15 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 	}
 	h.mu.RUnlock()
 
+	var tc int64 = TimeControl3Min
+	if room, exists := h.rooms[dto.MatchID]; exists && room.TimeControl > 0 {
+		tc = room.TimeControl
+	}
+
 	// Store rematch request on client for opponent to accept
 	client.mu.Lock()
 	client.PendingRematchID = dto.MatchID
+	client.PendingRematchTimeControl = tc
 	client.mu.Unlock()
 
 	if opponentClient == nil {
@@ -753,7 +828,7 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 		RequesterID:          client.UserID,
 		RequesterName:        client.Username,
 		RequesterAvatarIndex: client.AvatarIndex,
-		TimeControl:          TimeControl3Min, // Default for rematch
+		TimeControl:          tc,
 	})
 
 	log.Printf("[Hub] Rematch requested by %s for match %s", client.Username, dto.MatchID)
@@ -793,9 +868,15 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
+	tc := requester.PendingRematchTimeControl
+	if tc <= 0 {
+		tc = TimeControl3Min
+	}
+
 	// Clear pending rematch
 	requester.mu.Lock()
 	requester.PendingRematchID = ""
+	requester.PendingRematchTimeControl = 0
 	requester.mu.Unlock()
 
 	// Clean up any unstarted waiting room hosted by either client
@@ -813,11 +894,52 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 
 	// Create new match with swapped colors
 	matchID := uuid.New().String()
-	room := NewRoomWithTimeControl(matchID, client, requester, TimeControl3Min, h.matchService, h)
+	room := NewRoomWithTimeControl(matchID, client, requester, tc, h.matchService, h)
 	h.rooms[matchID] = room
 
 	log.Printf("[Hub] Rematch created: %s between %s and %s", matchID, client.Username, requester.Username)
 	go room.Start()
+}
+
+func (h *Hub) handleRematchCancel(client *Client, rawPayload json.RawMessage) {
+	var dto RematchRequestDTO
+	if len(rawPayload) > 0 {
+		_ = json.Unmarshal(rawPayload, &dto)
+	}
+
+	client.mu.Lock()
+	matchID := client.PendingRematchID
+	if matchID == "" && dto.MatchID != "" {
+		matchID = dto.MatchID
+	}
+	client.PendingRematchID = ""
+	client.PendingRematchTimeControl = 0
+	client.mu.Unlock()
+
+	if matchID == "" {
+		return
+	}
+
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	for _, c := range h.clients {
+		if c.UserID != client.UserID {
+			c.mu.RLock()
+			lastMatch := c.LastFinishedMatchID
+			currentMatch := c.CurrentMatchID
+			c.mu.RUnlock()
+			if lastMatch == matchID || currentMatch == matchID {
+				c.SendJSON(TypeRematchDeclined, map[string]string{
+					"match_id":      matchID,
+					"decliner_name": client.Username,
+					"reason":        "cancelled",
+				})
+				break
+			}
+		}
+	}
+	log.Printf("[Hub] Rematch cancelled by %s for match %s", client.Username, matchID)
 }
 
 func (h *Hub) handleRematchDecline(client *Client, rawPayload json.RawMessage) {
@@ -1299,5 +1421,28 @@ func (h *Hub) IsUserOnline(userID string) bool {
 	_, exists := h.clients[userID]
 	return exists
 }
+
+func (h *Hub) notifyFriendsPresence(userID string, isOnline bool) {
+	if h.friendService == nil || strings.HasPrefix(userID, "guest-") {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	friends, err := h.friendService.GetFriends(ctx, userID)
+	if err != nil {
+		return
+	}
+
+	dto := FriendPresenceDTO{
+		UserID:   userID,
+		IsOnline: isOnline,
+	}
+
+	for _, f := range friends {
+		h.SendToUser(f.UserID, TypeFriendPresence, dto)
+	}
+}
+
 
 

@@ -340,3 +340,94 @@ func TestMatchFoundIncludesOpponentAvatarIndex(t *testing.T) {
 	}
 }
 
+func TestRoom_DrawOfferAndAccept(t *testing.T) {
+	mockService := &mockMatchService{
+		saveChan: make(chan *domain.Match, 5),
+	}
+	hub := NewHub(mockService, nil, nil)
+
+	sConn1, _ := setupTestWS(t)
+	sConn2, _ := setupTestWS(t)
+	clientWhite := NewClient(hub, sConn1, "user-white", "WhitePlayer", 1200)
+	clientBlack := NewClient(hub, sConn2, "user-black", "BlackPlayer", 1200)
+
+	room := NewRoom("test-draw-1", clientWhite, clientBlack, mockService, hub)
+	room.Start()
+
+	// 1. White makes a move
+	whiteMoves := room.Game.GetLegalMoves()
+	if len(whiteMoves) == 0 {
+		t.Fatal("No legal moves for White")
+	}
+	err := room.MakeMove("user-white", FromGameMove(whiteMoves[0]))
+	if err != nil {
+		t.Fatalf("Move 1 failed: %v", err)
+	}
+
+	// 2. White offers a draw
+	if err := room.OfferDraw("user-white"); err != nil {
+		t.Fatalf("OfferDraw failed: %v", err)
+	}
+
+	if room.DrawOfferBy != "user-white" {
+		t.Fatalf("Expected DrawOfferBy user-white, got %s", room.DrawOfferBy)
+	}
+
+	// 3. Black accepts the draw
+	if err := room.AcceptDraw("user-black"); err != nil {
+		t.Fatalf("AcceptDraw failed: %v", err)
+	}
+
+	if !room.isFinished {
+		t.Fatal("Expected room to be finished after draw acceptance")
+	}
+
+	if room.Status != "finished" {
+		t.Fatalf("Expected room status 'finished', got '%s'", room.Status)
+	}
+}
+
+func TestRoom_DrawOfferDeclineOnMove(t *testing.T) {
+	mockService := &mockMatchService{
+		saveChan: make(chan *domain.Match, 5),
+	}
+	hub := NewHub(mockService, nil, nil)
+
+	sConn1, _ := setupTestWS(t)
+	sConn2, _ := setupTestWS(t)
+	clientWhite := NewClient(hub, sConn1, "user-white", "WhitePlayer", 1200)
+	clientBlack := NewClient(hub, sConn2, "user-black", "BlackPlayer", 1200)
+
+	room := NewRoom("test-draw-2", clientWhite, clientBlack, mockService, hub)
+	room.Start()
+
+	// 1. White makes a move
+	whiteMoves := room.Game.GetLegalMoves()
+	if len(whiteMoves) == 0 {
+		t.Fatal("No legal moves for White")
+	}
+	err := room.MakeMove("user-white", FromGameMove(whiteMoves[0]))
+	if err != nil {
+		t.Fatalf("Move 1 failed: %v", err)
+	}
+
+	// 2. White offers a draw to Black
+	if err := room.OfferDraw("user-white"); err != nil {
+		t.Fatalf("OfferDraw failed: %v", err)
+	}
+
+	// 3. Black makes a move instead of accepting -> Draw offer is implicitly declined
+	blackMoves := room.Game.GetLegalMoves()
+	if len(blackMoves) == 0 {
+		t.Fatal("No legal moves for Black")
+	}
+	err = room.MakeMove("user-black", FromGameMove(blackMoves[0]))
+	if err != nil {
+		t.Fatalf("Move 2 failed: %v", err)
+	}
+
+	if room.DrawOfferBy != "" {
+		t.Fatalf("Expected DrawOfferBy to be cleared after Black's move, got '%s'", room.DrawOfferBy)
+	}
+}
+

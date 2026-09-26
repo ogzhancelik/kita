@@ -412,31 +412,38 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
           const SizedBox(height: 20),
 
           // Action Buttons: Close (keep in background) & Cancel Room
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                label: Text('online.keepRoomInBackground'.tr()),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.getTextSecondary(isDark),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back_rounded, size: 16),
+              label: Text('online.keepRoomInBackground'.tr()),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.getTextPrimary(isDark),
+                side: BorderSide(color: AppColors.getBorder(isDark)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  provider.leaveRoom();
-                  Navigator.of(context).pop();
-                },
-                child: Text(
-                  'online.cancelRoom'.tr(),
-                  style: const TextStyle(
-                    color: AppColors.lossRed,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () {
+                provider.leaveRoom();
+                Navigator.of(context).pop();
+              },
+              icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.lossRed),
+              label: Text('online.cancelRoom'.tr()),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.lossRed,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                textStyle: const TextStyle(fontWeight: FontWeight.w600),
               ),
-            ],
+            ),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/services/local_match_history_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
@@ -89,6 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: RefreshIndicator(
                   onRefresh: () async {
                     context.read<OnlineGameProvider>().requestRoomsList(page: 1, limit: 10);
+                    LocalMatchHistoryService.instance.notifyMatchesChanged();
                     await Future.wait([
                       context.read<AuthProvider>().refreshProfile(),
                       Future.delayed(const Duration(milliseconds: 200)),

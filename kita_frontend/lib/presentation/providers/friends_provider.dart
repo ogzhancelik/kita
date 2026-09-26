@@ -118,4 +118,27 @@ class FriendsProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Updates online/offline presence for a specific friend in real time via WebSocket.
+  void updateFriendPresence(String userId, bool isOnline) {
+    bool changed = false;
+    for (int i = 0; i < _friends.length; i++) {
+      if (_friends[i].userId == userId) {
+        if (_friends[i].isOnline != isOnline) {
+          _friends[i] = _friends[i].copyWith(isOnline: isOnline);
+          changed = true;
+        }
+        break;
+      }
+    }
+    if (changed) {
+      _friends.sort((a, b) {
+        if (a.isOnline != b.isOnline) {
+          return a.isOnline ? -1 : 1;
+        }
+        return 0;
+      });
+      notifyListeners();
+    }
+  }
 }

@@ -58,13 +58,22 @@ class _GameOverDialogState extends State<GameOverDialog> {
     super.didChangeDependencies();
     final prov = context.read<OnlineGameProvider>();
     if (_provider != prov) {
+      _provider?.matchState.removeListener(_onMatchStateChanged);
       _provider = prov;
       prov.isGameOverDialogActive.value = true;
+      _provider?.matchState.addListener(_onMatchStateChanged);
+    }
+  }
+
+  void _onMatchStateChanged() {
+    if (_provider?.matchState.value == OnlineMatchState.inMatch && mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
     }
   }
 
   @override
   void dispose() {
+    _provider?.matchState.removeListener(_onMatchStateChanged);
     _provider?.isGameOverDialogActive.value = false;
     super.dispose();
   }
@@ -74,6 +83,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
     final provider = context.watch<OnlineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
     final isDraw = widget.gameOverData.isDraw;
     final isWinner = !isDraw &&
         ((widget.gameOverData.winnerId != null &&
@@ -81,13 +91,35 @@ class _GameOverDialogState extends State<GameOverDialog> {
             (provider.myTeam != null &&
                 provider.myTeam == widget.gameOverData.winner));
 
-    final Color statusColor = isDraw
-        ? AppColors.drawGray
-        : (isWinner ? AppColors.victory : AppColors.lossRed);
+    final Color statusColor;
+    final String titleKey;
+    final IconData statusIcon;
 
-    final String titleKey = isDraw
-        ? 'online.resultDraw'
-        : (isWinner ? 'online.resultVictory' : 'online.resultDefeat');
+    if (isLocalCoop) {
+      if (isDraw) {
+        statusColor = AppColors.drawGray;
+        titleKey = 'online.resultDraw';
+        statusIcon = Icons.handshake_outlined;
+      } else if (widget.gameOverData.winnerTeam == 'white') {
+        statusColor = AppColors.victory;
+        titleKey = 'game.whiteWins';
+        statusIcon = Icons.emoji_events;
+      } else {
+        statusColor = AppColors.victory;
+        titleKey = 'game.blackWins';
+        statusIcon = Icons.emoji_events;
+      }
+    } else {
+      statusColor = isDraw
+          ? AppColors.drawGray
+          : (isWinner ? AppColors.victory : AppColors.lossRed);
+      titleKey = isDraw
+          ? 'online.resultDraw'
+          : (isWinner ? 'online.resultVictory' : 'online.resultDefeat');
+      statusIcon = isDraw
+          ? Icons.handshake_outlined
+          : (isWinner ? Icons.emoji_events : Icons.sentiment_dissatisfied);
+    }
 
     return AlertDialog(
       backgroundColor: AppColors.getCard(isDark),
@@ -116,9 +148,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    isDraw
-                        ? Icons.handshake_outlined
-                        : (isWinner ? Icons.emoji_events : Icons.sentiment_dissatisfied),
+                    statusIcon,
                     size: 56,
                     color: statusColor,
                   ),

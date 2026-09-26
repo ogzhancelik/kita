@@ -31,13 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _fillDemo() {
-    setState(() {
-      _usernameOrEmailController.text = 'player1';
-      _passwordController.text = 'password123';
-    });
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -142,25 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     onSubmitted: (_) => _submit(),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Demo Quick Fill Button
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.flash_on_rounded, size: 16, color: AppColors.ratingGold),
-                      label: Text(
-                        'auth.fillDemoPlayer'.tr(),
-                        style: const TextStyle(
-                          color: AppColors.ratingGold,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                      onPressed: _fillDemo,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
                   // Submit Button
                   KitaButton(

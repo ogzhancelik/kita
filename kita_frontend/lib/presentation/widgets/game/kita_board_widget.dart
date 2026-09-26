@@ -48,6 +48,10 @@ class KitaBoardWidget extends StatelessWidget {
   /// Flips the board viewpoint (e.g. when playing as Black)
   final bool flipBoard;
 
+  /// Rotation in turns applied to the pieces (e.g. 0.5 for 180 degrees).
+  /// Used in local coop to orient pieces towards the active player.
+  final double pieceRotation;
+
   /// When true (default), tile selection and valid moves are rendered in their
   /// active, vibrant game colors.
   /// When false, they are rendered in a paler, desaturated, softer style to
@@ -74,6 +78,7 @@ class KitaBoardWidget extends StatelessWidget {
     this.isPieceDraggable,
     this.isHorizontal = true,
     this.flipBoard = false,
+    this.pieceRotation = 0.0,
     this.isCurrentTurn = true,
     this.theme,
     this.pieceBuilder,
@@ -483,7 +488,12 @@ class KitaBoardWidget extends StatelessWidget {
     KitaBoardTheme theme,
   ) {
     if (pieceBuilder != null) {
-      return pieceBuilder!(context, piece, size);
+      return AnimatedRotation(
+        turns: pieceRotation,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        child: pieceBuilder!(context, piece, size),
+      );
     }
 
     final isWhite = piece.isWhite;
@@ -492,19 +502,24 @@ class KitaBoardWidget extends StatelessWidget {
         ? (isWhite ? theme.whiteKingAccent : theme.blackKingAccent)
         : (isWhite ? const Color(0xFFBDC3C7) : const Color(0xFF6B7280));
 
-    if (piece.isKing) {
-      return CrownPieceWidget(
-        size: size,
-        bodyColor: baseColor,
-        accentColor: accentColor,
-      );
-    } else {
-      return ShieldPieceWidget(
-        size: size * 0.88,
-        bodyColor: baseColor,
-        accentColor: accentColor,
-      );
-    }
+    final Widget pieceWidget = piece.isKing
+        ? CrownPieceWidget(
+            size: size,
+            bodyColor: baseColor,
+            accentColor: accentColor,
+          )
+        : ShieldPieceWidget(
+            size: size * 0.88,
+            bodyColor: baseColor,
+            accentColor: accentColor,
+          );
+
+    return AnimatedRotation(
+      turns: pieceRotation,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      child: pieceWidget,
+    );
   }
 
   static Color _desaturate(Color color, double factor) {

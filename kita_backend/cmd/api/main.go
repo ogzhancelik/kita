@@ -73,7 +73,7 @@ func main() {
 	notificationService := service.NewNotificationService(notifRepo)
 
 	// 5. Realtime Game Hub & Goroutine
-	hub := game.NewHub(matchService, messageService, notificationService)
+	hub := game.NewHub(matchService, messageService, notificationService, friendService)
 	go hub.Run()
 
 	// 6. Handlers

@@ -9,6 +9,7 @@ import '../../providers/notification_provider.dart';
 import '../../screens/home/notifications_screen.dart';
 import '../common/avatar_picker.dart';
 import '../common/stat_badge.dart';
+import 'game_guide_dialog.dart';
 import 'settings_dialog.dart';
 import 'user_profile_dialog.dart';
 
@@ -157,6 +158,28 @@ class DashboardTopBar extends StatelessWidget {
                       ),
                     ),
                 ],
+              ),
+              const SizedBox(width: 8),
+
+              // Rehber / Nasıl Oynanır Butonu
+              Container(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    width: 1,
+                  ),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.help_outline_rounded,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    size: 20,
+                  ),
+                  tooltip: 'game.howToPlay'.tr(),
+                  onPressed: () => GameGuideDialog.show(context),
+                ),
               ),
               const SizedBox(width: 8),
 

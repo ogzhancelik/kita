@@ -625,44 +625,23 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
   Widget _buildMatchCard(BuildContext context, MatchRecordModel match,
       String myUserId, bool isDark) {
     final bool isOffline = match.isOffline || match.id.startsWith('offline');
-
-    // In offline games against the bot, the player is the non-bot side
-    final bool isWhite;
-    if (isOffline) {
-      isWhite = match.blackPlayerId == 'bot';
-    } else {
-      isWhite = match.whitePlayerId == myUserId;
-    }
+    final bool isCoop = match.isLocalCoop;
+    final bool isWhite = match.isUserWhite(myUserId);
 
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
-    final bool isVsAi = isOffline ||
-        match.blackPlayerId == 'bot' ||
-        match.whitePlayerId == 'bot' ||
-        (opponent?.id == 'bot') ||
-        (opponent?.username.toLowerCase().contains('bot') ?? false);
+    final bool isVsAi = match.isVsAi;
     final opponentName = opponent?.username ??
         (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'Black' : 'White'));
     final opponentRating = opponent?.rating ?? 1200;
 
-    final isDraw = match.result == 'draw';
-    final bool isWinner;
-    final bool isLoser;
-
-    if (isOffline) {
-      final playerSide = isWhite ? 'white' : 'black';
-      final winningSide = match.winnerId == match.whitePlayerId
-          ? 'white'
-          : (match.winnerId == match.blackPlayerId ? 'black' : null);
-      isWinner = winningSide != null && winningSide == playerSide;
-      isLoser = winningSide != null && winningSide != playerSide && !isDraw;
-    } else {
-      isWinner = match.winnerId != null && match.winnerId == myUserId;
-      isLoser =
-          match.winnerId != null && match.winnerId != myUserId && !isDraw;
-    }
+    final isDraw = match.isDraw;
+    final bool isWinner = match.isUserWinner(myUserId);
+    final bool isLoser = match.isUserLoser(myUserId);
 
     Color resultColor;
-    if (isWinner) {
+    if (isCoop) {
+      resultColor = isDraw ? AppColors.drawGray : AppColors.accent;
+    } else if (isWinner) {
       resultColor = AppColors.victory;
     } else if (isLoser) {
       resultColor = AppColors.lossRed;
@@ -690,30 +669,68 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           ),
           const SizedBox(width: 10),
 
-          // B/W Team Badge
-          Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              color: isWhite ? Colors.white : Colors.black,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey, width: 1.2),
-            ),
-            child: Center(
-              child: Text(
-                isWhite ? 'W' : 'B',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  color: isWhite ? Colors.black : Colors.white,
+          // B/W or 2P Team Badge
+          if (isCoop)
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.accent, width: 1.2),
+              ),
+              child: const Center(
+                child: Text(
+                  '2P',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: isWhite ? Colors.white : Colors.black,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey, width: 1.2),
+              ),
+              child: Center(
+                child: Text(
+                  isWhite ? 'W' : 'B',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: isWhite ? Colors.black : Colors.white,
+                  ),
                 ),
               ),
             ),
-          ),
           const SizedBox(width: 10),
 
           // Player / AI PP
-          if (isVsAi) _buildAiAvatar(isDark) else _buildPlayerAvatar(opponent, isDark),
+          if (isCoop)
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.people_outline_rounded,
+                size: 20,
+                color: AppColors.accent,
+              ),
+            )
+          else if (isVsAi)
+            _buildAiAvatar(isDark)
+          else
+            _buildPlayerAvatar(opponent, isDark),
           const SizedBox(width: 10),
 
           // Match details
@@ -724,7 +741,43 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
               children: [
                 Row(
                   children: [
-                    if (isVsAi) ...[
+                    if (isCoop) ...[
+                      Flexible(
+                        child: Text(
+                          'game.localCoopTitle'.tr(),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: resultColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: resultColor.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          match.isDraw
+                              ? 'online.resultDraw'.tr()
+                              : (match.winnerId == match.whitePlayerId
+                                  ? 'game.whiteWins'.tr()
+                                  : 'game.blackWins'.tr()),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: resultColor,
+                          ),
+                        ),
+                      ),
+                    ] else if (isVsAi) ...[
                       Flexible(
                         child: Text(
                           _getAiDifficultyLabel(opponent),

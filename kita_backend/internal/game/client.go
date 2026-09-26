@@ -30,6 +30,7 @@ type Client struct {
 	// Rematch and invite tracking
 	LastFinishedMatchID      string
 	PendingRematchID         string
+	PendingRematchTimeControl int64
 	PendingInviteID          string
 	PendingInviteFriendID    string
 	PendingInviteTimeControl int64

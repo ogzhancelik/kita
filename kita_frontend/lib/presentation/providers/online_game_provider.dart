@@ -10,6 +10,7 @@ import '../../data/models/kita_ai.dart';
 import '../../data/models/match_model.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/ws_message_models.dart';
+export '../../data/models/ws_message_models.dart' show OnlineMoveRecord, ChatMessage;
 import '../../data/services/local_match_history_service.dart';
 import '../../data/services/websocket_service.dart';
 
@@ -24,63 +25,6 @@ enum OnlineMatchState {
   inRoom, // Waiting in a room for opponent
   inMatch, // Active game in progress
   gameOver, // Game has ended
-}
-
-/// Represents a single move record for the move history panel.
-class OnlineMoveRecord {
-  final int plyIndex;
-  final String pieceId;
-  final int fromCol;
-  final int fromRow;
-  final int toCol;
-  final int toRow;
-  final String playerTeam; // "white" or "black"
-
-  const OnlineMoveRecord({
-    required this.plyIndex,
-    required this.pieceId,
-    required this.fromCol,
-    required this.fromRow,
-    required this.toCol,
-    required this.toRow,
-    required this.playerTeam,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'plyIndex': plyIndex,
-    'pieceId': pieceId,
-    'fromCol': fromCol,
-    'fromRow': fromRow,
-    'toCol': toCol,
-    'toRow': toRow,
-    'playerTeam': playerTeam,
-  };
-
-  factory OnlineMoveRecord.fromJson(Map<String, dynamic> json) =>
-      OnlineMoveRecord(
-        plyIndex: (json['plyIndex'] as num?)?.toInt() ?? 0,
-        pieceId: json['pieceId'] as String? ?? '',
-        fromCol: (json['fromCol'] as num?)?.toInt() ?? 0,
-        fromRow: (json['fromRow'] as num?)?.toInt() ?? 0,
-        toCol: (json['toCol'] as num?)?.toInt() ?? 0,
-        toRow: (json['toRow'] as num?)?.toInt() ?? 0,
-        playerTeam: json['playerTeam'] as String? ?? 'white',
-      );
-}
-
-/// Chat message model for in-game messaging.
-class ChatMessage {
-  final String senderId;
-  final String username;
-  final String content;
-  final DateTime createdAt;
-
-  const ChatMessage({
-    required this.senderId,
-    required this.username,
-    required this.content,
-    required this.createdAt,
-  });
 }
 
 /// Opponent information.
@@ -154,7 +98,16 @@ class OnlineGameProvider extends ChangeNotifier {
   int? offlinePlayerRating;
   bool offlineIsGuest = false;
   bool _offlineMatchSaved = false;
+  bool? _localCoopIsHorizontal;
   final ValueNotifier<bool> isAiThinking = ValueNotifier(false);
+
+  /// True: 7x4 horizontal layout, False: 4x7 vertical layout (default for Local Coop).
+  bool get localCoopIsHorizontal => _localCoopIsHorizontal ?? false;
+
+  void toggleLocalCoopOrientation() {
+    _localCoopIsHorizontal = !localCoopIsHorizontal;
+    notifyListeners();
+  }
 
   /// Localized difficulty label for offline AI match (Easy, Medium, Hard).
   String get offlineBotDifficultyLabel {
@@ -226,6 +179,12 @@ class OnlineGameProvider extends ChangeNotifier {
     null,
   );
   final ValueNotifier<bool> isRematchRequested = ValueNotifier(false);
+  final ValueNotifier<PendingOutgoingRematch?> pendingOutgoingRematch = ValueNotifier(null);
+
+  // ─── Draw Offer ───────────────────────────────────────────────────
+
+  final ValueNotifier<DrawOfferPayload?> drawOffer = ValueNotifier(null);
+  final ValueNotifier<bool> isDrawOfferPending = ValueNotifier(false);
 
   // ─── Match Invitation ─────────────────────────────────────────────
 
@@ -241,6 +200,7 @@ class OnlineGameProvider extends ChangeNotifier {
 
   final ValueNotifier<bool> isGameOverDialogActive = ValueNotifier(false);
   final ValueNotifier<Map<String, dynamic>?> onWsNotificationEvent = ValueNotifier(null);
+  final ValueNotifier<Map<String, dynamic>?> onWsFriendPresence = ValueNotifier(null);
 
   // ─── Elapsed Time ─────────────────────────────────────────────────
 
@@ -364,16 +324,17 @@ class OnlineGameProvider extends ChangeNotifier {
         rating: botRating,
         avatarIndex: 7,
       );
+      matchId = 'offline-${DateTime.now().millisecondsSinceEpoch}';
     } else {
+      _localCoopIsHorizontal = false; // Start in vertical board mode by default for Local Coop
       opponentInfo = OpponentInfo(
         id: 'local_player',
         name: playerTeam == PieceTeam.white ? 'game.playBlack'.tr() : 'game.playWhite'.tr(),
         rating: 1200,
         avatarIndex: 1,
       );
+      matchId = 'offline-coop-${DateTime.now().millisecondsSinceEpoch}';
     }
-
-    matchId = 'offline-${DateTime.now().millisecondsSinceEpoch}';
     timeControl = 0;
     roomCode.value = null;
     isRoomPrivate = false;
@@ -501,6 +462,11 @@ class OnlineGameProvider extends ChangeNotifier {
     final nextEngine = engine.applyMove(move);
     lastMove.value = move;
 
+    // Return to live if user was viewing previous moves
+    if (viewingMoveIndex.value != -1) {
+      viewingMoveIndex.value = -1;
+    }
+
     final newHistory = List<OnlineMoveRecord>.from(moveHistory.value)
       ..add(
         OnlineMoveRecord(
@@ -539,6 +505,11 @@ class OnlineGameProvider extends ChangeNotifier {
     SoundService.instance.playCapture();
     final retaliatedEngine = currentEngine.applyMove(retaliationMove);
     lastMove.value = retaliationMove;
+
+    // Return to live if user was viewing previous moves
+    if (viewingMoveIndex.value != -1) {
+      viewingMoveIndex.value = -1;
+    }
 
     final newHistory = List<OnlineMoveRecord>.from(moveHistory.value)
       ..add(
@@ -644,7 +615,9 @@ class OnlineGameProvider extends ChangeNotifier {
   void resign() {
     if (matchState.value != OnlineMatchState.inMatch) return;
     if (isOffline) {
-      final winnerTeam = myTeam == 'white' ? 'black' : 'white';
+      final winnerTeam = offlinePlayMode == PlayMode.localCoop
+          ? (currentTurn.value == 'white' ? 'black' : 'white')
+          : (myTeam == 'white' ? 'black' : 'white');
       final payload = GameOverPayload(
         matchId: matchId ?? 'offline',
         winnerTeam: winnerTeam,
@@ -689,14 +662,33 @@ class OnlineGameProvider extends ChangeNotifier {
     resetToIdle();
   }
 
-  Future<void> _saveOfflineGameRecord(GameOverPayload payload) async {
-    if (_offlineMatchSaved) return;
-    if (!isOffline || offlinePlayMode != PlayMode.vsAi) return;
-    if (moveHistory.value.length <= 1) return;
-    _offlineMatchSaved = true;
+  MatchRecordModel? _lastOfflineMatchRecord;
+  MatchRecordModel? get lastOfflineMatchRecord => _lastOfflineMatchRecord;
 
-    try {
-      final isPlayerWhite = (offlinePlayerTeam == PieceTeam.white);
+  MatchRecordModel? _createOfflineMatchRecord(GameOverPayload? payload) {
+    if (!isOffline) return null;
+    final isCoop = offlinePlayMode == PlayMode.localCoop;
+    final isPlayerWhite = (offlinePlayerTeam == PieceTeam.white);
+
+    final UserProfile whiteUser;
+    final UserProfile blackUser;
+    final String whitePlayerId;
+    final String blackPlayerId;
+
+    if (isCoop) {
+      whitePlayerId = 'local_white';
+      blackPlayerId = 'local_black';
+      whiteUser = UserProfile(
+        id: 'local_white',
+        username: 'game.playWhite'.tr(),
+        rating: 1200,
+      );
+      blackUser = UserProfile(
+        id: 'local_black',
+        username: 'game.playBlack'.tr(),
+        rating: 1200,
+      );
+    } else {
       final botRating = 1000 + offlineBotDifficulty * 200;
       final botDifficultyNames = ['Easy', 'Medium', 'Hard'];
       final diffName = (offlineBotDifficulty >= 0 && offlineBotDifficulty <= 2)
@@ -716,92 +708,32 @@ class OnlineGameProvider extends ChangeNotifier {
         rating: botRating,
       );
 
-      String? winnerId;
-      if (payload.winnerTeam == 'white') {
-        winnerId = isPlayerWhite ? playerUser.id : 'bot';
-      } else if (payload.winnerTeam == 'black') {
-        winnerId = isPlayerWhite ? 'bot' : playerUser.id;
-      } else {
-        winnerId = null;
-      }
-
-      final moveRecords = moveHistory.value.map((m) {
-        final isPlayer = (m.playerTeam == (offlinePlayerTeam == PieceTeam.white ? 'white' : 'black'));
-        return MoveRecordModel(
-          ply: m.plyIndex,
-          playerId: isPlayer ? playerUser.id : 'bot',
-          piece: m.pieceId,
-          fromCol: m.fromCol,
-          fromRow: m.fromRow,
-          toCol: m.toCol,
-          toRow: m.toRow,
-          timeMs: 0,
-          createdAt: DateTime.now(),
-        );
-      }).toList();
-
-      final record = MatchRecordModel(
-        id: matchId ?? 'offline_${DateTime.now().millisecondsSinceEpoch}',
-        whitePlayerId: isPlayerWhite ? playerUser.id : 'bot',
-        blackPlayerId: isPlayerWhite ? 'bot' : playerUser.id,
-        whitePlayer: isPlayerWhite ? playerUser : botUser,
-        blackPlayer: isPlayerWhite ? botUser : playerUser,
-        winnerId: winnerId,
-        result: payload.result,
-        reason: payload.reason,
-        totalMoves: moveRecords.length,
-        startedAt: _matchStartedAt ?? DateTime.now(),
-        endedAt: DateTime.now(),
-        moves: moveRecords,
-        isOffline: true,
-      );
-
-      _lastOfflineMatchRecord = record;
-      await LocalMatchHistoryService.instance.saveMatch(record);
-    } catch (e) {
-      debugPrint('[OnlineGameProvider] Failed to save offline match: $e');
+      whitePlayerId = isPlayerWhite ? playerUser.id : 'bot';
+      blackPlayerId = isPlayerWhite ? 'bot' : playerUser.id;
+      whiteUser = isPlayerWhite ? playerUser : botUser;
+      blackUser = isPlayerWhite ? botUser : playerUser;
     }
-  }
-
-  MatchRecordModel? _lastOfflineMatchRecord;
-  MatchRecordModel? get lastOfflineMatchRecord => _lastOfflineMatchRecord;
-
-  MatchRecordModel? buildCurrentOfflineMatchRecord(GameOverPayload? payload) {
-    if (!isOffline || offlinePlayMode != PlayMode.vsAi) return null;
-    final isPlayerWhite = (offlinePlayerTeam == PieceTeam.white);
-    final botRating = 1000 + offlineBotDifficulty * 200;
-    final botDifficultyNames = ['Easy', 'Medium', 'Hard'];
-    final diffName = (offlineBotDifficulty >= 0 && offlineBotDifficulty <= 2)
-        ? botDifficultyNames[offlineBotDifficulty]
-        : 'Medium';
-    final botUsername = 'AI Bot ($diffName)';
-
-    final playerUser = UserProfile(
-      id: offlinePlayerId ?? (offlineIsGuest ? 'guest' : 'local_player'),
-      username: offlinePlayerName ?? (offlineIsGuest ? 'Guest' : 'Player'),
-      rating: offlinePlayerRating ?? 1200,
-    );
-
-    final botUser = UserProfile(
-      id: 'bot',
-      username: botUsername,
-      rating: botRating,
-    );
 
     String? winnerId;
     if (payload?.winnerTeam == 'white') {
-      winnerId = isPlayerWhite ? playerUser.id : 'bot';
+      winnerId = whitePlayerId;
     } else if (payload?.winnerTeam == 'black') {
-      winnerId = isPlayerWhite ? 'bot' : playerUser.id;
+      winnerId = blackPlayerId;
     } else {
       winnerId = null;
     }
 
     final moveRecords = moveHistory.value.map((m) {
-      final isPlayer = (m.playerTeam == (offlinePlayerTeam == PieceTeam.white ? 'white' : 'black'));
+      final String pId;
+      if (isCoop) {
+        pId = m.playerTeam == 'white' ? 'local_white' : 'local_black';
+      } else {
+        final isPlayer = (m.playerTeam == (offlinePlayerTeam == PieceTeam.white ? 'white' : 'black'));
+        pId = isPlayer ? (isPlayerWhite ? whitePlayerId : blackPlayerId) : 'bot';
+      }
       return MoveRecordModel(
         ply: m.plyIndex,
-        playerId: isPlayer ? playerUser.id : 'bot',
+        playerId: pId,
         piece: m.pieceId,
         fromCol: m.fromCol,
         fromRow: m.fromRow,
@@ -813,11 +745,11 @@ class OnlineGameProvider extends ChangeNotifier {
     }).toList();
 
     final record = MatchRecordModel(
-      id: matchId ?? 'offline_${DateTime.now().millisecondsSinceEpoch}',
-      whitePlayerId: isPlayerWhite ? playerUser.id : 'bot',
-      blackPlayerId: isPlayerWhite ? 'bot' : playerUser.id,
-      whitePlayer: isPlayerWhite ? playerUser : botUser,
-      blackPlayer: isPlayerWhite ? botUser : playerUser,
+      id: matchId ?? (isCoop ? 'offline-coop-${DateTime.now().millisecondsSinceEpoch}' : 'offline_${DateTime.now().millisecondsSinceEpoch}'),
+      whitePlayerId: whitePlayerId,
+      blackPlayerId: blackPlayerId,
+      whitePlayer: whiteUser,
+      blackPlayer: blackUser,
       winnerId: winnerId,
       result: payload?.result ?? 'in_progress',
       reason: payload?.reason,
@@ -827,8 +759,29 @@ class OnlineGameProvider extends ChangeNotifier {
       moves: moveRecords,
       isOffline: true,
     );
+
     _lastOfflineMatchRecord = record;
     return record;
+  }
+
+  Future<void> _saveOfflineGameRecord(GameOverPayload payload) async {
+    if (_offlineMatchSaved) return;
+    if (!isOffline) return;
+    if (moveHistory.value.length <= 1) return;
+    _offlineMatchSaved = true;
+
+    try {
+      final record = _createOfflineMatchRecord(payload);
+      if (record != null) {
+        await LocalMatchHistoryService.instance.saveMatch(record);
+      }
+    } catch (e) {
+      debugPrint('[OnlineGameProvider] Failed to save offline match: $e');
+    }
+  }
+
+  MatchRecordModel? buildCurrentOfflineMatchRecord(GameOverPayload? payload) {
+    return _createOfflineMatchRecord(payload);
   }
 
   // ─── Active Offline Match Persistence ──────────────────────────────
@@ -991,6 +944,15 @@ class OnlineGameProvider extends ChangeNotifier {
       return;
     }
     if (matchId == null) return;
+    pendingOutgoingRematch.value = PendingOutgoingRematch(
+      matchId: matchId!,
+      opponentId: opponentInfo?.id ?? '',
+      opponentName: opponentInfo?.name ?? 'online.opponent'.tr(),
+      opponentRating: opponentInfo?.rating,
+      opponentAvatarIndex: opponentInfo?.avatarIndex,
+      timeControl: timeControl > 0 ? timeControl : 180000,
+      sentAt: DateTime.now(),
+    );
     isRematchRequested.value = true;
     _ws.send(WsClientType.rematchRequest, {'match_id': matchId});
     notifyListeners();
@@ -998,6 +960,11 @@ class OnlineGameProvider extends ChangeNotifier {
 
   void cancelRematchRequest() {
     isRematchRequested.value = false;
+    final mId = pendingOutgoingRematch.value?.matchId ?? matchId;
+    pendingOutgoingRematch.value = null;
+    if (mId != null && mId.isNotEmpty) {
+      _ws.send(WsClientType.rematchCancel, {'match_id': mId});
+    }
     notifyListeners();
   }
 
@@ -1009,6 +976,8 @@ class OnlineGameProvider extends ChangeNotifier {
     }
     rematchOffer.value = null;
     incomingMatchRequest.value = null;
+    pendingOutgoingRematch.value = null;
+    isRematchRequested.value = false;
     notifyListeners();
   }
 
@@ -1170,9 +1139,29 @@ class OnlineGameProvider extends ChangeNotifier {
     }
   }
 
-  /// Send a draw offer to opponent via in-game chat.
+  /// Send a draw offer to opponent.
   void sendDrawOffer() {
-    sendChat('🏳️ [Draw Offer]');
+    if (isOffline) return;
+    isDrawOfferPending.value = true;
+    _ws.send(WsClientType.drawOffer);
+    notifyListeners();
+  }
+
+  /// Accept an incoming draw offer from opponent.
+  void acceptDrawOffer() {
+    if (isOffline) return;
+    drawOffer.value = null;
+    isDrawOfferPending.value = false;
+    _ws.send(WsClientType.drawAccept);
+    notifyListeners();
+  }
+
+  /// Decline an incoming draw offer from opponent.
+  void declineDrawOffer() {
+    if (isOffline) return;
+    drawOffer.value = null;
+    _ws.send(WsClientType.drawDecline);
+    notifyListeners();
   }
 
   // ─── Chat Panel ───────────────────────────────────────────────────
@@ -1301,6 +1290,7 @@ class OnlineGameProvider extends ChangeNotifier {
 
       case WsServerType.rematchAccepted:
         isRematchRequested.value = false;
+        pendingOutgoingRematch.value = null;
         rematchOffer.value = null;
         incomingMatchRequest.value = null;
         notifyListeners();
@@ -1310,8 +1300,9 @@ class OnlineGameProvider extends ChangeNotifier {
         final rematchDecliner = (msg.payload != null && msg.payload!['decliner_name'] != null)
             ? msg.payload!['decliner_name'] as String
             : (opponentInfo?.name ?? '');
-        if (isRematchRequested.value) {
+        if (isRematchRequested.value || pendingOutgoingRematch.value != null) {
           isRematchRequested.value = false;
+          pendingOutgoingRematch.value = null;
           KitaToast.info('online.rematchDeclinedToast'.tr());
         }
         if (incomingMatchRequest.value?.type == IncomingMatchRequestType.rematch) {
@@ -1321,6 +1312,20 @@ class OnlineGameProvider extends ChangeNotifier {
           'type': 'rematch_declined',
           'decliner': rematchDecliner,
         };
+        notifyListeners();
+
+      case WsServerType.drawOffered:
+        if (msg.payload != null) {
+          final payload = DrawOfferPayload.fromJson(msg.payload!);
+          drawOffer.value = payload;
+          KitaToast.info('online.drawOfferReceived'.tr(args: [payload.username]));
+          notifyListeners();
+        }
+
+      case WsServerType.drawDeclined:
+        isDrawOfferPending.value = false;
+        drawOffer.value = null;
+        KitaToast.info('online.drawOfferDeclined'.tr());
         notifyListeners();
 
       case WsServerType.matchInvitationSent:
@@ -1422,6 +1427,12 @@ class OnlineGameProvider extends ChangeNotifier {
         };
         notifyListeners();
 
+      case WsServerType.friendPresence:
+        if (msg.payload != null) {
+          onWsFriendPresence.value = msg.payload;
+          notifyListeners();
+        }
+
       case WsServerType.error:
         _handleError(msg.payload);
 
@@ -1450,24 +1461,71 @@ class OnlineGameProvider extends ChangeNotifier {
 
     // Clear rematch & invite requests
     isRematchRequested.value = false;
+    pendingOutgoingRematch.value = null;
     incomingMatchRequest.value = null;
     rematchOffer.value = null;
     matchInvitation.value = null;
+    drawOffer.value = null;
+    isDrawOfferPending.value = false;
 
-    // Reset game state
-    gameEngine.value = KitaGameEngine();
-    legalMoves.value = [];
-    lastMove.value = null;
-    moveHistory.value = [];
-    chatMessages.value = [];
-    unreadChatCount.value = 0;
-    viewingMoveIndex.value = -1;
-    gameOverData.value = null;
-    rematchOffer.value = null;
-    elapsedSeconds.value = 0;
-    isChatOpen = true;
-    _engineSnapshots.clear();
-    _engineSnapshots.add(KitaGameEngine()); // Initial state at index 0
+    if (data.isReconnect) {
+      // Reconnected match: restore move history, snapshots, chat, and elapsed time!
+      final moves = data.moveHistory;
+      var engine = KitaGameEngine();
+      _engineSnapshots.clear();
+      _engineSnapshots.add(engine.clone());
+      KitaMove? lastM;
+
+      for (final rec in moves) {
+        final km = KitaMove(
+          pieceId: rec.pieceId,
+          fromPos: KitaPos(rec.fromCol, rec.fromRow),
+          toPos: KitaPos(rec.toCol, rec.toRow),
+        );
+        engine = engine.applyMove(km);
+        _engineSnapshots.add(engine.clone());
+        lastM = km;
+      }
+
+      gameEngine.value = engine;
+      lastMove.value = lastM;
+      moveHistory.value = moves;
+      viewingMoveIndex.value = -1;
+
+      chatMessages.value = data.chatHistory;
+      unreadChatCount.value = 0;
+      gameOverData.value = null;
+      isChatOpen = true;
+
+      if (data.startedAt != null) {
+        _matchStartedAt = data.startedAt;
+        elapsedSeconds.value =
+            DateTime.now().difference(data.startedAt!).inSeconds;
+      } else if (data.elapsedSeconds > 0) {
+        _matchStartedAt = DateTime.now()
+            .subtract(Duration(seconds: data.elapsedSeconds));
+        elapsedSeconds.value = data.elapsedSeconds;
+      } else {
+        _matchStartedAt = DateTime.now();
+        elapsedSeconds.value = 0;
+      }
+    } else {
+      // Fresh new match: Reset game state
+      gameEngine.value = KitaGameEngine();
+      legalMoves.value = [];
+      lastMove.value = null;
+      moveHistory.value = [];
+      chatMessages.value = [];
+      unreadChatCount.value = 0;
+      viewingMoveIndex.value = -1;
+      gameOverData.value = null;
+      rematchOffer.value = null;
+      elapsedSeconds.value = 0;
+      isChatOpen = true;
+      _engineSnapshots.clear();
+      _engineSnapshots.add(KitaGameEngine()); // Initial state at index 0
+      _matchStartedAt = data.startedAt ?? DateTime.now();
+    }
 
     // Initialize clock
     whiteRemainingMs.value = timeControl;
@@ -1490,6 +1548,16 @@ class OnlineGameProvider extends ChangeNotifier {
     whiteRemainingMs.value = data.whiteRemainingMs;
     blackRemainingMs.value = data.blackRemainingMs;
     currentTurn.value = data.turn;
+
+    if (data.startedAt != null) {
+      _matchStartedAt = data.startedAt;
+      elapsedSeconds.value =
+          DateTime.now().difference(data.startedAt!).inSeconds;
+    } else if (data.elapsedSeconds > 0 && elapsedSeconds.value == 0) {
+      _matchStartedAt = DateTime.now()
+          .subtract(Duration(seconds: data.elapsedSeconds));
+      elapsedSeconds.value = data.elapsedSeconds;
+    }
 
     // Detect new move and play sound before frontend engine is updated
     final isSingleNewMove = data.moveCount - moveHistory.value.length == 1;
@@ -1534,8 +1602,16 @@ class OnlineGameProvider extends ChangeNotifier {
       );
     }
 
-    // Track move history
+    // Track move history & return to live automatically on new move
     if (data.moveCount > moveHistory.value.length && data.lastMove != null) {
+      drawOffer.value = null;
+      isDrawOfferPending.value = false;
+
+      // If user was viewing move history, return to live automatically
+      if (viewingMoveIndex.value != -1) {
+        viewingMoveIndex.value = -1;
+      }
+
       final lm = data.lastMove!;
       final team = data.turn == 'white' ? 'black' : 'white'; // Just moved
       final newHistory = List<OnlineMoveRecord>.from(moveHistory.value)
@@ -1599,8 +1675,11 @@ class OnlineGameProvider extends ChangeNotifier {
 
     gameOverData.value = data;
     matchState.value = OnlineMatchState.gameOver;
+    drawOffer.value = null;
+    isDrawOfferPending.value = false;
     _stopClockTimer();
     SoundService.instance.playGameOver();
+    LocalMatchHistoryService.instance.notifyMatchesChanged();
     notifyListeners();
   }
 
@@ -1713,6 +1792,48 @@ class OnlineGameProvider extends ChangeNotifier {
 
   // ─── Reset ────────────────────────────────────────────────────────
 
+  /// Leaves a finished match to return to dashboard.
+  /// Preserves pending rematch request so it appears in dashboard priority card.
+  void leaveFinishedMatch() {
+    clearError();
+    matchState.value = OnlineMatchState.idle;
+    roomCode.value = null;
+    isRoomPrivate = false;
+    timeControl = 0;
+    gameEngine.value = KitaGameEngine();
+    legalMoves.value = [];
+    lastMove.value = null;
+    moveHistory.value = [];
+    viewingMoveIndex.value = -1;
+    chatMessages.value = [];
+    unreadChatCount.value = 0;
+    isChatOpen = true;
+    gameOverData.value = null;
+    drawOffer.value = null;
+    isDrawOfferPending.value = false;
+    isGameOverDialogActive.value = false;
+    isReconnectedMatch.value = false;
+    elapsedSeconds.value = 0;
+    whiteRemainingMs.value = 0;
+    blackRemainingMs.value = 0;
+    if (isOffline) {
+      _clearPersistedActiveOfflineMatch();
+    }
+    isOffline = false;
+    offlinePlayerId = null;
+    offlinePlayerName = null;
+    offlinePlayerRating = null;
+    offlineIsGuest = false;
+    _offlineMatchSaved = false;
+    isAiThinking.value = false;
+    _engineSnapshots.clear();
+    _matchStartedAt = null;
+    _stopClockTimer();
+    _stopQueueTimer();
+    LocalMatchHistoryService.instance.notifyMatchesChanged();
+    notifyListeners();
+  }
+
   /// Reset all state back to idle (e.g., going back to dashboard).
   void resetToIdle() {
     clearError();
@@ -1732,10 +1853,13 @@ class OnlineGameProvider extends ChangeNotifier {
     unreadChatCount.value = 0;
     isChatOpen = true;
     gameOverData.value = null;
+    drawOffer.value = null;
+    isDrawOfferPending.value = false;
     rematchOffer.value = null;
     matchInvitation.value = null;
     incomingMatchRequest.value = null;
     isRematchRequested.value = false;
+    pendingOutgoingRematch.value = null;
     isGameOverDialogActive.value = false;
     pendingOutgoingChallenge.value = null;
     isReconnectedMatch.value = false;
@@ -1756,6 +1880,7 @@ class OnlineGameProvider extends ChangeNotifier {
     _matchStartedAt = null;
     _stopClockTimer();
     _stopQueueTimer();
+    LocalMatchHistoryService.instance.notifyMatchesChanged();
     notifyListeners();
   }
 

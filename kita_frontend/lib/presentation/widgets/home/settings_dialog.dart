@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
+import 'game_guide_dialog.dart';
 import 'match_settings_dialog.dart';
 
 class SettingsDialog extends StatelessWidget {
@@ -147,6 +148,27 @@ class SettingsDialog extends StatelessWidget {
                       onTap: () {
                         Navigator.of(context).pop();
                         MatchSettingsDialog.show(context);
+                      },
+                      trailing: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- Game Guide / How to Play ---
+                    _buildSettingsTile(
+                      isDark: isDark,
+                      icon: Icons.menu_book_rounded,
+                      iconColor: AppColors.accentGold,
+                      title: 'settings.rulesGuide'.tr(),
+                      subtitle: 'settings.rulesGuideDesc'.tr(),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        GameGuideDialog.show(context, fromSettings: true);
                       },
                       trailing: Icon(
                         Icons.arrow_forward_ios_rounded,

@@ -50,11 +50,15 @@ type Room struct {
 	// Rematch tracking
 	RematchRequester string // UserID of who requested rematch
 
+	// Draw offer tracking
+	DrawOfferBy string // UserID of who offered draw
+
 	// Disconnect / Reconnect grace period
 	disconnectPlayerID string
 	disconnectTimer    *time.Timer
 
 	StartedAt    time.Time
+	ChatHistory  []ChatBroadcastDTO
 	mu           sync.RWMutex
 	matchService ports.MatchService
 	isFinished   bool
@@ -81,6 +85,7 @@ func NewRoomWithTimeControl(id string, white, black *Client, timeControl int64, 
 		BlackRemainingMs: timeControl,
 		turnStartedAt:    now,
 		StartedAt:        now,
+		ChatHistory:      make([]ChatBroadcastDTO, 0, 16),
 		matchService:     matchService,
 		hub:              hub,
 	}
@@ -107,6 +112,7 @@ func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, timeContro
 		WhiteRemainingMs: timeControl,
 		BlackRemainingMs: timeControl,
 		StartedAt:        now,
+		ChatHistory:      make([]ChatBroadcastDTO, 0, 16),
 		matchService:     matchService,
 		hub:              hub,
 	}
@@ -159,6 +165,8 @@ func (r *Room) startLocked() {
 		OpponentRating:      r.BlackPlayer.Rating,
 		OpponentAvatarIndex: r.BlackPlayer.AvatarIndex,
 		TimeControl:         r.TimeControl,
+		StartedAt:           &r.StartedAt,
+		ElapsedSeconds:      0,
 	})
 
 	r.BlackPlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
@@ -169,6 +177,8 @@ func (r *Room) startLocked() {
 		OpponentRating:      r.WhitePlayer.Rating,
 		OpponentAvatarIndex: r.WhitePlayer.AvatarIndex,
 		TimeControl:         r.TimeControl,
+		StartedAt:           &r.StartedAt,
+		ElapsedSeconds:      0,
 	})
 
 	// 2. İlk chess clock timeout'u başlatılır (beyazın sırası)
@@ -347,6 +357,25 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 		return nil
 	}
 
+	// If the opponent offered a draw, making a move implicitly declines it
+	if r.DrawOfferBy != "" {
+		if r.DrawOfferBy != playerID {
+			var requester *Client
+			if r.DrawOfferBy == r.WhitePlayer.UserID {
+				requester = r.WhitePlayer
+			} else {
+				requester = r.BlackPlayer
+			}
+			if requester != nil {
+				requester.SendJSON(TypeDrawDeclined, DrawDeclinedDTO{
+					MatchID:  r.ID,
+					PlayerID: playerID,
+				})
+			}
+		}
+		r.DrawOfferBy = ""
+	}
+
 	// 8. Otomatik karşı misilleme kontrolü (Last-Stand Defense Auto Retaliation)
 	retaliationMove := r.Game.GetKingRetaliationMove()
 	if retaliationMove != nil {
@@ -451,6 +480,103 @@ func (r *Room) Resign(playerID string) error {
 
 	log.Printf("[Room %s] Player %s resigned. Winner: %s (%s)", r.ID, playerID, winnerTeam, *winnerID)
 	r.finishWithExplicitWinnerLocked(winnerID, winnerTeam, result, domain.ReasonResigned)
+	return nil
+}
+
+// ─── Draw Offer ───────────────────────────────────────────────────────
+
+func (r *Room) OfferDraw(playerID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.isFinished {
+		return ErrGameFinished
+	}
+
+	if playerID != r.WhitePlayer.UserID && playerID != r.BlackPlayer.UserID {
+		return ErrNotInMatch
+	}
+
+	if r.DrawOfferBy == playerID {
+		return nil // Already offered
+	}
+
+	r.DrawOfferBy = playerID
+
+	var opponent *Client
+	var offeringPlayer *Client
+	if playerID == r.WhitePlayer.UserID {
+		opponent = r.BlackPlayer
+		offeringPlayer = r.WhitePlayer
+	} else {
+		opponent = r.WhitePlayer
+		offeringPlayer = r.BlackPlayer
+	}
+
+	if opponent != nil {
+		opponent.SendJSON(TypeDrawOffered, DrawOfferedDTO{
+			MatchID:  r.ID,
+			PlayerID: playerID,
+			Username: offeringPlayer.Username,
+		})
+	}
+
+	return nil
+}
+
+func (r *Room) AcceptDraw(playerID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.isFinished {
+		return ErrGameFinished
+	}
+
+	if playerID != r.WhitePlayer.UserID && playerID != r.BlackPlayer.UserID {
+		return ErrNotInMatch
+	}
+
+	if r.DrawOfferBy == "" || r.DrawOfferBy == playerID {
+		return errors.New("no active draw offer to accept")
+	}
+
+	log.Printf("[Room %s] Draw offer accepted by %s", r.ID, playerID)
+	r.DrawOfferBy = ""
+	r.finishWithExplicitWinnerLocked(nil, "draw", string(domain.ResultDraw), domain.ReasonDrawAgreement)
+	return nil
+}
+
+func (r *Room) DeclineDraw(playerID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.isFinished {
+		return nil
+	}
+
+	if playerID != r.WhitePlayer.UserID && playerID != r.BlackPlayer.UserID {
+		return ErrNotInMatch
+	}
+
+	if r.DrawOfferBy != "" && r.DrawOfferBy != playerID {
+		requesterID := r.DrawOfferBy
+		r.DrawOfferBy = ""
+
+		var requester *Client
+		if requesterID == r.WhitePlayer.UserID {
+			requester = r.WhitePlayer
+		} else {
+			requester = r.BlackPlayer
+		}
+
+		if requester != nil {
+			requester.SendJSON(TypeDrawDeclined, DrawDeclinedDTO{
+				MatchID:  r.ID,
+				PlayerID: playerID,
+			})
+		}
+	}
+
 	return nil
 }
 
@@ -583,6 +709,31 @@ func (r *Room) HandleReconnect(client *Client) bool {
 		oppAvatar = opp.AvatarIndex
 	}
 
+	elapsedSec := 0
+	if !r.StartedAt.IsZero() {
+		elapsedSec = int(time.Since(r.StartedAt).Seconds())
+	}
+
+	moveHistoryDTOs := make([]MoveRecordDTO, 0, len(r.MovesBuffer))
+	for _, m := range r.MovesBuffer {
+		team := "white"
+		if len(m.PieceID) > 0 && m.PieceID[0] == 'B' {
+			team = "black"
+		}
+		moveHistoryDTOs = append(moveHistoryDTOs, MoveRecordDTO{
+			PlyIndex:   m.PlyIndex,
+			PieceID:    m.PieceID,
+			FromCol:    m.FromCol,
+			FromRow:    m.FromRow,
+			ToCol:      m.ToCol,
+			ToRow:      m.ToRow,
+			PlayerTeam: team,
+		})
+	}
+
+	chatHistoryCopy := make([]ChatBroadcastDTO, len(r.ChatHistory))
+	copy(chatHistoryCopy, r.ChatHistory)
+
 	client.SendJSON(TypeMatchFound, MatchFoundDTO{
 		MatchID:             r.ID,
 		YourTeam:            team,
@@ -592,6 +743,10 @@ func (r *Room) HandleReconnect(client *Client) bool {
 		OpponentAvatarIndex: oppAvatar,
 		TimeControl:         r.TimeControl,
 		IsReconnect:         true,
+		StartedAt:           &r.StartedAt,
+		ElapsedSeconds:      elapsedSec,
+		MoveHistory:         moveHistoryDTOs,
+		ChatHistory:         chatHistoryCopy,
 	})
 
 	// Send authoritative current game state
@@ -631,6 +786,7 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 	}
 	r.isFinished = true
 	r.Status = "finished"
+	r.DrawOfferBy = ""
 	now := time.Now()
 
 	// Stop chess clock timer
@@ -769,6 +925,11 @@ func (r *Room) sendStateToClientLocked(client *Client) {
 		}
 	}
 
+	elapsedSeconds := 0
+	if !r.StartedAt.IsZero() {
+		elapsedSeconds = int(time.Since(r.StartedAt).Seconds())
+	}
+
 	stateDTO := GameStateDTO{
 		MatchID:          r.ID,
 		Turn:             r.Game.Turn,
@@ -782,6 +943,8 @@ func (r *Room) sendStateToClientLocked(client *Client) {
 		BlackRemainingMs: blackRemaining,
 		TimeControl:      r.TimeControl,
 		LastMove:         r.LastMoveDTO,
+		StartedAt:        &r.StartedAt,
+		ElapsedSeconds:   elapsedSeconds,
 	}
 
 	client.SendJSON(TypeGameState, stateDTO)
@@ -798,8 +961,8 @@ func (r *Room) broadcastStateLocked() {
 // ─── Chat ─────────────────────────────────────────────────────────────
 
 func (r *Room) BroadcastChat(senderID, senderName, content string) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	if r.Status == "waiting" {
 		return
@@ -813,8 +976,14 @@ func (r *Room) BroadcastChat(senderID, senderName, content string) {
 		CreatedAt: time.Now(),
 	}
 
-	r.WhitePlayer.SendJSON(TypeChatBroadcast, chatDTO)
-	r.BlackPlayer.SendJSON(TypeChatBroadcast, chatDTO)
+	r.ChatHistory = append(r.ChatHistory, chatDTO)
+
+	if r.WhitePlayer != nil {
+		r.WhitePlayer.SendJSON(TypeChatBroadcast, chatDTO)
+	}
+	if r.BlackPlayer != nil {
+		r.BlackPlayer.SendJSON(TypeChatBroadcast, chatDTO)
+	}
 	for _, spec := range r.Spectators {
 		spec.SendJSON(TypeChatBroadcast, chatDTO)
 	}

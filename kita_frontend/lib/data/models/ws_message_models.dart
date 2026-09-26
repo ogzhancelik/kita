@@ -20,12 +20,16 @@ class WsClientType {
   static const String rematchRequest = 'rematch_request';
   static const String rematchAccept = 'rematch_accept';
   static const String rematchDecline = 'rematch_decline';
+  static const String rematchCancel = 'rematch_cancel';
   static const String inviteToMatch = 'invite_to_match';
   static const String acceptInvitation = 'accept_invitation';
   static const String declineInvitation = 'decline_invitation';
   static const String cancelInvitation = 'cancel_invitation';
   static const String leaveRoom = 'leave_room';
   static const String updateAvatar = 'update_avatar';
+  static const String drawOffer = 'draw_offer';
+  static const String drawAccept = 'draw_accept';
+  static const String drawDecline = 'draw_decline';
 }
 
 /// Server → Client message types
@@ -55,7 +59,10 @@ class WsServerType {
   static const String friendRequest = 'friend_request';
   static const String friendRequestDeclined = 'friend_request_declined';
   static const String friendRequestAccepted = 'friend_request_accepted';
+  static const String friendPresence = 'friend_presence';
   static const String matchClosed = 'match_closed';
+  static const String drawOffered = 'draw_offered';
+  static const String drawDeclined = 'draw_declined';
 }
 
 // ─── Time Control Presets (ms) ────────────────────────────────────────
@@ -140,6 +147,88 @@ class ConnectedPayload {
   }
 }
 
+// ─── Online Move Record ───────────────────────────────────────────────
+
+class OnlineMoveRecord {
+  final int plyIndex;
+  final String pieceId;
+  final int fromCol;
+  final int fromRow;
+  final int toCol;
+  final int toRow;
+  final String playerTeam; // "white" or "black"
+
+  const OnlineMoveRecord({
+    required this.plyIndex,
+    required this.pieceId,
+    required this.fromCol,
+    required this.fromRow,
+    required this.toCol,
+    required this.toRow,
+    required this.playerTeam,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'plyIndex': plyIndex,
+    'pieceId': pieceId,
+    'fromCol': fromCol,
+    'fromRow': fromRow,
+    'toCol': toCol,
+    'toRow': toRow,
+    'playerTeam': playerTeam,
+  };
+
+  factory OnlineMoveRecord.fromJson(Map<String, dynamic> json) {
+    final piece = (json['pieceId'] as String?) ??
+        (json['piece_id'] as String?) ??
+        (json['piece'] as String?) ??
+        '';
+    String team = (json['playerTeam'] as String?) ??
+        (json['player_team'] as String?) ??
+        '';
+    if (team.isEmpty) {
+      team = piece.startsWith('W') ? 'white' : 'black';
+    }
+
+    return OnlineMoveRecord(
+      plyIndex: (json['plyIndex'] as num?)?.toInt() ??
+          (json['ply_index'] as num?)?.toInt() ??
+          (json['ply'] as num?)?.toInt() ??
+          0,
+      pieceId: piece,
+      fromCol: (json['fromCol'] as num?)?.toInt() ??
+          (json['from_col'] as num?)?.toInt() ??
+          0,
+      fromRow: (json['fromRow'] as num?)?.toInt() ??
+          (json['from_row'] as num?)?.toInt() ??
+          0,
+      toCol: (json['toCol'] as num?)?.toInt() ??
+          (json['to_col'] as num?)?.toInt() ??
+          0,
+      toRow: (json['toRow'] as num?)?.toInt() ??
+          (json['to_row'] as num?)?.toInt() ??
+          0,
+      playerTeam: team,
+    );
+  }
+}
+
+// ─── Chat Message ─────────────────────────────────────────────────────
+
+class ChatMessage {
+  final String senderId;
+  final String username;
+  final String content;
+  final DateTime createdAt;
+
+  const ChatMessage({
+    required this.senderId,
+    required this.username,
+    required this.content,
+    required this.createdAt,
+  });
+}
+
 // ─── Match Found Payload ──────────────────────────────────────────────
 
 class MatchFoundPayload {
@@ -151,6 +240,10 @@ class MatchFoundPayload {
   final int opponentAvatarIndex;
   final int timeControl;
   final bool isReconnect;
+  final DateTime? startedAt;
+  final int elapsedSeconds;
+  final List<OnlineMoveRecord> moveHistory;
+  final List<ChatMessage> chatHistory;
 
   const MatchFoundPayload({
     required this.matchId,
@@ -161,9 +254,40 @@ class MatchFoundPayload {
     this.opponentAvatarIndex = 0,
     required this.timeControl,
     this.isReconnect = false,
+    this.startedAt,
+    this.elapsedSeconds = 0,
+    this.moveHistory = const [],
+    this.chatHistory = const [],
   });
 
   factory MatchFoundPayload.fromJson(Map<String, dynamic> json) {
+    DateTime? started;
+    if (json['started_at'] != null) {
+      started = DateTime.tryParse(json['started_at'].toString());
+    }
+
+    final rawMoves = json['move_history'] as List<dynamic>? ?? [];
+    final moves = rawMoves
+        .map((m) => OnlineMoveRecord.fromJson(m as Map<String, dynamic>))
+        .toList();
+
+    final rawChat = json['chat_history'] as List<dynamic>? ?? [];
+    final chat = rawChat.map((c) {
+      final map = c as Map<String, dynamic>;
+      DateTime created;
+      if (map['created_at'] != null) {
+        created = DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now();
+      } else {
+        created = DateTime.now();
+      }
+      return ChatMessage(
+        senderId: map['sender_id'] as String? ?? '',
+        username: map['username'] as String? ?? '',
+        content: map['content'] as String? ?? '',
+        createdAt: created,
+      );
+    }).toList();
+
     return MatchFoundPayload(
       matchId: json['match_id'] as String? ?? '',
       yourTeam: json['your_team'] as String? ?? 'white',
@@ -173,6 +297,10 @@ class MatchFoundPayload {
       opponentAvatarIndex: (json['opponent_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       isReconnect: json['is_reconnect'] as bool? ?? false,
+      startedAt: started,
+      elapsedSeconds: (json['elapsed_seconds'] as num?)?.toInt() ?? 0,
+      moveHistory: moves,
+      chatHistory: chat,
     );
   }
 }
@@ -232,6 +360,8 @@ class GameStatePayload {
   final int blackRemainingMs;
   final int timeControl;
   final MoveDtoPayload? lastMove;
+  final DateTime? startedAt;
+  final int elapsedSeconds;
 
   const GameStatePayload({
     required this.matchId,
@@ -245,11 +375,18 @@ class GameStatePayload {
     required this.blackRemainingMs,
     required this.timeControl,
     this.lastMove,
+    this.startedAt,
+    this.elapsedSeconds = 0,
   });
 
   factory GameStatePayload.fromJson(Map<String, dynamic> json) {
     final rawMoves = json['legal_moves'] as List<dynamic>? ?? [];
     final lmJson = json['last_move'] as Map<String, dynamic>?;
+    DateTime? started;
+    if (json['started_at'] != null) {
+      started = DateTime.tryParse(json['started_at'].toString());
+    }
+
     return GameStatePayload(
       matchId: json['match_id'] as String? ?? '',
       turn: json['turn'] as String? ?? 'white',
@@ -264,6 +401,8 @@ class GameStatePayload {
       blackRemainingMs: (json['black_remaining_ms'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       lastMove: lmJson != null ? MoveDtoPayload.fromJson(lmJson) : null,
+      startedAt: started,
+      elapsedSeconds: (json['elapsed_seconds'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -580,5 +719,75 @@ class IncomingMatchRequest {
     this.colorPreference = 'random',
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
+}
+
+class PendingOutgoingRematch {
+  final String matchId;
+  final String opponentId;
+  final String opponentName;
+  final int? opponentRating;
+  final int? opponentAvatarIndex;
+  final int timeControl;
+  final DateTime sentAt;
+
+  const PendingOutgoingRematch({
+    required this.matchId,
+    required this.opponentId,
+    required this.opponentName,
+    this.opponentRating,
+    this.opponentAvatarIndex,
+    required this.timeControl,
+    required this.sentAt,
+  });
+}
+
+// ─── Draw Offer Payloads ──────────────────────────────────────────────
+
+class DrawOfferPayload {
+  final String matchId;
+  final String playerId;
+  final String username;
+
+  const DrawOfferPayload({
+    required this.matchId,
+    required this.playerId,
+    required this.username,
+  });
+
+  factory DrawOfferPayload.fromJson(Map<String, dynamic> json) {
+    return DrawOfferPayload(
+      matchId: json['match_id'] as String? ?? '',
+      playerId: json['player_id'] as String? ?? '',
+      username: json['username'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'match_id': matchId,
+    'player_id': playerId,
+    'username': username,
+  };
+}
+
+class DrawDeclinedPayload {
+  final String matchId;
+  final String playerId;
+
+  const DrawDeclinedPayload({
+    required this.matchId,
+    required this.playerId,
+  });
+
+  factory DrawDeclinedPayload.fromJson(Map<String, dynamic> json) {
+    return DrawDeclinedPayload(
+      matchId: json['match_id'] as String? ?? '',
+      playerId: json['player_id'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'match_id': matchId,
+    'player_id': playerId,
+  };
 }
 

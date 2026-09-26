@@ -7,7 +7,6 @@ import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/matchmaking/activity_conflict_dialog.dart';
 import '../../widgets/room/room_dialog.dart';
-import '../game/online_match_screen.dart';
 
 /// Screen displaying public, joinable game rooms with server-side pagination.
 class RoomBrowserScreen extends StatefulWidget {
@@ -69,18 +68,6 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
       });
     }
 
-    // Navigate to game if match starts
-    if (provider.matchState.value == OnlineMatchState.inMatch) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const OnlineMatchScreen(),
-            ),
-          );
-        }
-      });
-    }
 
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),

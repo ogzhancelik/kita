@@ -11,7 +11,6 @@ import '../../providers/online_game_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
-import '../game/online_match_screen.dart';
 
 /// Screen managing friends list, incoming/outgoing requests, and direct challenges.
 class FriendsScreen extends StatefulWidget {
@@ -56,16 +55,6 @@ class _FriendsScreenState extends State<FriendsScreen>
         .where((n) => n.type == KitaNotificationType.friendRequest)
         .length;
 
-    // Navigate to match if online match starts
-    if (onlineProv.matchState.value == OnlineMatchState.inMatch) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const OnlineMatchScreen()),
-          );
-        }
-      });
-    }
 
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),
@@ -186,7 +175,7 @@ class _FriendsScreenState extends State<FriendsScreen>
             friend: friend,
             isDark: isDark,
             onInvite: () => _inviteFriendToMatch(context, onlineProv, friend),
-            onRemove: () => friendsProv.removeFriend(friend.userId),
+            onRemove: () => _confirmRemoveFriend(context, friendsProv, friend),
             onTap: () {
               UserProfileDialog.show(
                 context,
@@ -315,6 +304,59 @@ class _FriendsScreenState extends State<FriendsScreen>
       context: context,
       friend: friend,
       onlineProv: onlineProv,
+    );
+  }
+
+  void _confirmRemoveFriend(
+    BuildContext context,
+    FriendsProvider provider,
+    FriendItemModel friend,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.getCard(isDark),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.getBorder(isDark)),
+        ),
+        title: Text(
+          'online.removeFriend'.tr(),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.getTextPrimary(isDark),
+          ),
+        ),
+        content: Text(
+          'online.removeFriendConfirm'.tr(args: [friend.username]),
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.getTextSecondary(isDark),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'online.cancel'.tr(),
+              style: TextStyle(color: AppColors.getTextMuted(isDark)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              provider.removeFriend(friend.userId);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text('online.removeFriend'.tr()),
+          ),
+        ],
+      ),
     );
   }
 
@@ -476,80 +518,64 @@ class _FriendCard extends StatelessWidget {
                           fontSize: 14,
                           color: AppColors.getTextPrimary(isDark),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            '★ ${friend.rating}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.ratingGold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: friend.isOnline ? AppColors.online : AppColors.drawGray,
-                              shape: BoxShape.circle,
-                              boxShadow: friend.isOnline
-                                  ? [
-                                      BoxShadow(
-                                        color: AppColors.online.withValues(alpha: 0.5),
-                                        blurRadius: 2,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            friend.isOnline ? 'online.onlineStatus'.tr() : 'online.offlineStatus'.tr(),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: friend.isOnline ? FontWeight.w600 : FontWeight.normal,
-                              color: friend.isOnline
-                                  ? AppColors.online
-                                  : AppColors.getTextMuted(isDark),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        '★ ${friend.rating}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.ratingGold,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: onInvite,
-                  icon: Icon(
-                    Icons.sports_esports,
-                    size: 16,
-                    color: friend.isOnline ? AppColors.darkTextPrimary : AppColors.getTextSecondary(isDark),
-                  ),
-                  label: Text(
-                    'online.sendInvite'.tr(),
-                    style: TextStyle(
-                      color: friend.isOnline ? AppColors.darkTextPrimary : AppColors.getTextSecondary(isDark),
-                      fontWeight: friend.isOnline ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: friend.isOnline ? AppColors.primaryGreen : AppColors.getSurface(isDark),
-                    elevation: friend.isOnline ? 1 : 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: friend.isOnline
-                          ? BorderSide.none
-                          : BorderSide(color: AppColors.getBorder(isDark)),
+                const SizedBox(width: 8),
+
+                // Quick Invite Button
+                Tooltip(
+                  message: 'online.sendInvite'.tr(),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onInvite,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: friend.isOnline
+                              ? AppColors.primaryGreen.withValues(alpha: 0.15)
+                              : AppColors.getSurface(isDark),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: friend.isOnline
+                                ? AppColors.primaryGreen.withValues(alpha: 0.4)
+                                : AppColors.getBorder(isDark),
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.sports_esports_rounded,
+                          size: 18,
+                          color: friend.isOnline
+                              ? AppColors.primaryGreen
+                              : AppColors.getTextSecondary(isDark),
+                        ),
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(width: 4),
+
+                // Remove Friend Button
                 IconButton(
-                  icon: const Icon(Icons.more_vert, size: 18),
+                  tooltip: 'online.removeFriend'.tr(),
+                  icon: const Icon(Icons.person_remove_rounded, size: 20),
                   color: AppColors.getTextMuted(isDark),
+                  hoverColor: AppColors.error.withValues(alpha: 0.1),
+                  splashRadius: 20,
                   onPressed: onRemove,
                 ),
               ],

@@ -36,4 +36,28 @@ class FriendItemModel {
           DateTime.now(),
     );
   }
+
+  FriendItemModel copyWith({
+    String? friendshipId,
+    String? userId,
+    String? username,
+    int? avatarIndex,
+    int? rating,
+    String? status,
+    String? direction,
+    bool? isOnline,
+    DateTime? createdAt,
+  }) {
+    return FriendItemModel(
+      friendshipId: friendshipId ?? this.friendshipId,
+      userId: userId ?? this.userId,
+      username: username ?? this.username,
+      avatarIndex: avatarIndex ?? this.avatarIndex,
+      rating: rating ?? this.rating,
+      status: status ?? this.status,
+      direction: direction ?? this.direction,
+      isOnline: isOnline ?? this.isOnline,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

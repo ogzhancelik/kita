@@ -96,6 +96,68 @@ class MatchRecordModel {
   bool get isBlackWinner => winnerId != null && winnerId == blackPlayerId;
   bool get isDraw => result == 'draw';
 
+  bool get isLocalCoop =>
+      id.contains('coop') ||
+      (whitePlayerId == 'local_white' && blackPlayerId == 'local_black') ||
+      whitePlayer?.id == 'local_white' ||
+      blackPlayer?.id == 'local_black';
+
+  bool get isVsAi =>
+      !isLocalCoop &&
+      (whitePlayerId == 'bot' ||
+          blackPlayerId == 'bot' ||
+          whitePlayer?.id == 'bot' ||
+          blackPlayer?.id == 'bot' ||
+          (whitePlayer?.username.toLowerCase().contains('bot') ?? false) ||
+          (blackPlayer?.username.toLowerCase().contains('bot') ?? false));
+
+  /// Returns true if the user played as White.
+  bool isUserWhite(String? currentUserId) {
+    if (isLocalCoop) return true;
+    if (isVsAi) {
+      if (whitePlayerId == 'bot' ||
+          whitePlayer?.id == 'bot' ||
+          (whitePlayer?.username.toLowerCase().contains('bot') ?? false)) {
+        return false;
+      }
+      return true;
+    }
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      return whitePlayerId == currentUserId;
+    }
+    return true;
+  }
+
+  /// Returns true if the user won the match.
+  bool isUserWinner(String? currentUserId) {
+    if (isDraw || winnerId == null) return false;
+    if (isLocalCoop) return false;
+    if (isVsAi) {
+      final userWhite = isUserWhite(currentUserId);
+      final botId = userWhite ? blackPlayerId : whitePlayerId;
+      return winnerId != botId && winnerId != 'bot';
+    }
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      return winnerId == currentUserId;
+    }
+    return false;
+  }
+
+  /// Returns true if the user lost the match.
+  bool isUserLoser(String? currentUserId) {
+    if (isDraw || winnerId == null) return false;
+    if (isLocalCoop) return false;
+    if (isVsAi) {
+      final userWhite = isUserWhite(currentUserId);
+      final botId = userWhite ? blackPlayerId : whitePlayerId;
+      return winnerId == botId || winnerId == 'bot';
+    }
+    if (currentUserId != null && currentUserId.isNotEmpty) {
+      return winnerId != currentUserId;
+    }
+    return false;
+  }
+
   bool get isTimeout =>
       reason == 'timeout' ||
       reason == 'reason_timeout' ||

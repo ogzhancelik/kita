@@ -7,6 +7,7 @@ import '../../data/models/user_model.dart';
 import '../../data/services/auth_api_service.dart';
 import '../../data/services/local_match_history_service.dart';
 import '../../data/services/user_api_service.dart';
+import '../../data/services/websocket_service.dart';
 import '../widgets/common/guest_guard_dialog.dart';
 
 enum AuthState {
@@ -245,6 +246,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     final wasGuest = isGuest;
     _setLoading(true);
+    WebSocketService.instance.disconnect();
     ApiClient.currentToken = null;
     await _storage.deleteToken();
     await _storage.deleteUser();
