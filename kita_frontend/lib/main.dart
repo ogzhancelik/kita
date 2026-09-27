@@ -161,14 +161,14 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     final canFetchSocial = authProv.isAuthenticated && !authProv.isGuest;
 
     if (type == 'rematch_declined') {
-      notifProv.addRematchDeclinedNotification(event['decliner'] as String?);
+      notifProv.addRematchDeclinedNotification((event['decliner'] ?? event['decliner_name']) as String?);
       notifProv.resolveRematchNotification(accepted: false);
     } else if (type == 'rematch_resolved') {
       final matchId = event['match_id'] as String?;
       final accepted = (event['accepted'] as bool?) ?? true;
       notifProv.resolveRematchNotification(matchId: matchId, accepted: accepted);
     } else if (type == 'invitation_declined') {
-      notifProv.addChallengeDeclinedNotification(event['decliner'] as String?);
+      notifProv.addChallengeDeclinedNotification((event['decliner'] ?? event['decliner_name']) as String?);
     } else if (type == 'friend_request') {
       final payload = event['payload'] as Map<String, dynamic>?;
       if (payload != null) {
@@ -178,12 +178,12 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
         }
       }
     } else if (type == 'friend_request_declined') {
-      notifProv.addFriendRequestDeclinedNotification(event['decliner'] as String?);
+      notifProv.addFriendRequestDeclinedNotification((event['decliner'] ?? event['decliner_name']) as String?);
       if (canFetchSocial) {
         _friendsProv?.loadAll();
       }
     } else if (type == 'friend_request_accepted') {
-      notifProv.addFriendRequestAcceptedNotification(event['accepter'] as String?);
+      notifProv.addFriendRequestAcceptedNotification((event['accepter'] ?? event['accepter_name']) as String?);
       if (canFetchSocial) {
         _friendsProv?.loadAll();
       }

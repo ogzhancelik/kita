@@ -1,1 +1,8 @@
-- [] "notifications.rematchDeclinedSubtitle", "notifications.challengeDeclinedSubtitle", "notifications.friendRequest..." etc are emtpy. Also for these notifications do not put X and check, just one buttone (can be check) to imply "i read/i got it"
+- [x] "notifications.rematchDeclinedSubtitle", "notifications.challengeDeclinedSubtitle", "notifications.friendRequest..." etc are emtpy. Also for these notifications do not put X and check, just one button (can be check or "ignore" eye symbol?) to imply "i read/i got it"
+- [x] In in-game match, put top panel that shows "accept/decline draw", "show results" etc. at the bottom instead of the top.
+- [x] Do not show game end pop up immediately, wait for a couple seconds or open it with an animation
+- [ ] Automatically swap colors on rematch
+- [x] In offline match, if kita bot is white, it plays immediately just put a small wait time for it.
+- [ ] If player is offline, put "vs AI" and "local 2p coop" on main menu instead of "open rooms" and "friends".
+- [x] in "vs Computer", make AI's pp robot symbol.
+- [ ] Challenge friend "choose side" button there is a "tick" symbol where it overlaps with "Random" option, just remove the tick.

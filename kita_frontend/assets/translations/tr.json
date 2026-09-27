@@ -573,6 +573,8 @@
     "ignored": "Yok sayıldı",
     "expired": "Süresi Doldu",
     "read": "Okundu",
+    "markAsRead": "Okundu Olarak İşaretle",
+    "gotIt": "Anladım",
     "swipeToIgnore": "Yok saymak için kaydırın",
     "timeAgoJustNow": "Az önce",
     "timeAgoMinutes": "{} dk önce",

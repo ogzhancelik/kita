@@ -130,9 +130,9 @@ class HomePendingGameCard extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
-                    Icons.sports_esports_rounded,
+                    isBot ? Icons.smart_toy_rounded : Icons.sports_esports_rounded,
                     color: AppColors.primaryLight,
                     size: 24,
                   ),

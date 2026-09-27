@@ -26,6 +26,9 @@ class PlayerInfoBar extends StatelessWidget {
   final int? avatarIndex;
   final VoidCallback? onTap;
   final bool isGameOver;
+  final bool isBot;
+  final IconData? customAvatarIcon;
+  final Color? customAvatarColor;
 
   const PlayerInfoBar({
     super.key,
@@ -40,6 +43,9 @@ class PlayerInfoBar extends StatelessWidget {
     this.avatarIndex,
     this.onTap,
     this.isGameOver = false,
+    this.isBot = false,
+    this.customAvatarIcon,
+    this.customAvatarColor,
   });
 
   @override
@@ -55,11 +61,17 @@ class PlayerInfoBar extends StatelessWidget {
             : authProv.avatarIndex);
     final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
 
+    final bool showBotAvatar = isBot || customAvatarIcon != null;
+    final IconData effectiveIcon = customAvatarIcon ?? (isBot ? Icons.smart_toy_rounded : avatarItem.icon);
+    final Color effectiveAccentColor = showBotAvatar
+        ? (customAvatarColor ?? AppColors.primaryGreen)
+        : avatarItem.accentColor;
+
     final avatarWidget = Container(
       width: 34,
       height: 34,
       decoration: BoxDecoration(
-        color: avatarItem.accentColor.withValues(alpha: 0.15),
+        color: effectiveAccentColor.withValues(alpha: 0.15),
         shape: BoxShape.circle,
         border: Border.all(
           color: teamColor,
@@ -75,9 +87,9 @@ class PlayerInfoBar extends StatelessWidget {
       ),
       child: Center(
         child: Icon(
-          avatarItem.icon,
+          effectiveIcon,
           size: 18,
-          color: avatarItem.accentColor,
+          color: effectiveAccentColor,
         ),
       ),
     );

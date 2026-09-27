@@ -574,6 +574,8 @@
     "ignored": "Ignored",
     "expired": "Expired",
     "read": "Read",
+    "markAsRead": "Mark as read",
+    "gotIt": "Got it",
     "swipeToIgnore": "Swipe to ignore",
     "timeAgoJustNow": "Just now",
     "timeAgoMinutes": "{}m ago",

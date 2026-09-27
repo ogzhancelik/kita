@@ -74,8 +74,19 @@ class _NotificationTileState extends State<NotificationTile> {
         iconData = Icons.person_add_rounded;
         break;
       case KitaNotificationType.info:
-        accentColor = AppColors.accent;
-        iconData = Icons.info_outline_rounded;
+        if (notification.title.contains('rematch') || notification.id.startsWith('rematch')) {
+          accentColor = AppColors.winBlue;
+          iconData = Icons.replay_rounded;
+        } else if (notification.title.contains('challenge') || notification.id.startsWith('challenge')) {
+          accentColor = AppColors.ratingGold;
+          iconData = Icons.sports_esports_rounded;
+        } else if (notification.title.contains('friendRequest') || notification.id.startsWith('friend_request')) {
+          accentColor = AppColors.accentSecondary;
+          iconData = Icons.person_rounded;
+        } else {
+          accentColor = AppColors.accent;
+          iconData = Icons.info_outline_rounded;
+        }
         break;
     }
 
@@ -87,13 +98,16 @@ class _NotificationTileState extends State<NotificationTile> {
       titleText = notification.title;
     }
 
-    final String subtitleText;
     final sender = (notification.senderName != null &&
             notification.senderName!.trim().isNotEmpty)
         ? notification.senderName!
-        : 'online.opponent'.tr();
+        : (notification.subtitle.isNotEmpty &&
+                !notification.subtitle.startsWith('notifications.'))
+            ? notification.subtitle
+            : 'online.opponent'.tr();
     final timeStr = _formatTimeControl(notification.timeControl);
 
+    final String subtitleText;
     switch (notification.type) {
       case KitaNotificationType.rematch:
         subtitleText = 'notifications.rematchSubtitle'.tr(args: [sender, timeStr]);
@@ -105,7 +119,31 @@ class _NotificationTileState extends State<NotificationTile> {
         subtitleText = 'notifications.friendRequestSubtitle'.tr(args: [sender]);
         break;
       case KitaNotificationType.info:
-        subtitleText = notification.subtitle;
+        if (notification.subtitle.startsWith('notifications.')) {
+          if (notification.subtitle == 'notifications.rematchSubtitle' ||
+              notification.subtitle == 'notifications.challengeSubtitle') {
+            subtitleText = notification.subtitle.tr(args: [sender, timeStr]);
+          } else {
+            subtitleText = notification.subtitle.tr(args: [sender]);
+          }
+        } else if (notification.subtitle.trim().isNotEmpty) {
+          subtitleText = notification.subtitle;
+        } else {
+          final titleKey = notification.title;
+          if (titleKey.contains('rematchDeclined') || notification.id.startsWith('rematch_declined')) {
+            subtitleText = 'notifications.rematchDeclinedSubtitle'.tr(args: [sender]);
+          } else if (titleKey.contains('challengeDeclined') || notification.id.startsWith('challenge_declined')) {
+            subtitleText = 'notifications.challengeDeclinedSubtitle'.tr(args: [sender]);
+          } else if (titleKey.contains('friendRequestDeclined') || notification.id.startsWith('friend_request_declined')) {
+            subtitleText = 'notifications.friendRequestDeclinedSubtitle'.tr(args: [sender]);
+          } else if (titleKey.contains('friendRequestAccepted') || notification.id.startsWith('friend_request_accepted')) {
+            subtitleText = 'notifications.friendRequestAcceptedSubtitle'.tr(args: [sender]);
+          } else if (titleKey.contains('friendRequest') || notification.id.startsWith('friend_request')) {
+            subtitleText = 'notifications.friendRequestSubtitle'.tr(args: [sender]);
+          } else {
+            subtitleText = '';
+          }
+        }
         break;
     }
 
@@ -255,47 +293,64 @@ class _NotificationTileState extends State<NotificationTile> {
                       padding: _isExpanded
                           ? const EdgeInsets.only(top: 2)
                           : EdgeInsets.zero,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              notifProv.declineNotification(
-                                  context, notification.id);
-                            },
-                            tooltip: 'notifications.decline'.tr(),
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: AppColors.lossRed,
-                              size: 18,
+                      child: notification.isActionable
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    notifProv.declineNotification(
+                                        context, notification.id);
+                                  },
+                                  tooltip: 'notifications.decline'.tr(),
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    color: AppColors.lossRed,
+                                    size: 18,
+                                  ),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor:
+                                        AppColors.lossRed.withValues(alpha: 0.12),
+                                    padding: const EdgeInsets.all(6),
+                                    minimumSize: const Size(32, 32),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                IconButton(
+                                  onPressed: () {
+                                    notifProv.acceptNotification(
+                                        context, notification.id);
+                                  },
+                                  tooltip: 'notifications.accept'.tr(),
+                                  icon: const Icon(
+                                    Icons.check_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: AppColors.accentSecondary,
+                                    padding: const EdgeInsets.all(6),
+                                    minimumSize: const Size(32, 32),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : IconButton(
+                              onPressed: () {
+                                notifProv.markNotificationAsRead(notification.id);
+                              },
+                              tooltip: 'notifications.markAsRead'.tr(),
+                              icon: const Icon(
+                                Icons.check_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.accentSecondary,
+                                padding: const EdgeInsets.all(6),
+                                minimumSize: const Size(32, 32),
+                              ),
                             ),
-                            style: IconButton.styleFrom(
-                              backgroundColor:
-                                  AppColors.lossRed.withValues(alpha: 0.12),
-                              padding: const EdgeInsets.all(6),
-                              minimumSize: const Size(32, 32),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          IconButton(
-                            onPressed: () {
-                              notifProv.acceptNotification(
-                                  context, notification.id);
-                            },
-                            tooltip: 'notifications.accept'.tr(),
-                            icon: const Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.accentSecondary,
-                              padding: const EdgeInsets.all(6),
-                              minimumSize: const Size(32, 32),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ] else ...[
                     Padding(

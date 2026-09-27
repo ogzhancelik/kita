@@ -231,16 +231,16 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             width: 88,
                             height: 88,
                             decoration: BoxDecoration(
-                              color: avatarItem.accentColor.withValues(alpha: 0.18),
+                              color: (isBot ? AppColors.primaryGreen : avatarItem.accentColor).withValues(alpha: 0.18),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: avatarItem.accentColor,
+                                color: isBot ? AppColors.primaryGreen : avatarItem.accentColor,
                                 width: 3,
                               ),
                             ),
                             child: Icon(
-                              avatarItem.icon,
-                              color: avatarItem.accentColor,
+                              isBot ? Icons.smart_toy_rounded : avatarItem.icon,
+                              color: isBot ? AppColors.primaryGreen : avatarItem.accentColor,
                               size: 46,
                             ),
                           ),

@@ -24,7 +24,7 @@ class GameOverDialog extends StatefulWidget {
     this.onReviewMatch,
   });
 
-  /// Presents the modal dialog with tap-to-dismiss enabled.
+  /// Presents the modal dialog with tap-to-dismiss enabled and smooth scale + fade animation.
   static Future<void> show({
     required BuildContext context,
     required GameOverPayload gameOverData,
@@ -33,16 +33,38 @@ class GameOverDialog extends StatefulWidget {
     required VoidCallback onBackToMenu,
     VoidCallback? onReviewMatch,
   }) {
-    return showDialog(
+    return showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => GameOverDialog(
-        gameOverData: gameOverData,
-        myUserId: myUserId,
-        onRematch: onRematch,
-        onBackToMenu: onBackToMenu,
-        onReviewMatch: onReviewMatch,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: AppColors.dialogBarrier,
+      transitionDuration: const Duration(milliseconds: 350),
+      pageBuilder: (dialogContext, anim1, anim2) => SafeArea(
+        child: GameOverDialog(
+          gameOverData: gameOverData,
+          myUserId: myUserId,
+          onRematch: onRematch,
+          onBackToMenu: onBackToMenu,
+          onReviewMatch: onReviewMatch,
+        ),
       ),
+      transitionBuilder: (dialogContext, anim, secondaryAnim, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: anim,
+          curve: Curves.easeOutBack,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.85, end: 1.0).animate(curvedAnimation),
+          child: FadeTransition(
+            opacity: CurvedAnimation(
+              parent: anim,
+              curve: Curves.easeOut,
+            ),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -50,9 +72,28 @@ class GameOverDialog extends StatefulWidget {
   State<GameOverDialog> createState() => _GameOverDialogState();
 }
 
-class _GameOverDialogState extends State<GameOverDialog> {
+class _GameOverDialogState extends State<GameOverDialog>
+    with SingleTickerProviderStateMixin {
   OnlineGameProvider? _provider;
   bool _isPopping = false;
+  late final AnimationController _badgeAnimController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 650),
+  );
+  late final Animation<double> _badgeScaleAnim = CurvedAnimation(
+    parent: _badgeAnimController,
+    curve: Curves.elasticOut,
+  );
+  late final Animation<double> _badgeFadeAnim = CurvedAnimation(
+    parent: _badgeAnimController,
+    curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _badgeAnimController.forward();
+  }
 
   void _safePop() {
     if (_isPopping || !mounted) return;
@@ -80,6 +121,7 @@ class _GameOverDialogState extends State<GameOverDialog> {
 
   @override
   void dispose() {
+    _badgeAnimController.dispose();
     _isPopping = true;
     _provider?.matchState.removeListener(_onMatchStateChanged);
     _provider?.isGameOverDialogActive.value = false;
@@ -155,10 +197,30 @@ class _GameOverDialogState extends State<GameOverDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    statusIcon,
-                    size: 56,
-                    color: statusColor,
+                  ScaleTransition(
+                    scale: _badgeScaleAnim,
+                    child: FadeTransition(
+                      opacity: _badgeFadeAnim,
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: statusColor.withValues(alpha: 0.12),
+                          border: Border.all(
+                            color: statusColor.withValues(alpha: 0.35),
+                            width: 2,
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            statusIcon,
+                            size: 40,
+                            color: statusColor,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(

@@ -878,6 +878,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         (isWhite ? 'replay.whiteTeam'.tr() : 'replay.blackTeam'.tr());
     final playerRating = player?.rating ?? 1200;
 
+    final isBot = player?.id == 'bot' || playerName.toLowerCase().contains('ai bot');
     final avatarIdx = (player?.avatarIndex != null)
         ? player!.avatarIndex
         : (playerName.hashCode.abs() % AvatarPicker.avatars.length);
@@ -938,7 +939,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: avatarItem.accentColor.withValues(alpha: 0.15),
+        color: (isBot ? AppColors.primaryGreen : avatarItem.accentColor).withValues(alpha: 0.15),
         shape: BoxShape.circle,
         border: Border.all(
           color: teamColor,
@@ -954,9 +955,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       ),
       child: Center(
         child: Icon(
-          avatarItem.icon,
+          isBot ? Icons.smart_toy_rounded : avatarItem.icon,
           size: 16,
-          color: avatarItem.accentColor,
+          color: isBot ? AppColors.primaryGreen : avatarItem.accentColor,
         ),
       ),
     );

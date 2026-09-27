@@ -124,6 +124,9 @@ class AppColors {
   static const Color info = Color(0xFF2980B9);
   static const Color success = Color(0xFF75B69C);
 
+  // --- Modals & Overlays ---
+  static const Color dialogBarrier = Color(0x8A000000);
+
   // --- Helpers depending on Brightness ---
   static Color getBackground(bool isDark) => isDark ? darkBg : lightBg;
   static Color getCard(bool isDark) => isDark ? darkCard : lightCard;

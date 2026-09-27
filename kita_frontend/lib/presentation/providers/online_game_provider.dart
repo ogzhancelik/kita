@@ -369,7 +369,7 @@ class OnlineGameProvider extends ChangeNotifier {
 
     // If human plays Black vs Bot, Bot is White and moves first!
     if (mode == PlayMode.vsAi && playerTeam == PieceTeam.black) {
-      _triggerBotMove();
+      _triggerBotMove(delay: const Duration(milliseconds: 1000));
     }
   }
 
@@ -579,12 +579,12 @@ class OnlineGameProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _triggerBotMove() async {
+  Future<void> _triggerBotMove({Duration delay = const Duration(milliseconds: 400)}) async {
     final currentMatchId = matchId;
     isAiThinking.value = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(delay);
     if (matchState.value != OnlineMatchState.inMatch || !isOffline || matchId != currentMatchId) {
       isAiThinking.value = false;
       notifyListeners();
@@ -958,7 +958,12 @@ class OnlineGameProvider extends ChangeNotifier {
 
       // If it was the AI's turn when the app was closed, resume AI thinking
       if (offlinePlayMode == PlayMode.vsAi && engine.turn != offlinePlayerTeam) {
-        _triggerBotMove();
+        final isOpeningMove = engine.moveCount == 0;
+        _triggerBotMove(
+          delay: isOpeningMove
+              ? const Duration(milliseconds: 1000)
+              : const Duration(milliseconds: 400),
+        );
       }
     } catch (e) {
       debugPrint('[OnlineGame] Error restoring active offline match: $e');

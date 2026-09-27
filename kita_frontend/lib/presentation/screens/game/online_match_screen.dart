@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:easy_localization/easy_localization.dart';
@@ -40,6 +41,7 @@ class OnlineMatchScreen extends StatefulWidget {
 class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
   OnlineGameProvider? _provider;
   bool _isGameOverDialogShowing = false;
+  Timer? _gameOverDialogTimer;
   final GlobalKey _chatPanelKey = GlobalKey();
 
   @override
@@ -63,6 +65,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
 
   @override
   void dispose() {
+    _gameOverDialogTimer?.cancel();
     OnlineMatchScreen.isMatchScreenOpen = false;
     _provider?.gameOverData.removeListener(_onGameOver);
     _provider?.matchState.removeListener(_onMatchStateChanged);
@@ -72,10 +75,12 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
   void _onMatchStateChanged() {
     final state = _provider?.matchState.value;
     if (state == OnlineMatchState.idle && mounted) {
+      _gameOverDialogTimer?.cancel();
       Navigator.of(context).popUntil((route) => route.isFirst);
       return;
     }
     if (state == OnlineMatchState.inMatch) {
+      _gameOverDialogTimer?.cancel();
       _isGameOverDialogShowing = false;
     }
   }
@@ -86,14 +91,20 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     if (data == null) return;
     if (_isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
 
-    // Show game over dialog
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
+    _gameOverDialogTimer?.cancel();
+    // Delay showing the game over dialog by ~1.8 seconds so players can see
+    // the winning move, the final board state, and the outcome before being interrupted.
+    _gameOverDialogTimer = Timer(const Duration(milliseconds: 1000), () {
+      if (!mounted) return;
+      final currentProv = _provider ?? context.read<OnlineGameProvider>();
+      if (_isGameOverDialogShowing || currentProv.isGameOverDialogActive.value) return;
+      if (currentProv.matchState.value != OnlineMatchState.gameOver) return;
       _showGameOverDialog(data);
     });
   }
 
   void _showGameOverDialog(GameOverPayload data) {
+    _gameOverDialogTimer?.cancel();
     final provider = _provider ?? context.read<OnlineGameProvider>();
     if (!mounted || _isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
     _isGameOverDialogShowing = true;
@@ -197,19 +208,6 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Draw offer banner (shown when opponent offers a draw)
-              ValueListenableBuilder<DrawOfferPayload?>(
-                valueListenable: provider.drawOffer,
-                builder: (context, drawOffer, _) {
-                  if (drawOffer == null) return const SizedBox.shrink();
-                  return _buildDrawOfferBanner(context, provider, isDark, drawOffer);
-                },
-              ),
-
-              // Post-game status & controls banner (shown when dialog is dismissed)
-              if (provider.gameOverData.value != null && !isKeyboardOpen)
-                _buildGameOverBanner(context, provider, isDark),
-
               // Connecting to match banner
               if (provider.matchState.value == OnlineMatchState.connecting)
                 Container(
@@ -289,6 +287,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                     }
 
                     final isGameOver = provider.matchState.value == OnlineMatchState.gameOver;
+                    final isOpponentBot = isBot || provider.opponentInfo?.id == 'bot';
 
                     final opponentCard = PlayerInfoBar(
                       isOpponent: true,
@@ -296,6 +295,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       rating: opponentRating,
                       ratingLabel: opponentRatingLabel,
                       avatarIndex: provider.opponentInfo?.avatarIndex,
+                      isBot: isOpponentBot,
                       team: isBlack ? 'white' : 'black',
                       remainingMs: isBlack
                           ? provider.whiteRemainingMs
@@ -391,6 +391,19 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                 ),
               ),
 
+              // Draw offer banner (shown when opponent offers a draw)
+              ValueListenableBuilder<DrawOfferPayload?>(
+                valueListenable: provider.drawOffer,
+                builder: (context, drawOffer, _) {
+                  if (drawOffer == null || isKeyboardOpen) return const SizedBox.shrink();
+                  return _buildDrawOfferBanner(context, provider, isDark, drawOffer);
+                },
+              ),
+
+              // Post-game status & controls banner (shown when dialog is dismissed)
+              if (provider.gameOverData.value != null && !isKeyboardOpen)
+                _buildGameOverBanner(context, provider, isDark),
+
               // 6. Bottom Action Bar (Menu, Chat toggle, Centered Timer, Step Back/Forward - hidden when typing)
               if (!isKeyboardOpen) const MatchBottomBar(),
             ],
@@ -416,7 +429,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         border: Border(
-          bottom: BorderSide(
+          top: BorderSide(
             color: AppColors.primaryGreen.withValues(alpha: 0.5),
             width: 1.5,
           ),
@@ -517,7 +530,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
           decoration: BoxDecoration(
             color: AppColors.getCard(isDark),
             border: Border(
-              bottom: BorderSide(
+              top: BorderSide(
                 color: statusColor.withValues(alpha: 0.4),
                 width: 1.5,
               ),
@@ -544,7 +557,10 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
 
                 // Show Results dialog button
                 TextButton.icon(
-                  onPressed: () => _showGameOverDialog(data),
+                  onPressed: () {
+                    _gameOverDialogTimer?.cancel();
+                    _showGameOverDialog(data);
+                  },
                   icon: const Icon(Icons.analytics_outlined, size: 16),
                   label: Text('online.showResults'.tr()),
                   style: TextButton.styleFrom(

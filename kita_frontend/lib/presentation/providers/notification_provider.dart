@@ -145,6 +145,20 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
+  /// Mark a single notification as read (e.g. user tapped "I got it" / check button on info notification).
+  void markNotificationAsRead(String id) {
+    final idx = _notifications.indexWhere((n) => n.id == id);
+    if (idx >= 0) {
+      _notifications[idx] = _notifications[idx].copyWith(
+        status: NotificationStatus.read,
+      );
+      notifyListeners();
+      _apiService.updateStatus(id, NotificationStatus.read).catchError((e) {
+        debugPrint('[NotificationProvider] Failed to sync markNotificationAsRead to backend: $e');
+      });
+    }
+  }
+
   /// Accept an actionable notification.
   Future<void> acceptNotification(BuildContext context, String id) async {
     final idx = _notifications.indexWhere((n) => n.id == id);
@@ -240,13 +254,13 @@ class NotificationProvider extends ChangeNotifier {
 
   /// Add informational notification for rematch rejection.
   void addRematchDeclinedNotification(String? declinerName) {
-    final name = (declinerName != null && declinerName.isNotEmpty) ? declinerName : 'Rakip';
+    final name = (declinerName != null && declinerName.isNotEmpty) ? declinerName : null;
     final notif = KitaNotification(
       id: 'rematch_declined_${DateTime.now().millisecondsSinceEpoch}',
       type: KitaNotificationType.info,
       status: NotificationStatus.pending,
       title: 'notifications.rematchDeclinedTitle',
-      subtitle: 'notifications.rematchDeclinedSubtitle'.tr(args: [name]),
+      subtitle: 'notifications.rematchDeclinedSubtitle',
       senderName: name,
       timestamp: DateTime.now(),
     );
@@ -255,13 +269,13 @@ class NotificationProvider extends ChangeNotifier {
 
   /// Add informational notification for match invitation/challenge rejection.
   void addChallengeDeclinedNotification(String? declinerName) {
-    final name = (declinerName != null && declinerName.isNotEmpty) ? declinerName : 'Arkadaş';
+    final name = (declinerName != null && declinerName.isNotEmpty) ? declinerName : null;
     final notif = KitaNotification(
       id: 'challenge_declined_${DateTime.now().millisecondsSinceEpoch}',
       type: KitaNotificationType.info,
       status: NotificationStatus.pending,
       title: 'notifications.challengeDeclinedTitle',
-      subtitle: 'notifications.challengeDeclinedSubtitle'.tr(args: [name]),
+      subtitle: 'notifications.challengeDeclinedSubtitle',
       senderName: name,
       timestamp: DateTime.now(),
     );
@@ -292,13 +306,13 @@ class NotificationProvider extends ChangeNotifier {
 
   /// Add informational notification for friend request rejection.
   void addFriendRequestDeclinedNotification(String? declinerName) {
-    final name = (declinerName != null && declinerName.isNotEmpty) ? declinerName : 'Kullanıcı';
+    final name = (declinerName != null && declinerName.isNotEmpty) ? declinerName : null;
     final notif = KitaNotification(
       id: 'friend_request_declined_${DateTime.now().millisecondsSinceEpoch}',
       type: KitaNotificationType.info,
       status: NotificationStatus.pending,
       title: 'notifications.friendRequestDeclinedTitle',
-      subtitle: 'notifications.friendRequestDeclinedSubtitle'.tr(args: [name]),
+      subtitle: 'notifications.friendRequestDeclinedSubtitle',
       senderName: name,
       timestamp: DateTime.now(),
     );
@@ -307,13 +321,13 @@ class NotificationProvider extends ChangeNotifier {
 
   /// Add informational notification for friend request acceptance.
   void addFriendRequestAcceptedNotification(String? accepterName) {
-    final name = (accepterName != null && accepterName.isNotEmpty) ? accepterName : 'Kullanıcı';
+    final name = (accepterName != null && accepterName.isNotEmpty) ? accepterName : null;
     final notif = KitaNotification(
       id: 'friend_request_accepted_${DateTime.now().millisecondsSinceEpoch}',
       type: KitaNotificationType.info,
       status: NotificationStatus.pending,
       title: 'notifications.friendRequestAcceptedTitle',
-      subtitle: 'notifications.friendRequestAcceptedSubtitle'.tr(args: [name]),
+      subtitle: 'notifications.friendRequestAcceptedSubtitle',
       senderName: name,
       timestamp: DateTime.now(),
     );
