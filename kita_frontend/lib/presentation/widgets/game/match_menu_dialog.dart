@@ -17,12 +17,15 @@ class MatchMenuDialog extends StatelessWidget {
   const MatchMenuDialog({super.key});
 
   static Future<void> show(BuildContext context) {
+    FocusManager.instance.primaryFocus?.unfocus();
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const MatchMenuDialog(),
-    );
+    ).whenComplete(() {
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
   }
 
   @override

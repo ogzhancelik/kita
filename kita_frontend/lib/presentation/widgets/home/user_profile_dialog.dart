@@ -42,6 +42,7 @@ class UserProfileDialog extends StatefulWidget {
     bool? isBot,
     VoidCallback? onInvite,
   }) {
+    FocusManager.instance.primaryFocus?.unfocus();
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -56,7 +57,9 @@ class UserProfileDialog extends StatefulWidget {
         isBot: isBot,
         onInvite: onInvite,
       ),
-    );
+    ).whenComplete(() {
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
   }
 
   @override

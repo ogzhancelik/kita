@@ -1,14 +1,11 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../providers/online_game_provider.dart';
 import '../../widgets/common/api_url_config_bar.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/responsive_layout.dart';
-import '../game/online_match_screen.dart';
 import 'guest_setup_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
@@ -106,31 +103,6 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // Offline AI Quick Access
-                TextButton.icon(
-                  icon: const Icon(Icons.smart_toy_outlined, size: 18, color: AppColors.primaryGreen),
-                  label: Text(
-                    'dashboard.playAI'.tr(),
-                    style: const TextStyle(
-                      color: AppColors.primaryGreen,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                  onPressed: () {
-                    context.read<OnlineGameProvider>().startOfflineMatch(
-                      mode: PlayMode.vsAi,
-                      isGuest: true,
-                    );
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const OnlineMatchScreen(),
-                      ),
                     );
                   },
                 ),

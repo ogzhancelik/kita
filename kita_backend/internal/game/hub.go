@@ -856,7 +856,7 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 	}
 
 	if opponentClient == nil {
-		client.SendError(errors.ErrMatchNotFound, "Opponent is no longer online")
+		client.SendError(errors.ErrPlayerOffline, "Opponent is no longer online")
 		return
 	}
 

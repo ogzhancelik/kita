@@ -347,6 +347,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
     required VoidCallback onSelected,
   }) {
     return ChoiceChip(
+      showCheckmark: false,
       avatar: Icon(
         icon,
         size: 16,

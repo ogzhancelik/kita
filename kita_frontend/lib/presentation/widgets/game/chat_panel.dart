@@ -27,11 +27,13 @@ class ChatPanel extends StatefulWidget {
 class _ChatPanelState extends State<ChatPanel> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode(skipTraversal: true);
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -107,6 +109,7 @@ class _ChatPanelState extends State<ChatPanel> {
                     const Spacer(),
                     GestureDetector(
                       onTap: () {
+                        _focusNode.unfocus();
                         FocusScope.of(context).unfocus();
                         provider.toggleChat();
                       },
@@ -200,6 +203,8 @@ class _ChatPanelState extends State<ChatPanel> {
                     child: Center(
                       child: TextField(
                         controller: _controller,
+                        focusNode: _focusNode,
+                        autofocus: false,
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.getTextPrimary(isDark),

@@ -167,14 +167,17 @@ class HomePendingGameCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          isMyTurn
-                              ? 'dashboard.pendingSection.yourTurn'.tr()
-                              : 'dashboard.pendingSection.opponentTurn'.tr(),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
+                        Flexible(
+                          child: Text(
+                            isMyTurn
+                                ? 'dashboard.pendingSection.yourTurn'.tr()
+                                : 'dashboard.pendingSection.opponentTurn'.tr(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -228,40 +231,18 @@ class HomePendingGameCard extends StatelessWidget {
               const SizedBox(width: 8),
 
               // Rejoin Action Button
-              ElevatedButton.icon(
+              IconButton.filled(
                 onPressed: () => _rejoinGame(context),
-                icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                label: Text(
-                  'dashboard.pendingSection.rejoin'.tr(),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
+                icon: const Icon(Icons.play_arrow_rounded, size: 22),
+                tooltip: 'dashboard.pendingSection.rejoin'.tr(),
+                style: IconButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  elevation: 2,
                 ),
-              ),
-
-              const SizedBox(width: 4),
-
-              // Resign / Leave Action Button
-              IconButton(
-                icon: const Icon(Icons.flag_outlined, size: 20),
-                color: AppColors.lossRed,
-                tooltip: 'dashboard.pendingSection.resignTooltip'.tr(),
-                onPressed: () async {
-                  final confirmed = await _confirmResignDialog(context, isDark);
-                  if (confirmed) {
-                    onlineProv.resignAndClear();
-                  }
-                },
               ),
             ],
           ),
@@ -439,159 +420,123 @@ class HomePendingGameCard extends StatelessWidget {
       onDismissed: () {
         onlineProv.cancelRematchRequest();
       },
-      child: InkWell(
-        onTap: () => _rejoinGame(context),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.getCard(isDark),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.winBlue.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.getCard(isDark),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.winBlue.withValues(alpha: 0.5),
+            width: 1.5,
           ),
-          child: Row(
-            children: [
-              // Outgoing rematch avatar
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.winBlue.withValues(alpha: 0.2),
-                child: Text(
-                  rematch.opponentName.isNotEmpty ? rematch.opponentName[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: AppColors.winBlue,
-                  ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Outgoing rematch avatar
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.winBlue.withValues(alpha: 0.2),
+              child: Text(
+                rematch.opponentName.isNotEmpty ? rematch.opponentName[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.winBlue,
                 ),
               ),
-              const SizedBox(width: 12),
+            ),
+            const SizedBox(width: 12),
 
-              // Rematch Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
+            // Rematch Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.winBlue.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'dashboard.pendingSection.pendingRematchTitle'.tr().toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.winBlue,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          rematch.opponentName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.getTextPrimary(isDark),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (rematch.opponentRating != null) ...[
+                        const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
-                            color: AppColors.winBlue.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
+                            color: AppColors.ratingGold.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'dashboard.pendingSection.pendingRematchTitle'.tr().toUpperCase(),
+                            '★ ${rematch.opponentRating}',
                             style: const TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.winBlue,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'dashboard.pendingSection.waitingResponse'.tr(),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.getTextSecondary(isDark),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            rematch.opponentName,
-                            style: TextStyle(
-                              fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.getTextPrimary(isDark),
+                              color: AppColors.ratingGold,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (rematch.opponentRating != null) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.ratingGold.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '★ ${rematch.opponentRating}',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.ratingGold,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(width: 8),
-                        Text(
-                          '• $tcStr',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.getTextMuted(isDark),
                           ),
                         ),
                       ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Rejoin / View Action Button
-              ElevatedButton.icon(
-                onPressed: () => _rejoinGame(context),
-                icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                label: Text(
-                  'dashboard.pendingSection.rejoin'.tr(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                      const SizedBox(width: 8),
+                      Text(
+                        '• $tcStr',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.getTextMuted(isDark),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.winBlue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 1,
-                ),
+                ],
               ),
+            ),
 
-              const SizedBox(width: 4),
+            const SizedBox(width: 8),
 
-              // Cancel action button
-              IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20),
-                color: AppColors.lossRed,
-                tooltip: 'dashboard.pendingSection.cancelRematch'.tr(),
-                onPressed: () {
-                  onlineProv.cancelRematchRequest();
-                },
-              ),
-            ],
-          ),
+            // Cancel action button
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 20),
+              color: AppColors.lossRed,
+              tooltip: 'dashboard.pendingSection.cancelRematch'.tr(),
+              onPressed: () {
+                onlineProv.cancelRematchRequest();
+              },
+            ),
+          ],
         ),
       ),
     );

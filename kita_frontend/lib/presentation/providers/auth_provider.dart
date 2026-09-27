@@ -5,7 +5,6 @@ import '../../core/network/connectivity_service.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/auth_api_service.dart';
-import '../../data/services/local_match_history_service.dart';
 import '../../data/services/user_api_service.dart';
 import '../../data/services/websocket_service.dart';
 import '../widgets/common/guest_guard_dialog.dart';
@@ -284,16 +283,12 @@ class AuthProvider extends ChangeNotifier {
 
   // --- Logout ---
   Future<void> logout() async {
-    final wasGuest = isGuest;
     _setLoading(true);
     WebSocketService.instance.disconnect();
     ApiClient.currentToken = null;
     await _storage.deleteToken();
     await _storage.deleteUser();
     await _storage.deleteGuestProfile();
-    if (wasGuest) {
-      await LocalMatchHistoryService.instance.clearOfflineMatches();
-    }
     _currentUser = null;
     _guestProfile = null;
     _token = null;

@@ -104,7 +104,7 @@ class LocalMatchHistoryService {
   }
 
   /// Deletes offline match records from the device.
-  /// Called when a guest logs out.
+  /// Can be invoked if a user manually chooses to wipe local match history.
   Future<void> clearOfflineMatches() async {
     try {
       final prefs = await SharedPreferences.getInstance();

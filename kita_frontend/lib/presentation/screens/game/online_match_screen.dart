@@ -204,9 +204,12 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
       child: Scaffold(
         backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
         resizeToAvoidBottomInset: true,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        body: GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Connecting to match banner
               if (provider.matchState.value == OnlineMatchState.connecting)
@@ -304,6 +307,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       timeControl: provider.timeControl,
                       isGameOver: isGameOver,
                       onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
                         final opp = provider.opponentInfo;
                         final isBot = (provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi) || opp?.id == 'bot';
                         final isGuest = (opp?.id != null && opp!.id.startsWith('guest-')) ||
@@ -332,7 +336,10 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       isActiveTurn: provider.currentTurn,
                       timeControl: provider.timeControl,
                       isGameOver: isGameOver,
-                      onTap: () => UserProfileDialog.show(context),
+                      onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        UserProfileDialog.show(context);
+                      },
                     );
 
                     const double cardsHeight = 96.0; // Two PlayerInfoBars (~48px each)
@@ -410,7 +417,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildDrawOfferBanner(

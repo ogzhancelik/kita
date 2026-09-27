@@ -1804,7 +1804,19 @@ class OnlineGameProvider extends ChangeNotifier {
 
     String message;
     if (error.code == 'ERR_PLAYER_OFFLINE' ||
-        error.message.toLowerCase().contains('not online')) {
+        error.message.toLowerCase().contains('not online') ||
+        error.message.toLowerCase().contains('no longer online')) {
+      // Clear any pending rematch state – the opponent is gone.
+      if (isRematchRequested.value || pendingOutgoingRematch.value != null) {
+        isRematchRequested.value = false;
+        pendingOutgoingRematch.value = null;
+        onWsNotificationEvent.value = {
+          'type': 'rematch_declined',
+          'decliner': opponentInfo?.name ?? '',
+          'reason': 'offline',
+        };
+        notifyListeners();
+      }
       message = 'online.friendOffline'.tr();
     } else if (error.code == 'ERR_ALREADY_IN_MATCH' ||
         error.message.toLowerCase().contains('already in a match') ||

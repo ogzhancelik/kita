@@ -41,7 +41,10 @@ class MatchBottomBar extends StatelessWidget {
             icon: const Icon(Icons.menu_rounded),
             color: AppColors.getTextPrimary(isDark),
             tooltip: 'online.matchMenu'.tr(),
-            onPressed: () => MatchMenuDialog.show(context),
+            onPressed: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              MatchMenuDialog.show(context);
+            },
           ),
           const SizedBox(width: 4),
 
