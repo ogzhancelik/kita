@@ -109,6 +109,9 @@ func (h *Hub) Run() {
 					matchedRoom.mu.Lock()
 					matchedRoom.Host = client
 					client.CurrentMatchID = matchedRoom.ID
+					client.mu.Lock()
+					client.Activity = ActivityInWaitingRoom
+					client.mu.Unlock()
 					roomCode := matchedRoom.RoomCode
 					tc := matchedRoom.TimeControl
 					matchedRoom.mu.Unlock()
@@ -302,23 +305,18 @@ func (h *Hub) handleJoinQueue(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.CurrentMatchID != "" {
-		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" && !activeRoom.isFinished {
-			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
-			return
-		}
+	if client.Activity == ActivityInMatch {
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+		return
 	}
 
-	for _, queued := range h.matchmakingQueue {
-		if queued.UserID == client.UserID {
-			client.SendError(errors.ErrAlreadyInQueue, "You are already in queue")
-			return
-		}
+	if client.Activity == ActivityInQueue {
+		client.SendError(errors.ErrAlreadyInQueue, "You are already in queue")
+		return
 	}
 
-	// Clean up any unstarted waiting room hosted by this client and pending outgoing challenges
-	h.cleanupWaitingRoomLocked(client)
-	h.cleanupPendingInviteLocked(client)
+	// Single transition point: cleans up any prior queue/room/invite state
+	h.enterActivityLocked(client, ActivityInQueue)
 
 	h.matchmakingQueue = append(h.matchmakingQueue, client)
 	client.SendJSON(TypeQueueJoined, map[string]string{"status": "waiting"})
@@ -352,6 +350,9 @@ func (h *Hub) handleLeaveQueue(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.removeFromQueueLocked(client)
+	client.mu.Lock()
+	client.Activity = ActivityIdle
+	client.mu.Unlock()
 	client.SendJSON("queue_left", map[string]string{"status": "idle"})
 	h.broadcastOnlineCountLocked()
 }
@@ -426,23 +427,50 @@ func (h *Hub) cleanupPendingInviteLocked(client *Client) {
 	}
 }
 
+// ─── State Machine ────────────────────────────────────────────────────
+
+// enterActivityLocked transitions a client to a new activity, automatically
+// cleaning up any prior state. This is the central transition point — adding a
+// new activity only requires updating this function to maintain mutual exclusion.
+// Must be called with h.mu held (write lock).
+func (h *Hub) enterActivityLocked(client *Client, newActivity PlayerActivity) {
+	old := client.Activity
+
+	// Exit cleanup for previous activity
+	switch old {
+	case ActivityInQueue:
+		h.removeFromQueueLocked(client)
+	case ActivityInWaitingRoom:
+		h.cleanupWaitingRoomLocked(client)
+	}
+
+	// Clean pending outgoing requests on any transition
+	h.cleanupPendingInviteLocked(client)
+	if newActivity != ActivityPostGame {
+		h.cleanupPendingRematchLocked(client)
+	}
+
+	client.mu.Lock()
+	client.Activity = newActivity
+	client.mu.Unlock()
+
+	log.Printf("[Hub] Player %s (%s) activity: %s → %s", client.Username, client.UserID, old, newActivity)
+}
+
 // ─── Room Creation & Joining ──────────────────────────────────────────
 
 func (h *Hub) handleCreateRoom(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	// If client is already in an active playing match, reject
-	if client.CurrentMatchID != "" {
-		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" && !activeRoom.isFinished {
-			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
-			return
-		}
+	// Reject if already in an active match
+	if client.Activity == ActivityInMatch {
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+		return
 	}
 
-	// Clean up ANY prior waiting room hosted by this client and pending outgoing challenges
-	h.cleanupWaitingRoomLocked(client)
-	h.cleanupPendingInviteLocked(client)
+	// Single transition point: cleans up any prior queue/room/invite state
+	h.enterActivityLocked(client, ActivityInWaitingRoom)
 
 	var dto CreateRoomDTO
 	if err := json.Unmarshal(rawPayload, &dto); err != nil {
@@ -485,16 +513,14 @@ func (h *Hub) handleJoinRoom(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	// If client was hosting a waiting room or had a pending invite, clean it up
-	h.cleanupWaitingRoomLocked(client)
-	h.cleanupPendingInviteLocked(client)
-
-	if client.CurrentMatchID != "" {
-		if activeRoom, exists := h.rooms[client.CurrentMatchID]; exists && activeRoom.Status != "waiting" && !activeRoom.isFinished {
-			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
-			return
-		}
+	// Reject if already in an active match
+	if client.Activity == ActivityInMatch {
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+		return
 	}
+
+	// Single transition point: cleans up any prior queue/room/invite state
+	h.enterActivityLocked(client, ActivityIdle)
 
 	var dto JoinRoomDTO
 	if err := json.Unmarshal(rawPayload, &dto); err != nil {
@@ -534,8 +560,7 @@ func (h *Hub) handleLeaveRoom(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	h.cleanupWaitingRoomLocked(client)
-	h.cleanupPendingInviteLocked(client)
+	h.enterActivityLocked(client, ActivityIdle)
 	client.SendJSON(TypeRoomLeft, map[string]string{"status": "idle"})
 }
 
@@ -847,28 +872,9 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 
 	if oppPending == dto.MatchID {
 		// Both players requested rematch! Auto-start the match immediately!
-		client.mu.Lock()
-		client.PendingRematchID = ""
-		client.PendingRematchTimeControl = 0
-		client.mu.Unlock()
-
-		opponentClient.mu.Lock()
-		opponentClient.PendingRematchID = ""
-		opponentClient.PendingRematchTimeControl = 0
-		opponentClient.mu.Unlock()
-
-		// Clean up any unstarted waiting room hosted by either client
-		for _, p := range []*Client{client, opponentClient} {
-			for id, r := range h.rooms {
-				if r.Status == "waiting" && r.Host != nil && r.Host.UserID == p.UserID {
-					delete(h.roomCodes, r.RoomCode)
-					delete(h.rooms, id)
-					p.CurrentMatchID = ""
-					h.broadcastRoomsListLocked()
-					break
-				}
-			}
-		}
+		// Transition both players: cleans up any prior queue/room/invite state
+		h.enterActivityLocked(client, ActivityIdle)
+		h.enterActivityLocked(opponentClient, ActivityIdle)
 
 		matchID := uuid.New().String()
 		white := client
@@ -931,7 +937,7 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.CurrentMatchID != "" && client.CurrentMatchID != dto.MatchID {
+	if client.Activity == ActivityInMatch {
 		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 		return
 	}
@@ -950,7 +956,7 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 		}
 	}
 
-	if requester == nil || (requester.CurrentMatchID != "" && requester.CurrentMatchID != dto.MatchID) {
+	if requester == nil || requester.Activity == ActivityInMatch {
 		client.SendError(errors.ErrMatchNotFound, "Rematch requester not available")
 		return
 	}
@@ -971,18 +977,9 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 	client.PendingRematchTimeControl = 0
 	client.mu.Unlock()
 
-	// Clean up any unstarted waiting room hosted by either client
-	for _, p := range []*Client{requester, client} {
-		for id, r := range h.rooms {
-			if r.Status == "waiting" && r.Host != nil && r.Host.UserID == p.UserID {
-				delete(h.roomCodes, r.RoomCode)
-				delete(h.rooms, id)
-				p.CurrentMatchID = ""
-				h.broadcastRoomsListLocked()
-				break
-			}
-		}
-	}
+	// Transition both players: cleans up any prior queue/room/invite state
+	h.enterActivityLocked(requester, ActivityIdle)
+	h.enterActivityLocked(client, ActivityIdle)
 
 	// Create new match with swapped colors
 	matchID := uuid.New().String()
@@ -1110,11 +1107,9 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.CurrentMatchID != "" {
-		if r, exists := h.rooms[client.CurrentMatchID]; exists && r.Status != "waiting" && !r.isFinished {
-			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
-			return
-		}
+	if client.Activity == ActivityInMatch {
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+		return
 	}
 
 	timeControl := dto.TimeControl
@@ -1131,11 +1126,9 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
-	if friend.CurrentMatchID != "" {
-		if fRoom, fExists := h.rooms[friend.CurrentMatchID]; fExists && fRoom.Status != "waiting" && !fRoom.isFinished {
-			client.SendError(errors.ErrAlreadyInMatch, "Friend is already in a match")
-			return
-		}
+	if friend.Activity == ActivityInMatch {
+		client.SendError(errors.ErrAlreadyInMatch, "Friend is already in a match")
+		return
 	}
 
 	// Clean up inviter's waiting room and previous pending outgoing challenge
@@ -1252,11 +1245,9 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.CurrentMatchID != "" {
-		if r, exists := h.rooms[client.CurrentMatchID]; exists && r.Status != "waiting" && !r.isFinished {
-			client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
-			return
-		}
+	if client.Activity == ActivityInMatch {
+		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
+		return
 	}
 
 	// Find the inviter by invite ID
@@ -1286,16 +1277,14 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
-	if inviter.CurrentMatchID != "" {
-		if r, exists := h.rooms[inviter.CurrentMatchID]; exists && r.Status != "waiting" {
-			client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
-			if h.notificationService != nil && dto.InviteID != "" {
-				go func(invID string, uID string) {
-					_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, uID)
-				}(dto.InviteID, client.UserID)
-			}
-			return
+	if inviter.Activity == ActivityInMatch {
+		client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
+		if h.notificationService != nil && dto.InviteID != "" {
+			go func(invID string, uID string) {
+				_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, uID)
+			}(dto.InviteID, client.UserID)
 		}
+		return
 	}
 
 	// Clear invite
@@ -1327,11 +1316,9 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		}
 	}
 
-	// Clean up any unstarted waiting room & pending invites hosted by either client
-	for _, p := range []*Client{inviter, client} {
-		h.cleanupWaitingRoomLocked(p)
-		h.cleanupPendingInviteLocked(p)
-	}
+	// Transition both players: cleans up any prior queue/room/invite state
+	h.enterActivityLocked(inviter, ActivityIdle)
+	h.enterActivityLocked(client, ActivityIdle)
 
 	// Create match
 	matchID := uuid.New().String()
@@ -1489,6 +1476,7 @@ func (h *Hub) CloseRoom(matchID string) {
 				if room.WhitePlayer.CurrentMatchID == matchID {
 					room.WhitePlayer.CurrentMatchID = ""
 				}
+				room.WhitePlayer.Activity = ActivityIdle
 				room.WhitePlayer.mu.Unlock()
 				room.WhitePlayer.SendJSON(TypeMatchClosed, map[string]string{
 					"match_id": matchID,
@@ -1500,6 +1488,7 @@ func (h *Hub) CloseRoom(matchID string) {
 				if room.BlackPlayer.CurrentMatchID == matchID {
 					room.BlackPlayer.CurrentMatchID = ""
 				}
+				room.BlackPlayer.Activity = ActivityIdle
 				room.BlackPlayer.mu.Unlock()
 				room.BlackPlayer.SendJSON(TypeMatchClosed, map[string]string{
 					"match_id": matchID,
@@ -1514,6 +1503,9 @@ func (h *Hub) CloseRoom(matchID string) {
 				if room.WhitePlayer.CurrentMatchID == matchID {
 					room.WhitePlayer.CurrentMatchID = ""
 				}
+				if room.WhitePlayer.Activity == ActivityPostGame {
+					room.WhitePlayer.Activity = ActivityIdle
+				}
 				room.WhitePlayer.mu.Unlock()
 			}
 			if room.BlackPlayer != nil {
@@ -1523,6 +1515,9 @@ func (h *Hub) CloseRoom(matchID string) {
 				if room.BlackPlayer.CurrentMatchID == matchID {
 					room.BlackPlayer.CurrentMatchID = ""
 				}
+				if room.BlackPlayer.Activity == ActivityPostGame {
+					room.BlackPlayer.Activity = ActivityIdle
+				}
 				room.BlackPlayer.mu.Unlock()
 			}
 		}
@@ -1531,6 +1526,7 @@ func (h *Hub) CloseRoom(matchID string) {
 			if room.Host.CurrentMatchID == matchID {
 				room.Host.CurrentMatchID = ""
 			}
+			room.Host.Activity = ActivityIdle
 			room.Host.mu.Unlock()
 			room.Host.SendJSON(TypeRoomLeft, map[string]string{"status": "idle"})
 		}

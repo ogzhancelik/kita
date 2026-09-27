@@ -23,6 +23,8 @@ func TestMatchmakingQueueToss(t *testing.T) {
 	for i := 0; i < 60; i++ {
 		c1.CurrentMatchID = ""
 		c2.CurrentMatchID = ""
+		c1.Activity = ActivityIdle
+		c2.Activity = ActivityIdle
 
 		hub.mu.Lock()
 		hub.matchmakingQueue = []*Client{}
@@ -104,6 +106,8 @@ func TestDirectInviteColorPreference(t *testing.T) {
 		// Reset
 		inviter.CurrentMatchID = ""
 		friend.CurrentMatchID = ""
+		inviter.Activity = ActivityIdle
+		friend.Activity = ActivityIdle
 	}
 
 	// 2. Inviter chooses "black"
@@ -138,6 +142,8 @@ func TestDirectInviteColorPreference(t *testing.T) {
 		// Reset
 		inviter.CurrentMatchID = ""
 		friend.CurrentMatchID = ""
+		inviter.Activity = ActivityIdle
+		friend.Activity = ActivityIdle
 	}
 
 	// 3. Inviter chooses "random" (or omitted)
@@ -148,6 +154,8 @@ func TestDirectInviteColorPreference(t *testing.T) {
 		for i := 0; i < 50; i++ {
 			inviter.CurrentMatchID = ""
 			friend.CurrentMatchID = ""
+			inviter.Activity = ActivityIdle
+			friend.Activity = ActivityIdle
 
 			invitePayload, _ := json.Marshal(InviteToMatchDTO{
 				FriendID:        friend.UserID,

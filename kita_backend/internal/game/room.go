@@ -92,6 +92,12 @@ func NewRoomWithTimeControl(id string, white, black *Client, timeControl int64, 
 
 	white.CurrentMatchID = id
 	black.CurrentMatchID = id
+	white.mu.Lock()
+	white.Activity = ActivityInMatch
+	white.mu.Unlock()
+	black.mu.Lock()
+	black.Activity = ActivityInMatch
+	black.mu.Unlock()
 
 	return r
 }
@@ -118,6 +124,9 @@ func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, timeContro
 	}
 
 	host.CurrentMatchID = id
+	host.mu.Lock()
+	host.Activity = ActivityInWaitingRoom
+	host.mu.Unlock()
 	return r
 }
 
@@ -138,6 +147,14 @@ func (r *Room) Join(client *Client) error {
 		r.WhitePlayer = client
 		r.BlackPlayer = r.Host
 	}
+
+	// Transition both players to active match
+	r.WhitePlayer.mu.Lock()
+	r.WhitePlayer.Activity = ActivityInMatch
+	r.WhitePlayer.mu.Unlock()
+	r.BlackPlayer.mu.Lock()
+	r.BlackPlayer.Activity = ActivityInMatch
+	r.BlackPlayer.mu.Unlock()
 
 	r.Status = "in_game"
 	now := time.Now()
@@ -694,6 +711,9 @@ func (r *Room) HandleReconnect(client *Client) bool {
 	}
 
 	client.CurrentMatchID = r.ID
+	client.mu.Lock()
+	client.Activity = ActivityInMatch
+	client.mu.Unlock()
 
 	if r.disconnectPlayerID == client.UserID {
 		if r.disconnectTimer != nil {
@@ -814,6 +834,7 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		r.WhitePlayer.mu.Lock()
 		r.WhitePlayer.LastFinishedMatchID = r.ID
 		r.WhitePlayer.LastFinishedTeam = "white"
+		r.WhitePlayer.Activity = ActivityPostGame
 		if r.WhitePlayer.CurrentMatchID == r.ID {
 			r.WhitePlayer.CurrentMatchID = ""
 		}
@@ -823,6 +844,7 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		r.BlackPlayer.mu.Lock()
 		r.BlackPlayer.LastFinishedMatchID = r.ID
 		r.BlackPlayer.LastFinishedTeam = "black"
+		r.BlackPlayer.Activity = ActivityPostGame
 		if r.BlackPlayer.CurrentMatchID == r.ID {
 			r.BlackPlayer.CurrentMatchID = ""
 		}
