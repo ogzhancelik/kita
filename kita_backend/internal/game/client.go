@@ -17,6 +17,37 @@ const (
 	maxMessageSize = 4096
 )
 
+// PlayerActivity represents the exclusive activity state of a connected player.
+// Only one activity can be active at a time — this is the single source of truth
+// for what a player is currently doing, enforcing mutual exclusion across
+// matchmaking, rooms, and active games.
+type PlayerActivity int
+
+const (
+	ActivityIdle          PlayerActivity = iota // Not in any game activity
+	ActivityInQueue                             // Waiting in matchmaking queue
+	ActivityInWaitingRoom                       // Hosting a waiting room
+	ActivityInMatch                             // Active game in progress
+	ActivityPostGame                            // Game finished, rematch window
+)
+
+func (a PlayerActivity) String() string {
+	switch a {
+	case ActivityIdle:
+		return "Idle"
+	case ActivityInQueue:
+		return "InQueue"
+	case ActivityInWaitingRoom:
+		return "InWaitingRoom"
+	case ActivityInMatch:
+		return "InMatch"
+	case ActivityPostGame:
+		return "PostGame"
+	default:
+		return "Unknown"
+	}
+}
+
 type Client struct {
 	Hub            *Hub
 	Conn           *websocket.Conn
@@ -26,9 +57,11 @@ type Client struct {
 	Rating         int
 	CurrentMatchID string
 	AvatarIndex    int
+	Activity       PlayerActivity // Explicit state machine — set via Hub.enterActivityLocked
 
 	// Rematch and invite tracking
 	LastFinishedMatchID      string
+	LastFinishedTeam         string // "white" or "black"
 	PendingRematchID         string
 	PendingRematchTimeControl int64
 	PendingInviteID          string

@@ -125,9 +125,11 @@ func (h *Hub) Run() {
 						if r.WhitePlayer != nil && r.WhitePlayer.UserID == client.UserID {
 							r.WhitePlayer = client
 							client.LastFinishedMatchID = r.ID
+							client.LastFinishedTeam = "white"
 						} else if r.BlackPlayer != nil && r.BlackPlayer.UserID == client.UserID {
 							r.BlackPlayer = client
 							client.LastFinishedMatchID = r.ID
+							client.LastFinishedTeam = "black"
 						}
 					}
 					r.mu.Unlock()
@@ -876,6 +878,9 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 				white = opponentClient
 				black = client
 			}
+		} else if client.LastFinishedTeam == "white" || opponentClient.LastFinishedTeam == "black" {
+			white = opponentClient
+			black = client
 		}
 		room := NewRoomWithTimeControl(matchID, white, black, tc, h.matchService, h)
 		h.rooms[matchID] = room
@@ -891,12 +896,26 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 	client.PendingRematchTimeControl = tc
 	client.mu.Unlock()
 
+	requesterColor := "black"
+	if prevRoom, exists := h.rooms[dto.MatchID]; exists {
+		if prevRoom.WhitePlayer != nil && prevRoom.WhitePlayer.UserID == client.UserID {
+			requesterColor = "black"
+		} else {
+			requesterColor = "white"
+		}
+	} else if client.LastFinishedTeam == "white" {
+		requesterColor = "black"
+	} else {
+		requesterColor = "white"
+	}
+
 	opponentClient.SendJSON(TypeRematchOffered, RematchOfferedDTO{
 		MatchID:              dto.MatchID,
 		RequesterID:          client.UserID,
 		RequesterName:        client.Username,
 		RequesterAvatarIndex: client.AvatarIndex,
 		TimeControl:          tc,
+		ColorPreference:      requesterColor,
 	})
 
 	log.Printf("[Hub] Rematch requested by %s for match %s", client.Username, dto.MatchID)
@@ -974,6 +993,9 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 			white = requester
 			black = client
 		}
+	} else if client.LastFinishedTeam == "white" || requester.LastFinishedTeam == "black" {
+		white = requester
+		black = client
 	}
 	room := NewRoomWithTimeControl(matchID, white, black, tc, h.matchService, h)
 	h.rooms[matchID] = room
@@ -1488,6 +1510,7 @@ func (h *Hub) CloseRoom(matchID string) {
 			if room.WhitePlayer != nil {
 				room.WhitePlayer.mu.Lock()
 				room.WhitePlayer.LastFinishedMatchID = matchID
+				room.WhitePlayer.LastFinishedTeam = "white"
 				if room.WhitePlayer.CurrentMatchID == matchID {
 					room.WhitePlayer.CurrentMatchID = ""
 				}
@@ -1496,6 +1519,7 @@ func (h *Hub) CloseRoom(matchID string) {
 			if room.BlackPlayer != nil {
 				room.BlackPlayer.mu.Lock()
 				room.BlackPlayer.LastFinishedMatchID = matchID
+				room.BlackPlayer.LastFinishedTeam = "black"
 				if room.BlackPlayer.CurrentMatchID == matchID {
 					room.BlackPlayer.CurrentMatchID = ""
 				}

@@ -31,6 +31,9 @@ class AuthProvider extends ChangeNotifier {
   GuestProfile? _guestProfile;
   String? _token;
 
+  bool _isOffline = false;
+  bool _isRetryingConnection = false;
+
   AuthProvider({
     AuthApiService? apiService,
     UserApiService? userApiService,
@@ -45,7 +48,8 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _state == AuthState.authenticated;
   bool get isGuest => _state == AuthState.guest;
-  bool get isOffline => _state == AuthState.offline;
+  bool get isOffline => _isOffline || _state == AuthState.offline;
+  bool get isRetryingConnection => _isRetryingConnection;
 
   UserProfile? get currentUser => _currentUser;
   GuestProfile? get guestProfile => _guestProfile;
@@ -106,40 +110,47 @@ class AuthProvider extends ChangeNotifier {
 
     // 1. Connectivity check
     final hasNet = await _connectivity.hasInternet();
-    if (!hasNet) {
-      _state = AuthState.offline;
-      notifyListeners();
-      return;
-    }
+    _isOffline = !hasNet;
 
     // 2. Token / Session check
     final storedToken = await _storage.getToken();
     if (storedToken != null && storedToken.isNotEmpty) {
       _token = storedToken;
       ApiClient.currentToken = storedToken;
-      try {
-        final profile = await _apiService.getMe(silent: true);
-        _currentUser = profile;
-        await _storage.saveUser(profile);
-        _state = AuthState.authenticated;
-        notifyListeners();
-        return;
-      } catch (e) {
-        final isUnauthorized = e is DioException && (e.response?.statusCode == 401);
-        if (!isUnauthorized) {
-          final cached = await _storage.getUser();
-          if (cached != null) {
-            _currentUser = cached;
-            _state = AuthState.authenticated;
-            notifyListeners();
-            return;
+      if (hasNet) {
+        try {
+          final profile = await _apiService.getMe(silent: true);
+          _currentUser = profile;
+          await _storage.saveUser(profile);
+          _state = AuthState.authenticated;
+          notifyListeners();
+          return;
+        } catch (e) {
+          final isUnauthorized = e is DioException && (e.response?.statusCode == 401);
+          if (!isUnauthorized) {
+            final cached = await _storage.getUser();
+            if (cached != null) {
+              _currentUser = cached;
+              _state = AuthState.authenticated;
+              notifyListeners();
+              return;
+            }
           }
+          await _storage.deleteToken();
+          await _storage.deleteUser();
+          _token = null;
+          _currentUser = null;
+          ApiClient.currentToken = null;
         }
-        await _storage.deleteToken();
-        await _storage.deleteUser();
-        _token = null;
-        _currentUser = null;
-        ApiClient.currentToken = null;
+      } else {
+        // Offline with token: load cached user profile if available
+        final cached = await _storage.getUser();
+        if (cached != null) {
+          _currentUser = cached;
+          _state = AuthState.authenticated;
+          notifyListeners();
+          return;
+        }
       }
     }
 
@@ -154,9 +165,38 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (_) {}
 
-    // 4. No active token or guest -> Welcome screen (Sign in / Register / Guest)
+    // 4. If offline and neither saved token nor guest exists,
+    // initialize a default guest profile to allow immediate offline play
+    if (!hasNet) {
+      _guestProfile = const GuestProfile(nickname: 'Guest', avatarIndex: 0);
+      _state = AuthState.guest;
+      notifyListeners();
+      return;
+    }
+
+    // 5. No active token or guest -> Welcome screen (Sign in / Register / Guest)
     _state = AuthState.unauthenticated;
     notifyListeners();
+  }
+
+  // --- Manual Retry Connection ---
+  Future<bool> retryConnection() async {
+    _isRetryingConnection = true;
+    notifyListeners();
+
+    final hasNet = await _connectivity.hasInternet();
+    _isOffline = !hasNet;
+
+    if (hasNet) {
+      await checkInitialState();
+      _isRetryingConnection = false;
+      notifyListeners();
+      return true;
+    } else {
+      _isRetryingConnection = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   // --- Refresh Profile ---

@@ -638,6 +638,7 @@ class RematchOfferedPayload {
   final String requesterName;
   final int requesterAvatarIndex;
   final int timeControl;
+  final String? colorPreference;
 
   const RematchOfferedPayload({
     required this.matchId,
@@ -645,6 +646,7 @@ class RematchOfferedPayload {
     required this.requesterName,
     this.requesterAvatarIndex = 0,
     required this.timeControl,
+    this.colorPreference,
   });
 
   factory RematchOfferedPayload.fromJson(Map<String, dynamic> json) {
@@ -654,6 +656,7 @@ class RematchOfferedPayload {
       requesterName: json['requester_name'] as String? ?? '',
       requesterAvatarIndex: (json['requester_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
+      colorPreference: json['color_preference'] as String?,
     );
   }
 }

@@ -62,6 +62,10 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 ### 1. Offline Engine (Local Play)
 - [x] **Local Pass & Play**: Single device 2-player pass-and-play with board flipping and theme controls.
 - [x] **Rule Enforcement**: Reversal prevention, Last-Stand auto-retaliation draw & immediate win/loss condition, and stalemate checks.
+- [x] **Offline Main Menu Experience**:
+  - [x] Eliminate blocking full-screen offline gate; seamlessly route offline launches directly to Dashboard with guest profile fallback.
+  - [x] Contextual offline warning banner on main menu ("You are offline right now. [Retry]") matching Guest notice styling with one-tap connection recheck.
+  - [x] Dynamically replace "Open Rooms" and "Friends" cards on the main menu with "Play vs Computer" and "Local 2P Co-op" actions when offline.
 
 ### 2. AI Engine Integration
 - [x] **Inference Engine (Pure Dart Forward Pass)**:
@@ -93,7 +97,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] "Create Room" dialog with time controls (Bullet, Blitz, Rapid, Unlimited) & private toggle
   - [x] "Join by Code" dialog with 6-character room code input
   - [x] Paginated public room browser screen (`RoomBrowserScreen`) with pull-to-refresh
-  - [x] Friend / user direct invite system & Rematch requests via unified top-of-screen animated notification banner (`TopMatchInviteBanner`) with countdown timer and one-tap accept/decline
+  - [x] Friend / user direct invite system & Rematch requests via unified top-of-screen animated notification banner (`TopMatchInviteBanner`) with countdown timer and one-tap accept/decline; automatic player color swapping on rematch across online (mutual & accepted) and offline (VS AI & Local Coop) matches
   - [x] Friend invite side/color preference dialog (Random, White, Black) and recipient side indicator
   - [x] Real-time friend online presence synchronization (`Hub.IsUserOnline`), offline challenge guard with clear UI warning, and server-confirmed invitation feedback (preventing false "invite sent" toasts when challenged friend is offline)
   - [x] Ephemeral Live Challenge Lifecycle: 60-second automatic challenge timeout on Hub, automatic teardown and friend cancellation on disconnect (`handleDisconnect`), and notification inbox expiration guard (`isExpired` / "Süresi Doldu" badge) preventing invalid acceptance of dead challenges

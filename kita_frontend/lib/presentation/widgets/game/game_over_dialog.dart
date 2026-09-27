@@ -373,7 +373,8 @@ class _GameOverDialogState extends State<GameOverDialog>
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}',
+                                '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}'
+                                '${offer.colorPreference == 'white' ? ' • ${'online.invitationSideBlack'.tr()}' : (offer.colorPreference == 'black' ? ' • ${'online.invitationSideWhite'.tr()}' : '')}',
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   color: AppColors.getTextSecondary(isDark),

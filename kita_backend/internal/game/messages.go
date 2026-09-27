@@ -248,6 +248,7 @@ type RematchOfferedDTO struct {
 	RequesterName        string `json:"requester_name"`
 	RequesterAvatarIndex int    `json:"requester_avatar_index"`
 	TimeControl          int64  `json:"time_control"`
+	ColorPreference      string `json:"color_preference,omitempty"`
 }
 
 // ─── Friend Invite DTOs ───────────────────────────────────────────────

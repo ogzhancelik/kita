@@ -980,9 +980,12 @@ class OnlineGameProvider extends ChangeNotifier {
 
   void requestRematch() {
     if (isOffline) {
+      final newPlayerTeam = offlinePlayerTeam == PieceTeam.white
+          ? PieceTeam.black
+          : PieceTeam.white;
       startOfflineMatch(
         mode: offlinePlayMode,
-        playerTeam: offlinePlayerTeam,
+        playerTeam: newPlayerTeam,
         botDifficulty: offlineBotDifficulty,
         playerId: offlinePlayerId,
         playerName: offlinePlayerName,
@@ -1342,6 +1345,7 @@ class OnlineGameProvider extends ChangeNotifier {
             senderName: payload.requesterName,
             senderRating: opponentInfo?.rating ?? 1200,
             timeControl: payload.timeControl,
+            colorPreference: payload.colorPreference ?? 'random',
           );
           notifyListeners();
         }
