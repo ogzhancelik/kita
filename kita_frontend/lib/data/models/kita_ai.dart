@@ -84,7 +84,7 @@ class KitaAI {
   static final KitaAI instance = KitaAI();
 
   final KitaNeuralNet _net = KitaNeuralNet();
-  Map<String, String> _openingBook = {};
+  Map<String, List<String>> _openingBook = {};
   bool _initialized = false;
   Future<void>? _initFuture;
 
@@ -106,8 +106,7 @@ class KitaAI {
       final bookJson =
           await rootBundle.loadString('assets/ai/opening_book.json');
       final Map<String, dynamic> bookData = json.decode(bookJson);
-      _openingBook =
-          bookData.map((key, value) => MapEntry(key, value as String));
+      _openingBook = _parseOpeningBookData(bookData);
     } catch (_) {
       // Opening book is optional — continue without it
       _openingBook = {};
@@ -122,13 +121,25 @@ class KitaAI {
     if (openingBookJson != null) {
       try {
         final Map<String, dynamic> bookData = json.decode(openingBookJson);
-        _openingBook =
-            bookData.map((key, value) => MapEntry(key, value as String));
+        _openingBook = _parseOpeningBookData(bookData);
       } catch (_) {
         _openingBook = {};
       }
     }
     _initialized = true;
+  }
+
+  Map<String, List<String>> _parseOpeningBookData(Map<String, dynamic> data) {
+    final result = <String, List<String>>{};
+    for (final entry in data.entries) {
+      if (entry.value is List) {
+        result[entry.key] =
+            (entry.value as List).map((e) => e.toString()).toList();
+      } else if (entry.value is String) {
+        result[entry.key] = [entry.value as String];
+      }
+    }
+    return result;
   }
 
   // ─── Feature Encoding ──────────────────────────────────────────────
@@ -223,19 +234,27 @@ class KitaAI {
     return '$turnChar|${posStrs.join(';')}';
   }
 
-  // ─── Opening Book ──────────────────────────────────────────────────
-
   /// Look up the current position in the opening book.
-  /// Returns null if not found.
+  /// If found, randomly selects one of the valid candidate moves.
+  /// Returns null if not found or no moves can be parsed.
   KitaMove? _lookupBookMove(KitaGameEngine engine) {
     if (_openingBook.isEmpty) return null;
 
     final fen = gameToFen(engine);
-    final bookMoveStr = _openingBook[fen];
-    if (bookMoveStr == null) return null;
+    final bookMoveList = _openingBook[fen];
+    if (bookMoveList == null || bookMoveList.isEmpty) return null;
 
-    // Parse move string like "WK: D7 -> D5"
-    return _parseBookMoveString(bookMoveStr, engine.getLegalMoves());
+    final legalMoves = engine.getLegalMoves();
+    final candidateMoves = <KitaMove>[];
+    for (final moveStr in bookMoveList) {
+      final parsed = _parseBookMoveString(moveStr, legalMoves);
+      if (parsed != null) {
+        candidateMoves.add(parsed);
+      }
+    }
+
+    if (candidateMoves.isEmpty) return null;
+    return candidateMoves[_rng.nextInt(candidateMoves.length)];
   }
 
   /// Parse an opening book move string into a KitaMove.
@@ -368,13 +387,22 @@ class KitaAI {
   /// Choose a move with optional temperature-based softmax sampling.
   /// If temperature <= 0: greedy (best move).
   /// If temperature > 0: softmax sampling for variety.
+  /// If [addDirichletNoise] is enabled (default true) and it is the very first move
+  /// of the game for White (ply 0: engine.moveCount == 0 && turn == white),
+  /// Dirichlet noise is blended into the move probabilities (AlphaZero style).
   KitaMove? chooseMove(
     KitaGameEngine engine, {
     int depth = 2,
     double temperature = 0.2,
+    bool addDirichletNoise = true,
+    double dirichletAlpha = 0.3,
+    double dirichletEpsilon = 0.4,
   }) {
     final ranked = getRankedMoves(engine, depth);
     if (ranked.isEmpty) return null;
+
+    final isWhiteFirstMove =
+        engine.moveCount == 0 && engine.turn == PieceTeam.white;
 
     // Instant/forced win check: always take guaranteed victory immediately
     if (ranked.first.score >= 10.0) {
@@ -385,8 +413,19 @@ class KitaAI {
       return bestMoves[_rng.nextInt(bestMoves.length)].move;
     }
 
-    // Greedy / deterministic
-    if (temperature <= 1e-4) {
+    // Softmax sampling with asymmetric penalty for negative scores
+    final scores = ranked.map((sm) => sm.score).toList();
+
+    // Penalize negative scores more heavily (matches Python play_ai.py)
+    final adjusted = scores.map((s) => s < 0 ? s * 3.0 : s).toList();
+
+    // Use a baseline temperature for White's opening move if temp is too low or greedy
+    final effectiveTemp = (isWhiteFirstMove && addDirichletNoise && temperature <= 1e-4)
+        ? 0.3
+        : temperature;
+
+    if (effectiveTemp <= 1e-4) {
+      // Greedy / deterministic
       final bestScore = ranked.first.score;
       final bestMoves = ranked
           .where((sm) => (sm.score - bestScore).abs() < 1e-4)
@@ -394,22 +433,25 @@ class KitaAI {
       return bestMoves[_rng.nextInt(bestMoves.length)].move;
     }
 
-    // Softmax sampling with asymmetric penalty for negative scores
-    final scores =
-        ranked.map((sm) => sm.score).toList();
-
-    // Penalize negative scores more heavily (matches Python play_ai.py)
-    final adjusted = scores
-        .map((s) => s < 0 ? s * 3.0 : s)
-        .toList();
-
-    final maxAdj =
-        adjusted.reduce((a, b) => a > b ? a : b);
+    final maxAdj = adjusted.reduce((a, b) => a > b ? a : b);
     final logits =
-        adjusted.map((s) => (s - maxAdj) / temperature).toList();
+        adjusted.map((s) => (s - maxAdj) / effectiveTemp).toList();
     final expLogits = logits.map((l) => math.exp(l)).toList();
     final sumExp = expLogits.reduce((a, b) => a + b);
-    final probs = expLogits.map((e) => e / sumExp).toList();
+    var probs = expLogits.map((e) => e / sumExp).toList();
+
+    // Apply Dirichlet noise for the very first move of White bot (ply = 0)
+    if (isWhiteFirstMove && addDirichletNoise && probs.length > 1) {
+      final noise = _sampleDirichlet(probs.length, dirichletAlpha);
+      probs = List<double>.generate(probs.length, (i) {
+        return (1.0 - dirichletEpsilon) * probs[i] +
+            dirichletEpsilon * noise[i];
+      });
+      final pSum = probs.reduce((a, b) => a + b);
+      if (pSum > 0) {
+        probs = probs.map((p) => p / pSum).toList();
+      }
+    }
 
     // Weighted random selection
     final r = _rng.nextDouble();
@@ -422,15 +464,67 @@ class KitaAI {
     return ranked.last.move;
   }
 
+  /// Samples a vector of probabilities from a symmetric Dirichlet distribution Dir(alpha).
+  /// Generated via independent Gamma(alpha, 1) variates normalized by their sum.
+  static List<double> _sampleDirichlet(int k, double alpha) {
+    if (k <= 0) return [];
+    if (k == 1) return [1.0];
+
+    final samples = List<double>.generate(k, (_) => _sampleGamma(alpha, 1.0));
+    final sum = samples.reduce((a, b) => a + b);
+    if (sum <= 0 || sum.isNaN || sum.isInfinite) {
+      return List<double>.filled(k, 1.0 / k);
+    }
+    return samples.map((s) => s / sum).toList();
+  }
+
+  /// Samples from Gamma(shape, scale) using Marsaglia and Tsang method (2000).
+  static double _sampleGamma(double shape, double scale) {
+    if (shape < 1.0) {
+      // Gamma(a) = Gamma(a + 1) * U^(1/a)
+      final u = _rng.nextDouble();
+      return _sampleGamma(shape + 1.0, scale) * math.pow(u, 1.0 / shape);
+    }
+
+    final d = shape - 1.0 / 3.0;
+    final c = 1.0 / math.sqrt(9.0 * d);
+
+    while (true) {
+      double z;
+      double v;
+      do {
+        // Standard normal variate via Box-Muller
+        final u1 = _rng.nextDouble().clamp(1e-15, 1.0);
+        final u2 = _rng.nextDouble();
+        z = math.sqrt(-2.0 * math.log(u1)) * math.cos(2.0 * math.pi * u2);
+        v = 1.0 + c * z;
+      } while (v <= 0.0);
+
+      v = v * v * v;
+      final u = _rng.nextDouble().clamp(1e-15, 1.0);
+
+      // Fast squeeze check
+      if (u < 1.0 - 0.0331 * z * z * z * z) {
+        return d * v * scale;
+      }
+
+      if (math.log(u) < 0.5 * z * z + d * (1.0 - v + math.log(v))) {
+        return d * v * scale;
+      }
+    }
+  }
+
   /// Choose a move using a preset difficulty tier.
   KitaMove? chooseMoveWithDifficulty(
     KitaGameEngine engine,
-    AIDifficulty difficulty,
-  ) {
+    AIDifficulty difficulty, {
+    bool addDirichletNoise = true,
+  }) {
     return chooseMove(
       engine,
       depth: difficulty.depth,
       temperature: difficulty.temperature,
+      addDirichletNoise: addDirichletNoise,
     );
   }
 
