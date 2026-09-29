@@ -62,6 +62,8 @@ func main() {
 	settingsRepo := postgres.NewSettingsRepository(db)
 	friendRepo := postgres.NewFriendRepository(db)
 	notifRepo := postgres.NewNotificationRepository(db)
+	dmRepo := postgres.NewDirectMessageRepository(db)
+
 
 	// 4. Services
 	authService := service.NewAuthService(userRepo)
@@ -71,19 +73,26 @@ func main() {
 	settingsService := service.NewSettingsService(settingsRepo, userRepo)
 	friendService := service.NewFriendService(friendRepo, userRepo)
 	notificationService := service.NewNotificationService(notifRepo)
+	dmService := service.NewDirectMessageService(dmRepo)
+
 
 	// 5. Realtime Game Hub & Goroutine
 	hub := game.NewHub(matchService, messageService, notificationService, friendService)
+	hub.SetDmService(dmService)
 	go hub.Run()
+
 
 	// 6. Handlers
 	authH := httpHandler.NewAuthHandler(authService, userService)
 	userH := httpHandler.NewUserHandler(userService)
-	matchH := httpHandler.NewMatchHandler(matchService)
+	matchH := httpHandler.NewMatchHandler(matchService, messageService)
+
 	settingsH := httpHandler.NewSettingsHandler(settingsService)
 	friendH := httpHandler.NewFriendHandler(friendService, userService, notificationService, hub)
 	notifH := httpHandler.NewNotificationHandler(notificationService)
+	dmH := httpHandler.NewDirectMessageHandler(dmService, friendService)
 	wsH := wsHandler.NewWSHandler(hub, authService, userService)
+
 
 	// 7. Gin HTTP Engine
 	router := gin.Default()
@@ -137,8 +146,10 @@ func main() {
 		{
 			matchRoutes.GET("/:id", matchH.GetMatch)
 			matchRoutes.GET("/:id/moves", matchH.GetMatchMoves)
+			matchRoutes.GET("/:id/messages", matchH.GetMatchMessages)
 			matchRoutes.GET("/user/:userId", matchH.GetUserMatches)
 		}
+
 
 		friendRoutes := api.Group("/friends", middleware.AuthMiddleware(authService))
 		{
@@ -157,6 +168,13 @@ func main() {
 			notifRoutes.POST("/mark-all-read", notifH.MarkAllAsRead)
 			notifRoutes.DELETE("/:id", notifH.DeleteNotification)
 		}
+
+		dmRoutes := api.Group("/dm", middleware.AuthMiddleware(authService))
+		{
+			dmRoutes.GET("/conversations", dmH.ListConversations)
+			dmRoutes.GET("/conversations/:conversationId", dmH.GetHistory)
+		}
+
 
 		api.GET("/stats/online", func(c *gin.Context) {
 			online, inQueue := hub.GetOnlineStats()

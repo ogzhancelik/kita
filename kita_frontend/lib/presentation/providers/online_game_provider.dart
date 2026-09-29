@@ -1091,14 +1091,19 @@ class OnlineGameProvider extends ChangeNotifier {
     }
   }
 
-  void acceptInvitation(String inviteId) {
-    _ws.send(WsClientType.acceptInvitation, {'invite_id': inviteId});
+  void acceptInvitation(String inviteId, {String? inviterId, int? timeControl, String? colorPref}) {
+    final payload = <String, dynamic>{'invite_id': inviteId};
+    if (inviterId != null && inviterId.isNotEmpty) payload['inviter_id'] = inviterId;
+    if (timeControl != null) payload['time_control'] = timeControl;
+    if (colorPref != null && colorPref.isNotEmpty) payload['color_preference'] = colorPref;
+    _ws.send(WsClientType.acceptInvitation, payload);
     matchInvitation.value = null;
     if (incomingMatchRequest.value?.id == inviteId) {
       incomingMatchRequest.value = null;
     }
     notifyListeners();
   }
+
 
   void declineInvitation(String inviteId) {
     _ws.send(WsClientType.declineInvitation, {'invite_id': inviteId});

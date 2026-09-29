@@ -90,6 +90,7 @@
     "quickActions": "Quick Play",
     "guestNotice": "You are playing as Guest. Your stats will not be saved globally.",
     "offlineNotice": "You are offline right now.",
+    "serverDownNotice": "Game servers are unreachable right now.",
     "retry": "Retry",
     "retrying": "Connecting...",
     "offlinePlayTitle": "Offline Games",
@@ -263,7 +264,8 @@
     "addMoreFriendsHint": "Add more friends to expand your friends leaderboard!",
     "jumpToYourRank": "Jump to your rank",
     "unrankedRank": "50+",
-    "tapToLocate": "Tap to view"
+    "tapToLocate": "Tap to view",
+    "noPlayersFound": "No players found."
   },
   "settings": {
     "title": "Settings",
@@ -527,6 +529,10 @@
     "offlineStatus": "Offline",
     "friendOffline": "Friend is currently offline.",
     "friendOfflineWarning": "This player is currently offline. You can only send game invitations to online players.",
+    "friendOfflineInviteNote": "This friend is offline. Your invite will be delivered when they come back online (expires in 24h).",
+    "sendInviteOffline": "Send Offline Invite",
+    "sendInviteOfflineBtn": "Send Invite",
+
     "friendInMatch": "Friend is currently in a match.",
     "inviteTimeout": "Invitation timed out.",
     "accept": "Accept",
@@ -619,6 +625,22 @@
     "paste": "Paste",
     "saved": "API URL saved successfully!",
     "unreachable": "Server unreachable. Check the URL and try again."
+  },
+  "dm": {
+    "chatTooltip": "Message",
+    "online": "Online",
+    "offline": "Offline",
+    "startConversation": "Say hello! Start the conversation.",
+    "messageHint": "Type a message...",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "messageTooLong": "Message is too long (max 500 chars).",
+    "matchVs": "vs {}",
+    "matchWon": "You won",
+    "matchLost": "You lost",
+    "matchDraw": "Draw",
+    "noInGameChat": "No in-game messages.",
+    "inGameChatLabel": "In-Game Chat"
   }
 }
 

@@ -90,6 +90,7 @@
     "quickActions": "Hızlı Oyun",
     "guestNotice": "Misafir olarak oynuyorsunuz. İstatistikleriniz sunucuya kaydedilmez.",
     "offlineNotice": "Şu anda çevrimdışısınız.",
+    "serverDownNotice": "Oyun sunucularına şu anda ulaşılamıyor.",
     "retry": "Tekrar Dene",
     "retrying": "Bağlanıyor...",
     "offlinePlayTitle": "Çevrimdışı Oyunlar",
@@ -263,7 +264,8 @@
     "addMoreFriendsHint": "Arkadaş lider tablonu genişletmek için daha fazla arkadaş ekle!",
     "jumpToYourRank": "Sıralamana git",
     "unrankedRank": "50+",
-    "tapToLocate": "Görüntülemek için dokun"
+    "tapToLocate": "Görüntülemek için dokun",
+    "noPlayersFound": "Oyuncu bul"
   },
   "settings": {
     "title": "Ayarlar",
@@ -526,6 +528,10 @@
     "offlineStatus": "Çevrimdışı",
     "friendOffline": "Arkadaşınız şu anda çevrimdışı.",
     "friendOfflineWarning": "Bu oyuncu şu anda çevrimdışı. Yalnızca çevrimiçi oyunculara oyun daveti gönderebilirsiniz.",
+    "friendOfflineInviteNote": "Bu arkadaşınız çevrimdışı. Davetiniz çevrimiçi olduklarında iletilecektir (24 saat içinde geçerli).",
+    "sendInviteOffline": "Çevrimdışı Davet Gönder",
+    "sendInviteOfflineBtn": "Davet Gönder",
+
     "friendInMatch": "Arkadaşınız şu anda başka bir maçta.",
     "inviteTimeout": "Oyun daveti zaman aşımına uğradı.",
     "accept": "Kabul Et",
@@ -618,6 +624,24 @@
     "paste": "Yapıştır",
     "saved": "API URL başarıyla kaydedildi!",
     "unreachable": "Sunucuya ulaşılamıyor. URL'yi kontrol edip tekrar deneyin."
+  },
+  "dm": {
+    "chatTooltip": "Mesaj Gönder",
+    "online": "Çevrimiçi",
+    "offline": "Çevrimdışı",
+    "startConversation": "Merhaba de! Sohbeti başlat.",
+    "messageHint": "Bir mesaj yaz...",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "messageTooLong": "Mesaj çok uzun (maks. 500 karakter).",
+    "matchVs": "vs {}",
+    "matchWon": "Kazandın",
+    "matchLost": "Kaybettin",
+    "matchDraw": "Beraberlik",
+    "noInGameChat": "Oyun içi mesaj yok.",
+    "inGameChatLabel": "Oyun İçi Sohbet"
   }
 }
-
+
+
+

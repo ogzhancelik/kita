@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/connectivity_service.dart';
 import '../../core/storage/secure_storage_service.dart';
@@ -31,7 +33,9 @@ class AuthProvider extends ChangeNotifier {
   String? _token;
 
   bool _isOffline = false;
+  bool _isServerDown = false;
   bool _isRetryingConnection = false;
+  StreamSubscription<bool>? _connectivitySubscription;
 
   AuthProvider({
     AuthApiService? apiService,
@@ -41,14 +45,83 @@ class AuthProvider extends ChangeNotifier {
   })  : _apiService = apiService ?? AuthApiService(),
         _userApiService = userApiService ?? UserApiService(),
         _storage = storage ?? SecureStorageService(),
-        _connectivity = connectivity ?? ConnectivityService();
+        _connectivity = connectivity ?? ConnectivityService() {
+    _initReachabilityListeners();
+  }
+
+  void _initReachabilityListeners() {
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((hasNet) async {
+      if (!hasNet) {
+        _isOffline = true;
+        _isServerDown = false;
+        notifyListeners();
+      } else {
+        _isOffline = false;
+        final isHealthy = await ConnectivityService.checkApiHealth(ApiConstants.baseUrl);
+        _isServerDown = !isHealthy;
+        notifyListeners();
+      }
+    });
+
+    ApiClient.onServerStatusChanged = (down) {
+      if (down) {
+        _connectivity.hasInternet().then((hasNet) {
+          if (hasNet) {
+            setServerDown(true);
+          } else {
+            setIsOffline(true);
+          }
+        });
+      } else {
+        setServerDown(false);
+      }
+    };
+
+    WebSocketService.instance.onConnectionFailed = () async {
+      final hasNet = await _connectivity.hasInternet();
+      if (hasNet) {
+        final isHealthy = await ConnectivityService.checkApiHealth(ApiConstants.baseUrl);
+        if (!isHealthy) {
+          setServerDown(true);
+        }
+      } else {
+        setIsOffline(true);
+      }
+    };
+
+    WebSocketService.instance.onConnected = () {
+      setServerDown(false);
+    };
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
 
   AuthState get state => _state;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _state == AuthState.authenticated;
   bool get isGuest => _state == AuthState.guest;
   bool get isOffline => _isOffline || _state == AuthState.offline;
+  bool get isServerDown => _isServerDown;
+  bool get isOnlineUnavailable => isOffline || _isServerDown;
   bool get isRetryingConnection => _isRetryingConnection;
+
+  void setServerDown(bool value) {
+    if (_isServerDown != value) {
+      _isServerDown = value;
+      notifyListeners();
+    }
+  }
+
+  void setIsOffline(bool value) {
+    if (_isOffline != value) {
+      _isOffline = value;
+      notifyListeners();
+    }
+  }
 
   UserProfile? get currentUser => _currentUser;
   GuestProfile? get guestProfile => _guestProfile;
@@ -111,22 +184,32 @@ class AuthProvider extends ChangeNotifier {
     final hasNet = await _connectivity.hasInternet();
     _isOffline = !hasNet;
 
+    // 1b. Server reachability check
+    if (!hasNet) {
+      _isServerDown = false;
+    } else {
+      final isHealthy = await ConnectivityService.checkApiHealth(ApiConstants.baseUrl);
+      _isServerDown = !isHealthy;
+    }
+
     // 2. Token / Session check
     final storedToken = await _storage.getToken();
     if (storedToken != null && storedToken.isNotEmpty) {
       _token = storedToken;
       ApiClient.currentToken = storedToken;
-      if (hasNet) {
+      if (hasNet && !_isServerDown) {
         try {
           final profile = await _apiService.getMe(silent: true);
           _currentUser = profile;
           await _storage.saveUser(profile);
           _state = AuthState.authenticated;
+          _isServerDown = false;
           notifyListeners();
           return;
         } catch (e) {
           final isUnauthorized = e is DioException && (e.response?.statusCode == 401);
           if (!isUnauthorized) {
+            _isServerDown = true;
             final cached = await _storage.getUser();
             if (cached != null) {
               _currentUser = cached;
@@ -134,15 +217,16 @@ class AuthProvider extends ChangeNotifier {
               notifyListeners();
               return;
             }
+          } else {
+            await _storage.deleteToken();
+            await _storage.deleteUser();
+            _token = null;
+            _currentUser = null;
+            ApiClient.currentToken = null;
           }
-          await _storage.deleteToken();
-          await _storage.deleteUser();
-          _token = null;
-          _currentUser = null;
-          ApiClient.currentToken = null;
         }
       } else {
-        // Offline with token: load cached user profile if available
+        // Offline or server down with token: load cached user profile if available
         final cached = await _storage.getUser();
         if (cached != null) {
           _currentUser = cached;
@@ -164,16 +248,16 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (_) {}
 
-    // 4. If offline and neither saved token nor guest exists,
+    // 4. If offline or server is down and neither saved token nor guest exists,
     // initialize a default guest profile to allow immediate offline play
-    if (!hasNet) {
+    if (!hasNet || _isServerDown) {
       _guestProfile = const GuestProfile(nickname: 'Guest', avatarIndex: 0);
       _state = AuthState.guest;
       notifyListeners();
       return;
     }
 
-    // 5. No active token or guest -> Welcome screen (Sign in / Register / Guest)
+    // 5. No active token or guest and server online -> Welcome screen (Sign in / Register / Guest)
     _state = AuthState.unauthenticated;
     notifyListeners();
   }
@@ -186,16 +270,27 @@ class AuthProvider extends ChangeNotifier {
     final hasNet = await _connectivity.hasInternet();
     _isOffline = !hasNet;
 
-    if (hasNet) {
-      await checkInitialState();
-      _isRetryingConnection = false;
-      notifyListeners();
-      return true;
-    } else {
+    if (!hasNet) {
+      _isServerDown = false;
       _isRetryingConnection = false;
       notifyListeners();
       return false;
     }
+
+    final isHealthy = await ConnectivityService.checkApiHealth(ApiConstants.baseUrl);
+    _isServerDown = !isHealthy;
+
+    if (!isHealthy) {
+      _isRetryingConnection = false;
+      notifyListeners();
+      return false;
+    }
+
+    // Backend is reachable and internet is available!
+    await checkInitialState();
+    _isRetryingConnection = false;
+    notifyListeners();
+    return true;
   }
 
   // --- Refresh Profile ---
@@ -205,8 +300,18 @@ class AuthProvider extends ChangeNotifier {
       final profile = await _apiService.getMe();
       _currentUser = profile;
       await _storage.saveUser(profile);
+      _isServerDown = false;
       notifyListeners();
     } catch (e) {
+      if (e is DioException && (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          (e.response?.statusCode != null && e.response!.statusCode! >= 500))) {
+        final hasNet = await _connectivity.hasInternet();
+        if (hasNet) {
+          _isServerDown = true;
+          notifyListeners();
+        }
+      }
       debugPrint('[AuthProvider] Failed to refresh profile: $e');
     }
   }

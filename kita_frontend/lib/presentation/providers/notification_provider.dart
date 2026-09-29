@@ -189,7 +189,12 @@ class NotificationProvider extends ChangeNotifier {
           onlineProv.acceptRematch(notif.matchId);
         } else {
           if (notif.inviteId != null && notif.inviteId!.isNotEmpty) {
-            onlineProv.acceptInvitation(notif.inviteId!);
+            onlineProv.acceptInvitation(
+              notif.inviteId!,
+              inviterId: notif.actorId,
+              timeControl: notif.timeControl,
+              colorPref: notif.colorPreference,
+            );
           } else {
             onlineProv.acceptIncomingRequest();
           }

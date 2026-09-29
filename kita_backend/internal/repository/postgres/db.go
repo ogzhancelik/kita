@@ -47,6 +47,7 @@ func NewDatabase() (*gorm.DB, error) {
 		&domain.User{},
 		&domain.Match{},
 		&domain.Message{},
+		&domain.DirectMessage{},
 		&domain.UserSettings{},
 		&domain.Friendship{},
 		&domain.Notification{},

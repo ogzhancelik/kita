@@ -72,14 +72,14 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                   : AppColors.onlineLight.withValues(alpha: 0.2),
             ),
             child: Icon(
-              isOffline ? Icons.cloud_off_rounded : Icons.sports_esports_rounded,
+              isOffline ? Icons.schedule_rounded : Icons.sports_esports_rounded,
               size: 32,
               color: isOffline ? AppColors.warning : AppColors.online,
             ),
           ),
           const SizedBox(height: 10),
           Text(
-            isOffline ? 'online.friendOffline'.tr() : 'online.sendInvite'.tr(),
+            isOffline ? 'online.sendInviteOffline'.tr() : 'online.sendInvite'.tr(),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -201,27 +201,27 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
           if (isOffline) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.12),
+                color: AppColors.warning.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: AppColors.warning.withValues(alpha: 0.3),
+                  color: AppColors.warning.withValues(alpha: 0.25),
                 ),
               ),
               child: Row(
                 children: [
                   const Icon(
-                    Icons.info_outline,
-                    size: 20,
+                    Icons.schedule_rounded,
+                    size: 18,
                     color: AppColors.warning,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'online.friendOfflineWarning'.tr(),
+                      'online.friendOfflineInviteNote'.tr(),
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         height: 1.4,
                         color: AppColors.warning,
                       ),
@@ -230,69 +230,70 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
           ] else ...[
             const SizedBox(height: 16),
-
-            // Choose Side
-            Text(
-              'online.chooseSide'.tr(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.getTextSecondary(isDark),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                _buildChoiceChip(
-                  label: 'online.colorRandom'.tr(),
-                  icon: Icons.shuffle_rounded,
-                  isSelected: _selectedColor == 'random',
-                  isDark: isDark,
-                  onSelected: () => setState(() => _selectedColor = 'random'),
-                ),
-                _buildChoiceChip(
-                  label: 'online.colorWhite'.tr(),
-                  icon: Icons.circle,
-                  iconColor: AppColors.darkTextPrimary,
-                  isSelected: _selectedColor == 'white',
-                  isDark: isDark,
-                  onSelected: () => setState(() => _selectedColor = 'white'),
-                ),
-                _buildChoiceChip(
-                  label: 'online.colorBlack'.tr(),
-                  icon: Icons.circle_outlined,
-                  isSelected: _selectedColor == 'black',
-                  isDark: isDark,
-                  onSelected: () => setState(() => _selectedColor = 'black'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Time Control
-            Text(
-              'online.selectTimeControl'.tr(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.getTextSecondary(isDark),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                _buildTimeChip('online.timeBullet'.tr(), TimeControlPreset.oneMin, isDark),
-                _buildTimeChip('online.timeBlitz'.tr(), TimeControlPreset.threeMin, isDark),
-                _buildTimeChip('online.timeRapid'.tr(), TimeControlPreset.fiveMin, isDark),
-                _buildTimeChip('online.timeUnlimited'.tr(), TimeControlPreset.unlimited, isDark),
-              ],
-            ),
           ],
+
+          // Choose Side
+          Text(
+            'online.chooseSide'.tr(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.getTextSecondary(isDark),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              _buildChoiceChip(
+                label: 'online.colorRandom'.tr(),
+                icon: Icons.shuffle_rounded,
+                isSelected: _selectedColor == 'random',
+                isDark: isDark,
+                onSelected: () => setState(() => _selectedColor = 'random'),
+              ),
+              _buildChoiceChip(
+                label: 'online.colorWhite'.tr(),
+                icon: Icons.circle,
+                iconColor: AppColors.darkTextPrimary,
+                isSelected: _selectedColor == 'white',
+                isDark: isDark,
+                onSelected: () => setState(() => _selectedColor = 'white'),
+              ),
+              _buildChoiceChip(
+                label: 'online.colorBlack'.tr(),
+                icon: Icons.circle_outlined,
+                isSelected: _selectedColor == 'black',
+                isDark: isDark,
+                onSelected: () => setState(() => _selectedColor = 'black'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Time Control
+          Text(
+            'online.selectTimeControl'.tr(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.getTextSecondary(isDark),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _buildTimeChip('online.timeBullet'.tr(), TimeControlPreset.oneMin, isDark),
+              _buildTimeChip('online.timeBlitz'.tr(), TimeControlPreset.threeMin, isDark),
+              _buildTimeChip('online.timeRapid'.tr(), TimeControlPreset.fiveMin, isDark),
+              _buildTimeChip('online.timeUnlimited'.tr(), TimeControlPreset.unlimited, isDark),
+            ],
+          ),
         ],
       ),
       actions: [
@@ -301,39 +302,39 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
           child: Text(
             'online.cancel'.tr(),
             style: TextStyle(
-              color: isOffline ? AppColors.getTextPrimary(isDark) : AppColors.getTextSecondary(isDark),
-              fontWeight: isOffline ? FontWeight.w600 : FontWeight.normal,
+              color: AppColors.getTextSecondary(isDark),
             ),
           ),
         ),
-        if (!isOffline)
-          ElevatedButton(
-            onPressed: () async {
+        ElevatedButton(
+          onPressed: () async {
+            if (!isOffline) {
               final canProceed = await ActivityConflictHelper.checkAndConfirm(
                 context: context,
                 provider: widget.onlineProv,
               );
               if (!canProceed) return;
               if (!context.mounted) return;
+            }
 
-              Navigator.of(context).pop();
-              widget.onlineProv.inviteToMatch(
-                widget.friend.userId,
-                friendName: widget.friend.username,
-                friendRating: widget.friend.rating,
-                timeControl: _selectedTimeControl,
-                colorPreference: _selectedColor,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: AppColors.darkTextPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+            Navigator.of(context).pop();
+            widget.onlineProv.inviteToMatch(
+              widget.friend.userId,
+              friendName: widget.friend.username,
+              friendRating: widget.friend.rating,
+              timeControl: _selectedTimeControl,
+              colorPreference: _selectedColor,
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryGreen,
+            foregroundColor: AppColors.darkTextPrimary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Text('online.sendInvite'.tr()),
           ),
+          child: Text(isOffline ? 'online.sendInviteOfflineBtn'.tr() : 'online.sendInvite'.tr()),
+        ),
       ],
     );
   }

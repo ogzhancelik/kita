@@ -30,7 +30,9 @@ class WsClientType {
   static const String drawOffer = 'draw_offer';
   static const String drawAccept = 'draw_accept';
   static const String drawDecline = 'draw_decline';
+  static const String dmSend = 'dm_send';
 }
+
 
 /// Server → Client message types
 class WsServerType {
@@ -63,7 +65,9 @@ class WsServerType {
   static const String matchClosed = 'match_closed';
   static const String drawOffered = 'draw_offered';
   static const String drawDeclined = 'draw_declined';
+  static const String dmBroadcast = 'dm_broadcast';
 }
+
 
 // ─── Time Control Presets (ms) ────────────────────────────────────────
 

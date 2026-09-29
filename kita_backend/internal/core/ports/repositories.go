@@ -43,6 +43,12 @@ type FriendRepository interface {
 	ListPendingRequests(ctx context.Context, userID string) ([]domain.Friendship, error)
 }
 
+type DirectMessageRepository interface {
+	Save(ctx context.Context, msg *domain.DirectMessage) error
+	GetConversation(ctx context.Context, conversationID string, limit, offset int) ([]domain.DirectMessage, error)
+	GetConversationPreviews(ctx context.Context, userID string) ([]domain.DirectMessage, error)
+}
+
 type NotificationRepository interface {
 	Create(ctx context.Context, notif *domain.Notification) error
 	FindByID(ctx context.Context, id string) (*domain.Notification, error)

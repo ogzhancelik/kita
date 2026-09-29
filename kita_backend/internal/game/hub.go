@@ -29,9 +29,11 @@ type Hub struct {
 	messageService      ports.MessageService
 	notificationService ports.NotificationService
 	friendService       ports.FriendService
+	dmService           ports.DirectMessageService
 
 	mu sync.RWMutex
 }
+
 
 func NewHub(matchService ports.MatchService, messageService ports.MessageService, notificationService ports.NotificationService, friendService ...ports.FriendService) *Hub {
 	var fs ports.FriendService
@@ -51,6 +53,15 @@ func NewHub(matchService ports.MatchService, messageService ports.MessageService
 		friendService:       fs,
 	}
 }
+
+// SetDmService wires the DirectMessage service after construction
+// (avoids circular dependency in main.go initialization order).
+func (h *Hub) SetDmService(svc ports.DirectMessageService) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.dmService = svc
+}
+
 
 func (h *Hub) Run() {
 	ticker := time.NewTicker(15 * time.Second)
@@ -275,10 +286,14 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 	case TypeUpdateAvatar:
 		h.handleUpdateAvatar(client, msg.Payload)
 
+	case TypeDmSend:
+		h.handleDmSend(client, msg.Payload)
+
 	default:
 		client.SendError(errors.ErrUnknownMessage, "Unknown message type: "+msg.Type)
 	}
 }
+
 
 func (h *Hub) handleUpdateAvatar(client *Client, rawPayload json.RawMessage) {
 	var dto struct {
@@ -1120,9 +1135,49 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 		timeControl = TimeControl3Min
 	}
 
-	friend, exists := h.clients[dto.FriendID]
-	if !exists || friend == nil {
-		client.SendError(errors.ErrPlayerOffline, "Friend is not online")
+	colorPref := dto.ColorPreference
+	if colorPref != "white" && colorPref != "black" {
+		colorPref = "random"
+	}
+
+	friend, friendOnline := h.clients[dto.FriendID]
+
+	// If friend is offline, store a persistent challenge notification (24h expiry) and return.
+	if !friendOnline || friend == nil {
+		if h.notificationService != nil {
+			inviteID := uuid.New().String()
+			expiresAt := time.Now().Add(24 * time.Hour)
+			go func(friendID string, inviterID string, inviterName string, rating int, avatarIdx int, tc int64, pref string, invID string, exp time.Time) {
+
+				payloadBytes, _ := json.Marshal(map[string]any{
+					"invite_id":           invID,
+					"inviter_id":          inviterID,
+					"sender_name":         inviterName,
+					"sender_rating":       rating,
+					"sender_avatar_index": avatarIdx,
+					"time_control":        tc,
+					"color_preference":    pref,
+					"expires_at":          exp.Unix(),
+				})
+				notif := &domain.Notification{
+					ID:        "challenge_" + invID,
+					UserID:    friendID,
+					ActorID:   inviterID,
+					ActorName: inviterName,
+					Type:      domain.NotificationTypeChallenge,
+					Status:    domain.NotificationStatusPending,
+					Title:     "notifications.challengeTitle",
+					Subtitle:  inviterName,
+					Payload:   string(payloadBytes),
+				}
+				_, _ = h.notificationService.CreateNotification(context.Background(), notif)
+			}(dto.FriendID, client.UserID, client.Username, client.Rating, client.AvatarIndex, timeControl, colorPref, inviteID, expiresAt)
+		}
+		client.SendJSON(TypeMatchInvitationSent, MatchInvitationSentDTO{
+			InviteID: "",
+			FriendID: dto.FriendID,
+		})
+		log.Printf("[Hub] Offline challenge stored for friend %s from %s", dto.FriendID, client.Username)
 		return
 	}
 
@@ -1134,11 +1189,6 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 	// Clean up inviter's waiting room and previous pending outgoing challenge
 	h.cleanupWaitingRoomLocked(client)
 	h.cleanupPendingInviteLocked(client)
-
-	colorPref := dto.ColorPreference
-	if colorPref != "white" && colorPref != "black" {
-		colorPref = "random"
-	}
 
 	inviteID := uuid.New().String()
 
@@ -1268,13 +1318,32 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	}
 
 	if inviter == nil {
-		client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
-		if h.notificationService != nil && dto.InviteID != "" {
-			go func(invID string, uID string) {
-				_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, uID)
-			}(dto.InviteID, client.UserID)
+		// Fallback: persistent (offline) challenge — inviter may now be online
+		// The frontend sends inviter_id, time_control, color_preference from the notification payload.
+		if dto.InviterID != "" {
+			if onlineInviter, ok := h.clients[dto.InviterID]; ok && onlineInviter != nil && onlineInviter.Activity != ActivityInMatch {
+				inviter = onlineInviter
+				if dto.TimeControl > 0 {
+					timeControl = dto.TimeControl
+				} else {
+					timeControl = TimeControl3Min
+				}
+				colorPref = dto.ColorPref
+				if colorPref != "white" && colorPref != "black" {
+					colorPref = "random"
+				}
+				log.Printf("[Hub] Persistent challenge accepted: inviter %s is now online", inviter.Username)
+			}
 		}
-		return
+		if inviter == nil {
+			client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
+			if h.notificationService != nil && dto.InviteID != "" {
+				go func(invID string, uID string) {
+					_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, uID)
+				}(dto.InviteID, client.UserID)
+			}
+			return
+		}
 	}
 
 	if inviter.Activity == ActivityInMatch {
@@ -1328,6 +1397,7 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	log.Printf("[Hub] Friend match created: %s between %s (white) and %s (black) (TC: %dms, pref: %s)", matchID, white.Username, black.Username, timeControl, colorPref)
 	go room.Start()
 }
+
 
 func (h *Hub) handleDeclineInvite(client *Client, rawPayload json.RawMessage) {
 	var dto AcceptInviteDTO
@@ -1579,6 +1649,51 @@ func (h *Hub) notifyFriendsPresence(userID string, isOnline bool) {
 		h.SendToUser(f.UserID, TypeFriendPresence, dto)
 	}
 }
+
+// ─── Direct Message (DM) ─────────────────────────────────────────────
+
+func (h *Hub) handleDmSend(client *Client, rawPayload json.RawMessage) {
+	if h.dmService == nil {
+		client.SendError(errors.ErrInternalServer, "DM service unavailable")
+		return
+	}
+
+	var dto DmSendDTO
+	if err := json.Unmarshal(rawPayload, &dto); err != nil || dto.RecipientID == "" || dto.Content == "" {
+		client.SendError(errors.ErrInvalidMessage, "Invalid DM payload")
+		return
+	}
+
+	if len(dto.Content) > 500 {
+		client.SendError(errors.ErrValidationFailed, "Message too long (max 500 chars)")
+		return
+	}
+
+	// Persist the message
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	saved, err := h.dmService.Send(ctx, client.UserID, dto.RecipientID, dto.Content)
+	if err != nil {
+		client.SendError(errors.ErrInternalServer, "Failed to send message")
+		return
+	}
+
+	broadcast := DmBroadcastDTO{
+		ID:             saved.ID,
+		ConversationID: saved.ConversationID,
+		SenderID:       client.UserID,
+		SenderUsername: client.Username,
+		RecipientID:    dto.RecipientID,
+		Content:        saved.Content,
+		CreatedAt:      saved.CreatedAt,
+	}
+
+	// Deliver to sender (echo) and recipient
+	client.SendJSON(TypeDmBroadcast, broadcast)
+	h.SendToUser(dto.RecipientID, TypeDmBroadcast, broadcast)
+}
+
 
 
 

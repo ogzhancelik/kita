@@ -3,14 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/dm_models.dart';
 import '../../../data/models/friend_models.dart';
 import '../../../data/models/notification_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
+import 'dm_chat_screen.dart';
+
 
 /// Screen managing friends list, incoming/outgoing requests, and direct challenges.
 class FriendsScreen extends StatefulWidget {
@@ -176,6 +181,13 @@ class _FriendsScreenState extends State<FriendsScreen>
             isDark: isDark,
             onInvite: () => _inviteFriendToMatch(context, onlineProv, friend),
             onRemove: () => _confirmRemoveFriend(context, friendsProv, friend),
+            onChat: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => DmChatScreen(friend: friend),
+                ),
+              );
+            },
             onTap: () {
               UserProfileDialog.show(
                 context,
@@ -429,6 +441,7 @@ class _FriendCard extends StatelessWidget {
   final bool isDark;
   final VoidCallback onInvite;
   final VoidCallback onRemove;
+  final VoidCallback? onChat;
   final VoidCallback? onTap;
 
   const _FriendCard({
@@ -436,6 +449,7 @@ class _FriendCard extends StatelessWidget {
     required this.isDark,
     required this.onInvite,
     required this.onRemove,
+    this.onChat,
     this.onTap,
   });
 
@@ -547,12 +561,12 @@ class _FriendCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
                           color: friend.isOnline
-                              ? AppColors.primaryGreen.withValues(alpha: 0.15)
+                              ? AppColors.accent.withValues(alpha: 0.15)
                               : AppColors.getSurface(isDark),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: friend.isOnline
-                                ? AppColors.primaryGreen.withValues(alpha: 0.4)
+                                ? AppColors.accent.withValues(alpha: 0.4)
                                 : AppColors.getBorder(isDark),
                           ),
                         ),
@@ -560,7 +574,7 @@ class _FriendCard extends StatelessWidget {
                           Icons.sports_esports_rounded,
                           size: 18,
                           color: friend.isOnline
-                              ? AppColors.primaryGreen
+                              ? AppColors.accent
                               : AppColors.getTextSecondary(isDark),
                         ),
                       ),
@@ -569,11 +583,77 @@ class _FriendCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
 
+                // Chat Button with unread badge
+                Consumer<DmProvider>(
+                  builder: (context, dmProv, _) {
+                    final convId = dmConversationId(
+                      context.read<AuthProvider>().currentUser?.id ?? '',
+                      friend.userId,
+                    );
+                    final unread = dmProv.unreadFor(convId);
+                    return Tooltip(
+                      message: 'dm.chatTooltip'.tr(),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onChat,
+                          borderRadius: BorderRadius.circular(10),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryVibrant.withAlpha(30),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: AppColors.primaryVibrant.withAlpha(80),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 18,
+                                  color: AppColors.primaryVibrant,
+                                ),
+                              ),
+                              if (unread > 0)
+                                Positioned(
+                                  top: -4,
+                                  right: -4,
+                                  child: Container(
+                                    width: 16,
+                                    height: 16,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.lossRed,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        unread > 9 ? '9+' : '$unread',
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.darkTextPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 4),
+
                 // Remove Friend Button
                 IconButton(
                   tooltip: 'online.removeFriend'.tr(),
                   icon: const Icon(Icons.person_remove_rounded, size: 20),
-                  color: AppColors.getTextMuted(isDark),
+                  color: AppColors.lossRed,
                   hoverColor: AppColors.error.withValues(alpha: 0.1),
                   splashRadius: 20,
                   onPressed: onRemove,
@@ -586,6 +666,7 @@ class _FriendCard extends StatelessWidget {
     );
   }
 }
+
 
 class _IncomingRequestCard extends StatelessWidget {
   final FriendItemModel request;

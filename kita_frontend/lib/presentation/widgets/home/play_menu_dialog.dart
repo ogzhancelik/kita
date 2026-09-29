@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/online_game_provider.dart';
@@ -104,12 +105,18 @@ class PlayMenuDialog extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    // Offline / Server Down Notice Banner
+                    if (authProv.isOnlineUnavailable) ...[
+                      _buildUnavailableBanner(authProv),
+                      const SizedBox(height: 12),
+                    ],
+
                     // Mode 1: Matchmaking (with player count & warning)
-                    _buildMatchmakingCard(context, onlineProv, isDark),
+                    _buildMatchmakingCard(context, onlineProv, authProv, isDark),
                     const SizedBox(height: 12),
 
                     // Mode 2: Rooms (Create & Join)
-                    _buildRoomsActionRow(context, onlineProv, isDark),
+                    _buildRoomsActionRow(context, onlineProv, authProv, isDark),
                     const SizedBox(height: 12),
 
                     // Mode 3: VS Computer AI
@@ -184,6 +191,12 @@ class PlayMenuDialog extends StatelessWidget {
                       iconBg: AppColors.accentGold,
                       isDark: isDark,
                       onTap: () {
+                        if (authProv.isOnlineUnavailable) {
+                          KitaToast.warning(authProv.isOffline
+                              ? 'dashboard.offlineNotice'.tr()
+                              : 'dashboard.serverDownNotice'.tr());
+                          return;
+                        }
                         authProv.guardAction(context, () {
                           Navigator.of(context).pop();
                           Navigator.of(context).push(
@@ -207,6 +220,7 @@ class PlayMenuDialog extends StatelessWidget {
   Widget _buildMatchmakingCard(
     BuildContext context,
     OnlineGameProvider onlineProv,
+    AuthProvider authProv,
     bool isDark,
   ) {
     return Container(
@@ -221,6 +235,12 @@ class PlayMenuDialog extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () async {
+          if (authProv.isOnlineUnavailable) {
+            KitaToast.warning(authProv.isOffline
+                ? 'dashboard.offlineNotice'.tr()
+                : 'dashboard.serverDownNotice'.tr());
+            return;
+          }
           final canProceed = await ActivityConflictHelper.checkAndConfirm(
             context: context,
             provider: onlineProv,
@@ -365,6 +385,7 @@ class PlayMenuDialog extends StatelessWidget {
   Widget _buildRoomsActionRow(
     BuildContext context,
     OnlineGameProvider onlineProv,
+    AuthProvider authProv,
     bool isDark,
   ) {
     return Row(
@@ -378,6 +399,12 @@ class PlayMenuDialog extends StatelessWidget {
             iconColor: AppColors.ratingGold,
             isDark: isDark,
             onTap: () async {
+              if (authProv.isOnlineUnavailable) {
+                KitaToast.warning(authProv.isOffline
+                    ? 'dashboard.offlineNotice'.tr()
+                    : 'dashboard.serverDownNotice'.tr());
+                return;
+              }
               final canProceed = await ActivityConflictHelper.checkAndConfirm(
                 context: context,
                 provider: onlineProv,
@@ -404,6 +431,12 @@ class PlayMenuDialog extends StatelessWidget {
             iconColor: AppColors.drawGray,
             isDark: isDark,
             onTap: () async {
+              if (authProv.isOnlineUnavailable) {
+                KitaToast.warning(authProv.isOffline
+                    ? 'dashboard.offlineNotice'.tr()
+                    : 'dashboard.serverDownNotice'.tr());
+                return;
+              }
               final canProceed = await ActivityConflictHelper.checkAndConfirm(
                 context: context,
                 provider: onlineProv,
@@ -553,6 +586,40 @@ class PlayMenuDialog extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildUnavailableBanner(AuthProvider authProv) {
+    final isServerDown = !authProv.isOffline && authProv.isServerDown;
+    final color = isServerDown ? AppColors.error : AppColors.warning;
+    final icon = isServerDown ? Icons.cloud_off_rounded : Icons.wifi_off_rounded;
+    final text = isServerDown
+        ? 'dashboard.serverDownNotice'.tr()
+        : 'dashboard.offlineNotice'.tr();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

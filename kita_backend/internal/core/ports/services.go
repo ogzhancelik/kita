@@ -30,6 +30,13 @@ type MessageService interface {
 	GetMatchMessages(ctx context.Context, matchID string, limit int) ([]domain.Message, error)
 }
 
+type DirectMessageService interface {
+	Send(ctx context.Context, senderID, recipientID, content string) (*domain.DirectMessage, error)
+	GetConversation(ctx context.Context, conversationID string, limit, offset int) ([]domain.DirectMessage, error)
+	GetConversationPreviews(ctx context.Context, userID string) ([]domain.DirectMessage, error)
+	ConversationID(userA, userB string) string
+}
+
 type SettingsService interface {
 	GetSettings(ctx context.Context, userID string) (*domain.UserSettings, error)
 	UpdateSettings(ctx context.Context, userID string, dto *domain.UpdateSettingsDTO) (*domain.UserSettings, error)

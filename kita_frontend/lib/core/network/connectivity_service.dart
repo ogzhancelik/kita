@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 
 class ConnectivityService {
   final Connectivity _connectivity;
@@ -20,9 +21,19 @@ class ConnectivityService {
     }
   }
 
+  /// Optional test hook to override API health checks in unit/widget tests.
+  static Future<bool> Function(String baseUrl)? checkApiHealthOverride;
+
   /// Ping a specific base URL's /health endpoint.
-  /// Used independently to test a URL before committing (e.g. in API config bar).
-  static Future<bool> checkApiHealth(String baseUrl) async {
+  /// Used independently to test a URL before committing (e.g. in API config bar)
+  /// or during startup/retry connection rechecks.
+  static Future<bool> checkApiHealth(
+    String baseUrl, {
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
+    if (checkApiHealthOverride != null) {
+      return checkApiHealthOverride!(baseUrl);
+    }
     try {
       String clean = baseUrl.trim();
       while (clean.endsWith('/')) {
@@ -32,8 +43,8 @@ class ConnectivityService {
         clean = 'https://$clean';
       }
       final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        connectTimeout: timeout,
+        receiveTimeout: timeout,
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Kita/1.0',
@@ -46,7 +57,16 @@ class ConnectivityService {
     }
   }
 
+  /// Optional test hook to override connectivity change stream.
+  Stream<bool> Function()? onConnectivityChangedOverride;
+
   Stream<bool> get onConnectivityChanged {
+    if (onConnectivityChangedOverride != null) {
+      return onConnectivityChangedOverride!();
+    }
+    if (WidgetsBinding.instance.runtimeType.toString().contains('TestWidgetsFlutterBinding')) {
+      return const Stream<bool>.empty();
+    }
     try {
       return _connectivity.onConnectivityChanged
           .map(_hasValidConnection)

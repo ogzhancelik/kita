@@ -8,11 +8,13 @@ import 'core/feedback/toast_service.dart';
 import 'core/navigation/app_route_observer.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_provider.dart';
+import 'presentation/providers/dm_provider.dart';
 import 'presentation/providers/friends_provider.dart';
 import 'presentation/providers/game_settings_provider.dart';
 import 'presentation/providers/notification_provider.dart';
 import 'presentation/providers/online_game_provider.dart';
 import 'presentation/providers/theme_provider.dart';
+
 import 'dart:async';
 
 import 'data/models/ws_message_models.dart';
@@ -43,6 +45,8 @@ void main() async {
           ChangeNotifierProvider(create: (_) => OnlineGameProvider()),
           ChangeNotifierProvider(create: (_) => FriendsProvider()),
           ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider(create: (_) => DmProvider()),
+
         ],
         child: const KitaApp(),
       ),

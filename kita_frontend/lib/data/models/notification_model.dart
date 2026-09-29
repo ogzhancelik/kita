@@ -34,6 +34,9 @@ class KitaNotification {
   final String? actorId;
   final DateTime timestamp;
 
+  // expiresAt is parsed from the notification payload for persistent challenges.
+  final DateTime? expiresAt;
+
   const KitaNotification({
     required this.id,
     required this.type,
@@ -48,6 +51,7 @@ class KitaNotification {
     this.inviteId,
     this.friendshipId,
     this.actorId,
+    this.expiresAt,
     required this.timestamp,
   });
 
@@ -68,10 +72,15 @@ class KitaNotification {
   bool get isExpired {
     if (status == NotificationStatus.expired) return true;
     if (type == KitaNotificationType.challenge || type == KitaNotificationType.rematch) {
+      if (expiresAt != null) {
+        return DateTime.now().isAfter(expiresAt!);
+      }
+      // Live WS challenge: 60s timeout
       return DateTime.now().difference(timestamp).inSeconds > 60;
     }
     return false;
   }
+
   bool get isPending => status == NotificationStatus.pending && !isExpired;
   bool get isIgnored => status == NotificationStatus.ignored;
   bool get isRead =>
@@ -101,9 +110,11 @@ class KitaNotification {
       inviteId: inviteId,
       friendshipId: friendshipId,
       actorId: actorId,
+      expiresAt: expiresAt,
       timestamp: timestamp,
     );
   }
+
 
   factory KitaNotification.fromJson(Map<String, dynamic> json) {
     final rawType = json['type'] as String? ?? 'info';
@@ -189,6 +200,13 @@ class KitaNotification {
     final createdAtStr = json['created_at']?.toString() ?? '';
     final timestamp = DateTime.tryParse(createdAtStr) ?? DateTime.now();
 
+    // Parse expires_at from payload (unix seconds) for persistent offline challenges
+    DateTime? expiresAt;
+    final expiresAtRaw = payloadMap['expires_at'];
+    if (expiresAtRaw is num) {
+      expiresAt = DateTime.fromMillisecondsSinceEpoch(expiresAtRaw.toInt() * 1000);
+    }
+
     return KitaNotification(
       id: json['id']?.toString() ?? '',
       type: type,
@@ -203,9 +221,11 @@ class KitaNotification {
       inviteId: inviteId,
       friendshipId: friendshipId,
       actorId: actorId,
+      expiresAt: expiresAt,
       timestamp: timestamp,
     );
   }
+
 
   Map<String, dynamic> toJson() {
     return {

@@ -37,6 +37,10 @@ class WebSocketService {
   /// Connected user info (set after receiving 'connected' message from server).
   final ValueNotifier<ConnectedPayload?> connectedUser = ValueNotifier(null);
 
+  /// Callbacks for reachability monitoring
+  void Function()? onConnectionFailed;
+  void Function()? onConnected;
+
   String? _token;
   String? _nickname;
   int? _avatarIndex;
@@ -132,6 +136,7 @@ class WebSocketService {
           connectionState.value = WsConnectionState.connected;
           connectedUser.value = ConnectedPayload.fromJson(msg.payload!);
           _reconnectAttempt = 0;
+          onConnected?.call();
           debugPrint('[WS] Connected as ${connectedUser.value?.username}');
 
           // Flush any pending messages that were queued before connection was established
@@ -154,6 +159,7 @@ class WebSocketService {
 
   void _onError(dynamic error) {
     debugPrint('[WS] Stream error: $error');
+    onConnectionFailed?.call();
   }
 
   void _onDone() {
@@ -171,7 +177,12 @@ class WebSocketService {
     if (_reconnectAttempt >= _maxReconnectAttempts) {
       debugPrint('[WS] Max reconnect attempts reached. Giving up.');
       connectionState.value = WsConnectionState.disconnected;
+      onConnectionFailed?.call();
       return;
+    }
+
+    if (_reconnectAttempt >= 1) {
+      onConnectionFailed?.call();
     }
 
     // Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped)

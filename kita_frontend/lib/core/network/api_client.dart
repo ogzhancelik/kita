@@ -7,6 +7,9 @@ import '../storage/secure_storage_service.dart';
 class ApiClient {
   static String? currentToken;
 
+  /// Global callback invoked when API reachability status changes (server down or recovered).
+  static void Function(bool isServerDown)? onServerStatusChanged;
+
   static ApiClient? _instance;
 
   late final Dio dio;
@@ -31,6 +34,7 @@ class ApiClient {
 
     dio.interceptors.addAll([
       _AuthInterceptor(_storage),
+      _ResponseInterceptor(),
       _ErrorInterceptor(_storage, onUnauthorized: () => onUnauthorized?.call()),
     ]);
   }
@@ -91,6 +95,14 @@ class _AuthInterceptor extends Interceptor {
   }
 }
 
+class _ResponseInterceptor extends Interceptor {
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    ApiClient.onServerStatusChanged?.call(false);
+    return handler.next(response);
+  }
+}
+
 class _ErrorInterceptor extends Interceptor {
   final SecureStorageService _storage;
   final void Function()? onUnauthorized;
@@ -101,10 +113,21 @@ class _ErrorInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) {
     String messageKey = 'errUnknown';
 
-    if (err.type == DioExceptionType.connectionTimeout ||
+    final isConnectionIssue = err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.sendTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
-        err.type == DioExceptionType.connectionError) {
+        err.type == DioExceptionType.connectionError;
+    final isServer5xx = err.response != null &&
+        err.response!.statusCode != null &&
+        err.response!.statusCode! >= 500;
+
+    if (isConnectionIssue || isServer5xx) {
+      ApiClient.onServerStatusChanged?.call(true);
+    } else if (err.response != null && err.response!.statusCode! < 500) {
+      ApiClient.onServerStatusChanged?.call(false);
+    }
+
+    if (isConnectionIssue) {
       messageKey = 'errNetworkError';
     } else if (err.response != null) {
       final statusCode = err.response?.statusCode;

@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/local_match_history_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
+
 import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/home/dashboard_action_dock.dart';
 import '../../widgets/home/dashboard_friends_ribbon.dart';
@@ -38,10 +40,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final authProv = context.read<AuthProvider>();
       final notifProv = context.read<NotificationProvider>();
       notifProv.setDashboardActive(true);
-      if (authProv.isAuthenticated && !authProv.isGuest && !authProv.isOffline) {
+      if (authProv.isAuthenticated && !authProv.isGuest && !authProv.isOnlineUnavailable) {
         notifProv.loadNotifications();
       }
-      if (!authProv.isOffline) {
+      if (!authProv.isOnlineUnavailable) {
         final onlineProv = context.read<OnlineGameProvider>();
         onlineProv.connectAndListen(
           token: authProv.token,
@@ -49,6 +51,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           avatarIndex: authProv.avatarIndex,
         );
         onlineProv.requestOnlineCount();
+
+        // Start DM real-time listener for authenticated (non-guest) users
+        if (authProv.isAuthenticated && !authProv.isGuest) {
+          context.read<DmProvider>().startListening();
+        }
       }
     });
   }
@@ -94,10 +101,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: RefreshIndicator(
                   onRefresh: () async {
                     final currentAuth = context.read<AuthProvider>();
-                    if (currentAuth.isOffline) {
+                    if (currentAuth.isOnlineUnavailable) {
                       await currentAuth.retryConnection();
                     }
-                    if (!currentAuth.isOffline) {
+                    if (!currentAuth.isOnlineUnavailable) {
                       context.read<OnlineGameProvider>().requestRoomsList(page: 1, limit: 10);
                       await currentAuth.refreshProfile();
                     }
@@ -156,116 +163,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 10),
                         ],
 
-                        // Offline Notice Banner (if offline)
-                        if (authProv.isOffline) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 9,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withValues(
-                                alpha: 0.12,
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: AppColors.warning.withValues(
-                                  alpha: 0.3,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.wifi_off_rounded,
-                                  color: AppColors.warning,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    'dashboard.offlineNotice'.tr(),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.warning,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                InkWell(
-                                  onTap: authProv.isRetryingConnection
-                                      ? null
-                                      : () async {
-                                          final success = await authProv.retryConnection();
-                                          if (success && context.mounted) {
-                                            final onlineProv = context.read<OnlineGameProvider>();
-                                            onlineProv.connectAndListen(
-                                              token: authProv.token,
-                                              nickname: authProv.displayName,
-                                              avatarIndex: authProv.avatarIndex,
-                                            );
-                                            onlineProv.requestOnlineCount();
-                                            if (authProv.isAuthenticated && !authProv.isGuest) {
-                                              context.read<NotificationProvider>().loadNotifications();
-                                              context.read<FriendsProvider>().loadAll();
-                                            }
-                                          }
-                                        },
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.warning.withValues(alpha: 0.18),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: AppColors.warning.withValues(alpha: 0.35),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (authProv.isRetryingConnection) ...[
-                                          const SizedBox(
-                                            width: 12,
-                                            height: 12,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(
-                                                AppColors.warning,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 5),
-                                        ] else ...[
-                                          const Icon(
-                                            Icons.refresh_rounded,
-                                            size: 14,
-                                            color: AppColors.warning,
-                                          ),
-                                          const SizedBox(width: 4),
-                                        ],
-                                        Text(
-                                          authProv.isRetryingConnection
-                                              ? 'dashboard.retrying'.tr()
-                                              : 'dashboard.retry'.tr(),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.warning,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        // Connection Notice Banner (Offline or Server Down)
+                        if (authProv.isOffline || authProv.isServerDown) ...[
+                          _buildConnectionNoticeBanner(context, authProv),
                           const SizedBox(height: 10),
                         ],
 
@@ -273,17 +173,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const HomePendingGameCard(),
 
                         // 0. Notification Summary Card (Max 3 actionable notifications, priority sorted)
-                        if (!authProv.isOffline)
+                        if (!authProv.isOnlineUnavailable)
                           const HomeNotificationSummaryCard(),
 
                         // 1. Leaderboard (Friends & Global TOP 3) - Only when online
-                        if (!authProv.isOffline) ...[
+                        if (!authProv.isOnlineUnavailable) ...[
                           const DashboardLeaderboardCard(),
                           const SizedBox(height: 12),
                         ],
 
-                        // 2. Open Rooms & Friends when online, or Play vs Computer / Offline Games when offline
-                        if (!authProv.isOffline) ...[
+                        // 2. Open Rooms & Friends when online, or Play vs Computer / Offline Games when offline or server down
+                        if (!authProv.isOnlineUnavailable) ...[
                           const DashboardOpenRoomsCard(),
                           const SizedBox(height: 12),
                           const DashboardFriendsRibbon(),
@@ -312,6 +212,127 @@ class _DashboardScreenState extends State<DashboardScreen> {
       floatingActionButton: DashboardActionDock(
         onHome: _scrollToTop,
         onPlay: _openPlayMenu,
+      ),
+    );
+  }
+
+  Widget _buildConnectionNoticeBanner(
+    BuildContext context,
+    AuthProvider authProv,
+  ) {
+    final isServerDown = !authProv.isOffline && authProv.isServerDown;
+    final bannerColor = isServerDown ? AppColors.error : AppColors.warning;
+    final bannerIcon = isServerDown ? Icons.cloud_off_rounded : Icons.wifi_off_rounded;
+    final bannerText = isServerDown
+        ? 'dashboard.serverDownNotice'.tr()
+        : 'dashboard.offlineNotice'.tr();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 9,
+      ),
+      decoration: BoxDecoration(
+        color: bannerColor.withValues(
+          alpha: 0.12,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: bannerColor.withValues(
+            alpha: 0.3,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            bannerIcon,
+            color: bannerColor,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              bannerText,
+              style: TextStyle(
+                fontSize: 12,
+                color: bannerColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: authProv.isRetryingConnection
+                ? null
+                : () async {
+                    final success = await authProv.retryConnection();
+                    if (success && context.mounted) {
+                      final onlineProv = context.read<OnlineGameProvider>();
+                      onlineProv.connectAndListen(
+                        token: authProv.token,
+                        nickname: authProv.displayName,
+                        avatarIndex: authProv.avatarIndex,
+                      );
+                      onlineProv.requestOnlineCount();
+                      if (authProv.isAuthenticated && !authProv.isGuest) {
+                        context.read<NotificationProvider>().loadNotifications();
+                        context.read<FriendsProvider>().loadAll();
+                      }
+                    }
+                  },
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 5,
+              ),
+              decoration: BoxDecoration(
+                color: bannerColor.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: bannerColor.withValues(alpha: 0.35),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (authProv.isRetryingConnection) ...[
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          bannerColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                  ] else ...[
+                    Icon(
+                      Icons.refresh_rounded,
+                      size: 14,
+                      color: bannerColor,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Text(
+                    authProv.isRetryingConnection
+                        ? 'dashboard.retrying'.tr()
+                        : 'dashboard.retry'.tr(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: bannerColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

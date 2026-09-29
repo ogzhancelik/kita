@@ -12,12 +12,18 @@ import (
 )
 
 type MatchHandler struct {
-	matchService ports.MatchService
+	matchService   ports.MatchService
+	messageService ports.MessageService
 }
 
-func NewMatchHandler(matchService ports.MatchService) *MatchHandler {
-	return &MatchHandler{matchService: matchService}
+func NewMatchHandler(matchService ports.MatchService, messageService ...ports.MessageService) *MatchHandler {
+	var ms ports.MessageService
+	if len(messageService) > 0 {
+		ms = messageService[0]
+	}
+	return &MatchHandler{matchService: matchService, messageService: ms}
 }
+
 
 func (h *MatchHandler) GetMatch(c *gin.Context) {
 	id := c.Param("id")
@@ -101,3 +107,32 @@ func (h *MatchHandler) GetUserMatches(c *gin.Context) {
 		"matches": matches,
 	})
 }
+
+// GetMatchMessages returns the in-game chat messages for a match.
+// Used by the DM chat screen to show the integrated game-chat card.
+func (h *MatchHandler) GetMatchMessages(c *gin.Context) {
+	if h.messageService == nil {
+		c.JSON(http.StatusOK, gin.H{"messages": []struct{}{}})
+		return
+	}
+	id := c.Param("id")
+	if id == "" {
+		SendError(c, http.StatusBadRequest, errors.ErrMissingField, "Match ID is required")
+		return
+	}
+
+	limitStr := c.DefaultQuery("limit", "100")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		limit = 100
+	}
+
+	msgs, err := h.messageService.GetMatchMessages(c.Request.Context(), id, limit)
+	if err != nil {
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"match_id": id, "messages": msgs})
+}
+

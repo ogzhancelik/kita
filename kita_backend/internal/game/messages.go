@@ -35,6 +35,8 @@ const (
 	TypeDrawOffer       = "draw_offer"
 	TypeDrawAccept      = "draw_accept"
 	TypeDrawDecline     = "draw_decline"
+	TypeDmSend          = "dm_send"
+
 
 	// Server -> Client
 	TypeConnected        = "connected"
@@ -67,7 +69,9 @@ const (
 	TypeFriendPresence       = "friend_presence"
 	TypeDrawOffered          = "draw_offered"
 	TypeDrawDeclined         = "draw_declined"
+	TypeDmBroadcast          = "dm_broadcast"
 )
+
 
 // Time control presets (in milliseconds)
 const (
@@ -270,8 +274,12 @@ type MatchInvitationDTO struct {
 }
 
 type AcceptInviteDTO struct {
-	InviteID string `json:"invite_id"`
+	InviteID    string `json:"invite_id"`
+	InviterID   string `json:"inviter_id,omitempty"`
+	TimeControl int64  `json:"time_control,omitempty"`
+	ColorPref   string `json:"color_preference,omitempty"`
 }
+
 
 type CancelInviteDTO struct {
 	InviteID string `json:"invite_id,omitempty"`
@@ -300,3 +308,21 @@ type FriendPresenceDTO struct {
 	UserID   string `json:"user_id"`
 	IsOnline bool   `json:"is_online"`
 }
+
+// ─── Direct Message DTOs ─────────────────────────────────────────────
+
+type DmSendDTO struct {
+	RecipientID string `json:"recipient_id"`
+	Content     string `json:"content"`
+}
+
+type DmBroadcastDTO struct {
+	ID             uint      `json:"id"`
+	ConversationID string    `json:"conversation_id"`
+	SenderID       string    `json:"sender_id"`
+	SenderUsername string    `json:"sender_username"`
+	RecipientID    string    `json:"recipient_id"`
+	Content        string    `json:"content"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+

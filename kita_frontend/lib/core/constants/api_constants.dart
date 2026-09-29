@@ -82,6 +82,8 @@ class ApiConstants {
   static String userMatches(String userId) => '/api/matches/user/$userId';
   static String matchDetails(String matchId) => '/api/matches/$matchId';
   static String matchMoves(String matchId) => '/api/matches/$matchId/moves';
+  static String matchMessages(String matchId) => '/api/matches/$matchId/messages';
+
 
   // Friends
   static const String friends = '/api/friends';
@@ -96,6 +98,12 @@ class ApiConstants {
   static String notificationStatus(String id) => '/api/notifications/$id/status';
   static const String markAllNotificationsRead = '/api/notifications/mark-all-read';
   static String deleteNotification(String id) => '/api/notifications/$id';
+
+  // Direct Messages (DM)
+  static const String dmConversations = '/api/dm/conversations';
+  static String dmConversationHistory(String conversationId) =>
+      '/api/dm/conversations/$conversationId';
+
 
   // WebSocket
   static String get wsUrl {
