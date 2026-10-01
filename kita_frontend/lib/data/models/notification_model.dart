@@ -5,7 +5,8 @@ enum KitaNotificationType {
   rematch,       // Priority 1
   challenge,     // Priority 2
   friendRequest, // Priority 3
-  info,          // Priority 4
+  chat,          // Priority 4
+  info,          // Priority 5
 }
 
 enum NotificationStatus {
@@ -32,6 +33,7 @@ class KitaNotification {
   final String? inviteId;
   final String? friendshipId;
   final String? actorId;
+  final String? conversationId;
   final DateTime timestamp;
 
   // expiresAt is parsed from the notification payload for persistent challenges.
@@ -51,6 +53,7 @@ class KitaNotification {
     this.inviteId,
     this.friendshipId,
     this.actorId,
+    this.conversationId,
     this.expiresAt,
     required this.timestamp,
   });
@@ -63,8 +66,10 @@ class KitaNotification {
         return 2;
       case KitaNotificationType.friendRequest:
         return 3;
-      case KitaNotificationType.info:
+      case KitaNotificationType.chat:
         return 4;
+      case KitaNotificationType.info:
+        return 5;
     }
   }
 
@@ -95,6 +100,7 @@ class KitaNotification {
     NotificationStatus? status,
     String? title,
     String? subtitle,
+    String? conversationId,
   }) {
     return KitaNotification(
       id: id,
@@ -110,6 +116,7 @@ class KitaNotification {
       inviteId: inviteId,
       friendshipId: friendshipId,
       actorId: actorId,
+      conversationId: conversationId ?? this.conversationId,
       expiresAt: expiresAt,
       timestamp: timestamp,
     );
@@ -130,6 +137,9 @@ class KitaNotification {
         break;
       case 'friend_request':
         type = KitaNotificationType.friendRequest;
+        break;
+      case 'chat':
+        type = KitaNotificationType.chat;
         break;
       default:
         type = KitaNotificationType.info;
@@ -179,6 +189,7 @@ class KitaNotification {
     final String? senderName = json['actor_name']?.toString() ??
         payloadMap['username']?.toString() ??
         payloadMap['sender_name']?.toString() ??
+        payloadMap['sender_username']?.toString() ??
         payloadMap['decliner_name']?.toString() ??
         payloadMap['accepter_name']?.toString() ??
         json['sender_name']?.toString();
@@ -195,7 +206,16 @@ class KitaNotification {
 
     final String? actorId = json['actor_id']?.toString() ??
         payloadMap['actor_id']?.toString() ??
+        payloadMap['sender_id']?.toString() ??
         payloadMap['inviter_id']?.toString();
+
+    final String? conversationId = payloadMap['conversation_id']?.toString() ??
+        json['conversation_id']?.toString() ??
+        (rawType == 'chat' && (json['id']?.toString() ?? '').startsWith('chat_')
+            ? ((json['id']?.toString() ?? '').split('_').length > 1
+                ? (json['id']?.toString() ?? '').substring(5)
+                : null)
+            : null);
 
     final createdAtStr = json['created_at']?.toString() ?? '';
     final timestamp = DateTime.tryParse(createdAtStr) ?? DateTime.now();
@@ -221,6 +241,7 @@ class KitaNotification {
       inviteId: inviteId,
       friendshipId: friendshipId,
       actorId: actorId,
+      conversationId: conversationId,
       expiresAt: expiresAt,
       timestamp: timestamp,
     );
@@ -241,6 +262,7 @@ class KitaNotification {
       'match_id': matchId,
       'invite_id': inviteId,
       'friendship_id': friendshipId,
+      'conversation_id': conversationId,
       'created_at': timestamp.toIso8601String(),
     };
   }

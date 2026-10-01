@@ -3,9 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/dm_models.dart';
+import '../../../data/models/friend_models.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/user_api_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/dm_provider.dart';
+import '../../providers/friends_provider.dart';
+import '../../providers/notification_provider.dart';
+import '../../screens/friends/dm_chat_screen.dart';
 import '../common/avatar_picker.dart';
 import '../common/stat_badge.dart';
 
@@ -404,32 +410,182 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       ),
                     ),
 
-                    // Quick Action button (e.g. Invite to Match if opened from Friends section)
-                    if (widget.onInvite != null && !isCurrent) ...[
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            widget.onInvite!();
-                          },
-                          icon: const Icon(Icons.sports_esports_rounded, size: 20),
-                          label: Text(
-                            'online.sendInvite'.tr(),
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    // Quick Actions (Send Message / Invite to Match)
+                    () {
+                      final targetId = isCurrent ? authProv.currentUser?.id : (user?.id ?? widget.userId);
+                      final canSendMessage = !isCurrent &&
+                          !isBot &&
+                          !isGuest &&
+                          targetId != null &&
+                          targetId.isNotEmpty &&
+                          authProv.isAuthenticated &&
+                          !authProv.isGuest;
+
+                      if (isCurrent || (!canSendMessage && widget.onInvite == null)) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final dmProv = Provider.of<DmProvider?>(context);
+                      final myId = authProv.currentUser?.id ?? '';
+                      final friendTargetId = targetId ?? '';
+                      final convId = (myId.isNotEmpty && friendTargetId.isNotEmpty)
+                          ? dmConversationId(myId, friendTargetId)
+                          : '';
+                      final unreadCount = (convId.isNotEmpty && dmProv != null)
+                          ? dmProv.unreadFor(convId)
+                          : 0;
+
+                      void openChat() {
+                        if (myId.isNotEmpty && friendTargetId.isNotEmpty) {
+                          context.read<NotificationProvider>().deleteChatNotifications(
+                            convId,
+                            actorId: friendTargetId,
+                          );
+                        }
+                        Navigator.of(context).pop();
+                        final friendsProv = context.read<FriendsProvider>();
+                        final friend = friendsProv.friends.firstWhere(
+                          (f) => f.userId == targetId,
+                          orElse: () => FriendItemModel(
+                            friendshipId: '',
+                            userId: targetId!,
+                            username: displayName,
+                            avatarIndex: rawAvatarIndex,
+                            rating: rating,
+                            status: 'accepted',
+                            direction: 'friend',
+                            isOnline: true,
+                            createdAt: DateTime.now(),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryGreen,
-                            foregroundColor: AppColors.darkTextPrimary,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        );
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => DmChatScreen(friend: friend),
+                            settings: RouteSettings(name: '/dm_$targetId'),
+                          ),
+                        );
+                      }
+
+                      Widget buildSendMessageLabel(double fontSize) {
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'profile.sendMessage'.tr(),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
                             ),
-                          ),
-                        ),
-                      ),
-                    ],
+                            if (unreadCount > 0) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  unreadCount > 9 ? '9+' : '$unreadCount',
+                                  style: const TextStyle(
+                                    color: AppColors.primaryVibrant,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      }
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(height: 16),
+                          if (canSendMessage && widget.onInvite != null)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: openChat,
+                                    icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+                                    label: buildSendMessageLabel(13.5),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryVibrant,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                      widget.onInvite!();
+                                    },
+                                    icon: const Icon(Icons.sports_esports_rounded, size: 18),
+                                    label: Text(
+                                      'online.sendInvite'.tr(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryGreen,
+                                      foregroundColor: AppColors.darkTextPrimary,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else if (canSendMessage)
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: openChat,
+                                icon: const Icon(Icons.chat_bubble_rounded, size: 19),
+                                label: buildSendMessageLabel(14),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryVibrant,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            )
+                          else if (widget.onInvite != null)
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  widget.onInvite!();
+                                },
+                                icon: const Icon(Icons.sports_esports_rounded, size: 20),
+                                label: Text(
+                                  'online.sendInvite'.tr(),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryGreen,
+                                  foregroundColor: AppColors.darkTextPrimary,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    }(),
                   ],
                 ),
               ),

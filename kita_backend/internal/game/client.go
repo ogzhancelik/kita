@@ -61,6 +61,7 @@ type Client struct {
 
 	// Rematch and invite tracking
 	LastFinishedMatchID      string
+	LastFinishedOpponentID   string
 	LastFinishedTeam         string // "white" or "black"
 	PendingRematchID         string
 	PendingRematchTimeControl int64

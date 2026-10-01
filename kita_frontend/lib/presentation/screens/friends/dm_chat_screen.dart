@@ -7,6 +7,8 @@ import '../../../data/models/dm_models.dart';
 import '../../../data/models/friend_models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dm_provider.dart';
+import '../../providers/notification_provider.dart';
+import '../../providers/online_game_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/dm/match_chat_card_widget.dart';
 
@@ -33,6 +35,7 @@ class DmChatScreen extends StatefulWidget {
 class _DmChatScreenState extends State<DmChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
   late String _conversationId;
   late String _myId;
   late String _myUsername;
@@ -42,20 +45,56 @@ class _DmChatScreenState extends State<DmChatScreen> {
     super.initState();
     final auth = context.read<AuthProvider>();
     _myId = auth.currentUser?.id ?? '';
+    if (_myId.isEmpty) {
+      _myId = context.read<OnlineGameProvider>().myUserId ?? '';
+    }
     _myUsername = auth.currentUser?.username ?? '';
     _conversationId = dmConversationId(_myId, widget.friend.userId);
 
     final dmProv = context.read<DmProvider>();
     dmProv.setActiveConversation(_conversationId);
     dmProv.loadHistory(_conversationId);
-    dmProv.loadSharedMatches(_conversationId, _myId, widget.friend.userId);
+    dmProv.loadSharedMatches(
+      _conversationId,
+      _myId,
+      widget.friend.userId,
+      refresh: true,
+    );
+
+    context.read<NotificationProvider>().deleteChatNotifications(
+          _conversationId,
+          actorId: widget.friend.userId,
+        );
+
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _scrollToBottom();
+        });
+      }
+    });
+  }
+
+  DmProvider? _dmProv;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _dmProv = context.read<DmProvider>();
+  }
+
+  @override
+  void deactivate() {
+    _dmProv?.setActiveConversation(null);
+    super.deactivate();
   }
 
   @override
   void dispose() {
-    context.read<DmProvider>().setActiveConversation(null);
+    _dmProv?.setActiveConversation(null);
     _controller.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -98,11 +137,15 @@ class _DmChatScreenState extends State<DmChatScreen> {
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),
       appBar: _buildAppBar(isDark),
-      body: Column(
-        children: [
-          Expanded(child: _buildTimeline2(isDark)),
-          _buildInputBar(isDark),
-        ],
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          children: [
+            Expanded(child: _buildTimeline2(isDark)),
+            _buildInputBar(isDark),
+          ],
+        ),
       ),
     );
   }
@@ -207,6 +250,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
 
         return ListView.builder(
           controller: _scrollController,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           itemCount: timeline.length,
           itemBuilder: (ctx, index) {
@@ -264,12 +308,6 @@ class _DmChatScreenState extends State<DmChatScreen> {
 
   Widget _buildInputBar(bool isDark) {
     return Container(
-      padding: EdgeInsets.only(
-        left: 12,
-        right: 8,
-        top: 8,
-        bottom: 8 + MediaQuery.of(context).viewInsets.bottom,
-      ),
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         border: Border(
@@ -277,48 +315,52 @@ class _DmChatScreenState extends State<DmChatScreen> {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.getSurface(isDark),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: TextField(
-                  controller: _controller,
-                  minLines: 1,
-                  maxLines: 4,
-                  maxLength: 500,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _send(),
-                  style: TextStyle(
-                      color: AppColors.getTextPrimary(isDark), fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'dm.messageHint'.tr(),
-                    hintStyle: TextStyle(
-                        color: AppColors.getTextMuted(isDark), fontSize: 14),
-                    counterText: '',
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.getSurface(isDark),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    minLines: 1,
+                    maxLines: 4,
+                    maxLength: 500,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _send(),
+                    style: TextStyle(
+                        color: AppColors.getTextPrimary(isDark), fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'dm.messageHint'.tr(),
+                      hintStyle: TextStyle(
+                          color: AppColors.getTextMuted(isDark), fontSize: 14),
+                      counterText: '',
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 6),
-            GestureDetector(
-              onTap: _send,
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: const BoxDecoration(
-                    color: AppColors.primary, shape: BoxShape.circle),
-                child: const Icon(Icons.send_rounded,
-                    color: AppColors.darkTextPrimary, size: 20),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: _send,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: const BoxDecoration(
+                      color: AppColors.primary, shape: BoxShape.circle),
+                  child: const Icon(Icons.send_rounded,
+                      color: AppColors.darkTextPrimary, size: 20),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

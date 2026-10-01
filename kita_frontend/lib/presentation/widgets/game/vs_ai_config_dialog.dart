@@ -8,8 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/online_game_provider.dart';
-import '../matchmaking/activity_conflict_dialog.dart';
+import '../../providers/offline_game_provider.dart';
+import '../../screens/game/offline_match_screen.dart';
 
 /// Pre-game configuration dialog for "Play vs Computer" (AI).
 /// Allows the player to select Bot Difficulty and Player Side.
@@ -20,14 +20,6 @@ class VsAiConfigDialog extends StatefulWidget {
   static const String prefSideKey = 'kita_ai_side';
 
   static Future<void> show(BuildContext context) async {
-    final provider = context.read<OnlineGameProvider>();
-    final canProceed = await ActivityConflictHelper.checkAndConfirm(
-      context: context,
-      provider: provider,
-    );
-    if (!canProceed) return;
-    if (!context.mounted) return;
-
     return showDialog(
       context: context,
       barrierDismissible: true,
@@ -421,10 +413,54 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
     );
   }
 
-  void _startGame() {
+  Future<void> _startGame() async {
     _persistPreferences(_selectedDifficulty, _selectedSide);
-    final prov = context.read<OnlineGameProvider>();
+    final offlineProv = context.read<OfflineGameProvider>();
     final authProv = context.read<AuthProvider>();
+
+    if (offlineProv.hasActiveMatch) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          backgroundColor: AppColors.getCard(isDark),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'online.conflictDialogTitle'.tr(),
+            style: TextStyle(
+              color: AppColors.getTextPrimary(isDark),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'online.conflictAbandonOfflineDesc'.tr(),
+            style: TextStyle(
+              color: AppColors.getTextSecondary(isDark),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(false),
+              child: Text(
+                'online.cancel'.tr(),
+                style: TextStyle(color: AppColors.getTextSecondary(isDark)),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.of(dialogCtx).pop(true),
+              child: Text('online.abandonAndProceed'.tr()),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      offlineProv.resignAndClear();
+    }
 
     final isGuest = authProv.isGuest || authProv.currentUser == null;
     final playerId = authProv.currentUser?.id;
@@ -442,9 +478,10 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       team = PieceTeam.white;
     }
 
+    if (!mounted) return;
     Navigator.of(context).pop();
 
-    prov.startOfflineMatch(
+    offlineProv.startOfflineMatch(
       mode: PlayMode.vsAi,
       playerTeam: team,
       botDifficulty: _selectedDifficulty,
@@ -452,6 +489,13 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       playerName: playerName,
       playerRating: playerRating,
       isGuest: isGuest,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const OfflineMatchScreen(),
+        settings: const RouteSettings(name: '/offline_match'),
+      ),
     );
   }
 }

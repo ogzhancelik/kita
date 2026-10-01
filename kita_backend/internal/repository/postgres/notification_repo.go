@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type notificationRepository struct {
@@ -18,6 +21,19 @@ func NewNotificationRepository(db *gorm.DB) ports.NotificationRepository {
 
 func (r *notificationRepository) Create(ctx context.Context, notif *domain.Notification) error {
 	return r.db.WithContext(ctx).Create(notif).Error
+}
+
+func (r *notificationRepository) Upsert(ctx context.Context, notif *domain.Notification) error {
+	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"subtitle",
+			"status",
+			"payload",
+			"created_at",
+			"updated_at",
+		}),
+	}).Create(notif).Error
 }
 
 func (r *notificationRepository) FindByID(ctx context.Context, id string) (*domain.Notification, error) {
@@ -70,8 +86,17 @@ func (r *notificationRepository) MarkAllAsRead(ctx context.Context, userID strin
 }
 
 func (r *notificationRepository) Delete(ctx context.Context, id string, userID string) error {
+	cleanID := strings.TrimPrefix(id, "chat_")
 	return r.db.WithContext(ctx).
-		Where("id = ? AND user_id = ?", id, userID).
+		Where("(id = ? OR id = ? OR id = ? OR (type = 'chat' AND (id LIKE ? OR payload LIKE ? OR actor_id = ?))) AND user_id = ?",
+			id,
+			fmt.Sprintf("%s_%s", id, userID),
+			fmt.Sprintf("chat_%s_%s", id, userID),
+			"%"+cleanID+"%",
+			"%"+cleanID+"%",
+			cleanID,
+			userID,
+		).
 		Delete(&domain.Notification{}).Error
 }
 

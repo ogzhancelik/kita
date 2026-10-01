@@ -55,13 +55,8 @@ class FriendsProvider extends ChangeNotifier {
         _apiService.getPendingRequests(),
       ]);
       final friendsList = results[0];
-      friendsList.sort((a, b) {
-        if (a.isOnline != b.isOnline) {
-          return a.isOnline ? -1 : 1;
-        }
-        return 0;
-      });
       _friends = friendsList;
+      _sortFriends();
       _pendingRequests = results[1];
     } catch (e) {
       _errorMessage = e.toString();
@@ -119,6 +114,35 @@ class FriendsProvider extends ChangeNotifier {
     }
   }
 
+  /// Sorts friends: online first, then by last interaction recency (match/chat).
+  void _sortFriends() {
+    _friends.sort((a, b) {
+      if (a.isOnline != b.isOnline) {
+        return a.isOnline ? -1 : 1;
+      }
+      return b.lastInteractionAt.compareTo(a.lastInteractionAt);
+    });
+  }
+
+  /// Records a new interaction (match/chat) with a friend in real time and re-sorts.
+  void recordInteraction(String userId, [DateTime? interactionTime]) {
+    final time = interactionTime ?? DateTime.now();
+    bool changed = false;
+    for (int i = 0; i < _friends.length; i++) {
+      if (_friends[i].userId == userId) {
+        if (_friends[i].lastInteractionAt.isBefore(time)) {
+          _friends[i] = _friends[i].copyWith(lastInteractionAt: time);
+          changed = true;
+        }
+        break;
+      }
+    }
+    if (changed) {
+      _sortFriends();
+      notifyListeners();
+    }
+  }
+
   /// Updates online/offline presence for a specific friend in real time via WebSocket.
   void updateFriendPresence(String userId, bool isOnline) {
     bool changed = false;
@@ -132,12 +156,7 @@ class FriendsProvider extends ChangeNotifier {
       }
     }
     if (changed) {
-      _friends.sort((a, b) {
-        if (a.isOnline != b.isOnline) {
-          return a.isOnline ? -1 : 1;
-        }
-        return 0;
-      });
+      _sortFriends();
       notifyListeners();
     }
   }

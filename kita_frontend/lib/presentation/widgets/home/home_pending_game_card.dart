@@ -4,8 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/game_models.dart';
 import '../../../data/models/ws_message_models.dart';
+import '../../providers/offline_game_provider.dart';
 import '../../providers/online_game_provider.dart';
+import '../../screens/game/offline_match_screen.dart';
 import '../../screens/game/online_match_screen.dart';
 import '../room/room_dialog.dart';
 
@@ -29,7 +32,7 @@ class HomePendingGameCard extends StatelessWidget {
     return 'online.minuteShort'.tr(args: ['$mins']);
   }
 
-  void _rejoinGame(BuildContext context) {
+  void _rejoinOnlineGame(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const OnlineMatchScreen(),
@@ -38,9 +41,19 @@ class HomePendingGameCard extends StatelessWidget {
     );
   }
 
+  void _rejoinOfflineGame(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const OfflineMatchScreen(),
+        settings: const RouteSettings(name: '/offline_match'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final onlineProv = context.watch<OnlineGameProvider>();
+    final offlineProv = context.watch<OfflineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final matchState = onlineProv.matchState.value;
@@ -49,65 +62,317 @@ class HomePendingGameCard extends StatelessWidget {
         onlineProv.currentRoomCode!.isNotEmpty;
     final pendingChallenge = onlineProv.pendingOutgoingChallenge.value;
     final pendingRematch = onlineProv.pendingOutgoingRematch.value;
-    final isInMatch = matchState == OnlineMatchState.inMatch;
+    final isInOnlineMatch = matchState == OnlineMatchState.inMatch;
+    final hasActiveOnline = isInOnlineMatch;
+    final hasActiveOffline = offlineProv.hasActiveMatch;
+    final hasBothActive = hasActiveOnline && hasActiveOffline;
 
-    // Mutually exclusive priority check
-    if (isInMatch) {
-      return _buildActiveGameCard(context, onlineProv, isDark);
+    Widget? onlineSection;
+    if (isInOnlineMatch) {
+      onlineSection = _buildActiveOnlineGameCard(
+        context,
+        onlineProv,
+        isDark,
+        borderRadius: hasBothActive
+            ? const BorderRadius.vertical(top: Radius.circular(16))
+            : BorderRadius.circular(16),
+        margin: hasBothActive ? EdgeInsets.zero : const EdgeInsets.only(bottom: 12.0),
+      );
     } else if (pendingRematch != null) {
-      return _buildPendingRematchCard(context, onlineProv, isDark, pendingRematch);
+      onlineSection = _buildPendingRematchCard(context, onlineProv, isDark, pendingRematch);
     } else if (isRoomOpen) {
-      return _buildOpenRoomCard(context, onlineProv, isDark);
+      onlineSection = _buildOpenRoomCard(context, onlineProv, isDark);
     } else if (pendingChallenge != null) {
-      return _buildPendingChallengeCard(context, onlineProv, isDark, pendingChallenge);
+      onlineSection = _buildPendingChallengeCard(context, onlineProv, isDark, pendingChallenge);
+    }
+
+    Widget? offlineSection;
+    if (offlineProv.hasActiveMatch) {
+      offlineSection = _buildActiveOfflineGameCard(
+        context,
+        offlineProv,
+        isDark,
+        borderRadius: hasBothActive
+            ? const BorderRadius.vertical(bottom: Radius.circular(16))
+            : BorderRadius.circular(16),
+        margin: const EdgeInsets.only(bottom: 12.0),
+      );
+    }
+
+    if (onlineSection != null && offlineSection != null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          onlineSection,
+          offlineSection,
+        ],
+      );
+    } else if (onlineSection != null) {
+      return onlineSection;
+    } else if (offlineSection != null) {
+      return offlineSection;
     }
 
     // Nothing pending or active -> completely invisible
     return const SizedBox.shrink();
   }
 
-  // ─── 1. Active Game Card ─────────────────────────────────────────────
+  // ─── 1. Active Online Game Card ──────────────────────────────────────
 
-  Widget _buildActiveGameCard(
+  Widget _buildActiveOnlineGameCard(
     BuildContext context,
     OnlineGameProvider onlineProv,
-    bool isDark,
-  ) {
-    final opponentName = onlineProv.isOffline
-        ? (onlineProv.offlinePlayMode == PlayMode.localCoop
-            ? 'game.player2'.tr()
-            : (onlineProv.opponentInfo?.name ?? 'game.aiBot'.tr()))
-        : (onlineProv.opponentInfo?.name ?? 'online.opponent'.tr());
-
+    bool isDark, {
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(Radius.circular(16)),
+    EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
+  }) {
+    final opponentName = onlineProv.opponentInfo?.name ?? 'online.opponent'.tr();
     final opponentRating = onlineProv.opponentInfo?.rating ?? 1200;
-    final isBot = onlineProv.isOffline && onlineProv.offlinePlayMode == PlayMode.vsAi;
-    final isLocalCoop = onlineProv.isOffline && onlineProv.offlinePlayMode == PlayMode.localCoop;
-    final badgeLabel = !onlineProv.isOffline
-        ? '★ $opponentRating'
-        : (isBot ? onlineProv.offlineBotDifficultyLabel : (isLocalCoop ? '2P' : null));
-
-    final isMyTurn = onlineProv.isOffline
-        ? true
-        : (onlineProv.currentTurn.value == onlineProv.myTeam);
-
+    final badgeLabel = '★ $opponentRating';
+    final isMyTurn = (onlineProv.currentTurn.value == onlineProv.myTeam);
     final tcStr = _formatTimeControl(onlineProv.timeControl);
 
     return _buildDismissibleContainer(
-      key: ValueKey('active_game_${onlineProv.matchId ?? "current"}'),
+      key: ValueKey('active_online_game_${onlineProv.matchId ?? "current"}'),
       dismissLabel: 'dashboard.pendingSection.resign'.tr(),
       dismissIcon: Icons.flag_rounded,
       confirmDismiss: () => _confirmResignDialog(context, isDark),
       onDismissed: () {
         onlineProv.resignAndClear();
       },
+      borderRadius: borderRadius,
+      margin: margin,
       child: InkWell(
-        onTap: () => _rejoinGame(context),
-        borderRadius: BorderRadius.circular(16),
+        onTap: () => _rejoinOnlineGame(context),
+        borderRadius: borderRadius is BorderRadius ? borderRadius : BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: AppColors.getCard(isDark),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: borderRadius,
+            border: Border.all(
+              color: AppColors.accent.withValues(alpha: 0.5),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: isDark ? 0.2 : 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.sports_esports_rounded,
+                    color: isDark ? AppColors.accent : AppColors.accentSecondary,
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Game Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'dashboard.pendingSection.activeGameTitle'.tr().toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF143026),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            isMyTurn
+                                ? 'dashboard.pendingSection.yourTurn'.tr()
+                                : 'dashboard.pendingSection.opponentTurn'.tr(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            opponentName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.getTextPrimary(isDark),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.ratingGold.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            badgeLabel,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.ratingGold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Right: Time Control badge & Rejoin Button
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: AppColors.getBorder(isDark),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 11,
+                          color: AppColors.getTextSecondary(isDark),
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          tcStr,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.getTextSecondary(isDark),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'dashboard.pendingSection.rejoin'.tr(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── 1.5 Active Offline Game Card ────────────────────────────────────
+
+  Widget _buildActiveOfflineGameCard(
+    BuildContext context,
+    OfflineGameProvider offlineProv,
+    bool isDark, {
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(Radius.circular(16)),
+    EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
+  }) {
+    final isBot = offlineProv.offlinePlayMode == PlayMode.vsAi;
+    final isLocalCoop = offlineProv.offlinePlayMode == PlayMode.localCoop;
+
+    final opponentName = isLocalCoop
+        ? 'game.player2'.tr()
+        : (offlineProv.opponentInfo?.name ?? 'game.aiBot'.tr());
+
+    final badgeLabel = isBot ? offlineProv.offlineBotDifficultyLabel : '2P';
+
+    final isMyTurn = isLocalCoop
+        ? (offlineProv.currentTurn.value == 'white' ? 'game.playWhite'.tr() : 'game.playBlack'.tr())
+        : (offlineProv.currentTurn.value == offlineProv.myTeam
+            ? 'dashboard.pendingSection.yourTurn'.tr()
+            : 'dashboard.pendingSection.opponentTurn'.tr());
+
+    return _buildDismissibleContainer(
+      key: ValueKey('active_offline_game_${offlineProv.matchId ?? "current"}'),
+      dismissLabel: 'dashboard.pendingSection.resign'.tr(),
+      dismissIcon: Icons.flag_rounded,
+      confirmDismiss: () => _confirmResignDialog(context, isDark),
+      onDismissed: () {
+        offlineProv.resignAndClear();
+      },
+      borderRadius: borderRadius,
+      margin: margin,
+      child: InkWell(
+        onTap: () => _rejoinOfflineGame(context),
+        borderRadius: borderRadius is BorderRadius ? borderRadius : BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.getCard(isDark),
+            borderRadius: borderRadius,
             border: Border.all(
               color: AppColors.primary.withValues(alpha: 0.5),
               width: 1.5,
@@ -122,7 +387,6 @@ class HomePendingGameCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Pulsing green/primary game controller indicator
               Container(
                 width: 42,
                 height: 42,
@@ -132,7 +396,7 @@ class HomePendingGameCard extends StatelessWidget {
                 ),
                 child: Center(
                   child: Icon(
-                    isBot ? Icons.smart_toy_rounded : Icons.sports_esports_rounded,
+                    isBot ? Icons.smart_toy_rounded : Icons.people_outline_rounded,
                     color: AppColors.primaryLight,
                     size: 24,
                   ),
@@ -169,13 +433,15 @@ class HomePendingGameCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            isMyTurn
-                                ? 'dashboard.pendingSection.yourTurn'.tr()
-                                : 'dashboard.pendingSection.opponentTurn'.tr(),
+                            isMyTurn,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
+                              color: isLocalCoop
+                                  ? AppColors.getTextPrimary(isDark)
+                                  : (offlineProv.currentTurn.value == offlineProv.myTeam
+                                      ? AppColors.accentGold
+                                      : AppColors.getTextMuted(isDark)),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -196,30 +462,20 @@ class HomePendingGameCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (badgeLabel != null) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.ratingGold.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              badgeLabel,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.ratingGold,
-                              ),
-                            ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.ratingGold.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                        ],
-                        const SizedBox(width: 8),
-                        Text(
-                          '• $tcStr',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.getTextMuted(isDark),
+                          child: Text(
+                            badgeLabel,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.ratingGold,
+                            ),
                           ),
                         ),
                       ],
@@ -230,19 +486,68 @@ class HomePendingGameCard extends StatelessWidget {
 
               const SizedBox(width: 8),
 
-              // Rejoin Action Button
-              IconButton.filled(
-                onPressed: () => _rejoinGame(context),
-                icon: const Icon(Icons.play_arrow_rounded, size: 22),
-                tooltip: 'dashboard.pendingSection.rejoin'.tr(),
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+              // Right: Offline label & Rejoin Button
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: AppColors.getBorder(isDark),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.devices_rounded,
+                          size: 11,
+                          color: AppColors.getTextSecondary(isDark),
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          'dashboard.badgeOffline'.tr(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.getTextSecondary(isDark),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'dashboard.pendingSection.rejoin'.tr(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -732,9 +1037,11 @@ class HomePendingGameCard extends StatelessWidget {
     required VoidCallback onDismissed,
     Future<bool?> Function()? confirmDismiss,
     required Widget child,
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(Radius.circular(16)),
+    EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12.0),
+      margin: margin,
       child: Dismissible(
         key: key,
         direction: DismissDirection.horizontal,
@@ -744,7 +1051,7 @@ class HomePendingGameCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             color: AppColors.lossRed.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: borderRadius,
           ),
           child: Row(
             children: [
@@ -766,7 +1073,7 @@ class HomePendingGameCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             color: AppColors.lossRed.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: borderRadius,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,

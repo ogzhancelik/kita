@@ -15,7 +15,18 @@ import '../../providers/online_game_provider.dart';
 /// - Auto-scrolls to latest move
 /// - Only rebuilds when moveHistory or viewingMoveIndex changes
 class MoveHistoryPanel extends StatefulWidget {
-  const MoveHistoryPanel({super.key});
+  final ValueNotifier<List<OnlineMoveRecord>>? moveHistory;
+  final ValueNotifier<int>? viewingMoveIndex;
+  final void Function(int index)? onSelectMove;
+  final VoidCallback? onLive;
+
+  const MoveHistoryPanel({
+    super.key,
+    this.moveHistory,
+    this.viewingMoveIndex,
+    this.onSelectMove,
+    this.onLive,
+  });
 
   @override
   State<MoveHistoryPanel> createState() => _MoveHistoryPanelState();
@@ -32,7 +43,9 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<OnlineGameProvider>();
+    final onlineProv = widget.moveHistory == null ? context.read<OnlineGameProvider>() : null;
+    final moveHistoryListenable = widget.moveHistory ?? onlineProv!.moveHistory;
+    final viewingMoveIndexListenable = widget.viewingMoveIndex ?? onlineProv!.viewingMoveIndex;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -51,7 +64,7 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
         ),
       ),
       child: ValueListenableBuilder<List<OnlineMoveRecord>>(
-        valueListenable: provider.moveHistory,
+        valueListenable: moveHistoryListenable,
         builder: (ctx, moves, _) {
           if (moves.isEmpty) {
             return Center(
@@ -67,10 +80,11 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
             );
           }
 
+          final isViewing = viewingMoveIndexListenable.value >= 0;
+
           // Auto-scroll to end when new moves arrive
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients &&
-                !provider.isViewingHistory) {
+            if (_scrollController.hasClients && !isViewing) {
               _scrollController.animateTo(
                 _scrollController.position.maxScrollExtent,
                 duration: const Duration(milliseconds: 200),
@@ -80,13 +94,15 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
           });
 
           return ValueListenableBuilder<int>(
-            valueListenable: provider.viewingMoveIndex,
+            valueListenable: viewingMoveIndexListenable,
             builder: (c1, viewIdx, _) {
+              final onLiveTap = widget.onLive ?? (onlineProv != null ? onlineProv.goLive : null);
+
               return Row(
                 children: [
                   // Live button (when viewing history)
-                  if (viewIdx >= 0)
-                    _LiveButton(onTap: provider.goLive),
+                  if (viewIdx >= 0 && onLiveTap != null)
+                    _LiveButton(onTap: onLiveTap),
 
                   // Move chips
                   Expanded(
@@ -97,7 +113,7 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
                       itemCount: moves.length,
                       itemBuilder: (_, index) {
                         final move = moves[index];
-                        final isViewing = viewIdx == index + 1; // +1 because index 0 is initial state
+                        final isViewingThis = viewIdx == index + 1; // +1 because index 0 is initial state
                         final isWhiteMove = move.playerTeam == 'white';
                         final piece = KitaPiece.allPieces[move.pieceId];
 
@@ -107,10 +123,18 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
 
                         return GestureDetector(
                           onTap: () {
-                            if (index == moves.length - 1) {
-                              provider.goLive();
-                            } else {
-                              provider.viewMoveAt(index + 1);
+                            if (widget.onSelectMove != null) {
+                              if (index == moves.length - 1) {
+                                widget.onLive?.call();
+                              } else {
+                                widget.onSelectMove!(index);
+                              }
+                            } else if (onlineProv != null) {
+                              if (index == moves.length - 1) {
+                                onlineProv.goLive();
+                              } else {
+                                onlineProv.viewMoveAt(index + 1);
+                              }
                             }
                           },
                           child: Container(

@@ -68,7 +68,8 @@
     "offlineDesc": "İnternet bağlantısı algılanamadı. Doğrudan lokal yapay zeka motoruna karşı oynayabilirsiniz!",
     "playOfflineAI": "Çevrimdışı AI'a Karşı Oyna",
     "retryConnection": "Bağlantıyı Yeniden Dene",
-    "checking": "Bağlantı kontrol ediliyor..."
+    "checking": "Bağlantı kontrol ediliyor...",
+    "continueOffline": "Çevrimdışı Devam Et"
   },
   "dashboard": {
     "welcome": "Hoş geldin",
@@ -216,26 +217,53 @@
     "scenarioImmediateWinDesc": "Beyaz WP1 ile BK'yı yer -> Siyah karşı kralı avlayamadığı için Beyaz anında kazanır.",
     "scenarioDefaultBoard": "Varsayılan Tahta (Standart)",
     "howToPlay": "Nasıl Oynanır?",
-    "rulesGoalTitle": "Amaç",
-    "rulesGoalDesc": "Rakibin Kralını (Şah) yakala!",
-    "rulesBoardTitle": "Tahta",
-    "rulesBoardDesc": "Haç şeklinde 20 kareden oluşan tahta. Her kare 1, 2 veya 3 değerinde.",
-    "rulesPiecesTitle": "Taşlar",
-    "rulesPiecesDesc": "Her takımda 1 Kral (Şah) + 2 Piyon. Piyonlar yenilemez.",
-    "rulesMovementTitle": "Hareket",
-    "rulesMovementDesc": "Her turda atman gereken adım sayısı = Rakibin Kralının üzerinde durduğu karenin değeri. Tam o kadar adım atmalısın — ne fazla, ne eksik.",
-    "rulesCaptureTitle": "Yeme",
-    "rulesCaptureDesc": "Sadece Krallar yenebilir — Piyonlar dokunulmaz. Kendi taşlarına veya rakip Piyonlara inemezsin.",
-    "rulesWinTitle": "Kazanma",
-    "rulesWinDesc": "Rakibin Kralını güvenle yakala → Kazan!\nRakibin yasal hamlesi kalmasın → Kazan!",
-    "rulesLastStandTitle": "Son Şans",
-    "rulesLastStandDesc": "Bir Kral yendiğinde karşı takım SON BİR HAMLE yapar. Senin Kralını yerse → Berabere! Yiyemezse → Kaybeder!",
-    "rulesDrawTitle": "Berabere",
-    "rulesDrawDesc": "İki Kral da art arda yenilirse → Berabere\nAynı pozisyon 3 kez tekrarlanırsa → Berabere (Threefold Repetition)",
-    "rulesReversalTitle": "Geri Alma Yasağı",
-    "rulesReversalDesc": "Kendi son hamlenin tersini yapamazsın — başka hamle yoksa hariç.",
-    "rulesSummary": "Hızlı özet: Rakip Kralın durduğu kare adım sayınızı belirler. Piyonlar yenemez. Son Şans bir misilleme hakkı verir.",
     "gotIt": "Anladım, Oynayalım!"
+  },
+  "tutorial": {
+    "title": "Nasıl Oynanır & Rehber",
+    "promptTitle": "Kita'ya Hoş Geldiniz!",
+    "promptDesc": "Kita'da yeni misiniz? Temel hareket ve taş alma kurallarını öğrenmek için interaktif rehberi oynayabilir veya doğrudan oyuna geçebilirsiniz!",
+    "promptPlay": "Rehberi Oyna",
+    "promptSkip": "Şimdilik Atla",
+    "skip": "Atla",
+    "next": "İleri",
+    "previous": "Geri",
+    "finish": "Anladım!",
+    "tryIt": "Kendin Dene!",
+    "tryItWin": "Kazanmak için bir hamle yapın",
+    "tryAgain": "Tam olmadı, başka bir hamle deneyin!",
+    "reset": "Adımı Sıfırla",
+    "stepOf": "Adım {current} / {total}",
+    "lessonOf": "Ders {current} / {total}",
+    "lessonList": "Tüm Dersler",
+    "interactiveHint": "Taşa dokunup seçin, ardından vurgulanan hedef kareye dokunarak hamle yapın.",
+    "tileValue1": "1 Değerli Kareler",
+    "tileValue2": "2 Değerli Kareler",
+    "tileValue3": "3 Değerli Kareler",
+    "dynamicStep2": "Kral 2'de (2 Adım)",
+    "dynamicStep3": "Kral 3'te (3 Adım)",
+    "lesson1Title": "Tahta ve Taşlar",
+    "lesson1Step1Card1": "Kita tahtası bu şekildedir.",
+    "lesson1Step1Card2": "Her takımda 1 Kral ve 2 Piyon bulunur. Tahtada sağ altta yer alırsınız.",
+    "lesson1Step2Desc": "Her karenin 1, 2 veya 3 değeri vardır. Karelerdeki sayıları ve renk tonlarını inceleyin. Bu sayılar taşların nasıl hareket edeceğini belirler!",
+    "lesson1Step3Card1": "Amacınız rakip kralı yakalamak veya rakibi hamlesiz bırakmaktır.",
+    "lesson1Step3Card2": "Yalnızca krallar yakalanabilir, piyonlar yakalanamaz.",
+    "lesson2Title": "Hareket ve Kurallar",
+    "lesson2Step1Desc": "Bir turdaki adım sayısı, rakip Kralın üzerinde durduğu karenin değerine eşittir.",
+    "lesson2Step2Desc": "Diğer taşların içinden geçemezsiniz. Kendiniz bir hamle yapın. Bir taşa dokunup seçin ve ilerletin.",
+    "lesson2Step2Success": "Harika hamle! Dinamik adım sayısını kullanarak yasal bir hamle yaptınız.",
+    "lesson2Step3Desc": "Bir taşı az önce geldiği kareye hemen geri götürerek önceki hamlenizi geri alamazsınız. Aynı taşı hareket ettirmeyi deneyin.",
+    "lesson2Step3SubPrompt": "Şimdi taşınızı hareket ettirmeyi deneyin. Az önce geldiği kareye geri dönüşün engellendiğine dikkat edin!",
+    "lesson2Step3Success": "Taşın az önce geldiği yere geri dönemediğine dikkat edin! İkinci hamlenizi başarıyla tamamladınız.",
+    "lesson2Step4Desc": "Fakat o geri dönüş tahtadaki TEK yasal hamlenizse, zorunlu istisna olarak izin verilir.",
+    "lesson3Title": "Kazanma ve Beraberlik",
+    "lesson3Step1Desc": "Rakip kralı yakalarsanız <mint>kazanırsınız</mint>.",
+    "lesson3Step1Success": "Şah Mat! Doğrudan rakip Kralı yakaladınız.",
+    "lesson3Step2Desc": "Sırası geldiğinde rakibinizin yapabileceği hiçbir yasal hamle yoksa <mint>kazanırsınız</mint>! Rakibi sıkıştırıp kazanmak için bir hamle yapın.",
+    "lesson3Step2Success": "Zafer! Rakibin hiçbir yasal hamlesi kalmadı ve sıkıştı.",
+    "lesson3Step3Desc": "Bir kral yakalandığında, rakip son bir misilleme hakkı kazanır. Bu misilleme hamlesi mevcutsa otomatik olarak gerçekleşir. Rakip de sizin kralınızı yakalayabilirse oyun BERABERE biter.",
+    "lesson3Step3Success": "Misilleme gerçekleşti! İki kral da düştü. Oyun BERABERE bitti.",
+    "lesson3Step4Desc": "Aynı tahta pozisyonu 3 kez tekrarlanırsa (Üçlü Tekrar) veya her iki oyuncu karşılıklı anlaşıp el sıkışırsa oyun berabere biter."
   },
   "leaderboard": {
     "title": "Lider Tablosu",
@@ -531,7 +559,6 @@
     "friendOfflineInviteNote": "Bu arkadaşınız çevrimdışı. Davetiniz çevrimiçi olduklarında iletilecektir (24 saat içinde geçerli).",
     "sendInviteOffline": "Çevrimdışı Davet Gönder",
     "sendInviteOfflineBtn": "Davet Gönder",
-
     "friendInMatch": "Arkadaşınız şu anda başka bir maçta.",
     "inviteTimeout": "Oyun daveti zaman aşımına uğradı.",
     "accept": "Kabul Et",
@@ -599,6 +626,8 @@
     "friendRequestDeclinedSubtitle": "{} arkadaşlık isteğini reddetti",
     "friendRequestAcceptedTitle": "Arkadaşlık İsteği Kabul Edildi",
     "friendRequestAcceptedSubtitle": "{} arkadaşlık isteğini kabul etti",
+    "chatTitle": "Yeni Mesaj",
+    "openChat": "Sohbete Git",
     "comingSoon": "Geliştirme Aşamasında",
     "clearAll": "Tümünü Temizle"
   },
@@ -615,7 +644,8 @@
     "rating": "Mevcut ELO",
     "wld": "Galibiyet / Mağlubiyet / Beraberlik",
     "loading": "Profil yükleniyor...",
-    "loadError": "Profil istatistikleri yüklenemedi."
+    "loadError": "Profil istatistikleri yüklenemedi.",
+    "sendMessage": "Mesaj Gönder"
   },
   "apiConfig": {
     "label": "API SUNUCU URL",
@@ -640,8 +670,17 @@
     "matchDraw": "Beraberlik",
     "noInGameChat": "Oyun içi mesaj yok.",
     "inGameChatLabel": "Oyun İçi Sohbet"
+  },
+  "chats": {
+    "title": "Sohbetler",
+    "search": "Sohbet veya arkadaş ara...",
+    "empty": "Henüz sohbet yok",
+    "emptyDesc": "Arkadaşlarından biriyle hemen sohbet başlat!",
+    "startNewChat": "Yeni Sohbet",
+    "selectFriend": "Arkadaş Seç",
+    "noFriendsFound": "Arkadaş bulunamadı",
+    "guestNotice": "Arkadaşlarınla sohbet etmek için giriş yap.",
+    "you": "Sen: ",
+    "noMessages": "Henüz mesaj yok"
   }
 }
-
-
-

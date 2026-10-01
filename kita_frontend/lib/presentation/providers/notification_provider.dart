@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -255,6 +254,90 @@ class NotificationProvider extends ChangeNotifier {
         debugPrint('[NotificationProvider] Failed to sync friendship action to backend: $e');
       });
     }
+  }
+
+  /// Add or update a chat notification for an incoming DM.
+  void addChatNotification({
+    required String senderId,
+    required String senderUsername,
+    required String content,
+    int? senderRating,
+    int? senderAvatarIndex,
+    required String conversationId,
+    required DateTime timestamp,
+  }) {
+    final defaultId = 'chat_$conversationId';
+    final existingIdx = _notifications.indexWhere((n) =>
+        n.id == defaultId ||
+        n.id.startsWith('chat_${conversationId}_') ||
+        n.conversationId == conversationId ||
+        (n.type == KitaNotificationType.chat && n.actorId == senderId));
+
+    final effectiveId = existingIdx >= 0 ? _notifications[existingIdx].id : defaultId;
+
+    final notif = KitaNotification(
+      id: effectiveId,
+      type: KitaNotificationType.chat,
+      status: NotificationStatus.pending,
+      title: senderUsername,
+      subtitle: content,
+      senderName: senderUsername,
+      senderRating: senderRating,
+      actorId: senderId,
+      conversationId: conversationId,
+      timestamp: timestamp,
+    );
+
+    if (existingIdx >= 0) {
+      _notifications.removeAt(existingIdx);
+    }
+    _notifications.insert(0, notif);
+    notifyListeners();
+  }
+
+  /// Delete chat notifications for a conversation completely from local state and backend.
+  void deleteChatNotifications(String conversationId, {String? notificationId, String? actorId}) {
+    final toDelete = <KitaNotification>[];
+    for (final n in _notifications) {
+      final isDirectMatch = notificationId != null && notificationId.isNotEmpty && n.id == notificationId;
+      final isActorMatch = actorId != null && actorId.isNotEmpty && n.actorId == actorId;
+      final isConvMatch = n.type == KitaNotificationType.chat &&
+          (n.id == 'chat_$conversationId' ||
+              n.id.startsWith('chat_${conversationId}_') ||
+              (conversationId.isNotEmpty && n.id.contains(conversationId)) ||
+              (conversationId.isNotEmpty && n.conversationId == conversationId) ||
+              isActorMatch ||
+              (n.actorId != null && n.actorId!.isNotEmpty && conversationId.isNotEmpty && conversationId.contains(n.actorId!)));
+      if (isDirectMatch || isConvMatch) {
+        toDelete.add(n);
+      }
+    }
+
+    if (toDelete.isNotEmpty) {
+      _notifications.removeWhere((n) => toDelete.contains(n));
+      notifyListeners();
+      for (final n in toDelete) {
+        _apiService.deleteNotification(n.id).catchError((e) {
+          debugPrint('[NotificationProvider] Failed to sync deleteChatNotification: $e');
+        });
+      }
+    }
+
+    if (conversationId.isNotEmpty) {
+      _apiService.deleteNotification('chat_$conversationId').catchError((e) {
+        debugPrint('[NotificationProvider] Failed to sync deleteChatNotification: $e');
+      });
+    }
+    if (actorId != null && actorId.isNotEmpty) {
+      _apiService.deleteNotification(actorId).catchError((e) {
+        debugPrint('[NotificationProvider] Failed to sync deleteChatNotification: $e');
+      });
+    }
+  }
+
+  /// Mark chat notifications for a conversation as read by deleting them.
+  void markChatAsRead(String conversationId) {
+    deleteChatNotifications(conversationId);
   }
 
   /// Add informational notification for rematch rejection.

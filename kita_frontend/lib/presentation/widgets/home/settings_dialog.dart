@@ -8,7 +8,7 @@ import '../../providers/game_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
-import 'game_guide_dialog.dart';
+import '../../screens/tutorial/tutorial_screen.dart';
 import 'match_settings_dialog.dart';
 
 class SettingsDialog extends StatelessWidget {
@@ -186,7 +186,7 @@ class SettingsDialog extends StatelessWidget {
                       subtitle: 'settings.rulesGuideDesc'.tr(),
                       onTap: () {
                         Navigator.of(context).pop();
-                        GameGuideDialog.show(context, fromSettings: true);
+                        TutorialScreen.launch(context);
                       },
                       trailing: Icon(
                         Icons.arrow_forward_ios_rounded,

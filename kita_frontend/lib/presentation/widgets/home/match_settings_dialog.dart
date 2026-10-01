@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/game_settings_provider.dart';
-import '../game/kita_board_theme.dart';
 import 'settings_dialog.dart';
 
 /// Bottom sheet dialog for in-game presentation & match preferences:

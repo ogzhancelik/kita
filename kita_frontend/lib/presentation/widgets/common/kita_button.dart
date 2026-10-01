@@ -140,13 +140,17 @@ class _KitaButtonState extends State<KitaButton> {
                         Icon(widget.icon, color: textColor, size: 20),
                         const SizedBox(width: 8),
                       ],
-                      Text(
-                        widget.text,
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: widget.fontSize,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
+                      Flexible(
+                        child: Text(
+                          widget.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: widget.fontSize,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
                     ],

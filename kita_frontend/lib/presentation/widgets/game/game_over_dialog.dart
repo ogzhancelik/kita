@@ -14,6 +14,8 @@ class GameOverDialog extends StatefulWidget {
   final VoidCallback onRematch;
   final VoidCallback onBackToMenu;
   final VoidCallback? onReviewMatch;
+  final bool isLocalCoop;
+  final String? myTeam;
 
   const GameOverDialog({
     super.key,
@@ -22,6 +24,8 @@ class GameOverDialog extends StatefulWidget {
     required this.onRematch,
     required this.onBackToMenu,
     this.onReviewMatch,
+    this.isLocalCoop = false,
+    this.myTeam,
   });
 
   /// Presents the modal dialog with tap-to-dismiss enabled and smooth scale + fade animation.
@@ -32,6 +36,8 @@ class GameOverDialog extends StatefulWidget {
     required VoidCallback onRematch,
     required VoidCallback onBackToMenu,
     VoidCallback? onReviewMatch,
+    bool isLocalCoop = false,
+    String? myTeam,
   }) {
     return showGeneralDialog(
       context: context,
@@ -46,6 +52,8 @@ class GameOverDialog extends StatefulWidget {
           onRematch: onRematch,
           onBackToMenu: onBackToMenu,
           onReviewMatch: onReviewMatch,
+          isLocalCoop: isLocalCoop,
+          myTeam: myTeam,
         ),
       ),
       transitionBuilder: (dialogContext, anim, secondaryAnim, child) {
@@ -133,13 +141,15 @@ class _GameOverDialogState extends State<GameOverDialog>
     final provider = context.watch<OnlineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
+    final isLocalCoop = widget.isLocalCoop;
+    final effectiveMyTeam = widget.myTeam ?? provider.myTeam;
     final isDraw = widget.gameOverData.isDraw;
     final isWinner = !isDraw &&
         ((widget.gameOverData.winnerId != null &&
                 widget.gameOverData.winnerId == widget.myUserId) ||
-            (provider.myTeam != null &&
-                provider.myTeam == widget.gameOverData.winner));
+            (effectiveMyTeam != null &&
+                (effectiveMyTeam == widget.gameOverData.winner ||
+                 effectiveMyTeam == widget.gameOverData.winnerTeam)));
 
     final Color statusColor;
     final String titleKey;

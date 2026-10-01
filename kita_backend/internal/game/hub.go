@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"sort"
@@ -604,18 +605,9 @@ func (h *Hub) handleMakeMove(client *Client, rawPayload json.RawMessage) {
 }
 
 func (h *Hub) handleChatMessage(client *Client, rawPayload json.RawMessage) {
-	h.mu.RLock()
-	matchID := client.CurrentMatchID
-	room, exists := h.rooms[matchID]
-	h.mu.RUnlock()
-
-	if !exists || room == nil {
-		client.SendError(errors.ErrMatchNotFound, "No active match found")
-		return
-	}
-
 	var payload struct {
-		Content string `json:"content"`
+		Content     string `json:"content"`
+		RecipientID string `json:"recipient_id,omitempty"`
 	}
 	if err := json.Unmarshal(rawPayload, &payload); err != nil || payload.Content == "" {
 		client.SendError(errors.ErrInvalidMessage, "Invalid chat message content")
@@ -628,15 +620,73 @@ func (h *Hub) handleChatMessage(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
-	room.BroadcastChat(client.UserID, client.Username, payload.Content)
-
-	if h.messageService != nil {
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			_, _ = h.messageService.SaveMessage(ctx, matchID, client.UserID, payload.Content)
-		}()
+	h.mu.RLock()
+	matchID := client.CurrentMatchID
+	if matchID == "" {
+		client.mu.RLock()
+		matchID = client.LastFinishedMatchID
+		client.mu.RUnlock()
 	}
+	room, exists := h.rooms[matchID]
+	h.mu.RUnlock()
+
+	// If in an active match or post-game review period, broadcast in-game chat and persist to match messages
+	if exists && room != nil {
+		var opponentClient *Client
+		if room.WhitePlayer != nil && room.WhitePlayer.UserID != client.UserID {
+			opponentClient = room.WhitePlayer
+		} else if room.BlackPlayer != nil && room.BlackPlayer.UserID != client.UserID {
+			opponentClient = room.BlackPlayer
+		}
+
+		opponentStillInMatch := false
+		if opponentClient != nil {
+			opponentClient.mu.RLock()
+			opponentStillInMatch = (opponentClient.CurrentMatchID == matchID ||
+				(opponentClient.LastFinishedMatchID == matchID && opponentClient.Activity == ActivityPostGame))
+			opponentClient.mu.RUnlock()
+		}
+
+		if !room.isFinished || opponentStillInMatch {
+			room.BroadcastChat(client.UserID, client.Username, payload.Content)
+
+			if h.messageService != nil {
+				go func() {
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					_, _ = h.messageService.SaveMessage(ctx, matchID, client.UserID, payload.Content)
+				}()
+			}
+			return
+		}
+	}
+
+	// Match room is closed or opponent left the match:
+	// Route message as a direct message (DM) to the opponent so it is not lost.
+	opponentID := payload.RecipientID
+	if opponentID == "" {
+		client.mu.Lock()
+		opponentID = client.LastFinishedOpponentID
+		client.mu.Unlock()
+	}
+	if opponentID == "" && room != nil {
+		if room.WhitePlayer != nil && room.WhitePlayer.UserID != client.UserID {
+			opponentID = room.WhitePlayer.UserID
+		} else if room.BlackPlayer != nil && room.BlackPlayer.UserID != client.UserID {
+			opponentID = room.BlackPlayer.UserID
+		}
+	}
+
+	if opponentID != "" {
+		dmPayload, _ := json.Marshal(DmSendDTO{
+			RecipientID: opponentID,
+			Content:     payload.Content,
+		})
+		h.handleDmSend(client, dmPayload)
+		return
+	}
+
+	client.SendError(errors.ErrMatchNotFound, "No active match found")
 }
 
 func (h *Hub) handleResign(client *Client) {
@@ -1570,6 +1620,9 @@ func (h *Hub) CloseRoom(matchID string) {
 				room.WhitePlayer.mu.Lock()
 				room.WhitePlayer.LastFinishedMatchID = matchID
 				room.WhitePlayer.LastFinishedTeam = "white"
+				if room.BlackPlayer != nil {
+					room.WhitePlayer.LastFinishedOpponentID = room.BlackPlayer.UserID
+				}
 				if room.WhitePlayer.CurrentMatchID == matchID {
 					room.WhitePlayer.CurrentMatchID = ""
 				}
@@ -1582,6 +1635,9 @@ func (h *Hub) CloseRoom(matchID string) {
 				room.BlackPlayer.mu.Lock()
 				room.BlackPlayer.LastFinishedMatchID = matchID
 				room.BlackPlayer.LastFinishedTeam = "black"
+				if room.WhitePlayer != nil {
+					room.BlackPlayer.LastFinishedOpponentID = room.WhitePlayer.UserID
+				}
 				if room.BlackPlayer.CurrentMatchID == matchID {
 					room.BlackPlayer.CurrentMatchID = ""
 				}
@@ -1692,6 +1748,60 @@ func (h *Hub) handleDmSend(client *Client, rawPayload json.RawMessage) {
 	// Deliver to sender (echo) and recipient
 	client.SendJSON(TypeDmBroadcast, broadcast)
 	h.SendToUser(dto.RecipientID, TypeDmBroadcast, broadcast)
+
+	// Persist notification for recipient so offline users see it upon login,
+	// and deduplicate to a single notification per sender.
+	// Skip notification if recipient is currently in the same match or post-game review with the sender.
+	if h.notificationService != nil {
+		h.mu.RLock()
+		recipientClient := h.clients[dto.RecipientID]
+		h.mu.RUnlock()
+
+		isInSameMatch := false
+		if recipientClient != nil {
+			client.mu.RLock()
+			sMatch := client.CurrentMatchID
+			if sMatch == "" {
+				sMatch = client.LastFinishedMatchID
+			}
+			client.mu.RUnlock()
+
+			recipientClient.mu.RLock()
+			rMatch := recipientClient.CurrentMatchID
+			if rMatch == "" {
+				rMatch = recipientClient.LastFinishedMatchID
+			}
+			isInSameMatch = (sMatch != "" && sMatch == rMatch &&
+				(recipientClient.Activity == ActivityInMatch || recipientClient.Activity == ActivityPostGame))
+			recipientClient.mu.RUnlock()
+		}
+
+		if !isInSameMatch {
+			notifID := fmt.Sprintf("chat_%s_%s", saved.ConversationID, dto.RecipientID)
+			payloadMap := map[string]interface{}{
+				"conversation_id": saved.ConversationID,
+				"sender_id":       client.UserID,
+				"sender_username": client.Username,
+				"sender_avatar":   client.AvatarIndex,
+			}
+			payloadBytes, _ := json.Marshal(payloadMap)
+
+			notif := &domain.Notification{
+				ID:        notifID,
+				UserID:    dto.RecipientID,
+				ActorID:   client.UserID,
+				ActorName: client.Username,
+				Type:      domain.NotificationTypeChat,
+				Status:    domain.NotificationStatusPending,
+				Title:     client.Username,
+				Subtitle:  saved.Content,
+				Payload:   string(payloadBytes),
+				CreatedAt: saved.CreatedAt,
+				UpdatedAt: time.Now(),
+			}
+			_, _ = h.notificationService.UpsertNotification(context.Background(), notif)
+		}
+	}
 }
 
 

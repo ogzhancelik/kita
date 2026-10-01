@@ -55,6 +55,7 @@ type FriendService interface {
 
 type NotificationService interface {
 	CreateNotification(ctx context.Context, notif *domain.Notification) (*domain.Notification, error)
+	UpsertNotification(ctx context.Context, notif *domain.Notification) (*domain.Notification, error)
 	GetUserNotifications(ctx context.Context, userID string, limit, offset int) ([]domain.Notification, int64, error)
 	UpdateStatus(ctx context.Context, id string, userID string, status string) error
 	MarkAllAsRead(ctx context.Context, userID string) error

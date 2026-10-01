@@ -52,12 +52,12 @@ func (h *FriendHandler) GetFriends(c *gin.Context) {
 		}
 	}
 
-	// Sort friends: active (online) first, preserving activity/recency order
+	// Sort friends: active (online) first, then by last interaction recency (match/chat)
 	sort.SliceStable(friends, func(i, j int) bool {
 		if friends[i].IsOnline != friends[j].IsOnline {
 			return friends[i].IsOnline
 		}
-		return false
+		return friends[i].LastInteractionAt.After(friends[j].LastInteractionAt)
 	})
 
 	c.JSON(http.StatusOK, gin.H{"friends": friends})

@@ -2,27 +2,36 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/game_models.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
+import '../../providers/offline_game_provider.dart';
 import '../../providers/online_game_provider.dart';
-import '../home/settings_dialog.dart';
 import '../../screens/game/match_replay_screen.dart';
+import '../home/settings_dialog.dart';
 import 'game_over_dialog.dart';
 
-/// Modal bottom sheet for match actions: Resign, Offer Draw, Report Opponent.
+/// Modal bottom sheet for in-match menu actions:
+/// (Return to Main Menu / Results / Rematch | Settings, Rotate Board | Resign, Offer Draw)
+///
+/// Unified template shared by both online and offline matches.
 class MatchMenuDialog extends StatelessWidget {
-  const MatchMenuDialog({super.key});
+  final bool isOffline;
 
-  static Future<void> show(BuildContext context) {
+  const MatchMenuDialog({
+    super.key,
+    this.isOffline = false,
+  });
+
+  static Future<void> show(BuildContext context, {bool isOffline = false}) {
     FocusManager.instance.primaryFocus?.unfocus();
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const MatchMenuDialog(),
+      builder: (_) => MatchMenuDialog(isOffline: isOffline),
     ).whenComplete(() {
       FocusManager.instance.primaryFocus?.unfocus();
     });
@@ -30,8 +39,19 @@ class MatchMenuDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<OnlineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final onlineProv = context.watch<OnlineGameProvider>();
+    final offlineProv = context.watch<OfflineGameProvider>();
+    final gameSettings = context.watch<GameSettingsProvider>();
+
+    final isGameOver = isOffline
+        ? offlineProv.gameOverData.value != null
+        : onlineProv.gameOverData.value != null;
+
+    final isLocalCoop = isOffline && offlineProv.offlinePlayMode == PlayMode.localCoop;
+    final isHorizontal = isLocalCoop
+        ? offlineProv.localCoopIsHorizontal
+        : gameSettings.isHorizontal;
 
     return Container(
       constraints: BoxConstraints(
@@ -54,265 +74,277 @@ class MatchMenuDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            // Handle bar
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 4, bottom: 12),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.black12,
-                  borderRadius: BorderRadius.circular(2),
+              // Handle bar
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 4, bottom: 12),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
 
-            // Title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Text(
-                'online.matchMenu'.tr(),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.getTextPrimary(isDark),
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Text(
+                  'online.matchMenu'.tr(),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.getTextPrimary(isDark),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            if (provider.isOffline && provider.gameOverData.value == null) ...[
-              // Offline: New Game option
-              _MenuTile(
-                icon: Icons.replay_rounded,
-                iconColor: AppColors.primaryGreen,
-                title: 'game.newGame'.tr(),
-                textColor: AppColors.getTextPrimary(isDark),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  provider.requestRematch();
-                },
-              ),
-
-            ],
-
-            // Return to Main Menu (leave game running in background)
-            _MenuTile(
-              icon: Icons.home_rounded,
-              iconColor: AppColors.accentGold,
-              title: 'online.returnToMenu'.tr(),
-              subtitle: 'online.returnToMenuDesc'.tr(),
-              textColor: AppColors.getTextPrimary(isDark),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-            ),
-
-            if (provider.gameOverData.value != null) ...[
-              // Match is over: Show Results
-              _MenuTile(
-                icon: Icons.analytics_outlined,
-                iconColor: AppColors.accentGold,
-                title: 'online.showResults'.tr(),
-                textColor: AppColors.getTextPrimary(isDark),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  final data = provider.gameOverData.value;
-                  if (data != null) {
-                    GameOverDialog.show(
-                      context: context,
-                      gameOverData: data,
-                      myUserId: provider.myUserId ?? '',
-                      onRematch: () => provider.requestRematch(),
-                      onBackToMenu: () {
-                        provider.resetToIdle();
-                        context.read<AuthProvider>().refreshProfile();
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                      },
-                      onReviewMatch: (provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi)
-                          ? () {
-                              final matchRecord = provider.lastOfflineMatchRecord ??
-                                  provider.buildCurrentOfflineMatchRecord(data);
-                              if (matchRecord != null) {
-                                Navigator.of(context, rootNavigator: true).pop();
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => MatchReplayScreen(match: matchRecord),
-                                  ),
-                                );
-                              }
-                            }
-                          : null,
-                    );
-                  }
-                },
-              ),
-              if (!provider.isRematchRequested.value)
+              // ─── Section 1: Navigation & Rematch ─────────────────────
+              if (isOffline && !isGameOver)
                 _MenuTile(
                   icon: Icons.replay_rounded,
                   iconColor: AppColors.primaryGreen,
-                  title: 'online.rematch'.tr(),
+                  title: 'game.newGame'.tr(),
                   textColor: AppColors.getTextPrimary(isDark),
                   onTap: () {
                     Navigator.of(context).pop();
-                    provider.requestRematch();
+                    offlineProv.requestRematch();
                   },
                 ),
-            ] else ...[
-              // Resign option
+
               _MenuTile(
-                icon: Icons.flag_outlined,
-                iconColor: AppColors.lossRed,
-                title: 'online.resign'.tr(),
-                textColor: AppColors.lossRed,
+                icon: Icons.home_rounded,
+                iconColor: AppColors.accentGold,
+                title: 'online.returnToMenu'.tr(),
+                subtitle: 'online.returnToMenuDesc'.tr(),
+                textColor: AppColors.getTextPrimary(isDark),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _confirmResign(context, provider);
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                 },
               ),
 
-              if (!provider.isOffline) ...[
-                // If opponent offered a draw, show Accept Draw & Decline Draw options
-                ValueListenableBuilder<DrawOfferPayload?>(
-                  valueListenable: provider.drawOffer,
-                  builder: (context, incomingOffer, _) {
-                    if (incomingOffer != null) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _MenuTile(
-                            icon: Icons.check_circle_outline,
-                            iconColor: AppColors.primaryGreen,
-                            title: 'online.acceptDraw'.tr(),
-                            textColor: AppColors.primaryGreen,
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              provider.acceptDrawOffer();
-                            },
-                          ),
-                          _MenuTile(
-                            icon: Icons.highlight_off_rounded,
-                            iconColor: AppColors.lossRed,
-                            title: 'online.declineDraw'.tr(),
-                            textColor: AppColors.lossRed,
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              provider.declineDrawOffer();
-                            },
-                          ),
-                        ],
-                      );
-                    }
-
-                    // Otherwise show Offer Draw option (or pending indicator)
-                    return ValueListenableBuilder<bool>(
-                      valueListenable: provider.isDrawOfferPending,
-                      builder: (context, isPending, _) {
-                        final drawColor = isPending
-                            ? AppColors.getTextMuted(isDark)
-                            : AppColors.getDraw(isDark);
-                        return _MenuTile(
-                          icon: Icons.handshake_outlined,
-                          iconColor: drawColor,
-                          title: isPending
-                              ? 'online.drawOfferSent'.tr()
-                              : 'online.drawOffer'.tr(),
-                          textColor: drawColor,
-                          onTap: isPending
-                              ? null
-                              : () {
-                                  Navigator.of(context).pop();
-                                  _confirmDrawOffer(context, provider);
-                                },
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
-            ],
-
-            // Report Opponent temporarily hidden until reporting backend is implemented:
-            // if (!provider.isOffline) ...[
-            //   _MenuTile(
-            //     icon: Icons.report_problem_outlined,
-            //     iconColor: AppColors.warning,
-            //     title: 'online.reportOpponent'.tr(),
-            //     textColor: AppColors.getTextPrimary(isDark),
-            //     onTap: () {
-            //       Navigator.of(context).pop();
-            //       _showReportDialog(context);
-            //     },
-            //   ),
-            // ],
-
-            // Rotate Board option
-            Builder(
-              builder: (context) {
-                final onlineProv = context.watch<OnlineGameProvider>();
-                final isLocalCoop = onlineProv.isOffline && onlineProv.offlinePlayMode == PlayMode.localCoop;
-                final gameSettings = context.watch<GameSettingsProvider>();
-                final isHorizontal = isLocalCoop
-                    ? onlineProv.localCoopIsHorizontal
-                    : gameSettings.isHorizontal;
-                return _MenuTile(
-                  icon: Icons.rotate_90_degrees_cw_rounded,
-                  iconColor: AppColors.primaryGreen,
-                  title: 'online.rotateBoard'.tr(),
-                  subtitle: isHorizontal
-                      ? 'game.orientationHorizontal'.tr()
-                      : 'game.orientationVertical'.tr(),
+              if (isGameOver) ...[
+                _MenuTile(
+                  icon: Icons.analytics_outlined,
+                  iconColor: AppColors.accentGold,
+                  title: 'online.showResults'.tr(),
                   textColor: AppColors.getTextPrimary(isDark),
                   onTap: () {
-                    if (isLocalCoop) {
-                      onlineProv.toggleLocalCoopOrientation();
-                    } else {
-                      gameSettings.toggleOrientation();
+                    Navigator.of(context).pop();
+                    final data = isOffline
+                        ? offlineProv.gameOverData.value
+                        : onlineProv.gameOverData.value;
+                    if (data != null) {
+                      GameOverDialog.show(
+                        context: context,
+                        gameOverData: data,
+                        myUserId: isOffline
+                            ? (offlineProv.offlinePlayerId ?? 'local')
+                            : (onlineProv.myUserId ?? ''),
+                        isLocalCoop: isLocalCoop,
+                        myTeam: isOffline ? offlineProv.myTeam : onlineProv.myTeam,
+                        onRematch: () {
+                          if (isOffline) {
+                            offlineProv.requestRematch();
+                          } else {
+                            onlineProv.requestRematch();
+                          }
+                        },
+                        onBackToMenu: () {
+                          if (isOffline) {
+                            offlineProv.resignAndClear();
+                          } else {
+                            onlineProv.leaveFinishedMatch();
+                            context.read<AuthProvider>().refreshProfile();
+                          }
+                          Navigator.of(context).popUntil((route) => route.isFirst);
+                        },
+                        onReviewMatch: (isOffline && offlineProv.offlinePlayMode == PlayMode.vsAi)
+                            ? () {
+                                final matchRecord = offlineProv.lastOfflineMatchRecord ??
+                                    offlineProv.buildCurrentOfflineMatchRecord(data);
+                                if (matchRecord != null) {
+                                  Navigator.of(context, rootNavigator: true).pop();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => MatchReplayScreen(match: matchRecord),
+                                    ),
+                                  );
+                                }
+                              }
+                            : null,
+                      );
                     }
                   },
-                );
-              },
-            ),
-
-
-            // General Settings option (Audio, Theme mode, Language)
-            _MenuTile(
-              icon: Icons.settings_rounded,
-              iconColor: AppColors.primaryGreen,
-              title: 'settings.title'.tr(),
-              subtitle: 'settings.generalSection'.tr(),
-              textColor: AppColors.getTextPrimary(isDark),
-              onTap: () {
-                Navigator.of(context).pop();
-                SettingsDialog.show(context);
-              },
-            ),
-
-            const SizedBox(height: 8),
-            // Cancel button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.getTextSecondary(isDark),
-                  side: BorderSide(color: AppColors.getBorder(isDark)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
                 ),
-                child: Text('online.cancel'.tr()),
+                if (!isOffline && !onlineProv.isRematchRequested.value || isOffline)
+                  _MenuTile(
+                    icon: Icons.replay_rounded,
+                    iconColor: AppColors.primaryGreen,
+                    title: 'online.rematch'.tr(),
+                    textColor: AppColors.getTextPrimary(isDark),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      if (isOffline) {
+                        offlineProv.requestRematch();
+                      } else {
+                        onlineProv.requestRematch();
+                      }
+                    },
+                  ),
+              ],
+
+              // ─── Divider 1: return main menu | settings, rotate board ──
+              _buildDivider(isDark),
+
+              // ─── Section 2: Settings & Rotate Board ──────────────────
+              _MenuTile(
+                icon: Icons.settings_rounded,
+                iconColor: AppColors.primaryGreen,
+                title: 'settings.title'.tr(),
+                subtitle: 'settings.generalSection'.tr(),
+                textColor: AppColors.getTextPrimary(isDark),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  SettingsDialog.show(context);
+                },
               ),
-            ),
-          ],
+
+              _MenuTile(
+                icon: Icons.rotate_90_degrees_cw_rounded,
+                iconColor: AppColors.primaryGreen,
+                title: 'online.rotateBoard'.tr(),
+                subtitle: isHorizontal
+                    ? 'game.orientationHorizontal'.tr()
+                    : 'game.orientationVertical'.tr(),
+                textColor: AppColors.getTextPrimary(isDark),
+                showChevron: false,
+                onTap: () {
+                  if (isLocalCoop) {
+                    offlineProv.toggleLocalCoopOrientation();
+                  } else {
+                    gameSettings.toggleOrientation();
+                  }
+                },
+              ),
+
+              // ─── Divider 2: settings, rotate board | resign, offer draw
+              if (!isGameOver) ...[
+                _buildDivider(isDark),
+
+                // ─── Section 3: In-Match Actions (Resign, Draw) ────────
+                _MenuTile(
+                  icon: Icons.flag_outlined,
+                  iconColor: AppColors.lossRed,
+                  title: 'online.resign'.tr(),
+                  textColor: AppColors.lossRed,
+                  showChevron: false,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmResign(context, isOffline: isOffline);
+                  },
+                ),
+
+                if (!isOffline) ...[
+                  ValueListenableBuilder<DrawOfferPayload?>(
+                    valueListenable: onlineProv.drawOffer,
+                    builder: (context, incomingOffer, _) {
+                      if (incomingOffer != null) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _MenuTile(
+                              icon: Icons.check_circle_outline,
+                              iconColor: AppColors.primaryGreen,
+                              title: 'online.acceptDraw'.tr(),
+                              textColor: AppColors.primaryGreen,
+                              showChevron: false,
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                onlineProv.acceptDrawOffer();
+                              },
+                            ),
+                            _MenuTile(
+                              icon: Icons.highlight_off_rounded,
+                              iconColor: AppColors.lossRed,
+                              title: 'online.declineDraw'.tr(),
+                              textColor: AppColors.lossRed,
+                              showChevron: false,
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                onlineProv.declineDrawOffer();
+                              },
+                            ),
+                          ],
+                        );
+                      }
+
+                      return ValueListenableBuilder<bool>(
+                        valueListenable: onlineProv.isDrawOfferPending,
+                        builder: (context, isPending, _) {
+                          final drawColor = isPending
+                              ? AppColors.getTextMuted(isDark)
+                              : AppColors.getDraw(isDark);
+                          return _MenuTile(
+                            icon: Icons.handshake_outlined,
+                            iconColor: drawColor,
+                            title: isPending
+                                ? 'online.drawOfferSent'.tr()
+                                : 'online.drawOffer'.tr(),
+                            textColor: drawColor,
+                            showChevron: false,
+                            onTap: isPending
+                                ? null
+                                : () {
+                                    Navigator.of(context).pop();
+                                    _confirmDrawOffer(context, onlineProv);
+                                  },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ],
+
+              const SizedBox(height: 8),
+
+              // Cancel button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.getTextSecondary(isDark),
+                    side: BorderSide(color: AppColors.getBorder(isDark)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text('online.cancel'.tr()),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  void _confirmResign(BuildContext context, OnlineGameProvider provider) {
+  Widget _buildDivider(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Divider(
+        color: AppColors.getBorder(isDark),
+        height: 1,
+      ),
+    );
+  }
+
+  void _confirmResign(BuildContext context, {required bool isOffline}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
@@ -341,7 +373,11 @@ class MatchMenuDialog extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              provider.resign();
+              if (isOffline) {
+                context.read<OfflineGameProvider>().resign();
+              } else {
+                context.read<OnlineGameProvider>().resign();
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.lossRed,
@@ -365,7 +401,7 @@ class MatchMenuDialog extends StatelessWidget {
         backgroundColor: AppColors.getCard(isDark),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'online.drawOffer'.tr(),
+          'online.drawOfferTitle'.tr(),
           style: TextStyle(
             color: AppColors.getTextPrimary(isDark),
             fontWeight: FontWeight.bold,
@@ -387,11 +423,10 @@ class MatchMenuDialog extends StatelessWidget {
             onPressed: () {
               Navigator.of(ctx).pop();
               provider.sendDrawOffer();
-              KitaToast.info('online.drawOfferSent'.tr());
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.getDraw(isDark),
-              foregroundColor: isDark ? AppColors.darkBg : Colors.white,
+              backgroundColor: AppColors.accentGold,
+              foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -402,129 +437,6 @@ class MatchMenuDialog extends StatelessWidget {
       ),
     );
   }
-
-  /*
-  void _showReportDialog(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    String selectedReason = 'online.reportHarassment'.tr();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
-          final reasons = [
-            'online.reportHarassment'.tr(),
-            'online.reportCheating'.tr(),
-            'online.reportStalling'.tr(),
-          ];
-
-          return AlertDialog(
-            backgroundColor: AppColors.getCard(isDark),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Row(
-              children: [
-                const Icon(
-                  Icons.report_problem_rounded,
-                  color: AppColors.warning,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'online.reportTitle'.tr(),
-                  style: TextStyle(
-                    color: AppColors.getTextPrimary(isDark),
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'online.reportReason'.tr(),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.getTextSecondary(isDark),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...reasons.map((reason) {
-                  final isSelected = selectedReason == reason;
-                  return InkWell(
-                    onTap: () => setState(() => selectedReason = reason),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 4,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isSelected
-                                ? Icons.radio_button_checked_rounded
-                                : Icons.radio_button_off_rounded,
-                            size: 18,
-                            color: isSelected
-                                ? AppColors.primaryGreen
-                                : AppColors.getTextMuted(isDark),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              reason,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isSelected
-                                    ? AppColors.getTextPrimary(isDark)
-                                    : AppColors.getTextSecondary(isDark),
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(
-                  'online.cancel'.tr(),
-                  style: TextStyle(color: AppColors.getTextSecondary(isDark)),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  KitaToast.success('online.reportSubmitted'.tr());
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.lossRed,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text('online.submit'.tr()),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-  */
-
 }
 
 class _MenuTile extends StatelessWidget {
@@ -533,6 +445,8 @@ class _MenuTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Color textColor;
+  final Widget? trailing;
+  final bool showChevron;
   final VoidCallback? onTap;
 
   const _MenuTile({
@@ -541,12 +455,25 @@ class _MenuTile extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.textColor,
+    this.trailing,
+    this.showChevron = true,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Widget? effectiveTrailing;
+    if (trailing != null) {
+      effectiveTrailing = trailing;
+    } else if (showChevron) {
+      effectiveTrailing = Icon(
+        Icons.chevron_right_rounded,
+        size: 20,
+        color: AppColors.getTextMuted(isDark),
+      );
+    }
 
     return Material(
       color: Colors.transparent,
@@ -577,11 +504,7 @@ class _MenuTile extends StatelessWidget {
                 ),
               )
             : null,
-        trailing: Icon(
-          Icons.chevron_right_rounded,
-          size: 20,
-          color: AppColors.getTextMuted(isDark),
-        ),
+        trailing: effectiveTrailing,
         onTap: onTap,
       ),
     );

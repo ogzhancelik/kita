@@ -9,6 +9,7 @@ class FriendItemModel {
   final String direction; // "friend", "incoming", "outgoing"
   final bool isOnline;
   final DateTime createdAt;
+  final DateTime lastInteractionAt;
 
   const FriendItemModel({
     required this.friendshipId,
@@ -20,9 +21,13 @@ class FriendItemModel {
     required this.direction,
     required this.isOnline,
     required this.createdAt,
-  });
+    DateTime? lastInteractionAt,
+  }) : lastInteractionAt = lastInteractionAt ?? createdAt;
 
   factory FriendItemModel.fromJson(Map<String, dynamic> json) {
+    final created = DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+        DateTime.now();
+    final lastInter = DateTime.tryParse(json['last_interaction_at']?.toString() ?? '') ?? created;
     return FriendItemModel(
       friendshipId: json['friendship_id'] as String? ?? '',
       userId: json['user_id'] as String? ?? '',
@@ -32,8 +37,8 @@ class FriendItemModel {
       status: json['status'] as String? ?? 'pending',
       direction: json['direction'] as String? ?? 'friend',
       isOnline: json['is_online'] as bool? ?? false,
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-          DateTime.now(),
+      createdAt: created,
+      lastInteractionAt: lastInter,
     );
   }
 
@@ -47,6 +52,7 @@ class FriendItemModel {
     String? direction,
     bool? isOnline,
     DateTime? createdAt,
+    DateTime? lastInteractionAt,
   }) {
     return FriendItemModel(
       friendshipId: friendshipId ?? this.friendshipId,
@@ -58,6 +64,7 @@ class FriendItemModel {
       direction: direction ?? this.direction,
       isOnline: isOnline ?? this.isOnline,
       createdAt: createdAt ?? this.createdAt,
+      lastInteractionAt: lastInteractionAt ?? this.lastInteractionAt,
     );
   }
 }

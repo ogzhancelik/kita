@@ -66,6 +66,10 @@ func NewDatabase() (*gorm.DB, error) {
 		_ = db.Exec("ALTER TABLE matches ALTER COLUMN id TYPE varchar(64) USING id::varchar").Error
 	}
 
+	if db.Migrator().HasTable("notifications") {
+		_ = db.Exec("ALTER TABLE notifications ALTER COLUMN id TYPE varchar(128) USING id::varchar").Error
+	}
+
 	log.Println("[Postgres] Database connected and schema migrated successfully")
 	return db, nil
 }

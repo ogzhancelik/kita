@@ -834,6 +834,9 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		r.WhitePlayer.mu.Lock()
 		r.WhitePlayer.LastFinishedMatchID = r.ID
 		r.WhitePlayer.LastFinishedTeam = "white"
+		if r.BlackPlayer != nil {
+			r.WhitePlayer.LastFinishedOpponentID = r.BlackPlayer.UserID
+		}
 		r.WhitePlayer.Activity = ActivityPostGame
 		if r.WhitePlayer.CurrentMatchID == r.ID {
 			r.WhitePlayer.CurrentMatchID = ""
@@ -844,6 +847,9 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		r.BlackPlayer.mu.Lock()
 		r.BlackPlayer.LastFinishedMatchID = r.ID
 		r.BlackPlayer.LastFinishedTeam = "black"
+		if r.WhitePlayer != nil {
+			r.BlackPlayer.LastFinishedOpponentID = r.WhitePlayer.UserID
+		}
 		r.BlackPlayer.Activity = ActivityPostGame
 		if r.BlackPlayer.CurrentMatchID == r.ID {
 			r.BlackPlayer.CurrentMatchID = ""

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/dm_models.dart';
 import '../../../data/models/friend_models.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/friends/friends_screen.dart';
@@ -49,19 +51,23 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final friendsProv = context.watch<FriendsProvider>();
     final authProv = context.watch<AuthProvider>();
+    final dmProv = Provider.of<DmProvider?>(context);
     final isGuest = authProv.isGuest;
+    final myId = authProv.currentUser?.id ?? '';
 
     if (isGuest) {
       return const SizedBox.shrink();
     }
 
-    // Sort friends: online first, then by activity/recency (consistent with Friends tab, not by ELO)
+    final totalBadgeCount = (dmProv?.totalUnread ?? 0) + friendsProv.pendingIncomingCount;
+
+    // Sort friends: online first, then by last interaction recency (match/chat)
     final sortedFriends = List<FriendItemModel>.from(friendsProv.friends)
       ..sort((a, b) {
         if (a.isOnline != b.isOnline) {
           return a.isOnline ? -1 : 1;
         }
-        return 0;
+        return b.lastInteractionAt.compareTo(a.lastInteractionAt);
       });
 
     final hasMoreThanTen = sortedFriends.length >= 10;
@@ -95,6 +101,24 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                     color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                   ),
                 ),
+                if (totalBadgeCount > 0) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryVibrant,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      totalBadgeCount > 99 ? '99+' : '$totalBadgeCount',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(width: 4),
                 Icon(
                   Icons.arrow_forward_ios_rounded,
@@ -141,7 +165,9 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                 itemBuilder: (context, index) {
                   if (index < displayFriends.length) {
                     final friend = displayFriends[index];
-                    return _buildFriendCard(friend, isDark);
+                    final convId = dmConversationId(myId, friend.userId);
+                    final friendUnread = dmProv?.unreadFor(convId) ?? 0;
+                    return _buildFriendCard(friend, isDark, friendUnread);
                   } else {
                     return _buildViewAllCard(isDark);
                   }
@@ -153,7 +179,7 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
     );
   }
 
-  Widget _buildFriendCard(FriendItemModel friend, bool isDark) {
+  Widget _buildFriendCard(FriendItemModel friend, bool isDark, int unreadCount) {
     final avatar = AvatarPicker.avatars[friend.avatarIndex % AvatarPicker.avatars.length];
 
     return Container(
@@ -185,7 +211,7 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Avatar + Online status indicator
+                // Avatar + Online status indicator + Unread badge
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -231,6 +257,33 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                         ),
                       ),
                     ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryVibrant,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                              width: 1.5,
+                            ),
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          alignment: Alignment.center,
+                          child: Text(
+                            unreadCount > 9 ? '9+' : '$unreadCount',
+                            style: const TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 6),

@@ -125,20 +125,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
         context.read<AuthProvider>().refreshProfile();
         Navigator.of(context).popUntil((route) => route.isFirst);
       },
-      onReviewMatch: isVsAi
-          ? () {
-              final matchRecord = provider.lastOfflineMatchRecord ??
-                  provider.buildCurrentOfflineMatchRecord(data);
-              if (matchRecord != null) {
-                Navigator.of(context, rootNavigator: true).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => MatchReplayScreen(match: matchRecord),
-                  ),
-                );
-              }
-            }
-          : null,
+      onReviewMatch: null,
     ).then((_) {
       _isGameOverDialogShowing = false;
     });
@@ -151,35 +138,19 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isBlack = provider.myTeam == 'black';
 
-    final opponentName = provider.isOffline
-        ? (provider.offlinePlayMode == PlayMode.localCoop
-            ? (isBlack ? 'game.playWhite'.tr() : 'game.playBlack'.tr())
-            : (provider.opponentInfo?.name ?? 'game.aiBot'.tr()))
-        : (provider.opponentInfo?.name ?? 'online.opponent'.tr());
-
+    final opponentName = provider.opponentInfo?.name ?? 'online.opponent'.tr();
     final opponentRating = provider.opponentInfo?.rating ?? 1200;
+    const isBot = false;
+    const isLocalCoop = false;
+    const String? opponentRatingLabel = null;
 
-    final isBot = provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi;
-    final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
-    final opponentRatingLabel = isBot
-        ? provider.offlineBotDifficultyLabel
-        : (isLocalCoop ? '2P' : null);
+    final myDisplayName = (provider.myUsername != null && provider.myUsername!.isNotEmpty)
+        ? provider.myUsername!
+        : authProv.displayName;
 
-    final myDisplayName = provider.isOffline
-        ? (provider.offlinePlayMode == PlayMode.localCoop
-            ? (isBlack ? 'game.playBlack'.tr() : 'game.playWhite'.tr())
-            : (authProv.isAuthenticated ? authProv.displayName : 'game.you'.tr()))
-        : ((provider.myUsername != null && provider.myUsername!.isNotEmpty)
-            ? provider.myUsername!
-            : authProv.displayName);
-
-    final myRating = provider.isOffline
-        ? (authProv.isAuthenticated && authProv.currentUser?.rating != null
-            ? authProv.currentUser!.rating
-            : 1200)
-        : ((authProv.isAuthenticated && authProv.currentUser?.rating != null)
-            ? authProv.currentUser!.rating
-            : provider.myRating);
+    final myRating = (authProv.isAuthenticated && authProv.currentUser?.rating != null)
+        ? authProv.currentUser!.rating
+        : provider.myRating;
 
     final canLeaveFreely =
         provider.matchState.value == OnlineMatchState.gameOver ||
@@ -251,10 +222,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final gameSettings = context.watch<GameSettingsProvider>();
-                    final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
-                    final isHorizontal = isLocalCoop
-                        ? provider.localCoopIsHorizontal
-                        : gameSettings.isHorizontal;
+                    final isHorizontal = gameSettings.isHorizontal;
                     final effectiveFlip = gameSettings.shouldFlipBoard(provider.myTeam ?? 'white');
 
                     final totalHeight = constraints.maxHeight;
@@ -309,9 +277,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
                       onTap: () {
                         FocusManager.instance.primaryFocus?.unfocus();
                         final opp = provider.opponentInfo;
-                        final isBot = (provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi) || opp?.id == 'bot';
+                        const isBot = false;
                         final isGuest = (opp?.id != null && opp!.id.startsWith('guest-')) ||
-                            (opponentName.toLowerCase().startsWith('guest') && !isBot);
+                            (opponentName.toLowerCase().startsWith('guest'));
                         UserProfileDialog.show(
                           context,
                           userId: opp?.id,
@@ -838,24 +806,8 @@ class _BoardSection extends StatelessWidget {
           builder: (c1, engine, _) {
             final displayEngine = provider.displayEngine;
             final isLive = !provider.isViewingHistory;
-            final isMyTurn = provider.isOffline
-                ? (provider.offlinePlayMode == PlayMode.localCoop
-                    ? isLive
-                    : (provider.myTeam == displayEngine.turn.name &&
-                        !provider.isAiThinking.value &&
-                        isLive))
-                : (provider.myTeam == displayEngine.turn.name && isLive);
-
-            final gameSettings = context.watch<GameSettingsProvider>();
-            final isLocalCoop = provider.isOffline && provider.offlinePlayMode == PlayMode.localCoop;
-            final isBlackTurn = displayEngine.turn == PieceTeam.black;
-            final activePlayerIsAtTop = flipBoard ? !isBlackTurn : isBlackTurn;
-            final double baseRotation = gameSettings.isLocalCoopHorizontal ? 0.25 : 0.0;
-            final double pieceRotation = isLocalCoop
-                ? (gameSettings.localCoopAutoRotate
-                    ? (baseRotation + (activePlayerIsAtTop ? 0.5 : 0.0))
-                    : baseRotation)
-                : 0.0;
+            final isMyTurn = provider.myTeam == displayEngine.turn.name && isLive;
+            const double pieceRotation = 0.0;
 
             return ValueListenableBuilder<List<KitaMove>>(
               valueListenable: provider.legalMoves,
@@ -943,13 +895,8 @@ class _BoardInteractionState extends State<_BoardInteraction> {
       return;
     }
 
-    final isOurPiece = widget.provider.isOffline
-        ? (widget.provider.offlinePlayMode == PlayMode.localCoop
-            ? true
-            : ((widget.provider.myTeam == 'white' && piece.isWhite) ||
-                (widget.provider.myTeam == 'black' && piece.isBlack)))
-        : ((widget.provider.myTeam == 'white' && piece.isWhite) ||
-            (widget.provider.myTeam == 'black' && piece.isBlack));
+    final isOurPiece = (widget.provider.myTeam == 'white' && piece.isWhite) ||
+        (widget.provider.myTeam == 'black' && piece.isBlack);
 
     if (!isOurPiece) {
       _selectedPos = null;
@@ -1012,12 +959,7 @@ class _BoardInteractionState extends State<_BoardInteraction> {
   }
 
   bool _isPieceDraggable(KitaPos pos) {
-    if (!widget.isMyTurn && !widget.provider.isOffline) {
-      return false;
-    }
-    if (widget.provider.isOffline &&
-        widget.provider.offlinePlayMode != PlayMode.localCoop &&
-        !widget.isMyTurn) {
+    if (!widget.isMyTurn) {
       return false;
     }
 
@@ -1035,11 +977,6 @@ class _BoardInteractionState extends State<_BoardInteraction> {
 
     if (piece.team != widget.displayEngine.turn) {
       return false;
-    }
-
-    if (widget.provider.isOffline &&
-        widget.provider.offlinePlayMode == PlayMode.localCoop) {
-      return true;
     }
 
     return (widget.provider.myTeam == 'white' && piece.isWhite) ||
@@ -1114,13 +1051,8 @@ class _BoardInteractionState extends State<_BoardInteraction> {
     if (tappedPieceId != null) {
       final piece = KitaPiece.allPieces[tappedPieceId];
       if (piece != null) {
-        final isOurPiece = widget.provider.isOffline
-            ? (widget.provider.offlinePlayMode == PlayMode.localCoop
-                ? true
-                : ((widget.provider.myTeam == 'white' && piece.isWhite) ||
-                    (widget.provider.myTeam == 'black' && piece.isBlack)))
-            : ((widget.provider.myTeam == 'white' && piece.isWhite) ||
-                (widget.provider.myTeam == 'black' && piece.isBlack));
+        final isOurPiece = (widget.provider.myTeam == 'white' && piece.isWhite) ||
+            (widget.provider.myTeam == 'black' && piece.isBlack);
 
         if (isOurPiece) {
           final Set<KitaPos> movesForPiece;

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -113,6 +114,21 @@ func (s *friendService) GetFriends(ctx context.Context, userID string) ([]domain
 		return nil, appErrors.New(appErrors.ErrInternalServer, "failed to load friends")
 	}
 
+	friendIDs := make([]string, 0, len(list))
+	for _, f := range list {
+		if f.RequesterID == userID {
+			if f.Addressee != nil {
+				friendIDs = append(friendIDs, f.Addressee.ID)
+			}
+		} else {
+			if f.Requester != nil {
+				friendIDs = append(friendIDs, f.Requester.ID)
+			}
+		}
+	}
+
+	interactions, _ := s.friendRepo.GetLastInteractions(ctx, userID, friendIDs)
+
 	items := make([]domain.FriendItem, 0, len(list))
 	for _, f := range list {
 		var otherUser *domain.User
@@ -123,19 +139,36 @@ func (s *friendService) GetFriends(ctx context.Context, userID string) ([]domain
 		}
 
 		if otherUser != nil {
+			lastInter := f.UpdatedAt
+			if f.CreatedAt.After(lastInter) {
+				lastInter = f.CreatedAt
+			}
+			if interactions != nil {
+				if t, ok := interactions[otherUser.ID]; ok && t.After(lastInter) {
+					lastInter = t
+				}
+			}
+
 			items = append(items, domain.FriendItem{
-				FriendshipID: f.ID,
-				UserID:       otherUser.ID,
-				Username:     otherUser.Username,
-				AvatarIndex:  otherUser.AvatarIndex,
-				Rating:       int(math.Round(otherUser.Rating)),
-				Status:       f.Status,
-				Direction:    "friend",
-				IsOnline:     false, // Can be matched against Hub
-				CreatedAt:    f.CreatedAt,
+				FriendshipID:      f.ID,
+				UserID:            otherUser.ID,
+				Username:          otherUser.Username,
+				AvatarIndex:       otherUser.AvatarIndex,
+				Rating:            int(math.Round(otherUser.Rating)),
+				Status:            f.Status,
+				Direction:         "friend",
+				IsOnline:          false, // Can be matched against Hub
+				CreatedAt:         f.CreatedAt,
+				LastInteractionAt: lastInter,
 			})
 		}
 	}
+
+	// Sort by last interaction recency
+	sort.SliceStable(items, func(i, j int) bool {
+		return items[i].LastInteractionAt.After(items[j].LastInteractionAt)
+	})
+
 	return items, nil
 }
 

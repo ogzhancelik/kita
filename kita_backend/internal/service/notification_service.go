@@ -40,6 +40,28 @@ func (s *notificationService) CreateNotification(ctx context.Context, notif *dom
 	return notif, nil
 }
 
+func (s *notificationService) UpsertNotification(ctx context.Context, notif *domain.Notification) (*domain.Notification, error) {
+	if notif.ID == "" {
+		notif.ID = uuid.New().String()
+	}
+	if notif.Status == "" {
+		if notif.Type == domain.NotificationTypeInfo {
+			notif.Status = domain.NotificationStatusUnread
+		} else {
+			notif.Status = domain.NotificationStatusPending
+		}
+	}
+	if notif.CreatedAt.IsZero() {
+		notif.CreatedAt = time.Now()
+	}
+	notif.UpdatedAt = time.Now()
+
+	if err := s.repo.Upsert(ctx, notif); err != nil {
+		return nil, appErrors.New(appErrors.ErrInternalServer, "failed to upsert notification")
+	}
+	return notif, nil
+}
+
 func (s *notificationService) GetUserNotifications(ctx context.Context, userID string, limit, offset int) ([]domain.Notification, int64, error) {
 	notifs, err := s.repo.ListByUserID(ctx, userID, limit, offset)
 	if err != nil {

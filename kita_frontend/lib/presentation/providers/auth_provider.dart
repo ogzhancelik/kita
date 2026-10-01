@@ -20,7 +20,7 @@ enum AuthState {
   unauthenticated,
 }
 
-class AuthProvider extends ChangeNotifier {
+class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   final AuthApiService _apiService;
   final UserApiService _userApiService;
   final SecureStorageService _storage;
@@ -35,6 +35,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isOffline = false;
   bool _isServerDown = false;
   bool _isRetryingConnection = false;
+  bool _isAppInBackground = false;
   StreamSubscription<bool>? _connectivitySubscription;
 
   AuthProvider({
@@ -46,11 +47,16 @@ class AuthProvider extends ChangeNotifier {
         _userApiService = userApiService ?? UserApiService(),
         _storage = storage ?? SecureStorageService(),
         _connectivity = connectivity ?? ConnectivityService() {
+    WidgetsBinding.instance.addObserver(this);
     _initReachabilityListeners();
   }
 
   void _initReachabilityListeners() {
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen((hasNet) async {
+      if (_isAppInBackground) {
+        // Suppress background OS network drops from mutating UI while hidden
+        return;
+      }
       if (!hasNet) {
         _isOffline = true;
         _isServerDown = false;
@@ -64,6 +70,9 @@ class AuthProvider extends ChangeNotifier {
     });
 
     ApiClient.onServerStatusChanged = (down) {
+      if (_isAppInBackground) {
+        return;
+      }
       if (down) {
         _connectivity.hasInternet().then((hasNet) {
           if (hasNet) {
@@ -78,6 +87,9 @@ class AuthProvider extends ChangeNotifier {
     };
 
     WebSocketService.instance.onConnectionFailed = () async {
+      if (_isAppInBackground) {
+        return;
+      }
       final hasNet = await _connectivity.hasInternet();
       if (hasNet) {
         final isHealthy = await ConnectivityService.checkApiHealth(ApiConstants.baseUrl);
@@ -96,8 +108,58 @@ class AuthProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription?.cancel();
     super.dispose();
+  }
+
+  bool get isAppInBackground => _isAppInBackground;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isBg = state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.inactive;
+
+    if (isBg) {
+      _isAppInBackground = true;
+      debugPrint('[AuthProvider] App moved to background/hidden ($state)');
+    } else if (state == AppLifecycleState.resumed) {
+      final wasBg = _isAppInBackground;
+      _isAppInBackground = false;
+      debugPrint('[AuthProvider] App resumed to foreground');
+      if (wasBg) {
+        _handleAppResumed();
+      }
+    }
+  }
+
+  Future<void> _handleAppResumed() async {
+    // If user was offline intentionally or in unauthenticated welcome screen, leave as is.
+    if (_state == AuthState.offline || _state == AuthState.unauthenticated) {
+      return;
+    }
+
+    // Default optimistic: Keep online UI layout, don't flash offline menu
+    _isOffline = false;
+    _isServerDown = false;
+    notifyListeners();
+
+    // 1. Proactively reconnect WebSocket immediately (don't wait for dormant backoff timers)
+    WebSocketService.instance.reconnectNow();
+
+    // 2. Gentle network interface check
+    final hasNet = await _connectivity.hasInternet();
+    if (!hasNet) {
+      _isOffline = true;
+      notifyListeners();
+      return;
+    }
+
+    // 3. Silent health / profile refresh
+    if (isAuthenticated && _token != null) {
+      refreshProfile();
+    }
   }
 
   AuthState get state => _state;
@@ -175,13 +237,17 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  int _initCheckGeneration = 0;
+
   // --- Step 1 & 2 & 3 Initialization Flow ---
   Future<void> checkInitialState() async {
+    final currentGen = ++_initCheckGeneration;
     _state = AuthState.checking;
     notifyListeners();
 
     // 1. Connectivity check
     final hasNet = await _connectivity.hasInternet();
+    if (_initCheckGeneration != currentGen) return;
     _isOffline = !hasNet;
 
     // 1b. Server reachability check
@@ -189,17 +255,20 @@ class AuthProvider extends ChangeNotifier {
       _isServerDown = false;
     } else {
       final isHealthy = await ConnectivityService.checkApiHealth(ApiConstants.baseUrl);
+      if (_initCheckGeneration != currentGen) return;
       _isServerDown = !isHealthy;
     }
 
     // 2. Token / Session check
     final storedToken = await _storage.getToken();
+    if (_initCheckGeneration != currentGen) return;
     if (storedToken != null && storedToken.isNotEmpty) {
       _token = storedToken;
       ApiClient.currentToken = storedToken;
       if (hasNet && !_isServerDown) {
         try {
           final profile = await _apiService.getMe(silent: true);
+          if (_initCheckGeneration != currentGen) return;
           _currentUser = profile;
           await _storage.saveUser(profile);
           _state = AuthState.authenticated;
@@ -207,10 +276,12 @@ class AuthProvider extends ChangeNotifier {
           notifyListeners();
           return;
         } catch (e) {
+          if (_initCheckGeneration != currentGen) return;
           final isUnauthorized = e is DioException && (e.response?.statusCode == 401);
           if (!isUnauthorized) {
             _isServerDown = true;
             final cached = await _storage.getUser();
+            if (_initCheckGeneration != currentGen) return;
             if (cached != null) {
               _currentUser = cached;
               _state = AuthState.authenticated;
@@ -228,6 +299,7 @@ class AuthProvider extends ChangeNotifier {
       } else {
         // Offline or server down with token: load cached user profile if available
         final cached = await _storage.getUser();
+        if (_initCheckGeneration != currentGen) return;
         if (cached != null) {
           _currentUser = cached;
           _state = AuthState.authenticated;
@@ -237,9 +309,50 @@ class AuthProvider extends ChangeNotifier {
       }
     }
 
-    // 3. Guest profile check
+    if (_initCheckGeneration != currentGen) return;
+
+    // 3. Check if a guest profile exists in storage (load for later if user chooses "Continue as Guest")
     try {
       final savedGuest = await _storage.getGuestProfile();
+      if (_initCheckGeneration != currentGen) return;
+      if (savedGuest != null) {
+        _guestProfile = savedGuest;
+      }
+    } catch (_) {}
+
+    if (_initCheckGeneration != currentGen) return;
+
+    // 4. Not logged in (whether online or offline) -> Welcome screen (Sign in / Register / Guest)
+    _state = AuthState.unauthenticated;
+    notifyListeners();
+  }
+
+  // --- Continue Offline Directly ---
+  Future<void> continueOffline() async {
+    final currentGen = ++_initCheckGeneration;
+    _isOffline = true;
+    _isServerDown = false;
+
+    // Check if token and cached user exist
+    final storedToken = await _storage.getToken();
+    if (_initCheckGeneration != currentGen) return;
+    if (storedToken != null && storedToken.isNotEmpty) {
+      final cached = await _storage.getUser();
+      if (_initCheckGeneration != currentGen) return;
+      if (cached != null) {
+        _token = storedToken;
+        ApiClient.currentToken = storedToken;
+        _currentUser = cached;
+        _state = AuthState.authenticated;
+        notifyListeners();
+        return;
+      }
+    }
+
+    // Check if guest profile exists
+    try {
+      final savedGuest = await _storage.getGuestProfile();
+      if (_initCheckGeneration != currentGen) return;
       if (savedGuest != null) {
         _guestProfile = savedGuest;
         _state = AuthState.guest;
@@ -248,17 +361,11 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (_) {}
 
-    // 4. If offline or server is down and neither saved token nor guest exists,
-    // initialize a default guest profile to allow immediate offline play
-    if (!hasNet || _isServerDown) {
-      _guestProfile = const GuestProfile(nickname: 'Guest', avatarIndex: 0);
-      _state = AuthState.guest;
-      notifyListeners();
-      return;
-    }
+    if (_initCheckGeneration != currentGen) return;
 
-    // 5. No active token or guest and server online -> Welcome screen (Sign in / Register / Guest)
-    _state = AuthState.unauthenticated;
+    // Fallback default guest profile
+    _guestProfile = const GuestProfile(nickname: 'Guest', avatarIndex: 0);
+    _state = AuthState.guest;
     notifyListeners();
   }
 
@@ -287,6 +394,12 @@ class AuthProvider extends ChangeNotifier {
     }
 
     // Backend is reachable and internet is available!
+    if (_state == AuthState.guest) {
+      _isRetryingConnection = false;
+      notifyListeners();
+      return true;
+    }
+
     await checkInitialState();
     _isRetryingConnection = false;
     notifyListeners();

@@ -11,6 +11,7 @@ const (
 	NotificationTypeChallenge             = "challenge"
 	NotificationTypeChallengeDeclined     = "challenge_declined"
 	NotificationTypeRematchDeclined       = "rematch_declined"
+	NotificationTypeChat                  = "chat"
 	NotificationTypeInfo                  = "info"
 )
 
@@ -24,7 +25,7 @@ const (
 )
 
 type Notification struct {
-	ID        string    `json:"id" gorm:"primaryKey;type:varchar(64)"`
+	ID        string    `json:"id" gorm:"primaryKey;type:varchar(128)"`
 	UserID    string    `json:"user_id" gorm:"index;type:varchar(64);not null"`
 	ActorID   string    `json:"actor_id" gorm:"index;type:varchar(64)"`
 	ActorName string    `json:"actor_name" gorm:"type:varchar(64)"`

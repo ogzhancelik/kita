@@ -24,8 +24,30 @@ This repository is split into two main components:
 
 ### 2. Frontend (`kita_frontend`)
 - **Framework**: Flutter
-- **Description**: The cross-platform user interface for the Kita game. Currently initialized as a template, this project will provide a rich, interactive, and aesthetic UI for playing the game across Web, Desktop, and Mobile devices.
-- **Future Plans**: Will connect to the Go backend via WebSockets to synchronize game state in real-time.
+- **Description**: The cross-platform user interface for the Kita game. Provides a rich, interactive, and aesthetic UI across Web, Desktop, and Mobile devices.
+
+### 🚀 Quick Start (Fullstack)
+You can launch both the Go backend and Flutter web server with a single command:
+
+- **Local Network / LAN:**
+  ```bash
+  # Git Bash / Linux / macOS:
+  ./start_all.sh
+
+  # PowerShell (Windows):
+  .\start_all.ps1
+  ```
+  This launches the backend on `:8080`, frontend on `0.0.0.0:3000`, and displays your local IP address for multi-device testing.
+
+- **Cloudflare Tunnel (Public Worldwide Sharing):**
+  ```bash
+  # Git Bash / Linux / macOS:
+  ./start_all.sh --tunnel
+
+  # PowerShell (Windows):
+  .\start_all.ps1 -Tunnel
+  ```
+  This exposes both backend and frontend via ephemeral Cloudflare Tunnels, automatically passes `--dart-define=API_URL=<backend_tunnel_url>` to Flutter, and outputs shareable public HTTPS/WSS URLs.
 
 ### 📁 Repository Structure
 

@@ -182,6 +182,14 @@ class _FriendsScreenState extends State<FriendsScreen>
             onInvite: () => _inviteFriendToMatch(context, onlineProv, friend),
             onRemove: () => _confirmRemoveFriend(context, friendsProv, friend),
             onChat: () {
+              final myId = context.read<AuthProvider>().currentUser?.id ?? '';
+              if (myId.isNotEmpty) {
+                final convId = dmConversationId(myId, friend.userId);
+                context.read<NotificationProvider>().deleteChatNotifications(
+                  convId,
+                  actorId: friend.userId,
+                );
+              }
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => DmChatScreen(friend: friend),

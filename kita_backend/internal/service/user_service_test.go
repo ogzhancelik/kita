@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 )
@@ -80,6 +81,9 @@ func (m *mockFriendRepoForUserService) ListFriends(ctx context.Context, userID s
 }
 func (m *mockFriendRepoForUserService) ListPendingRequests(ctx context.Context, userID string) ([]domain.Friendship, error) {
 	return nil, nil
+}
+func (m *mockFriendRepoForUserService) GetLastInteractions(ctx context.Context, userID string, friendIDs []string) (map[string]time.Time, error) {
+	return make(map[string]time.Time), nil
 }
 
 func TestUserService_GetLeaderboard_Global(t *testing.T) {

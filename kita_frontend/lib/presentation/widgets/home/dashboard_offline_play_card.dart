@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/game_models.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/online_game_provider.dart';
+import '../../providers/offline_game_provider.dart';
+import '../../screens/game/offline_match_screen.dart';
 import '../common/kita_card.dart';
 import '../game/vs_ai_config_dialog.dart';
-import '../matchmaking/activity_conflict_dialog.dart';
 
 class DashboardOfflinePlayCard extends StatelessWidget {
   const DashboardOfflinePlayCard({super.key});
@@ -15,7 +16,7 @@ class DashboardOfflinePlayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final onlineProv = context.watch<OnlineGameProvider>();
+    final offlineProv = context.watch<OfflineGameProvider>();
     final authProv = context.watch<AuthProvider>();
 
     return KitaCard(
@@ -86,12 +87,7 @@ class DashboardOfflinePlayCard extends StatelessWidget {
             iconBg: AppColors.primary.withValues(alpha: 0.2),
             isPrimary: true,
             isDark: isDark,
-            onTap: () async {
-              final canProceed = await ActivityConflictHelper.checkAndConfirm(
-                context: context,
-                provider: onlineProv,
-              );
-              if (!canProceed || !context.mounted) return;
+            onTap: () {
               VsAiConfigDialog.show(context);
             },
           ),
@@ -108,12 +104,50 @@ class DashboardOfflinePlayCard extends StatelessWidget {
             isPrimary: false,
             isDark: isDark,
             onTap: () async {
-              final canProceed = await ActivityConflictHelper.checkAndConfirm(
-                context: context,
-                provider: onlineProv,
-              );
-              if (!canProceed || !context.mounted) return;
-              onlineProv.startOfflineMatch(
+              if (offlineProv.hasActiveMatch) {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogCtx) => AlertDialog(
+                    backgroundColor: AppColors.getCard(isDark),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: Text(
+                      'online.conflictDialogTitle'.tr(),
+                      style: TextStyle(
+                        color: AppColors.getTextPrimary(isDark),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    content: Text(
+                      'online.conflictAbandonOfflineDesc'.tr(),
+                      style: TextStyle(
+                        color: AppColors.getTextSecondary(isDark),
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogCtx).pop(false),
+                        child: Text(
+                          'online.cancel'.tr(),
+                          style: TextStyle(color: AppColors.getTextSecondary(isDark)),
+                        ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () => Navigator.of(dialogCtx).pop(true),
+                        child: Text('online.abandonAndProceed'.tr()),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+                offlineProv.resignAndClear();
+              }
+
+              offlineProv.startOfflineMatch(
                 mode: PlayMode.localCoop,
                 playerId: authProv.currentUser?.id,
                 playerName: authProv.currentUser?.username ??
@@ -121,6 +155,15 @@ class DashboardOfflinePlayCard extends StatelessWidget {
                     'Guest',
                 isGuest: authProv.isGuest || authProv.currentUser == null,
               );
+
+              if (context.mounted) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const OfflineMatchScreen(),
+                    settings: const RouteSettings(name: '/offline_match'),
+                  ),
+                );
+              }
             },
           ),
         ],

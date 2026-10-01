@@ -12,11 +12,14 @@ import 'presentation/providers/dm_provider.dart';
 import 'presentation/providers/friends_provider.dart';
 import 'presentation/providers/game_settings_provider.dart';
 import 'presentation/providers/notification_provider.dart';
+import 'presentation/providers/offline_game_provider.dart';
 import 'presentation/providers/online_game_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 
 import 'dart:async';
 
+import 'data/models/dm_models.dart';
+import 'data/models/friend_models.dart';
 import 'data/models/ws_message_models.dart';
 import 'presentation/screens/game/online_match_screen.dart';
 import 'presentation/screens/splash_gate_screen.dart';
@@ -42,11 +45,11 @@ void main() async {
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(create: (_) => GameSettingsProvider()),
           ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => OfflineGameProvider()),
           ChangeNotifierProvider(create: (_) => OnlineGameProvider()),
           ChangeNotifierProvider(create: (_) => FriendsProvider()),
           ChangeNotifierProvider(create: (_) => NotificationProvider()),
           ChangeNotifierProvider(create: (_) => DmProvider()),
-
         ],
         child: const KitaApp(),
       ),
@@ -61,9 +64,10 @@ class KitaApp extends StatefulWidget {
   State<KitaApp> createState() => _KitaAppState();
 }
 
-class _KitaAppState extends State<KitaApp> {
+class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   OnlineGameProvider? _onlineProv;
   FriendsProvider? _friendsProv;
+  DmProvider? _dmProv;
   bool _isInviteDialogShowing = false;
   bool _isMatchScreenOpen = false;
   Timer? _friendsPollTimer;
@@ -71,6 +75,7 @@ class _KitaAppState extends State<KitaApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -96,11 +101,23 @@ class _KitaAppState extends State<KitaApp> {
       _friendsProv?.addListener(_onFriendsChanged);
     }
 
+    final dm = context.read<DmProvider>();
+    if (_dmProv != dm) {
+      _dmProv?.onIncomingDmReceived.removeListener(_onIncomingDmReceived);
+      _dmProv?.onActiveConversationDmReceived.removeListener(_onActiveConversationDmReceived);
+      _dmProv?.onDmInteraction.removeListener(_onDmInteraction);
+      _dmProv = dm;
+      _dmProv?.onIncomingDmReceived.addListener(_onIncomingDmReceived);
+      _dmProv?.onActiveConversationDmReceived.addListener(_onActiveConversationDmReceived);
+      _dmProv?.onDmInteraction.addListener(_onDmInteraction);
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final authProv = context.read<AuthProvider>();
         if (authProv.isAuthenticated && !authProv.isGuest) {
           context.read<NotificationProvider>().loadNotifications();
+          context.read<DmProvider>().startListening(myUserId: authProv.currentUser?.id);
         }
       }
     });
@@ -119,13 +136,31 @@ class _KitaAppState extends State<KitaApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _onlineProv?.incomingMatchRequest.removeListener(_onIncomingRequestChanged);
     _onlineProv?.onWsNotificationEvent.removeListener(_onWsNotificationEvent);
     _onlineProv?.matchState.removeListener(_onMatchStateChanged);
     _onlineProv?.onWsFriendPresence.removeListener(_onWsFriendPresence);
     _friendsProv?.removeListener(_onFriendsChanged);
+    _dmProv?.onIncomingDmReceived.removeListener(_onIncomingDmReceived);
+    _dmProv?.onActiveConversationDmReceived.removeListener(_onActiveConversationDmReceived);
+    _dmProv?.onDmInteraction.removeListener(_onDmInteraction);
     _friendsPollTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      final authProv = context.read<AuthProvider>();
+      if (authProv.isAuthenticated && !authProv.isGuest) {
+        _friendsProv?.loadAll();
+        context.read<NotificationProvider>().loadNotifications();
+        context.read<DmProvider>().startListening(myUserId: authProv.currentUser?.id);
+      }
+      _onlineProv?.requestOnlineCount();
+      _onlineProv?.requestRoomsList(page: 1, limit: 10);
+    }
   }
 
   void _onFriendsChanged() {
@@ -137,6 +172,56 @@ class _KitaAppState extends State<KitaApp> {
         }
       });
     }
+  }
+
+  void _onIncomingDmReceived() {
+    final dm = _dmProv?.onIncomingDmReceived.value;
+    if (dm == null || !mounted) return;
+
+    // Suppress notification if currently in an active match or post-game screen with this sender
+    final onlineProv = context.read<OnlineGameProvider>();
+    final isWithThisOpponent = onlineProv.opponentInfo?.id == dm.senderId;
+    final isInMatchOrGameOver = onlineProv.matchState.value == OnlineMatchState.inMatch ||
+        onlineProv.matchState.value == OnlineMatchState.gameOver;
+    if (isWithThisOpponent && isInMatchOrGameOver) {
+      return;
+    }
+
+    // Play subtle audio cue
+    SoundService.instance.playMove();
+
+    // Look up friend in FriendsProvider or create fallback
+    final friendsProv = context.read<FriendsProvider>();
+    final friend = friendsProv.friends.firstWhere(
+      (f) => f.userId == dm.senderId,
+      orElse: () => FriendItemModel(
+        friendshipId: '',
+        userId: dm.senderId,
+        username: dm.senderUsername,
+        rating: 1200,
+        status: 'accepted',
+        direction: 'friend',
+        isOnline: true,
+        createdAt: dm.createdAt,
+      ),
+    );
+
+    // Add to NotificationProvider for notifications screen and dashboard summary
+    context.read<NotificationProvider>().addChatNotification(
+      senderId: dm.senderId,
+      senderUsername: dm.senderUsername,
+      content: dm.content,
+      senderRating: friend.rating,
+      senderAvatarIndex: friend.avatarIndex,
+      conversationId: dm.conversationId,
+      timestamp: dm.createdAt,
+    );
+  }
+
+  void _onActiveConversationDmReceived() {
+    final convId = _dmProv?.onActiveConversationDmReceived.value;
+    if (convId == null || !mounted) return;
+    context.read<NotificationProvider>().deleteChatNotifications(convId);
   }
 
   void _onWsNotificationEvent() {
@@ -192,8 +277,41 @@ class _KitaAppState extends State<KitaApp> {
     }
   }
 
+  void _onDmInteraction() {
+    final event = _dmProv?.onDmInteraction.value;
+    if (event != null && mounted) {
+      _friendsProv?.recordInteraction(event.userId, event.time);
+    }
+  }
+
   void _onMatchStateChanged() {
     final state = _onlineProv?.matchState.value;
+    final oppId = _onlineProv?.opponentInfo?.id;
+    if (oppId != null && oppId.isNotEmpty && mounted) {
+      _friendsProv?.recordInteraction(oppId);
+      if (state == OnlineMatchState.gameOver && oppId != 'bot') {
+        final myId = context.read<AuthProvider>().currentUser?.id ?? _onlineProv?.myUserId;
+        final gameOver = _onlineProv?.gameOverData.value;
+        if (myId != null && myId.isNotEmpty && gameOver != null) {
+          final myTeam = _onlineProv?.myTeam;
+          final card = MatchChatCard(
+            matchId: gameOver.matchId,
+            playedAt: DateTime.now(),
+            whitePlayerId: myTeam == 'white' ? myId : oppId,
+            blackPlayerId: myTeam == 'black' ? myId : oppId,
+            winnerId: gameOver.winnerId,
+            result: gameOver.winner,
+          );
+          _dmProv?.recordMatchCard(
+            myUserId: myId,
+            friendId: oppId,
+            card: card,
+          );
+          final convId = dmConversationId(myId, oppId);
+          _dmProv?.loadSharedMatches(convId, myId, oppId, refresh: true);
+        }
+      }
+    }
     if (state != OnlineMatchState.inMatch) {
       _isMatchScreenOpen = false;
       return;

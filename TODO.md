@@ -4,37 +4,41 @@ This document outlines the planned features and development milestones for the M
 
 ---
 
-## 📋 Phase Overview & Sensible Progression
+# Not Done
 
-```
-[Phase 1: Foundation & Onboarding] ──► [Phase 2: Identity & Profiles]
-                 │
-                 ▼
-[Phase 3: Solo Play & AI Engine]   ──► [Phase 4: Real-Time Multiplayer & Rooms]
-                 │
-                 ▼
-[Phase 5: Competitive & Rankings]  ──► [Phase 6: Replay & Analysis System]
-```
+## 🎨 UI & Design Systems
+
+- [ ] **Last Move Indicator & Toggle Setting**:
+  - Visual highlight / marker on origin and destination tiles of the last executed move (essential for Kita's reversal prevention and last-stand tracking).
+  - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator (Backend ready, frontend integration pending).
+- [ ] Load screen
+- [ ] Logo etc. design
+
+## Other
+- [ ] Report system, both bug reports and and player reports.
 
 ---
+
+# Done
 
 ## 🌐 Phase 1: Foundation & Onboarding
 
 Foundational systems to establish early so game strings and rules are never hardcoded.
 
-### 1. Localization (i18n / l10n) — TR & EN
+### Localization (i18n / l10n) — TR & EN
 - [x] **Frontend**: Configure Flutter localization setup (`easy_localization`, JSON translation files `en.json`, `tr.json`).
 - [x] **Frontend**: Implement language switcher (English / Türkçe) with runtime toggle & persistence.
 - [x] **Backend**: Standardize error and status messages with language-agnostic error codes.
 - [x] **Content**: Translate all in-game terminology (King/Şah, Pawn/Piyon, Jump/Sıçrama, Repetition/Tekrar, etc.) across en.json and tr.json with full key synchronization.
 
-### 2. Interactive Tutorial & Game Guide
-- [ ] **Rules Reference**: Static visual guide detailing board layout (4×7 grid), piece movements, and capture rules.
-- [ ] **Interactive Onboarding**: Step-by-step interactive tutorial board teaching:
-  - Movement range and dynamic step calculations
-  - King capture defense / last-stand mechanic
+### Interactive Tutorial & Game Guide
+- [x] **Rules Reference**: Full-screen dedicated guide detailing board layout, tile values (1, 2, 3), piece movements, reversal prohibition, capturing rules, win conditions, and draws.
+- [x] **Interactive Onboarding**: Step-by-step interactive tutorial board teaching:
+  - Movement range and dynamic step calculations with hands-on practice
+  - Reversal prohibition rule and forced exception
+  - King capture defense / last-stand automatic retaliation mechanic
   - Threefold repetition draw condition
----
+  - First-time launch auto-trigger with skip option and persistent progress
 
 ## 👤 Phase 2: User Identity & Profiles
 
@@ -49,17 +53,15 @@ Foundational systems to establish early so game strings and rules are never hard
     - [x] Auto-refresh dashboard recent matches on match completion, route return, and pull-to-refresh
     - [x] Display match termination badges (timeout timer, resignation flag, draw offer handshake) on dashboard and match history cards
   - [x] Dedicated User Profile modal dialog & detailed stats view
-- [ ] **Settings & Preferences**:
+- [x] **Settings & Preferences**:
   - [x] Backend settings API (`/api/settings`) & DB persistence (board themes, audio, orientation, move highlights)
   - [x] In-game integration: wire board themes, orientation, flip direction, and match settings dialog
-
----
 
 ## 🤖 Phase 3: Single Player & AI Engine
 
 Allows instant gameplay without relying on active server matchmaking, serves as an engine testing harness, and provides intelligent sparring partners.
 
-### 1. Offline Engine (Local Play)
+### Offline Engine (Local Play)
 - [x] **Local Pass & Play**: Single device 2-player pass-and-play with board flipping and theme controls.
 - [x] **Rule Enforcement**: Reversal prevention, Last-Stand auto-retaliation draw & immediate win/loss condition, and stalemate checks.
 - [x] **Offline Main Menu Experience**:
@@ -67,7 +69,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Contextual offline warning banner on main menu ("You are offline right now. [Retry]") matching Guest notice styling with one-tap connection recheck.
   - [x] Dynamically replace "Open Rooms" and "Friends" cards on the main menu with "Play vs Computer" and "Local 2P Co-op" actions when offline.
 
-### 2. AI Engine Integration
+### AI Engine Integration
 - [x] **Inference Engine (Pure Dart Forward Pass)**:
   - [x] Export PyTorch weights to flat JSON (`export_weights.py`).
   - [x] Implement pure-Dart neural network forward pass (`kita_neural_net.dart`) — matrix multiply, LayerNorm, ReLU, Tanh.
@@ -82,11 +84,9 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Opening book (923 positions) bundled as Flutter asset for instant lookup.
   - [x] Player side selection (White / Black / Random) with auto-opening move for AI when playing as White, perspective board flipping, and dynamic turn indicators.
 
----
-
 ## ⚔️ Phase 4: Real-Time Multiplayer & Social
 
-### 1. Direct Rooms & Invites
+### Direct Rooms & Invites
 - [x] **Room Management (Backend)**:
   - [x] Room creation API with custom settings (time controls, privacy)
   - [x] Generate short room codes or shareable invite links
@@ -107,7 +107,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Mutual Exclusivity & Activity Preemption Guard: Canonical state handling preventing overlapping activities (Active Match, Open Room, Outgoing Challenge, Queue, Offline Game modes). Blocks opening room, challenge, matchmaking, or offline games (VS AI difficulty panel, Local Co-op) during an active match with standard warning toast. Soft states provide interactive confirmation prompts ("Change Activity?") across room creation, joining, friend invites, and incoming challenge acceptance, backed by unified backend teardown (`cleanupWaitingRoomLocked`, `cleanupPendingInviteLocked`). Fixed offline game transition so accepting a friend challenge silently resigns the offline game and seamlessly transitions straight into the live online match without popping to main menu or showing game over dialogs.
   - [x] Backend Active Match Lifecycle Fix: Room status transitions to "finished" and clears players' `CurrentMatchID` immediately upon match completion, eliminating phantom 5-minute locks where users were falsely blocked with "You are already in an active match".
 
-### 2. Matchmaking
+### Matchmaking
 - [x] **Matchmaking Queue (Backend)**:
   - [x] Real-time queue pool for active players looking for a match
   - [x] Rating-based matchmaking (pair players within similar skill brackets)
@@ -116,7 +116,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **Queue UI (Frontend)**:
   - [x] "Find Match" matchmaking bottom sheet with animated pulse, online counter, low-count warning, elapsed timer, and cancel option
 
-### 3. In-Match Messaging & Communication
+### In-Match Messaging & Communication
 - [x] **WebSocket Chat Channel**:
   - [x] Room-scoped chat stream alongside game state packets
   - [x] Rate limiting (max 200 chars) and message validation
@@ -126,8 +126,16 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] In-game Hamburger Menu: Quick access to Settings (`SettingsDialog` / `MatchSettingsDialog`), Resign, Draw Offer, and Rotate Board (dynamic board panel and chat panel resizing keeping all components sticked together)
   - [x] In-game Board Interaction: Smooth drag-and-drop piece movement + tap-to-move; dynamic hover feedback on valid drop targets; deselect already selected tile on second tap; inspect own pieces & legal moves during opponent turn without moving
   - [x] Post-Game Board & Match Review: Dismissible Game Over dialog with close button ('X'), backdrop tap-to-dismiss, and 'Review Board' action allowing players to freely inspect the final board, step through moves, and use in-game chat; persistent match outcome top banner with one-tap 'Show Results', Rematch, and Leave controls; and match menu post-game options.
+- [x] **Direct Messaging & Chat Notifications**:
+  - [x] Notification panel chat notifications with single notification per sender (upsert deduplication in backend and frontend preserving existing entry per conversation).
+  - [x] Backend database persistence (`NotificationTypeChat`) for offline users ensuring incoming messages appear in the notification center upon next login or reconnect.
+  - [x] Profile modal direct messaging: "Send Message" action on `UserProfileDialog` allowing players to launch 1-on-1 direct messaging (`DmChatScreen`) with any user.
+  - [x] Dashboard unread badges: Total unread message indicator on Friends ribbon, per-friend unread counter badge on friend avatar cards, notification bell counter on `DashboardTopBar`, and direct Chat icon on top bar with real-time unread badge.
+  - [x] Dedicated Chats page (`ChatsScreen`): Full conversation list with avatar presence indicators, preview snippets, unread badges, conversation/friend search, and quick "New Chat" modal to initiate chats with any friend.
+  - [x] Unified notification tracking in `NotificationProvider` and `NotificationTile` navigating straight to `DmChatScreen` and marking chat notifications as read locally and in the backend.
+  - [x] Immediate shared match card synchronization: Optimistic in-memory match card recording on game over and automatic background refresh when opening `DmChatScreen`, ensuring match cards appear instantly without requiring an app restart.
 
-### 4. Persistent Notifications (Backend-Driven)
+### Persistent Notifications (Backend-Driven)
 - [x] **Backend Infrastructure**:
   - [x] PostgreSQL `notifications` table schema with GORM auto-migration (`domain.Notification`).
   - [x] Repository and Service layer (`NotificationRepository`, `NotificationService`) supporting pagination, unread counts, status transitions, and dismissal.
@@ -139,8 +147,6 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] `NotificationProvider` optimistic state management with background API synchronization.
   - [x] Automatic startup loading and polling synchronization across dashboard and notification views.
 
----
-
 ## 🏆 Phase 5: Competitive & Leaderboards
 
 - [x] **Rating System**:
@@ -149,8 +155,6 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **Leaderboards**:
   - [x] Global top players ranking (Backend API & Frontend Leaderboard Screen with Top 3 Podium)
   - [x] Filter by friends leaderboard
-
----
 
 ## 📜 Phase 6: Match Recording, Replay & Analysis
 
@@ -174,8 +178,6 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Cross-platform match replay file exporter/downloader (`ReplayFileService.exportReplay`) saving standard `.kita` / `.json` replay packages with metadata and complete move sequences.
   - [x] In-Replay download action: Prominent "Download Replay" button integrated directly inside the top-bar match info modal (`_showMatchDetailsDialog` in `MatchReplayScreen`).
   - [x] Top-bar replay loader in Match History (`MatchHistoryScreen`): One-tap "Load Replay" file picker in `KitaAppBar` allowing players to pick `.kita` / `.json` replay files received from friends, automatically saving them to local device history and launching them directly in `MatchReplayScreen` with full AI evaluation and sandbox fork capabilities.
-
----
 
 ## 🎨 UI & Design Systems
 
@@ -202,9 +204,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
 - [x] **In-Game Move History Panel**:
   - [x] Dedicated in-game panel displaying the chronological list of moves made during a match (White / Black turns, notation, piece icons).
   - [x] Interactive navigation to view previous moves and state progression during gameplay (Chess.com-style scrub and live return).
-- [ ] **Last Move Indicator & Toggle Setting**:
-  - Visual highlight / marker on origin and destination tiles of the last executed move (essential for Kita's reversal prevention and last-stand tracking).
-  - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator (Backend ready, frontend integration pending).
+
 - [x] **Leaderboard Floating Player Indicator & Seamless Scroll**:
   - Automatically detect if current player's profile row is outside visible viewport (above or below).
   - Floating row docked at top or bottom with directional arrow, user rank, avatar, rating, and win rate.
@@ -231,5 +231,13 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
     - [x] Toggle auto-rotation of pieces on turn switch.
     - [x] Set default piece rotation orientation (Vertical 0° / Horizontal 90°).
   - [x] Swap tile colors for 1 and 3 (1s lighter, 3s darker) with live board and theme preview synchronization.
+- [x] **Interactive Tutorial System Overhaul**:
+  - [x] Streamlined 3-lesson curriculum (1. The Board & Pieces, 2. Movement & Rules, 3. Victory & Draws).
+  - [x] Removed titles from explanation cards; multi-card layout with inline mint highlights for key victory concepts.
+  - [x] Lively animated transitions with bounce scale & smooth fade across steps and sub-boards.
+  - [x] Multi-board sub-tab selector for Tile Values (1s, 2s, 3s) and Dynamic Steps (King on 2 vs 3).
+  - [x] Unrestricted interactive engine allowing player to select any piece with live legal move validation and retry prompts.
+  - [x] Interactive AI automatic response for reversal rule demonstration (`D4D2`), checkmate capture, trap win (`A7C7`), and last stand retaliation ending in Draw.
+  - [x] Full EN and TR localization synchronization.
 
-
+---

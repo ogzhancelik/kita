@@ -4,12 +4,13 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../screens/home/notifications_screen.dart';
 import '../common/avatar_picker.dart';
 import '../common/stat_badge.dart';
-import 'game_guide_dialog.dart';
+import '../../screens/chat/chats_screen.dart';
 import 'settings_dialog.dart';
 import 'user_profile_dialog.dart';
 
@@ -22,11 +23,14 @@ class DashboardTopBar extends StatelessWidget {
     final authProv = context.watch<AuthProvider>();
     final friendsProv = context.watch<FriendsProvider>();
     final notifProv = context.watch<NotificationProvider>();
+    final dmProv = Provider.of<DmProvider?>(context);
     final user = authProv.currentUser;
     final isGuest = authProv.isGuest;
 
     final avatarItem = AvatarPicker.avatars[authProv.avatarIndex % AvatarPicker.avatars.length];
-    final hasUnreadNotifications = notifProv.hasUnread || friendsProv.pendingIncomingCount > 0;
+    final hasUnreadChats = (dmProv?.totalUnread ?? 0) > 0;
+    final hasUnreadNotifications = notifProv.hasUnread ||
+        friendsProv.pendingIncomingCount > 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
@@ -161,25 +165,59 @@ class DashboardTopBar extends StatelessWidget {
               ),
               const SizedBox(width: 8),
 
-              // Rehber / Nasıl Oynanır Butonu
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    width: 1,
+              // Sohbet Butonu
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: hasUnreadChats
+                            ? AppColors.primaryGreen
+                            : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        width: hasUnreadChats ? 1.5 : 1,
+                      ),
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        hasUnreadChats
+                            ? Icons.chat_bubble_rounded
+                            : Icons.chat_bubble_outline_rounded,
+                        color: hasUnreadChats
+                            ? AppColors.primaryGreen
+                            : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                        size: 20,
+                      ),
+                      tooltip: 'chats.title'.tr(),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ChatsScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    Icons.help_outline_rounded,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                    size: 20,
-                  ),
-                  tooltip: 'game.howToPlay'.tr(),
-                  onPressed: () => GameGuideDialog.show(context),
-                ),
+                  if (hasUnreadChats)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 8),
 

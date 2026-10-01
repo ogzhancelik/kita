@@ -30,8 +30,9 @@ type FriendItem struct {
 	Rating       int       `json:"rating"`
 	Status       string    `json:"status"`
 	Direction    string    `json:"direction"` // "friend", "incoming", "outgoing"
-	IsOnline     bool      `json:"is_online"`
-	CreatedAt    time.Time `json:"created_at"`
+	IsOnline          bool      `json:"is_online"`
+	CreatedAt         time.Time `json:"created_at"`
+	LastInteractionAt time.Time `json:"last_interaction_at"`
 }
 
 type SendFriendRequestDTO struct {

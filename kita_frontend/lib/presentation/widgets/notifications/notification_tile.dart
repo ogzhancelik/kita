@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/friend_models.dart';
 import '../../../data/models/notification_model.dart';
+import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../screens/friends/dm_chat_screen.dart';
 
 class NotificationTile extends StatefulWidget {
   final KitaNotification notification;
@@ -46,6 +49,41 @@ class _NotificationTileState extends State<NotificationTile> {
     return 'notifications.matchDurationMinutes'.tr(args: ['$mins']);
   }
 
+  void _openChat(BuildContext context, NotificationProvider notifProv) {
+    notifProv.deleteChatNotifications(
+      widget.notification.conversationId ?? '',
+      notificationId: widget.notification.id,
+      actorId: widget.notification.actorId,
+    );
+    final friendsProv = context.read<FriendsProvider>();
+    final targetId = widget.notification.actorId ?? '';
+    final name = (widget.notification.senderName != null && widget.notification.senderName!.isNotEmpty)
+        ? widget.notification.senderName!
+        : (widget.notification.title.isNotEmpty && !widget.notification.title.startsWith('notifications.'))
+            ? widget.notification.title
+            : 'online.opponent'.tr();
+
+    final friend = friendsProv.friends.firstWhere(
+      (f) => f.userId == targetId,
+      orElse: () => FriendItemModel(
+        friendshipId: widget.notification.friendshipId ?? '',
+        userId: targetId,
+        username: name,
+        rating: widget.notification.senderRating ?? 1200,
+        status: 'accepted',
+        direction: 'friend',
+        isOnline: true,
+        createdAt: widget.notification.timestamp,
+      ),
+    );
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DmChatScreen(friend: friend),
+        settings: RouteSettings(name: '/dm_${widget.notification.conversationId ?? targetId}'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final notification = widget.notification;
@@ -72,6 +110,10 @@ class _NotificationTileState extends State<NotificationTile> {
       case KitaNotificationType.friendRequest:
         accentColor = AppColors.accentSecondary;
         iconData = Icons.person_add_rounded;
+        break;
+      case KitaNotificationType.chat:
+        accentColor = AppColors.primaryVibrant;
+        iconData = Icons.chat_bubble_rounded;
         break;
       case KitaNotificationType.info:
         if (notification.title.contains('rematch') || notification.id.startsWith('rematch')) {
@@ -117,6 +159,9 @@ class _NotificationTileState extends State<NotificationTile> {
         break;
       case KitaNotificationType.friendRequest:
         subtitleText = 'notifications.friendRequestSubtitle'.tr(args: [sender]);
+        break;
+      case KitaNotificationType.chat:
+        subtitleText = notification.subtitle;
         break;
       case KitaNotificationType.info:
         if (notification.subtitle.startsWith('notifications.')) {
@@ -175,9 +220,13 @@ class _NotificationTileState extends State<NotificationTile> {
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: () {
-            setState(() {
-              _isExpanded = !_isExpanded;
-            });
+            if (notification.type == KitaNotificationType.chat) {
+              _openChat(context, notifProv);
+            } else {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            }
           },
           child: AnimatedSize(
             duration: const Duration(milliseconds: 200),
@@ -293,8 +342,25 @@ class _NotificationTileState extends State<NotificationTile> {
                       padding: _isExpanded
                           ? const EdgeInsets.only(top: 2)
                           : EdgeInsets.zero,
-                      child: notification.isActionable
-                          ? Row(
+                      child: notification.type == KitaNotificationType.chat
+                          ? IconButton(
+                              onPressed: () {
+                                _openChat(context, notifProv);
+                              },
+                              tooltip: 'notifications.openChat'.tr(),
+                              icon: const Icon(
+                                Icons.chat_bubble_rounded,
+                                color: Colors.white,
+                                size: 17,
+                              ),
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.primaryVibrant,
+                                padding: const EdgeInsets.all(6),
+                                minimumSize: const Size(32, 32),
+                              ),
+                            )
+                          : notification.isActionable
+                              ? Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(

@@ -10,6 +10,9 @@ import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../tutorial/tutorial_screen.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/home/dashboard_action_dock.dart';
 import '../../widgets/home/dashboard_friends_ribbon.dart';
@@ -21,9 +24,15 @@ import '../../widgets/home/dashboard_top_bar.dart';
 import '../../widgets/home/home_notification_summary_card.dart';
 import '../../widgets/home/home_pending_game_card.dart';
 import '../../widgets/home/play_menu_dialog.dart';
+import '../../widgets/home/tutorial_prompt_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final bool autoCheckTutorial;
+
+  const DashboardScreen({
+    super.key,
+    this.autoCheckTutorial = true,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -56,6 +65,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (authProv.isAuthenticated && !authProv.isGuest) {
           context.read<DmProvider>().startListening();
         }
+      }
+
+      // Check first-time onboarding tutorial
+      if (widget.autoCheckTutorial) {
+        SharedPreferences.getInstance().then((prefs) {
+          if (!mounted) return;
+          final hasSeen = prefs.getBool('has_seen_tutorial') ?? false;
+          if (!hasSeen) {
+            TutorialPromptDialog.show(context);
+          }
+        });
       }
     });
   }

@@ -125,6 +125,16 @@ class GameSettingsProvider extends ChangeNotifier {
     await _storage.writeString(_flipStorageKey, flip);
   }
 
+  Future<void> cycleFlipDirection() async {
+    if (_flipDirection == 'auto') {
+      await setFlipDirection('white');
+    } else if (_flipDirection == 'white') {
+      await setFlipDirection('black');
+    } else {
+      await setFlipDirection('auto');
+    }
+  }
+
   Future<void> setSoundEnabled(bool enabled) async {
     if (_soundEnabled == enabled) return;
     _soundEnabled = enabled;

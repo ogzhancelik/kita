@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/common/kita_button.dart';
 import '../widgets/common/responsive_layout.dart';
 import 'auth/welcome_screen.dart';
 import 'home/dashboard_screen.dart';
@@ -89,6 +90,18 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
                       fontSize: 13.5,
                       color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                     ),
+                  ),
+                  const SizedBox(height: 28),
+                  KitaButton(
+                    text: 'network.continueOffline'.tr(),
+                    icon: Icons.wifi_off_rounded,
+                    variant: KitaButtonVariant.secondary,
+                    width: 210,
+                    height: 44,
+                    fontSize: 14,
+                    onPressed: () {
+                      context.read<AuthProvider>().continueOffline();
+                    },
                   ),
                 ],
               ),

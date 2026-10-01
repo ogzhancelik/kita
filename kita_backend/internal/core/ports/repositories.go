@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"time"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 )
@@ -41,6 +42,7 @@ type FriendRepository interface {
 	Delete(ctx context.Context, id string) error
 	ListFriends(ctx context.Context, userID string) ([]domain.Friendship, error)
 	ListPendingRequests(ctx context.Context, userID string) ([]domain.Friendship, error)
+	GetLastInteractions(ctx context.Context, userID string, friendIDs []string) (map[string]time.Time, error)
 }
 
 type DirectMessageRepository interface {
@@ -51,6 +53,7 @@ type DirectMessageRepository interface {
 
 type NotificationRepository interface {
 	Create(ctx context.Context, notif *domain.Notification) error
+	Upsert(ctx context.Context, notif *domain.Notification) error
 	FindByID(ctx context.Context, id string) (*domain.Notification, error)
 	ListByUserID(ctx context.Context, userID string, limit, offset int) ([]domain.Notification, error)
 	GetUnreadCount(ctx context.Context, userID string) (int64, error)

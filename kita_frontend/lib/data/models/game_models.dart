@@ -3,6 +3,9 @@
 enum PieceTeam { black, white }
 enum PieceKind { king, pawn }
 
+/// Represents whether an offline match is played vs AI or local pass & play.
+enum PlayMode { vsAi, localCoop }
+
 enum GameStatus { ongoing, whiteWins, blackWins, draw }
 
 enum EndReason {

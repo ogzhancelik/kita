@@ -32,3 +32,4 @@ build/
 *.local
 local.properties
 .env
+.kita_run/

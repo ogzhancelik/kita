@@ -31,6 +31,21 @@ class DmProvider extends ChangeNotifier {
   /// conversationId of the currently open chat (null when not in chat screen).
   String? _activeConversationId;
 
+  /// Current user's ID to filter out self-messages in real-time notifications.
+  String? _myUserId;
+
+  /// Emits incoming DM message events when the conversation is not active.
+  final ValueNotifier<DmMessage?> onIncomingDmReceived =
+      ValueNotifier<DmMessage?>(null);
+
+  /// Emits conversationId when a message is received for the currently active conversation.
+  final ValueNotifier<String?> onActiveConversationDmReceived =
+      ValueNotifier<String?>(null);
+
+  /// Emits (userId, timestamp) for any DM sent or received to update friend interaction order.
+  final ValueNotifier<({String userId, DateTime time})?> onDmInteraction =
+      ValueNotifier<({String userId, DateTime time})?>(null);
+
   /// Unread message count per conversationId (cleared when user opens that chat).
   final Map<String, int> _unread = {};
 
@@ -76,11 +91,17 @@ class DmProvider extends ChangeNotifier {
 
   // ─── Lifecycle ──────────────────────────────────────────────────────
 
+  /// Set the current user's ID to filter out self-sent echoes.
+  void setMyUserId(String? userId) {
+    _myUserId = userId;
+  }
+
   /// Call once after authentication to start listening for incoming DMs.
-  void startListening() {
+  void startListening({String? myUserId}) {
+    if (myUserId != null) _myUserId = myUserId;
     _wsSub?.cancel();
     _wsSub = WebSocketService.instance.messages.listen(_onWsMessage);
-    _loadPreviews();
+    loadPreviews();
   }
 
   /// Mark a conversation as active (clears its unread count).
@@ -106,6 +127,10 @@ class DmProvider extends ChangeNotifier {
     _inGameMessages.clear();
     _inGameLoading.clear();
     _activeConversationId = null;
+    _myUserId = null;
+    onIncomingDmReceived.value = null;
+    onActiveConversationDmReceived.value = null;
+    onDmInteraction.value = null;
     _wsSub?.cancel();
     _wsSub = null;
     notifyListeners();
@@ -113,7 +138,7 @@ class DmProvider extends ChangeNotifier {
 
   // ─── Load ────────────────────────────────────────────────────────────
 
-  Future<void> _loadPreviews() async {
+  Future<void> loadPreviews() async {
     if (ApiClient.currentToken == null || ApiClient.currentToken!.isEmpty) {
       return;
     }
@@ -151,18 +176,40 @@ class DmProvider extends ChangeNotifier {
     }
   }
 
+  /// Records a completed match card directly into the conversation's shared match cards.
+  void recordMatchCard({
+    required String myUserId,
+    required String friendId,
+    required MatchChatCard card,
+  }) {
+    final conversationId = dmConversationId(myUserId, friendId);
+    final existing = _matchCards[conversationId] ?? [];
+    if (!existing.any((c) => c.matchId == card.matchId)) {
+      _matchCards[conversationId] = [...existing, card];
+      notifyListeners();
+    }
+  }
+
   /// Loads the shared match cards between [myUserId] and [friendId].
-  /// Only loads once per conversation unless [refresh] is true.
+  /// Refreshes in the background if cards already exist.
   Future<void> loadSharedMatches(
     String conversationId,
     String myUserId,
     String friendId, {
-    bool refresh = false,
+    bool refresh = true,
   }) async {
     if (_matchCards.containsKey(conversationId) && !refresh) return;
     try {
       final cards = await _apiService.fetchSharedMatches(myUserId, friendId);
-      _matchCards[conversationId] = cards;
+      final existing = _matchCards[conversationId] ?? [];
+      final map = <String, MatchChatCard>{};
+      for (final c in existing) {
+        map[c.matchId] = c;
+      }
+      for (final c in cards) {
+        map[c.matchId] = c;
+      }
+      _matchCards[conversationId] = map.values.toList();
       notifyListeners();
     } catch (e) {
       debugPrint('[DmProvider] Failed to load shared matches: $e');
@@ -217,10 +264,23 @@ class DmProvider extends ChangeNotifier {
     // Update preview
     _previews[dm.conversationId] = dm;
 
-    // Increment unread if this conversation is not currently active
-    if (_activeConversationId != dm.conversationId) {
-      _unread[dm.conversationId] =
-          (_unread[dm.conversationId] ?? 0) + 1;
+    // Check if the sender is ourselves (echo from server)
+    final isMe = _myUserId != null && _myUserId!.isNotEmpty && dm.senderId == _myUserId;
+
+    final otherUserId = isMe ? dm.recipientId : dm.senderId;
+    if (otherUserId.isNotEmpty) {
+      onDmInteraction.value = (userId: otherUserId, time: dm.createdAt);
+    }
+
+    if (!isMe) {
+      // Increment unread if this conversation is not currently active
+      if (_activeConversationId != dm.conversationId) {
+        _unread[dm.conversationId] =
+            (_unread[dm.conversationId] ?? 0) + 1;
+        onIncomingDmReceived.value = dm;
+      } else {
+        onActiveConversationDmReceived.value = dm.conversationId;
+      }
     }
 
     notifyListeners();
@@ -229,6 +289,9 @@ class DmProvider extends ChangeNotifier {
   @override
   void dispose() {
     _wsSub?.cancel();
+    onIncomingDmReceived.dispose();
+    onActiveConversationDmReceived.dispose();
+    onDmInteraction.dispose();
     super.dispose();
   }
 }

@@ -159,7 +159,6 @@ class WebSocketService {
 
   void _onError(dynamic error) {
     debugPrint('[WS] Stream error: $error');
-    onConnectionFailed?.call();
   }
 
   void _onDone() {
@@ -181,10 +180,6 @@ class WebSocketService {
       return;
     }
 
-    if (_reconnectAttempt >= 1) {
-      onConnectionFailed?.call();
-    }
-
     // Exponential backoff: 1s, 2s, 4s, 8s, 16s (capped)
     final delay = Duration(
       milliseconds: min(1000 * pow(2, _reconnectAttempt).toInt(), 16000),
@@ -199,6 +194,20 @@ class WebSocketService {
       _cleanup();
       _doConnect();
     });
+  }
+
+  /// Force immediate reconnection, resetting attempts (e.g. when app resumes from background).
+  void reconnectNow() {
+    if (_intentionalDisconnect) return;
+    if (connectionState.value == WsConnectionState.connected) {
+      return;
+    }
+    debugPrint('[WS] reconnectNow: forcing immediate reconnect');
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _cleanup();
+    _reconnectAttempt = 0;
+    _doConnect();
   }
 
   /// Send a typed message to the server.
