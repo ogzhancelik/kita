@@ -105,3 +105,12 @@ func (r *notificationRepository) DeletePendingChallenge(ctx context.Context, act
 		Where("actor_id = ? AND user_id = ? AND type = ?", actorID, friendID, domain.NotificationTypeChallenge).
 		Delete(&domain.Notification{}).Error
 }
+
+func (r *notificationRepository) GetPendingChallengesByActor(ctx context.Context, actorID string) ([]domain.Notification, error) {
+	var notifs []domain.Notification
+	err := r.db.WithContext(ctx).
+		Where("actor_id = ? AND type = ? AND status = ?", actorID, domain.NotificationTypeChallenge, domain.NotificationStatusPending).
+		Order("created_at DESC").
+		Find(&notifs).Error
+	return notifs, err
+}

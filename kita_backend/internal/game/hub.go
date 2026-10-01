@@ -154,6 +154,9 @@ func (h *Hub) Run() {
 			h.BroadcastOnlineCount()
 			h.BroadcastRoomsList()
 			go h.notifyFriendsPresence(client.UserID, true)
+			if h.notificationService != nil {
+				go h.restorePendingInvitesForClient(client)
+			}
 
 		case client := <-h.Unregister:
 			h.handleDisconnect(client)
@@ -177,9 +180,9 @@ func (h *Hub) handleDisconnect(client *Client) {
 	delete(h.clients, client.UserID)
 	h.removeFromQueueLocked(client)
 
-	// Clean up any unstarted waiting room, pending outgoing invites & rematch requests hosted by this client
+	// Clean up any unstarted waiting room & rematch requests hosted by this client.
+	// Sent challenge invitations remain active so they persist across app restarts.
 	h.cleanupWaitingRoomLocked(client)
-	h.cleanupPendingInviteLocked(client)
 	h.cleanupPendingRematchLocked(client)
 
 	// Eğer oyuncu aktif bir maçtaysa, odanın disconnect mantığını çalıştır
@@ -410,26 +413,90 @@ func (h *Hub) cleanupWaitingRoomLocked(client *Client) {
 	}
 }
 
+func (h *Hub) restorePendingInvitesForClient(client *Client) {
+	if client == nil || h.notificationService == nil {
+		return
+	}
+	notifs, err := h.notificationService.GetPendingChallengesByActor(context.Background(), client.UserID)
+	if err != nil || len(notifs) == 0 {
+		return
+	}
+	var activeInvites []*OutgoingInvite
+	now := time.Now()
+	for _, n := range notifs {
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(n.Payload), &payload); err == nil {
+			invID, _ := payload["invite_id"].(string)
+			if invID == "" {
+				continue
+			}
+			var expTime time.Time
+			if expUnix, ok := payload["expires_at"].(float64); ok && expUnix > 0 {
+				expTime = time.Unix(int64(expUnix), 0)
+				if now.After(expTime) {
+					_ = h.notificationService.DeleteNotification(context.Background(), n.ID, n.UserID)
+					_ = h.notificationService.DeletePendingChallenge(context.Background(), client.UserID, n.UserID)
+					continue
+				}
+			} else {
+				expTime = n.CreatedAt.Add(24 * time.Hour)
+				if now.After(expTime) {
+					_ = h.notificationService.DeleteNotification(context.Background(), n.ID, n.UserID)
+					_ = h.notificationService.DeletePendingChallenge(context.Background(), client.UserID, n.UserID)
+					continue
+				}
+			}
+			tc := int64(TimeControl3Min)
+			if tcNum, ok := payload["time_control"].(float64); ok && tcNum > 0 {
+				tc = int64(tcNum)
+			}
+			colorPref, _ := payload["color_preference"].(string)
+			if colorPref == "" {
+				colorPref = "random"
+			}
+			friendName, _ := payload["friend_name"].(string)
+			friendRating := 0
+			if rNum, ok := payload["friend_rating"].(float64); ok {
+				friendRating = int(rNum)
+			}
+
+			inv := &OutgoingInvite{
+				InviteID:     invID,
+				FriendID:     n.UserID,
+				FriendName:   friendName,
+				FriendRating: friendRating,
+				TimeControl:  tc,
+				ColorPref:    colorPref,
+				CreatedAt:    n.CreatedAt,
+				ExpiresAt:    expTime,
+			}
+			client.AddPendingInvite(inv)
+			activeInvites = append(activeInvites, inv)
+		}
+	}
+	if len(activeInvites) > 0 {
+		client.SendJSON(TypeSentChallenges, activeInvites)
+	}
+}
+
 func (h *Hub) cleanupPendingInviteLocked(client *Client) {
 	if client == nil {
 		return
 	}
-	client.mu.Lock()
-	oldInviteID := client.PendingInviteID
-	oldFriendID := client.PendingInviteFriendID
-	client.PendingInviteID = ""
-	client.PendingInviteFriendID = ""
-	client.PendingInviteTimeControl = 0
-	client.PendingInviteColor = ""
-	client.mu.Unlock()
-
-	if oldInviteID != "" || oldFriendID != "" {
-		if oldFriend, exists := h.clients[oldFriendID]; exists && oldFriend != nil {
-			oldFriend.SendJSON(TypeInvitationCancelled, map[string]string{
-				"invite_id":  oldInviteID,
+	allInvites := client.ClearPendingInvites()
+	for _, inv := range allInvites {
+		if friend, exists := h.clients[inv.FriendID]; exists && friend != nil {
+			friend.SendJSON(TypeInvitationCancelled, map[string]string{
+				"invite_id":  inv.InviteID,
 				"inviter_id": client.UserID,
+				"reason":     "cancelled",
 			})
 		}
+		client.SendJSON(TypeInvitationCancelled, map[string]string{
+			"invite_id":  inv.InviteID,
+			"inviter_id": client.UserID,
+			"reason":     "cancelled",
+		})
 		if h.notificationService != nil {
 			go func(invID, fID, uID string) {
 				if invID != "" && fID != "" {
@@ -438,7 +505,7 @@ func (h *Hub) cleanupPendingInviteLocked(client *Client) {
 				if uID != "" && fID != "" {
 					_ = h.notificationService.DeletePendingChallenge(context.Background(), uID, fID)
 				}
-			}(oldInviteID, oldFriendID, client.UserID)
+			}(inv.InviteID, inv.FriendID, client.UserID)
 		}
 	}
 }
@@ -460,8 +527,10 @@ func (h *Hub) enterActivityLocked(client *Client, newActivity PlayerActivity) {
 		h.cleanupWaitingRoomLocked(client)
 	}
 
-	// Clean pending outgoing requests on any transition
-	h.cleanupPendingInviteLocked(client)
+	// Clean pending outgoing invites when entering an active match, waiting room, or queue
+	if newActivity == ActivityInMatch || newActivity == ActivityInWaitingRoom || newActivity == ActivityInQueue {
+		h.cleanupPendingInviteLocked(client)
+	}
 	if newActivity != ActivityPostGame {
 		h.cleanupPendingRematchLocked(client)
 	}
@@ -1192,13 +1261,50 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 
 	friend, friendOnline := h.clients[dto.FriendID]
 
-	// If friend is offline, store a persistent challenge notification (24h expiry) and return.
-	if !friendOnline || friend == nil {
-		if h.notificationService != nil {
-			inviteID := uuid.New().String()
-			expiresAt := time.Now().Add(24 * time.Hour)
-			go func(friendID string, inviterID string, inviterName string, rating int, avatarIdx int, tc int64, pref string, invID string, exp time.Time) {
+	// Clean up inviter's waiting room if they were hosting one
+	h.cleanupWaitingRoomLocked(client)
 
+	// If there was an existing invite to the SAME friend, replace it
+	oldInvites := client.RemovePendingInviteByFriend(dto.FriendID)
+	for _, old := range oldInvites {
+		if h.notificationService != nil {
+			_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+old.InviteID, dto.FriendID)
+			_ = h.notificationService.DeletePendingChallenge(context.Background(), client.UserID, dto.FriendID)
+		}
+	}
+
+	inviteID := uuid.New().String()
+	expiresAt := time.Now().Add(24 * time.Hour)
+
+	outInv := &OutgoingInvite{
+		InviteID:     inviteID,
+		FriendID:     dto.FriendID,
+		TimeControl:  timeControl,
+		ColorPref:    colorPref,
+		CreatedAt:    time.Now(),
+		ExpiresAt:    expiresAt,
+	}
+
+	if friendOnline && friend != nil {
+		outInv.FriendName = friend.Username
+		outInv.FriendRating = friend.Rating
+	}
+	client.AddPendingInvite(outInv)
+
+	client.SendJSON(TypeMatchInvitationSent, MatchInvitationSentDTO{
+		InviteID:     inviteID,
+		FriendID:     dto.FriendID,
+		FriendName:   outInv.FriendName,
+		FriendRating: outInv.FriendRating,
+		TimeControl:  timeControl,
+		ColorPref:    colorPref,
+		ExpiresAt:    expiresAt.Unix(),
+	})
+
+	if !friendOnline || friend == nil {
+		// Store challenge notification for offline friend (24h expiry)
+		if h.notificationService != nil {
+			go func(friendID string, inviterID string, inviterName string, rating int, avatarIdx int, tc int64, pref string, invID string, exp time.Time) {
 				payloadBytes, _ := json.Marshal(map[string]any{
 					"invite_id":           invID,
 					"inviter_id":          inviterID,
@@ -1223,11 +1329,7 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 				_, _ = h.notificationService.CreateNotification(context.Background(), notif)
 			}(dto.FriendID, client.UserID, client.Username, client.Rating, client.AvatarIndex, timeControl, colorPref, inviteID, expiresAt)
 		}
-		client.SendJSON(TypeMatchInvitationSent, MatchInvitationSentDTO{
-			InviteID: "",
-			FriendID: dto.FriendID,
-		})
-		log.Printf("[Hub] Offline challenge stored for friend %s from %s", dto.FriendID, client.Username)
+		log.Printf("[Hub] Match invite stored for offline friend %s from %s (invite: %s)", dto.FriendID, client.Username, inviteID)
 		return
 	}
 
@@ -1236,25 +1338,7 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
-	// Clean up inviter's waiting room and previous pending outgoing challenge
-	h.cleanupWaitingRoomLocked(client)
-	h.cleanupPendingInviteLocked(client)
-
-	inviteID := uuid.New().String()
-
-	// Store invite info on the inviter
-	client.mu.Lock()
-	client.PendingInviteID = inviteID
-	client.PendingInviteFriendID = dto.FriendID
-	client.PendingInviteTimeControl = timeControl
-	client.PendingInviteColor = colorPref
-	client.mu.Unlock()
-
-	client.SendJSON(TypeMatchInvitationSent, MatchInvitationSentDTO{
-		InviteID: inviteID,
-		FriendID: dto.FriendID,
-	})
-
+	// Send live invitation to online friend
 	friend.SendJSON(TypeMatchInvitation, MatchInvitationDTO{
 		InviteID:           inviteID,
 		InviterID:          client.UserID,
@@ -1263,18 +1347,21 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 		InviterAvatarIndex: client.AvatarIndex,
 		TimeControl:        timeControl,
 		ColorPreference:    colorPref,
+		ExpiresAt:          expiresAt.Unix(),
 	})
 
+	// Also persist notification for online friend
 	if h.notificationService != nil {
-		go func(friendID string, inviterID string, inviterName string, rating int, avatarIdx int, tc int64, pref string, invID string) {
+		go func(friendID string, inviterID string, inviterName string, rating int, avatarIdx int, tc int64, pref string, invID string, exp time.Time) {
 			payloadBytes, _ := json.Marshal(map[string]any{
-				"invite_id":            invID,
-				"inviter_id":           inviterID,
-				"sender_name":          inviterName,
-				"sender_rating":        rating,
-				"sender_avatar_index":  avatarIdx,
-				"time_control":         tc,
-				"color_preference":     pref,
+				"invite_id":           invID,
+				"inviter_id":          inviterID,
+				"sender_name":         inviterName,
+				"sender_rating":       rating,
+				"sender_avatar_index": avatarIdx,
+				"time_control":        tc,
+				"color_preference":    pref,
+				"expires_at":          exp.Unix(),
 			})
 			notif := &domain.Notification{
 				ID:        "challenge_" + invID,
@@ -1288,51 +1375,10 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 				Payload:   string(payloadBytes),
 			}
 			_, _ = h.notificationService.CreateNotification(context.Background(), notif)
-		}(dto.FriendID, client.UserID, client.Username, client.Rating, client.AvatarIndex, timeControl, colorPref, inviteID)
+		}(dto.FriendID, client.UserID, client.Username, client.Rating, client.AvatarIndex, timeControl, colorPref, inviteID, expiresAt)
 	}
 
-	// Ephemeral auto-expiration timer (60s) for live match invitation
-	go func(invID string, inviterID string, friendID string) {
-		time.Sleep(60 * time.Second)
-		h.mu.Lock()
-		defer h.mu.Unlock()
-
-		if inviter, exists := h.clients[inviterID]; exists && inviter != nil {
-			inviter.mu.Lock()
-			isStillPending := (inviter.PendingInviteID == invID)
-			if isStillPending {
-				inviter.PendingInviteID = ""
-				inviter.PendingInviteFriendID = ""
-				inviter.PendingInviteTimeControl = 0
-				inviter.PendingInviteColor = ""
-			}
-			inviter.mu.Unlock()
-
-			if isStillPending {
-				inviter.SendJSON(TypeInvitationCancelled, map[string]string{
-					"invite_id":  invID,
-					"inviter_id": inviterID,
-					"reason":     "timeout",
-				})
-
-				if f, fExists := h.clients[friendID]; fExists && f != nil {
-					f.SendJSON(TypeInvitationCancelled, map[string]string{
-						"invite_id":  invID,
-						"inviter_id": inviterID,
-						"reason":     "timeout",
-					})
-				}
-
-				if h.notificationService != nil {
-					_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, friendID)
-					_ = h.notificationService.DeletePendingChallenge(context.Background(), inviterID, friendID)
-				}
-				log.Printf("[Hub] Match invite %s expired after 60s timeout", invID)
-			}
-		}
-	}(inviteID, client.UserID, dto.FriendID)
-
-	log.Printf("[Hub] Match invite sent from %s to %s (pref: %s)", client.Username, friend.Username, colorPref)
+	log.Printf("[Hub] Match invite sent from %s to %s (invite: %s, pref: %s)", client.Username, friend.Username, inviteID, colorPref)
 }
 
 func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
@@ -1355,6 +1401,12 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	var timeControl int64
 	var colorPref string
 	for _, c := range h.clients {
+		if inv := c.GetPendingInvite(dto.InviteID); inv != nil && inv.FriendID == client.UserID {
+			inviter = c
+			timeControl = inv.TimeControl
+			colorPref = inv.ColorPref
+			break
+		}
 		c.mu.RLock()
 		if c.PendingInviteID == dto.InviteID && c.PendingInviteFriendID == client.UserID {
 			inviter = c
@@ -1369,7 +1421,6 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 
 	if inviter == nil {
 		// Fallback: persistent (offline) challenge — inviter may now be online
-		// The frontend sends inviter_id, time_control, color_preference from the notification payload.
 		if dto.InviterID != "" {
 			if onlineInviter, ok := h.clients[dto.InviterID]; ok && onlineInviter != nil && onlineInviter.Activity != ActivityInMatch {
 				inviter = onlineInviter
@@ -1406,18 +1457,70 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
-	// Clear invite
+	// Remove the accepted invite from inviter
+	inviter.RemovePendingInvite(dto.InviteID)
 	inviter.mu.Lock()
-	inviter.PendingInviteID = ""
-	inviter.PendingInviteFriendID = ""
-	inviter.PendingInviteTimeControl = 0
-	inviter.PendingInviteColor = ""
+	if inviter.PendingInviteID == dto.InviteID {
+		inviter.PendingInviteID = ""
+		inviter.PendingInviteFriendID = ""
+		inviter.PendingInviteTimeControl = 0
+		inviter.PendingInviteColor = ""
+	}
 	inviter.mu.Unlock()
 
 	if h.notificationService != nil {
 		go func(invID string, uID string) {
 			_ = h.notificationService.UpdateStatus(context.Background(), "challenge_"+invID, uID, domain.NotificationStatusAccepted)
 		}(dto.InviteID, client.UserID)
+	}
+
+	// Cancel ALL OTHER pending invites sent by the inviter
+	otherInvites := inviter.ClearPendingInvites()
+	for _, other := range otherInvites {
+		if other.InviteID == dto.InviteID {
+			continue
+		}
+		if f, exists := h.clients[other.FriendID]; exists && f != nil {
+			f.SendJSON(TypeInvitationCancelled, map[string]string{
+				"invite_id":  other.InviteID,
+				"inviter_id": inviter.UserID,
+				"reason":     "cancelled",
+			})
+		}
+		inviter.SendJSON(TypeInvitationCancelled, map[string]string{
+			"invite_id":  other.InviteID,
+			"inviter_id": inviter.UserID,
+			"reason":     "cancelled",
+		})
+		if h.notificationService != nil {
+			go func(invID, fID, uID string) {
+				_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, fID)
+				_ = h.notificationService.DeletePendingChallenge(context.Background(), uID, fID)
+			}(other.InviteID, other.FriendID, inviter.UserID)
+		}
+	}
+
+	// Cancel ALL pending invites sent by the client who accepted
+	clientOtherInvites := client.ClearPendingInvites()
+	for _, other := range clientOtherInvites {
+		if f, exists := h.clients[other.FriendID]; exists && f != nil {
+			f.SendJSON(TypeInvitationCancelled, map[string]string{
+				"invite_id":  other.InviteID,
+				"inviter_id": client.UserID,
+				"reason":     "cancelled",
+			})
+		}
+		client.SendJSON(TypeInvitationCancelled, map[string]string{
+			"invite_id":  other.InviteID,
+			"inviter_id": client.UserID,
+			"reason":     "cancelled",
+		})
+		if h.notificationService != nil {
+			go func(invID, fID, uID string) {
+				_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, fID)
+				_ = h.notificationService.DeletePendingChallenge(context.Background(), uID, fID)
+			}(other.InviteID, other.FriendID, client.UserID)
+		}
 	}
 
 	// Assign sides based on inviter's preference
@@ -1435,7 +1538,7 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		}
 	}
 
-	// Transition both players: cleans up any prior queue/room/invite state
+	// Transition both players
 	h.enterActivityLocked(inviter, ActivityIdle)
 	h.enterActivityLocked(client, ActivityIdle)
 
@@ -1448,7 +1551,6 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	go room.Start()
 }
 
-
 func (h *Hub) handleDeclineInvite(client *Client, rawPayload json.RawMessage) {
 	var dto AcceptInviteDTO
 	if err := json.Unmarshal(rawPayload, &dto); err != nil {
@@ -1459,18 +1561,16 @@ func (h *Hub) handleDeclineInvite(client *Client, rawPayload json.RawMessage) {
 	defer h.mu.RUnlock()
 
 	for _, c := range h.clients {
-		c.mu.RLock()
-		inviteID := c.PendingInviteID
-		friendID := c.PendingInviteFriendID
-		c.mu.RUnlock()
+		inv := c.GetPendingInvite(dto.InviteID)
+		isMatch := (inv != nil && inv.FriendID == client.UserID)
+		if !isMatch {
+			c.mu.RLock()
+			isMatch = (c.PendingInviteID == dto.InviteID && c.PendingInviteFriendID == client.UserID)
+			c.mu.RUnlock()
+		}
 
-		if inviteID == dto.InviteID && friendID == client.UserID {
-			c.mu.Lock()
-			c.PendingInviteID = ""
-			c.PendingInviteFriendID = ""
-			c.PendingInviteTimeControl = 0
-			c.PendingInviteColor = ""
-			c.mu.Unlock()
+		if isMatch {
+			c.RemovePendingInvite(dto.InviteID)
 			c.SendJSON(TypeInvitationDeclined, map[string]string{
 				"invite_id":     dto.InviteID,
 				"friend_id":     client.UserID,
@@ -1508,20 +1608,32 @@ func (h *Hub) handleCancelInvite(client *Client, rawPayload json.RawMessage) {
 		_ = json.Unmarshal(rawPayload, &dto)
 	}
 
-	client.mu.Lock()
-	inviteID := client.PendingInviteID
-	friendID := client.PendingInviteFriendID
-	client.PendingInviteID = ""
-	client.PendingInviteFriendID = ""
-	client.PendingInviteTimeControl = 0
-	client.PendingInviteColor = ""
-	client.mu.Unlock()
-
-	if inviteID == "" && dto.InviteID != "" {
-		inviteID = dto.InviteID
+	if dto.InviteID == "" && dto.FriendID == "" {
+		h.mu.Lock()
+		h.cleanupPendingInviteLocked(client)
+		h.mu.Unlock()
+		return
 	}
-	if friendID == "" && dto.FriendID != "" {
-		friendID = dto.FriendID
+
+	var cancelledInvite *OutgoingInvite
+	if dto.InviteID != "" {
+		cancelledInvite = client.RemovePendingInvite(dto.InviteID)
+	}
+	if cancelledInvite == nil && dto.FriendID != "" {
+		removed := client.RemovePendingInviteByFriend(dto.FriendID)
+		if len(removed) > 0 {
+			cancelledInvite = removed[0]
+		}
+	}
+	inviteID := dto.InviteID
+	friendID := dto.FriendID
+	if cancelledInvite != nil {
+		inviteID = cancelledInvite.InviteID
+		friendID = cancelledInvite.FriendID
+	} else if client.PendingInviteID != "" {
+		inviteID = client.PendingInviteID
+		friendID = client.PendingInviteFriendID
+		client.RemovePendingInvite(client.PendingInviteID)
 	}
 
 	if inviteID == "" && friendID == "" {
@@ -1539,8 +1651,14 @@ func (h *Hub) handleCancelInvite(client *Client, rawPayload json.RawMessage) {
 		friend.SendJSON(TypeInvitationCancelled, map[string]string{
 			"invite_id":  inviteID,
 			"inviter_id": client.UserID,
+			"reason":     "cancelled",
 		})
 	}
+	client.SendJSON(TypeInvitationCancelled, map[string]string{
+		"invite_id":  inviteID,
+		"inviter_id": client.UserID,
+		"reason":     "cancelled",
+	})
 
 	if h.notificationService != nil {
 		go func(invID string, fID string, uID string) {

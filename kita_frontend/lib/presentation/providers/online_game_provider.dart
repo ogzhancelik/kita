@@ -1,15 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/feedback/sound_service.dart';
 import '../../core/feedback/toast_service.dart';
 import '../../data/models/dm_models.dart';
 import '../../data/models/game_models.dart';
-import '../../data/models/kita_ai.dart';
-import '../../data/models/match_model.dart';
-import '../../data/models/user_model.dart';
 import '../../data/models/ws_message_models.dart';
 export '../../data/models/ws_message_models.dart' show OnlineMoveRecord, ChatMessage;
 import '../../data/services/local_match_history_service.dart';
@@ -78,7 +77,9 @@ class OnlineGameProvider extends ChangeNotifier {
     }).toList();
   }
 
-  // ─── Pending Outgoing Friend Challenge ────────────────────────────
+  // ─── Pending Outgoing Friend Challenges ───────────────────────────
+  final ValueNotifier<List<PendingOutgoingChallenge>> pendingOutgoingChallenges =
+      ValueNotifier([]);
   final ValueNotifier<PendingOutgoingChallenge?> pendingOutgoingChallenge =
       ValueNotifier(null);
 
@@ -188,6 +189,53 @@ class OnlineGameProvider extends ChangeNotifier {
   OnlineGameProvider() {
     _wsSubscription = _ws.messages.listen(_handleWsMessage);
     matchState.addListener(notifyListeners);
+    _loadPendingChallengesFromPrefs();
+  }
+
+  static const String _pendingChallengesPrefKey = 'kita_pending_outgoing_challenges';
+
+  Future<void> _loadPendingChallengesFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_pendingChallengesPrefKey);
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+        final now = DateTime.now();
+        final loaded = decoded
+            .map((item) => PendingOutgoingChallenge.fromJson(item as Map<String, dynamic>))
+            .where((c) {
+              if (c.expiresAt != null) {
+                return now.isBefore(c.expiresAt!);
+              }
+              return now.difference(c.sentAt).inHours < 24;
+            })
+            .toList();
+        pendingOutgoingChallenges.value = loaded;
+        pendingOutgoingChallenge.value = loaded.firstOrNull;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[OnlineGameProvider] Failed to load pending challenges from prefs: $e');
+    }
+  }
+
+  Future<void> _savePendingChallengesToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = pendingOutgoingChallenges.value;
+      if (list.isEmpty) {
+        await prefs.remove(_pendingChallengesPrefKey);
+      } else {
+        final encoded = jsonEncode(list.map((c) => c.toJson()).toList());
+        await prefs.setString(_pendingChallengesPrefKey, encoded);
+      }
+    } catch (e) {
+      debugPrint('[OnlineGameProvider] Failed to save pending challenges to prefs: $e');
+    }
+  }
+
+  bool hasPendingChallengeTo(String friendId) {
+    return pendingOutgoingChallenges.value.any((c) => c.friendId == friendId);
   }
 
   void clearError() {
@@ -211,6 +259,9 @@ class OnlineGameProvider extends ChangeNotifier {
 
   void joinQueue() {
     if (matchState.value != OnlineMatchState.idle) return;
+    if (pendingOutgoingChallenges.value.isNotEmpty) {
+      cancelAllOutgoingChallenges();
+    }
     _ws.send(WsClientType.joinQueue);
   }
 
@@ -226,6 +277,9 @@ class OnlineGameProvider extends ChangeNotifier {
     if (matchState.value == OnlineMatchState.inMatch ||
         matchState.value == OnlineMatchState.inQueue) {
       return;
+    }
+    if (pendingOutgoingChallenges.value.isNotEmpty) {
+      cancelAllOutgoingChallenges();
     }
     // Clean any prior or stale state before creating a room
     if (matchState.value != OnlineMatchState.idle) {
@@ -243,6 +297,9 @@ class OnlineGameProvider extends ChangeNotifier {
     if (matchState.value == OnlineMatchState.inMatch ||
         matchState.value == OnlineMatchState.inQueue) {
       return;
+    }
+    if (pendingOutgoingChallenges.value.isNotEmpty) {
+      cancelAllOutgoingChallenges();
     }
     if (matchState.value != OnlineMatchState.idle) {
       resetToIdle();
@@ -403,14 +460,22 @@ class OnlineGameProvider extends ChangeNotifier {
     int timeControl = 180000,
     String colorPreference = 'random',
   }) {
-    pendingOutgoingChallenge.value = PendingOutgoingChallenge(
+    final newChallenge = PendingOutgoingChallenge(
       friendId: friendId,
       friendName: friendName ?? 'Friend',
       friendRating: friendRating,
       timeControl: timeControl,
       colorPreference: colorPreference,
       sentAt: DateTime.now(),
+      expiresAt: DateTime.now().add(const Duration(hours: 24)),
     );
+    final currentList = List<PendingOutgoingChallenge>.from(pendingOutgoingChallenges.value);
+    currentList.removeWhere((c) => c.friendId == friendId);
+    currentList.insert(0, newChallenge);
+    pendingOutgoingChallenges.value = currentList;
+    pendingOutgoingChallenge.value = currentList.firstOrNull;
+    _savePendingChallengesToPrefs();
+
     _ws.send(WsClientType.inviteToMatch, {
       'friend_id': friendId,
       'time_control': timeControl,
@@ -419,15 +484,50 @@ class OnlineGameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void cancelOutgoingChallenge() {
-    final pending = pendingOutgoingChallenge.value;
-    if (pending != null) {
+  void cancelAllOutgoingChallenges() {
+    final list = List<PendingOutgoingChallenge>.from(pendingOutgoingChallenges.value);
+    for (final c in list) {
       _ws.send(WsClientType.cancelInvitation, {
-        'friend_id': pending.friendId,
-        if (pending.inviteId != null && pending.inviteId!.isNotEmpty)
-          'invite_id': pending.inviteId,
+        'friend_id': c.friendId,
+        if (c.inviteId != null && c.inviteId!.isNotEmpty) 'invite_id': c.inviteId,
       });
-      pendingOutgoingChallenge.value = null;
+    }
+    // Send generic cancel to ensure backend clears all outgoing challenges
+    _ws.send(WsClientType.cancelInvitation, {});
+
+    pendingOutgoingChallenges.value = [];
+    pendingOutgoingChallenge.value = null;
+    _savePendingChallengesToPrefs();
+    notifyListeners();
+  }
+
+  void cancelOutgoingChallenge({String? friendId, String? inviteId}) {
+    if (friendId == null && inviteId == null) {
+      cancelAllOutgoingChallenges();
+      return;
+    }
+    final currentList = List<PendingOutgoingChallenge>.from(pendingOutgoingChallenges.value);
+    PendingOutgoingChallenge? target;
+    if (inviteId != null && inviteId.isNotEmpty) {
+      target = currentList.where((c) => c.inviteId == inviteId).firstOrNull;
+    }
+    if (target == null && friendId != null && friendId.isNotEmpty) {
+      target = currentList.where((c) => c.friendId == friendId).firstOrNull;
+    }
+    target ??= currentList.firstOrNull;
+
+    if (target != null) {
+      _ws.send(WsClientType.cancelInvitation, {
+        'friend_id': target.friendId,
+        if (target.inviteId != null && target.inviteId!.isNotEmpty)
+          'invite_id': target.inviteId,
+      });
+      currentList.removeWhere((c) =>
+          (target!.inviteId != null && target.inviteId!.isNotEmpty && c.inviteId == target.inviteId) ||
+          c.friendId == target.friendId);
+      pendingOutgoingChallenges.value = currentList;
+      pendingOutgoingChallenge.value = currentList.firstOrNull;
+      _savePendingChallengesToPrefs();
       notifyListeners();
     }
   }
@@ -621,6 +721,10 @@ class OnlineGameProvider extends ChangeNotifier {
       case WsServerType.queueJoined:
         matchState.value = OnlineMatchState.inQueue;
         _startQueueTimer();
+        pendingOutgoingChallenges.value = [];
+        pendingOutgoingChallenge.value = null;
+        _savePendingChallengesToPrefs();
+        notifyListeners();
 
       case WsServerType.queueLeft:
         matchState.value = OnlineMatchState.idle;
@@ -634,12 +738,18 @@ class OnlineGameProvider extends ChangeNotifier {
           roomTimeControl = data.timeControl;
           isRoomPrivate = data.isPrivate;
           matchState.value = OnlineMatchState.inRoom;
+          pendingOutgoingChallenges.value = [];
+          pendingOutgoingChallenge.value = null;
+          _savePendingChallengesToPrefs();
         }
         notifyListeners();
 
       case WsServerType.roomJoined:
         if (matchState.value != OnlineMatchState.inMatch) {
           matchState.value = OnlineMatchState.inRoom;
+          pendingOutgoingChallenges.value = [];
+          pendingOutgoingChallenge.value = null;
+          _savePendingChallengesToPrefs();
         }
         notifyListeners();
 
@@ -739,16 +849,43 @@ class OnlineGameProvider extends ChangeNotifier {
         KitaToast.info('online.drawOfferDeclined'.tr());
         notifyListeners();
 
-      case WsServerType.matchInvitationSent:
-        final sentInviteId = msg.payload?['invite_id'] as String?;
-        if (sentInviteId != null && pendingOutgoingChallenge.value != null) {
-          pendingOutgoingChallenge.value = pendingOutgoingChallenge.value!.copyWith(
-            inviteId: sentInviteId,
-          );
+      case WsServerType.sentChallenges:
+        if (msg.payload?['challenges'] is List || msg.payload is List) {
+          final rawList = (msg.payload?['challenges'] is List)
+              ? msg.payload!['challenges'] as List
+              : (msg.payload is List ? msg.payload as List : []);
+          final list = rawList
+              .map((item) => PendingOutgoingChallenge.fromJson(item as Map<String, dynamic>))
+              .toList();
+          pendingOutgoingChallenges.value = list;
+          pendingOutgoingChallenge.value = list.firstOrNull;
+          _savePendingChallengesToPrefs();
           notifyListeners();
         }
-        KitaToast.success('online.inviteSent'.tr());
 
+      case WsServerType.matchInvitationSent:
+        final sentInviteId = msg.payload?['invite_id'] as String?;
+        final sentFriendId = msg.payload?['friend_id'] as String?;
+        final expNum = msg.payload?['expires_at'] as num?;
+        DateTime? expiresAt;
+        if (expNum != null && expNum > 0) {
+          expiresAt = DateTime.fromMillisecondsSinceEpoch(expNum.toInt() * 1000);
+        }
+        if (sentFriendId != null) {
+          final currentList = List<PendingOutgoingChallenge>.from(pendingOutgoingChallenges.value);
+          final idx = currentList.indexWhere((c) => c.friendId == sentFriendId);
+          if (idx != -1) {
+            currentList[idx] = currentList[idx].copyWith(
+              inviteId: (sentInviteId != null && sentInviteId.isNotEmpty) ? sentInviteId : currentList[idx].inviteId,
+              expiresAt: expiresAt ?? currentList[idx].expiresAt,
+            );
+            pendingOutgoingChallenges.value = currentList;
+            pendingOutgoingChallenge.value = currentList.firstOrNull;
+            _savePendingChallengesToPrefs();
+            notifyListeners();
+          }
+        }
+        KitaToast.success('online.inviteSent'.tr());
 
       case WsServerType.matchInvitation:
         if (msg.payload != null) {
@@ -770,7 +907,17 @@ class OnlineGameProvider extends ChangeNotifier {
         final inviteDecliner = (msg.payload != null && msg.payload!['decliner_name'] != null)
             ? msg.payload!['decliner_name'] as String
             : '';
-        pendingOutgoingChallenge.value = null;
+        final declinedInviteId = msg.payload?['invite_id'] as String?;
+        final declinedFriendId = msg.payload?['friend_id'] as String?;
+        final currentList = List<PendingOutgoingChallenge>.from(pendingOutgoingChallenges.value);
+        currentList.removeWhere((c) =>
+            (declinedInviteId != null && c.inviteId == declinedInviteId) ||
+            (declinedFriendId != null && c.friendId == declinedFriendId) ||
+            (inviteDecliner.isNotEmpty && c.friendName == inviteDecliner));
+        pendingOutgoingChallenges.value = currentList;
+        pendingOutgoingChallenge.value = currentList.firstOrNull;
+        _savePendingChallengesToPrefs();
+
         if (incomingMatchRequest.value?.type == IncomingMatchRequestType.friendInvite) {
           incomingMatchRequest.value = null;
         }
@@ -794,12 +941,17 @@ class OnlineGameProvider extends ChangeNotifier {
                 matchInvitation.value?.inviterId == cancelledInviterId)) {
           matchInvitation.value = null;
         }
-        if (pendingOutgoingChallenge.value != null &&
-            (cancelledInviteId == null ||
-                pendingOutgoingChallenge.value?.inviteId == cancelledInviteId)) {
-          pendingOutgoingChallenge.value = null;
-          if (cancelReason == 'timeout') {
-            KitaToast.info('online.inviteTimeout'.tr());
+        if (cancelledInviteId != null) {
+          final currentList = List<PendingOutgoingChallenge>.from(pendingOutgoingChallenges.value);
+          final removed = currentList.where((c) => c.inviteId == cancelledInviteId).isNotEmpty;
+          if (removed) {
+            currentList.removeWhere((c) => c.inviteId == cancelledInviteId);
+            pendingOutgoingChallenges.value = currentList;
+            pendingOutgoingChallenge.value = currentList.firstOrNull;
+            _savePendingChallengesToPrefs();
+            if (cancelReason == 'timeout') {
+              KitaToast.info('online.inviteTimeout'.tr());
+            }
           }
         }
         if (matchState.value == OnlineMatchState.connecting) {
@@ -863,7 +1015,9 @@ class OnlineGameProvider extends ChangeNotifier {
     myTeam = data.yourTeam;
     timeControl = data.timeControl;
     isReconnectedMatch.value = data.isReconnect;
+    pendingOutgoingChallenges.value = [];
     pendingOutgoingChallenge.value = null;
+    _savePendingChallengesToPrefs();
     roomCode.value = null;
     isRoomPrivate = false;
     opponentInfo = OpponentInfo(
@@ -1159,7 +1313,9 @@ class OnlineGameProvider extends ChangeNotifier {
     final error = WsErrorPayload.fromJson(payload);
     debugPrint('[OnlineGame] WS Error: ${error.code} - ${error.message}');
     lastError.value = error;
+    pendingOutgoingChallenges.value = [];
     pendingOutgoingChallenge.value = null;
+    _savePendingChallengesToPrefs();
     notifyListeners();
 
     final isMatchNotFound = error.code == 'ERR_MATCH_NOT_FOUND' ||
@@ -1321,7 +1477,7 @@ class OnlineGameProvider extends ChangeNotifier {
     isRematchRequested.value = false;
     pendingOutgoingRematch.value = null;
     isGameOverDialogActive.value = false;
-    pendingOutgoingChallenge.value = null;
+    // Note: Do not clear pendingOutgoingChallenges on disconnection so sent challenges persist
     isReconnectedMatch.value = false;
     elapsedSeconds.value = 0;
     whiteRemainingMs.value = 0;

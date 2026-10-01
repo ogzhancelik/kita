@@ -10,6 +10,7 @@ import '../../providers/game_settings_provider.dart';
 import '../../providers/offline_game_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/match_replay_screen.dart';
+import '../../../main.dart';
 import '../home/settings_dialog.dart';
 import 'game_over_dialog.dart';
 
@@ -134,12 +135,13 @@ class MatchMenuDialog extends StatelessWidget {
                   textColor: AppColors.getTextPrimary(isDark),
                   onTap: () {
                     Navigator.of(context).pop();
+                    final dialogContext = appNavigatorKey.currentContext ?? context;
                     final data = isOffline
                         ? offlineProv.gameOverData.value
                         : onlineProv.gameOverData.value;
                     if (data != null) {
                       GameOverDialog.show(
-                        context: context,
+                        context: dialogContext,
                         gameOverData: data,
                         myUserId: isOffline
                             ? (offlineProv.offlinePlayerId ?? 'local')
@@ -158,17 +160,17 @@ class MatchMenuDialog extends StatelessWidget {
                             offlineProv.resignAndClear();
                           } else {
                             onlineProv.leaveFinishedMatch();
-                            context.read<AuthProvider>().refreshProfile();
+                            dialogContext.read<AuthProvider>().refreshProfile();
                           }
-                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          Navigator.of(dialogContext).popUntil((route) => route.isFirst);
                         },
                         onReviewMatch: (isOffline && offlineProv.offlinePlayMode == PlayMode.vsAi)
                             ? () {
                                 final matchRecord = offlineProv.lastOfflineMatchRecord ??
                                     offlineProv.buildCurrentOfflineMatchRecord(data);
                                 if (matchRecord != null) {
-                                  Navigator.of(context, rootNavigator: true).pop();
-                                  Navigator.of(context).push(
+                                  Navigator.of(dialogContext, rootNavigator: true).pop();
+                                  Navigator.of(dialogContext).push(
                                     MaterialPageRoute(
                                       builder: (_) => MatchReplayScreen(match: matchRecord),
                                     ),
@@ -209,7 +211,8 @@ class MatchMenuDialog extends StatelessWidget {
                 textColor: AppColors.getTextPrimary(isDark),
                 onTap: () {
                   Navigator.of(context).pop();
-                  SettingsDialog.show(context);
+                  final dialogContext = appNavigatorKey.currentContext ?? context;
+                  SettingsDialog.show(dialogContext);
                 },
               ),
 
@@ -244,7 +247,12 @@ class MatchMenuDialog extends StatelessWidget {
                   showChevron: false,
                   onTap: () {
                     Navigator.of(context).pop();
-                    _confirmResign(context, isOffline: isOffline);
+                    _confirmResign(
+                      context,
+                      isOffline: isOffline,
+                      onlineProv: onlineProv,
+                      offlineProv: offlineProv,
+                    );
                   },
                 ),
 
@@ -344,10 +352,16 @@ class MatchMenuDialog extends StatelessWidget {
     );
   }
 
-  void _confirmResign(BuildContext context, {required bool isOffline}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  void _confirmResign(
+    BuildContext context, {
+    required bool isOffline,
+    required OnlineGameProvider onlineProv,
+    required OfflineGameProvider offlineProv,
+  }) {
+    final dialogContext = appNavigatorKey.currentContext ?? context;
+    final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
     showDialog(
-      context: context,
+      context: dialogContext,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.getCard(isDark),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -374,9 +388,9 @@ class MatchMenuDialog extends StatelessWidget {
             onPressed: () {
               Navigator.of(ctx).pop();
               if (isOffline) {
-                context.read<OfflineGameProvider>().resign();
+                offlineProv.resign();
               } else {
-                context.read<OnlineGameProvider>().resign();
+                onlineProv.resign();
               }
             },
             style: ElevatedButton.styleFrom(
@@ -394,9 +408,10 @@ class MatchMenuDialog extends StatelessWidget {
   }
 
   void _confirmDrawOffer(BuildContext context, OnlineGameProvider provider) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dialogContext = appNavigatorKey.currentContext ?? context;
+    final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
     showDialog(
-      context: context,
+      context: dialogContext,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.getCard(isDark),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -445,7 +460,6 @@ class _MenuTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Color textColor;
-  final Widget? trailing;
   final bool showChevron;
   final VoidCallback? onTap;
 
@@ -455,7 +469,6 @@ class _MenuTile extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.textColor,
-    this.trailing,
     this.showChevron = true,
     this.onTap,
   });
@@ -465,9 +478,7 @@ class _MenuTile extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Widget? effectiveTrailing;
-    if (trailing != null) {
-      effectiveTrailing = trailing;
-    } else if (showChevron) {
+    if (showChevron) {
       effectiveTrailing = Icon(
         Icons.chevron_right_rounded,
         size: 20,

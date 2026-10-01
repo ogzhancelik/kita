@@ -66,6 +66,7 @@ class WsServerType {
   static const String drawOffered = 'draw_offered';
   static const String drawDeclined = 'draw_declined';
   static const String dmBroadcast = 'dm_broadcast';
+  static const String sentChallenges = 'sent_challenges';
 }
 
 
@@ -318,6 +319,7 @@ class PendingOutgoingChallenge {
   final int timeControl;
   final String colorPreference;
   final DateTime sentAt;
+  final DateTime? expiresAt;
 
   const PendingOutgoingChallenge({
     this.inviteId,
@@ -327,6 +329,7 @@ class PendingOutgoingChallenge {
     required this.timeControl,
     required this.colorPreference,
     required this.sentAt,
+    this.expiresAt,
   });
 
   PendingOutgoingChallenge copyWith({
@@ -337,6 +340,7 @@ class PendingOutgoingChallenge {
     int? timeControl,
     String? colorPreference,
     DateTime? sentAt,
+    DateTime? expiresAt,
   }) {
     return PendingOutgoingChallenge(
       inviteId: inviteId ?? this.inviteId,
@@ -346,6 +350,50 @@ class PendingOutgoingChallenge {
       timeControl: timeControl ?? this.timeControl,
       colorPreference: colorPreference ?? this.colorPreference,
       sentAt: sentAt ?? this.sentAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'invite_id': inviteId,
+    'friend_id': friendId,
+    'friend_name': friendName,
+    if (friendRating != null) 'friend_rating': friendRating,
+    'time_control': timeControl,
+    'color_preference': colorPreference,
+    'sent_at': sentAt.toIso8601String(),
+    if (expiresAt != null) 'expires_at': expiresAt!.toIso8601String(),
+  };
+
+  factory PendingOutgoingChallenge.fromJson(Map<String, dynamic> json) {
+    DateTime sentTime = DateTime.now();
+    if (json['sent_at'] != null) {
+      sentTime = DateTime.tryParse(json['sent_at'] as String) ?? DateTime.now();
+    } else if (json['created_at'] != null) {
+      sentTime = DateTime.tryParse(json['created_at'] as String) ?? DateTime.now();
+    }
+
+    DateTime? expiry;
+    if (json['expires_at'] != null) {
+      if (json['expires_at'] is num) {
+        final expUnix = (json['expires_at'] as num).toInt();
+        if (expUnix > 0) {
+          expiry = DateTime.fromMillisecondsSinceEpoch(expUnix * 1000);
+        }
+      } else if (json['expires_at'] is String) {
+        expiry = DateTime.tryParse(json['expires_at'] as String);
+      }
+    }
+
+    return PendingOutgoingChallenge(
+      inviteId: json['invite_id'] as String?,
+      friendId: json['friend_id'] as String? ?? '',
+      friendName: json['friend_name'] as String? ?? 'Friend',
+      friendRating: json['friend_rating'] as int?,
+      timeControl: (json['time_control'] as num?)?.toInt() ?? 180000,
+      colorPreference: json['color_preference'] as String? ?? 'random',
+      sentAt: sentTime,
+      expiresAt: expiry,
     );
   }
 }

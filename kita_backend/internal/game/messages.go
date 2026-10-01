@@ -62,6 +62,7 @@ const (
 	TypeMatchInvitationSent  = "match_invitation_sent"
 	TypeInvitationDeclined   = "invitation_declined"
 	TypeInvitationCancelled  = "invitation_cancelled"
+	TypeSentChallenges       = "sent_challenges"
 	TypeTimeoutLoss          = "timeout_loss"
 	TypeFriendRequest        = "friend_request"
 	TypeFriendRequestDeclined = "friend_request_declined"
@@ -271,6 +272,7 @@ type MatchInvitationDTO struct {
 	InviterAvatarIndex int    `json:"inviter_avatar_index"`
 	TimeControl        int64  `json:"time_control"`
 	ColorPreference    string `json:"color_preference,omitempty"`
+	ExpiresAt          int64  `json:"expires_at,omitempty"`
 }
 
 type AcceptInviteDTO struct {
@@ -280,15 +282,19 @@ type AcceptInviteDTO struct {
 	ColorPref   string `json:"color_preference,omitempty"`
 }
 
-
 type CancelInviteDTO struct {
 	InviteID string `json:"invite_id,omitempty"`
 	FriendID string `json:"friend_id,omitempty"`
 }
 
 type MatchInvitationSentDTO struct {
-	InviteID string `json:"invite_id"`
-	FriendID string `json:"friend_id"`
+	InviteID     string `json:"invite_id"`
+	FriendID     string `json:"friend_id"`
+	FriendName   string `json:"friend_name,omitempty"`
+	FriendRating int    `json:"friend_rating,omitempty"`
+	TimeControl  int64  `json:"time_control,omitempty"`
+	ColorPref    string `json:"color_preference,omitempty"`
+	ExpiresAt    int64  `json:"expires_at,omitempty"`
 }
 
 // ─── Draw Offer DTOs ──────────────────────────────────────────────────

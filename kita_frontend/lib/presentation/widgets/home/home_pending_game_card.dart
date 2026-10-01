@@ -10,6 +10,7 @@ import '../../providers/offline_game_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/offline_match_screen.dart';
 import '../../screens/game/online_match_screen.dart';
+import '../common/countdown_circle_timer.dart';
 import '../room/room_dialog.dart';
 
 /// Single-item priority card displayed directly above the notifications section.
@@ -60,7 +61,7 @@ class HomePendingGameCard extends StatelessWidget {
     final isRoomOpen = matchState == OnlineMatchState.inRoom &&
         onlineProv.currentRoomCode != null &&
         onlineProv.currentRoomCode!.isNotEmpty;
-    final pendingChallenge = onlineProv.pendingOutgoingChallenge.value;
+    final pendingChallenges = onlineProv.pendingOutgoingChallenges.value;
     final pendingRematch = onlineProv.pendingOutgoingRematch.value;
     final isInOnlineMatch = matchState == OnlineMatchState.inMatch;
     final hasActiveOnline = isInOnlineMatch;
@@ -82,8 +83,22 @@ class HomePendingGameCard extends StatelessWidget {
       onlineSection = _buildPendingRematchCard(context, onlineProv, isDark, pendingRematch);
     } else if (isRoomOpen) {
       onlineSection = _buildOpenRoomCard(context, onlineProv, isDark);
-    } else if (pendingChallenge != null) {
-      onlineSection = _buildPendingChallengeCard(context, onlineProv, isDark, pendingChallenge);
+    } else if (pendingChallenges.isNotEmpty) {
+      onlineSection = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < pendingChallenges.length; i++)
+            _buildPendingChallengeCard(
+              context,
+              onlineProv,
+              isDark,
+              pendingChallenges[i],
+              margin: EdgeInsets.only(
+                bottom: i == pendingChallenges.length - 1 ? 12.0 : 6.0,
+              ),
+            ),
+        ],
+      );
     }
 
     Widget? offlineSection;
@@ -853,22 +868,26 @@ class HomePendingGameCard extends StatelessWidget {
     BuildContext context,
     OnlineGameProvider onlineProv,
     bool isDark,
-    PendingOutgoingChallenge challenge,
-  ) {
+    PendingOutgoingChallenge challenge, {
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(Radius.circular(16)),
+    EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
+  }) {
     final tcStr = _formatTimeControl(challenge.timeControl);
 
     return _buildDismissibleContainer(
-      key: ValueKey('challenge_${challenge.friendId}_${challenge.sentAt.millisecondsSinceEpoch}'),
+      key: ValueKey('challenge_${challenge.friendId}_${challenge.inviteId ?? challenge.sentAt.millisecondsSinceEpoch}'),
       dismissLabel: 'dashboard.pendingSection.cancelInvite'.tr(),
       dismissIcon: Icons.cancel_schedule_send_rounded,
       onDismissed: () {
-        onlineProv.cancelOutgoingChallenge();
+        onlineProv.cancelOutgoingChallenge(friendId: challenge.friendId, inviteId: challenge.inviteId);
       },
+      borderRadius: borderRadius,
+      margin: margin,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: AppColors.getCard(isDark),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: borderRadius,
           border: Border.all(
             color: AppColors.accentSecondary.withValues(alpha: 0.5),
             width: 1.5,
@@ -971,13 +990,30 @@ class HomePendingGameCard extends StatelessWidget {
 
             const SizedBox(width: 8),
 
+            // Countdown timer circle that runs out
+            CountdownCircleTimer(
+              startTime: challenge.sentAt,
+              expiresAt: challenge.expiresAt,
+              totalDuration: challenge.expiresAt != null
+                  ? challenge.expiresAt!.difference(challenge.sentAt)
+                  : const Duration(hours: 24),
+              size: 22,
+              strokeWidth: 2.4,
+              color: AppColors.accentSecondary,
+              onTimeout: () {
+                onlineProv.cancelOutgoingChallenge(friendId: challenge.friendId, inviteId: challenge.inviteId);
+              },
+            ),
+
+            const SizedBox(width: 4),
+
             // Cancel action button
             IconButton(
               icon: const Icon(Icons.close_rounded, size: 20),
               color: AppColors.lossRed,
               tooltip: 'dashboard.pendingSection.cancelInvite'.tr(),
               onPressed: () {
-                onlineProv.cancelOutgoingChallenge();
+                onlineProv.cancelOutgoingChallenge(friendId: challenge.friendId, inviteId: challenge.inviteId);
               },
             ),
           ],

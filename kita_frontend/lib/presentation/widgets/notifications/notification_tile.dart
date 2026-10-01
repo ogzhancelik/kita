@@ -8,6 +8,7 @@ import '../../../data/models/notification_model.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../screens/friends/dm_chat_screen.dart';
+import '../common/countdown_circle_timer.dart';
 
 class NotificationTile extends StatefulWidget {
   final KitaNotification notification;
@@ -381,24 +382,58 @@ class _NotificationTileState extends State<NotificationTile> {
                                     minimumSize: const Size(32, 32),
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                IconButton(
-                                  onPressed: () {
-                                    notifProv.acceptNotification(
-                                        context, notification.id);
-                                  },
-                                  tooltip: 'notifications.accept'.tr(),
-                                  icon: const Icon(
-                                    Icons.check_rounded,
-                                    color: Colors.white,
-                                    size: 18,
+                                const SizedBox(width: 8),
+                                if (notification.type ==
+                                    KitaNotificationType.challenge)
+                                  CountdownCircleTimer(
+                                    startTime: notification.timestamp,
+                                    expiresAt: notification.expiresAt,
+                                    totalDuration: notification.expiresAt != null
+                                        ? notification.expiresAt!
+                                            .difference(notification.timestamp)
+                                        : const Duration(seconds: 60),
+                                    size: 38.0,
+                                    strokeWidth: 1.8,
+                                    color: AppColors.accentSecondary,
+                                    onTimeout: () {
+                                      if (mounted) setState(() {});
+                                    },
+                                    child: IconButton(
+                                      onPressed: () {
+                                        notifProv.acceptNotification(
+                                            context, notification.id);
+                                      },
+                                      tooltip: 'notifications.accept'.tr(),
+                                      icon: const Icon(
+                                        Icons.check_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: AppColors.accentSecondary,
+                                        padding: const EdgeInsets.all(6),
+                                        minimumSize: const Size(32, 32),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  IconButton(
+                                    onPressed: () {
+                                      notifProv.acceptNotification(
+                                          context, notification.id);
+                                    },
+                                    tooltip: 'notifications.accept'.tr(),
+                                    icon: const Icon(
+                                      Icons.check_rounded,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    style: IconButton.styleFrom(
+                                      backgroundColor: AppColors.accentSecondary,
+                                      padding: const EdgeInsets.all(6),
+                                      minimumSize: const Size(32, 32),
+                                    ),
                                   ),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: AppColors.accentSecondary,
-                                    padding: const EdgeInsets.all(6),
-                                    minimumSize: const Size(32, 32),
-                                  ),
-                                ),
                               ],
                             )
                           : IconButton(

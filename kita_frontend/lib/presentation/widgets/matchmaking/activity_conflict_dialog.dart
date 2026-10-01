@@ -23,6 +23,7 @@ class ActivityConflictHelper {
     required OnlineGameProvider provider,
     String? customMessage,
     bool isTransitioningToNewMatch = false,
+    bool allowOutgoingChallenges = false,
   }) async {
     // 1. Active Online Match in progress
     if (provider.matchState.value == OnlineMatchState.inMatch) {
@@ -63,21 +64,29 @@ class ActivityConflictHelper {
       return false;
     }
 
-    // 3. Soft Lock: Pending Outgoing Challenge
-    final outgoing = provider.pendingOutgoingChallenge.value;
-    if (outgoing != null) {
-      final friendName = outgoing.friendName.isNotEmpty ? outgoing.friendName : 'Friend';
-      final confirmed = await _showConfirmDialog(
-        context: context,
-        title: 'online.conflictDialogTitle'.tr(),
-        message: customMessage ?? 'online.conflictCancelChallengeDesc'.tr(args: [friendName]),
-        confirmLabel: 'online.cancelAndProceed'.tr(),
-      );
-      if (confirmed) {
-        provider.cancelOutgoingChallenge();
-        return true;
+    // 3. Soft Lock: Pending Outgoing Challenges
+    if (!allowOutgoingChallenges) {
+      final challenges = provider.pendingOutgoingChallenges.value;
+      if (challenges.isNotEmpty) {
+        final String message;
+        if (challenges.length == 1) {
+          final friendName = challenges.first.friendName.isNotEmpty ? challenges.first.friendName : 'Friend';
+          message = customMessage ?? 'online.conflictCancelChallengeDesc'.tr(args: [friendName]);
+        } else {
+          message = customMessage ?? 'online.conflictCancelMultipleChallengesDesc'.tr(args: ['${challenges.length}']);
+        }
+        final confirmed = await _showConfirmDialog(
+          context: context,
+          title: 'online.conflictDialogTitle'.tr(),
+          message: message,
+          confirmLabel: 'online.cancelAndProceed'.tr(),
+        );
+        if (confirmed) {
+          provider.cancelAllOutgoingChallenges();
+          return true;
+        }
+        return false;
       }
-      return false;
     }
 
     // 4. Soft Lock: In Matchmaking Queue

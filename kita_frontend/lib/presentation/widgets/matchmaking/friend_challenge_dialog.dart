@@ -28,6 +28,7 @@ class FriendChallengeDialog extends StatefulWidget {
       final canProceed = await ActivityConflictHelper.checkAndConfirm(
         context: context,
         provider: onlineProv,
+        allowOutgoingChallenges: true,
       );
       if (!canProceed) return;
       if (!context.mounted) return;
@@ -198,42 +199,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
               ],
             ),
           ),
-          if (isOffline) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.warning.withValues(alpha: 0.25),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.schedule_rounded,
-                    size: 18,
-                    color: AppColors.warning,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'online.friendOfflineInviteNote'.tr(),
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        height: 1.4,
-                        color: AppColors.warning,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ] else ...[
-            const SizedBox(height: 16),
-          ],
+          const SizedBox(height: 16),
 
           // Choose Side
           Text(
@@ -312,6 +278,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
               final canProceed = await ActivityConflictHelper.checkAndConfirm(
                 context: context,
                 provider: widget.onlineProv,
+                allowOutgoingChallenges: true,
               );
               if (!canProceed) return;
               if (!context.mounted) return;

@@ -254,7 +254,11 @@ class _GameOverDialogState extends State<GameOverDialog>
           children: [
           // Reason description
           Text(
-            _getLocalizedReason(widget.gameOverData.reason),
+            _getLocalizedReason(
+              widget.gameOverData.reason,
+              isWinner: isWinner,
+              isLocalCoop: isLocalCoop,
+            ),
             style: TextStyle(
               fontSize: 14,
               color: AppColors.getTextSecondary(isDark),
@@ -637,14 +641,19 @@ class _GameOverDialogState extends State<GameOverDialog>
     );
   }
 
-  String _getLocalizedReason(String reason) {
+  String _getLocalizedReason(
+    String reason, {
+    required bool isWinner,
+    bool isLocalCoop = false,
+  }) {
     if (reason.startsWith('draw_agreement') || reason.startsWith('draw_offer')) {
       return 'online.reasonDrawAgreement'.tr();
     }
     switch (reason) {
       case 'resignation':
       case 'reason_resigned':
-        return 'online.reasonResigned'.tr();
+        if (isLocalCoop) return 'reasonResigned'.tr();
+        return isWinner ? 'online.reasonResigned'.tr() : 'online.reasonYouResigned'.tr();
       case 'timeout':
       case 'reason_timeout':
         return 'online.reasonTimeout'.tr();

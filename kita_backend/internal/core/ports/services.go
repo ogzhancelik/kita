@@ -61,6 +61,7 @@ type NotificationService interface {
 	MarkAllAsRead(ctx context.Context, userID string) error
 	DeleteNotification(ctx context.Context, id string, userID string) error
 	DeletePendingChallenge(ctx context.Context, actorID string, friendID string) error
+	GetPendingChallengesByActor(ctx context.Context, actorID string) ([]domain.Notification, error)
 }
 
 

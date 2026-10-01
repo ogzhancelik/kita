@@ -115,3 +115,11 @@ func (s *notificationService) DeletePendingChallenge(ctx context.Context, actorI
 	}
 	return nil
 }
+
+func (s *notificationService) GetPendingChallengesByActor(ctx context.Context, actorID string) ([]domain.Notification, error) {
+	notifs, err := s.repo.GetPendingChallengesByActor(ctx, actorID)
+	if err != nil {
+		return nil, appErrors.New(appErrors.ErrInternalServer, "failed to get pending challenges")
+	}
+	return notifs, nil
+}

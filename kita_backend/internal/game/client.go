@@ -69,9 +69,22 @@ type Client struct {
 	PendingInviteFriendID    string
 	PendingInviteTimeControl int64
 	PendingInviteColor       string
+	PendingInvites           map[string]*OutgoingInvite // key: inviteID
 
 	isClosed bool
 	mu       sync.RWMutex
+}
+
+// OutgoingInvite represents an outgoing match invitation sent to a friend.
+type OutgoingInvite struct {
+	InviteID     string    `json:"invite_id"`
+	FriendID     string    `json:"friend_id"`
+	FriendName   string    `json:"friend_name,omitempty"`
+	FriendRating int       `json:"friend_rating,omitempty"`
+	TimeControl  int64     `json:"time_control"`
+	ColorPref    string    `json:"color_preference"`
+	CreatedAt    time.Time `json:"created_at"`
+	ExpiresAt    time.Time `json:"expires_at"`
 }
 
 func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating int, avatarIndex ...int) *Client {
@@ -80,14 +93,116 @@ func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating i
 		av = avatarIndex[0]
 	}
 	return &Client{
-		Hub:         hub,
-		Conn:        conn,
-		Send:        make(chan []byte, 256),
-		UserID:      userID,
-		Username:    username,
-		Rating:      rating,
-		AvatarIndex: av,
+		Hub:            hub,
+		Conn:           conn,
+		Send:           make(chan []byte, 256),
+		UserID:         userID,
+		Username:       username,
+		Rating:         rating,
+		AvatarIndex:    av,
+		PendingInvites: make(map[string]*OutgoingInvite),
 	}
+}
+
+func (c *Client) AddPendingInvite(inv *OutgoingInvite) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.PendingInvites == nil {
+		c.PendingInvites = make(map[string]*OutgoingInvite)
+	}
+	c.PendingInvites[inv.InviteID] = inv
+	c.PendingInviteID = inv.InviteID
+	c.PendingInviteFriendID = inv.FriendID
+	c.PendingInviteTimeControl = inv.TimeControl
+	c.PendingInviteColor = inv.ColorPref
+}
+
+func (c *Client) RemovePendingInvite(inviteID string) *OutgoingInvite {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.PendingInvites == nil {
+		return nil
+	}
+	inv := c.PendingInvites[inviteID]
+	delete(c.PendingInvites, inviteID)
+	if c.PendingInviteID == inviteID {
+		c.PendingInviteID = ""
+		c.PendingInviteFriendID = ""
+		c.PendingInviteTimeControl = 0
+		c.PendingInviteColor = ""
+		for _, remaining := range c.PendingInvites {
+			c.PendingInviteID = remaining.InviteID
+			c.PendingInviteFriendID = remaining.FriendID
+			c.PendingInviteTimeControl = remaining.TimeControl
+			c.PendingInviteColor = remaining.ColorPref
+			break
+		}
+	}
+	return inv
+}
+
+func (c *Client) RemovePendingInviteByFriend(friendID string) []*OutgoingInvite {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var removed []*OutgoingInvite
+	if c.PendingInvites == nil {
+		return removed
+	}
+	for id, inv := range c.PendingInvites {
+		if inv.FriendID == friendID {
+			removed = append(removed, inv)
+			delete(c.PendingInvites, id)
+		}
+	}
+	if len(c.PendingInvites) == 0 {
+		c.PendingInviteID = ""
+		c.PendingInviteFriendID = ""
+		c.PendingInviteTimeControl = 0
+		c.PendingInviteColor = ""
+	} else {
+		for _, remaining := range c.PendingInvites {
+			c.PendingInviteID = remaining.InviteID
+			c.PendingInviteFriendID = remaining.FriendID
+			c.PendingInviteTimeControl = remaining.TimeControl
+			c.PendingInviteColor = remaining.ColorPref
+			break
+		}
+	}
+	return removed
+}
+
+func (c *Client) GetPendingInvite(inviteID string) *OutgoingInvite {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.PendingInvites == nil {
+		return nil
+	}
+	return c.PendingInvites[inviteID]
+}
+
+func (c *Client) GetAllPendingInvites() []*OutgoingInvite {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	var list []*OutgoingInvite
+	for _, inv := range c.PendingInvites {
+		list = append(list, inv)
+	}
+	return list
+}
+
+func (c *Client) ClearPendingInvites() []*OutgoingInvite {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var list []*OutgoingInvite
+	for _, inv := range c.PendingInvites {
+		list = append(list, inv)
+	}
+	c.PendingInvites = make(map[string]*OutgoingInvite)
+	c.PendingInviteID = ""
+	c.PendingInviteFriendID = ""
+	c.PendingInviteTimeControl = 0
+	c.PendingInviteColor = ""
+	return list
 }
 
 // Close safely closes the Send channel and marks the client as closed.
