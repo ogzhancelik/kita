@@ -13,12 +13,11 @@ import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/game/chat_panel.dart';
 import '../../widgets/game/game_over_dialog.dart';
-import '../../widgets/game/kita_board_widget.dart';
+import '../../widgets/game/kita_game_board.dart';
 import '../../widgets/game/match_bottom_bar.dart';
 import '../../widgets/game/move_history_panel.dart';
 import '../../widgets/game/player_info_bar.dart';
 import '../../widgets/home/user_profile_dialog.dart';
-import 'match_replay_screen.dart';
 
 /// Online match screen (Portrait/Default) with space-efficient layout.
 ///
@@ -110,8 +109,6 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     _isGameOverDialogShowing = true;
     context.read<AuthProvider>().refreshProfile();
 
-    final isVsAi = provider.isOffline && provider.offlinePlayMode == PlayMode.vsAi;
-
     GameOverDialog.show(
       context: context,
       gameOverData: data,
@@ -141,7 +138,6 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
     final opponentName = provider.opponentInfo?.name ?? 'online.opponent'.tr();
     final opponentRating = provider.opponentInfo?.rating ?? 1200;
     const isBot = false;
-    const isLocalCoop = false;
     const String? opponentRatingLabel = null;
 
     final myDisplayName = (provider.myUsername != null && provider.myUsername!.isNotEmpty)
@@ -807,20 +803,20 @@ class _BoardSection extends StatelessWidget {
             final displayEngine = provider.displayEngine;
             final isLive = !provider.isViewingHistory;
             final isMyTurn = provider.myTeam == displayEngine.turn.name && isLive;
-            const double pieceRotation = 0.0;
+            final canInteract = isLive && displayEngine.getStatus() == GameStatus.ongoing;
 
             return ValueListenableBuilder<List<KitaMove>>(
               valueListenable: provider.legalMoves,
               builder: (c2, legal, _) {
-                return _BoardInteraction(
-                  key: ValueKey('board_interaction_${provider.matchId}_${provider.isOffline}'),
-                  provider: provider,
+                return KitaGameBoard(
                   displayEngine: displayEngine,
+                  myTeam: provider.myTeam ?? 'white',
+                  isMyTurn: isMyTurn,
+                  isInteractive: canInteract,
+                  legalMoves: isLive ? legal : const [],
                   flipBoard: flipBoard,
                   isHorizontal: isHorizontal,
-                  pieceRotation: pieceRotation,
-                  isMyTurn: isMyTurn,
-                  legalMoves: isLive ? legal : [],
+                  onMakeMove: provider.makeMove,
                 );
               },
             );
@@ -831,287 +827,3 @@ class _BoardSection extends StatelessWidget {
   }
 }
 
-/// Handles piece selection and move interaction on the board.
-class _BoardInteraction extends StatefulWidget {
-  final OnlineGameProvider provider;
-  final KitaGameEngine displayEngine;
-  final bool flipBoard;
-  final bool isHorizontal;
-  final double pieceRotation;
-  final bool isMyTurn;
-  final List<KitaMove> legalMoves;
-
-  const _BoardInteraction({
-    super.key,
-    required this.provider,
-    required this.displayEngine,
-    required this.flipBoard,
-    this.isHorizontal = true,
-    this.pieceRotation = 0.0,
-    required this.isMyTurn,
-    required this.legalMoves,
-  });
-
-  @override
-  State<_BoardInteraction> createState() => _BoardInteractionState();
-}
-
-class _BoardInteractionState extends State<_BoardInteraction> {
-  KitaPos? _selectedPos;
-  Set<KitaPos> _validMoves = {};
-
-  @override
-  void didUpdateWidget(covariant _BoardInteraction oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.displayEngine != widget.displayEngine ||
-        oldWidget.isMyTurn != widget.isMyTurn ||
-        oldWidget.legalMoves != widget.legalMoves) {
-      if (_selectedPos != null) {
-        _updateOrReselectPiece();
-      }
-    }
-  }
-
-  void _updateOrReselectPiece() {
-    if (_selectedPos == null) return;
-    final pos = _selectedPos!;
-    final activePositions = widget.displayEngine.activePositions;
-    String? pieceId;
-    for (final entry in activePositions.entries) {
-      if (entry.value == pos) {
-        pieceId = entry.key;
-        break;
-      }
-    }
-    if (pieceId == null) {
-      _selectedPos = null;
-      _validMoves = {};
-      return;
-    }
-    final piece = KitaPiece.allPieces[pieceId];
-    if (piece == null) {
-      _selectedPos = null;
-      _validMoves = {};
-      return;
-    }
-
-    final isOurPiece = (widget.provider.myTeam == 'white' && piece.isWhite) ||
-        (widget.provider.myTeam == 'black' && piece.isBlack);
-
-    if (!isOurPiece) {
-      _selectedPos = null;
-      _validMoves = {};
-      return;
-    }
-
-    final Set<KitaPos> movesForPiece;
-    if (widget.isMyTurn &&
-        piece.team == widget.displayEngine.turn &&
-        widget.legalMoves.isNotEmpty) {
-      movesForPiece = widget.legalMoves
-          .where((m) => m.pieceId == pieceId)
-          .map((m) => m.toPos)
-          .toSet();
-    } else {
-      movesForPiece = widget.displayEngine.getMovesForPiece(pieceId);
-    }
-
-    _selectedPos = pos;
-    _validMoves = movesForPiece;
-  }
-
-  bool get _isCurrentTurnSelection {
-    if (!widget.isMyTurn) return false;
-    if (_selectedPos == null) return true;
-    final activePositions = widget.displayEngine.activePositions;
-    for (final entry in activePositions.entries) {
-      if (entry.value == _selectedPos) {
-        final piece = KitaPiece.allPieces[entry.key];
-        return piece?.team == widget.displayEngine.turn;
-      }
-    }
-    return true;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final gameSettings = context.watch<GameSettingsProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final boardTheme = gameSettings.currentBoardTheme(isDark);
-    final canInteract = !widget.provider.isViewingHistory &&
-        widget.displayEngine.getStatus() == GameStatus.ongoing;
-
-    return KitaBoardWidget(
-      pieces: widget.displayEngine.activePositions,
-      selectedPos: _selectedPos,
-      validMoves: _validMoves,
-      flipBoard: widget.flipBoard,
-      isHorizontal: widget.isHorizontal,
-      pieceRotation: widget.pieceRotation,
-      isCurrentTurn: _isCurrentTurnSelection,
-      theme: boardTheme,
-      onTileTap: canInteract ? _onTileTap : null,
-      onPieceDropped: canInteract ? _onPieceDropped : null,
-      onPieceDragStarted: canInteract ? _onPieceDragStarted : null,
-      onPieceDragCancelled: canInteract ? _onPieceDragCancelled : null,
-      isPieceDraggable: canInteract ? _isPieceDraggable : null,
-    );
-  }
-
-  bool _isPieceDraggable(KitaPos pos) {
-    if (!widget.isMyTurn) {
-      return false;
-    }
-
-    final activePositions = widget.displayEngine.activePositions;
-    String? pieceId;
-    for (final entry in activePositions.entries) {
-      if (entry.value == pos) {
-        pieceId = entry.key;
-        break;
-      }
-    }
-    if (pieceId == null) return false;
-    final piece = KitaPiece.allPieces[pieceId];
-    if (piece == null) return false;
-
-    if (piece.team != widget.displayEngine.turn) {
-      return false;
-    }
-
-    return (widget.provider.myTeam == 'white' && piece.isWhite) ||
-        (widget.provider.myTeam == 'black' && piece.isBlack);
-  }
-
-  void _onPieceDragStarted(KitaPos pos) {
-    if (_selectedPos != pos) {
-      _selectPiece(pos);
-    }
-  }
-
-  void _onPieceDragCancelled(KitaPos pos) {
-    setState(() {
-      _selectedPos = null;
-      _validMoves = {};
-    });
-  }
-
-  void _onPieceDropped(KitaPos fromPos, KitaPos toPos) {
-    if (fromPos == toPos) {
-      return;
-    }
-
-    if (widget.isMyTurn) {
-      final activePositions = widget.displayEngine.activePositions;
-      String? selectedPieceId;
-      for (final entry in activePositions.entries) {
-        if (entry.value == fromPos) {
-          selectedPieceId = entry.key;
-          break;
-        }
-      }
-      final selectedPiece = selectedPieceId != null
-          ? KitaPiece.allPieces[selectedPieceId]
-          : null;
-      final canMove = selectedPiece != null &&
-          selectedPiece.team == widget.displayEngine.turn;
-
-      if (canMove) {
-        final move = widget.legalMoves.firstWhere(
-          (m) => m.fromPos == fromPos && m.toPos == toPos,
-          orElse: () => KitaMove(
-            pieceId: '',
-            fromPos: fromPos,
-            toPos: toPos,
-          ),
-        );
-
-        if (move.pieceId.isNotEmpty) {
-          widget.provider.makeMove(move);
-        }
-      }
-    }
-
-    setState(() {
-      _selectedPos = null;
-      _validMoves = {};
-    });
-  }
-
-  void _selectPiece(KitaPos pos) {
-    final activePositions = widget.displayEngine.activePositions;
-    String? tappedPieceId;
-    for (final entry in activePositions.entries) {
-      if (entry.value == pos) {
-        tappedPieceId = entry.key;
-        break;
-      }
-    }
-
-    if (tappedPieceId != null) {
-      final piece = KitaPiece.allPieces[tappedPieceId];
-      if (piece != null) {
-        final isOurPiece = (widget.provider.myTeam == 'white' && piece.isWhite) ||
-            (widget.provider.myTeam == 'black' && piece.isBlack);
-
-        if (isOurPiece) {
-          final Set<KitaPos> movesForPiece;
-          if (widget.isMyTurn &&
-              piece.team == widget.displayEngine.turn &&
-              widget.legalMoves.isNotEmpty) {
-            movesForPiece = widget.legalMoves
-                .where((m) => m.pieceId == tappedPieceId)
-                .map((m) => m.toPos)
-                .toSet();
-          } else {
-            // Allows player to inspect piece moves even during opponent's turn
-            movesForPiece = widget.displayEngine.getMovesForPiece(tappedPieceId);
-          }
-
-          setState(() {
-            _selectedPos = pos;
-            _validMoves = movesForPiece;
-          });
-        }
-      }
-    }
-  }
-
-  void _onTileTap(KitaPos pos) {
-    // 1. If tapping the already selected tile → deselect it
-    if (_selectedPos != null && _selectedPos == pos) {
-      setState(() {
-        _selectedPos = null;
-        _validMoves = {};
-      });
-      return;
-    }
-
-    // 2. If tapping a valid move destination → make the move if our turn, otherwise deselect
-    if (_selectedPos != null && _validMoves.contains(pos)) {
-      if (widget.isMyTurn) {
-        _onPieceDropped(_selectedPos!, pos);
-      } else {
-        setState(() {
-          _selectedPos = null;
-          _validMoves = {};
-        });
-      }
-      return;
-    }
-
-    // 3. If tapping a piece → check if it's player's piece and show valid moves
-    final activePositions = widget.displayEngine.activePositions;
-    final hasPiece = activePositions.values.any((p) => p == pos);
-    if (hasPiece) {
-      _selectPiece(pos);
-      return;
-    }
-
-    // 4. Tapped empty space or opponent piece → deselect
-    setState(() {
-      _selectedPos = null;
-      _validMoves = {};
-    });
-  }
-}

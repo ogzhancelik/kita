@@ -5,12 +5,17 @@
 - **Repository Structure**: Update the repository structure tree in `README.md` when new top-level directories, packages, or major architectural modules are added or reorganized. Do not update it for routine single-file additions.
 
 ## 2. Code Quality & Verification
+- **Skip Baseline Tests**: Do NOT run test suites prior to making changes. Jump directly into code inspection and implementation to conserve tokens and minimize turnaround time.
+- **Scope-Aware Testing**: Only test the side affected by the changes (do not run Go backend tests for pure Flutter frontend edits, and vice versa).
+- **Targeted Post-Verification**:
+  - Run tests **once** after changes are implemented, not repeatedly throughout investigation.
+  - Prefer running targeted unit/widget tests for the modified files/packages (e.g., `flutter test test/my_feature_test.dart` or `go test ./internal/service/...`) before or instead of the full test suite when verifying localized fixes.
 - **Backend (Go)**:
   - Follow idiomatic Go conventions (clear package boundaries, proper error handling).
-  - Run `go test ./...` in `kita_backend` to ensure no game logic regressions before marking tasks complete.
+  - Run relevant Go tests in `kita_backend` to ensure no game logic regressions before marking tasks complete.
 - **Frontend (Flutter)**:
   - Keep game state decoupled from UI widgets (manage state via controllers/state management rather than storing board logic directly inside widget `setState`).
-  - Run `flutter test` or verify static analysis before concluding tasks.
+  - Run relevant Flutter tests or verify static analysis before concluding tasks.
 
 ## 3. Communication, Localization & Language
 - **Dual-Language Awareness**: Support dual-language awareness (TR / EN) for in-game terms, error messages, and documentation where applicable. Use EN as default language.

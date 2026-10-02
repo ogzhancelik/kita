@@ -123,16 +123,16 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
 
                         return GestureDetector(
                           onTap: () {
-                            if (widget.onSelectMove != null) {
-                              if (index == moves.length - 1) {
-                                widget.onLive?.call();
-                              } else {
-                                widget.onSelectMove!(index);
-                              }
-                            } else if (onlineProv != null) {
-                              if (index == moves.length - 1) {
+                            if (isViewingThis) {
+                              if (widget.onLive != null) {
+                                widget.onLive!();
+                              } else if (onlineProv != null) {
                                 onlineProv.goLive();
-                              } else {
+                              }
+                            } else {
+                              if (widget.onSelectMove != null) {
+                                widget.onSelectMove!(index + 1);
+                              } else if (onlineProv != null) {
                                 onlineProv.viewMoveAt(index + 1);
                               }
                             }
@@ -147,14 +147,14 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: isViewing
+                              color: isViewingThis
                                   ? AppColors.primaryGreen.withValues(alpha: 0.3)
                                   : isDark
                                       ? AppColors.darkCard
                                       : AppColors.lightCard,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: isViewing
+                                color: isViewingThis
                                     ? AppColors.primaryGreen
                                     : Colors.transparent,
                                 width: 1.5,

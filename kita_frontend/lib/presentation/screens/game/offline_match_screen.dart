@@ -11,7 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/offline_game_provider.dart';
 import '../../widgets/game/game_over_dialog.dart';
-import '../../widgets/game/kita_board_widget.dart';
+import '../../widgets/game/kita_game_board.dart';
 import '../../widgets/game/move_history_panel.dart';
 import '../../widgets/game/offline_match_menu_dialog.dart';
 import '../../widgets/game/player_info_bar.dart';
@@ -30,7 +30,7 @@ class OfflineMatchScreen extends StatefulWidget {
 class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
   OfflineGameProvider? _provider;
   bool _isGameOverDialogShowing = false;
-  KitaPos? _selectedPos;
+  Timer? _gameOverDialogTimer;
 
   @override
   void initState() {
@@ -52,18 +52,29 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
   @override
   void dispose() {
     OfflineMatchScreen.isMatchScreenOpen = false;
+    _gameOverDialogTimer?.cancel();
     _provider?.gameOverData.removeListener(_onGameOver);
     super.dispose();
   }
 
   void _onGameOver() {
-    final data = _provider?.gameOverData.value;
+    final provider = _provider ?? context.read<OfflineGameProvider>();
+    final data = provider.gameOverData.value;
     if (data == null || !mounted) return;
-    if (_isGameOverDialogShowing || (_provider?.isGameOverDialogActive.value ?? false)) return;
-    _showGameOverDialog(data);
+    if (_isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
+
+    _gameOverDialogTimer?.cancel();
+    _gameOverDialogTimer = Timer(const Duration(milliseconds: 1000), () {
+      if (!mounted) return;
+      final currentProv = _provider ?? context.read<OfflineGameProvider>();
+      if (_isGameOverDialogShowing || currentProv.isGameOverDialogActive.value) return;
+      if (!currentProv.isGameOver) return;
+      _showGameOverDialog(data);
+    });
   }
 
   void _showGameOverDialog(GameOverPayload data) {
+    _gameOverDialogTimer?.cancel();
     final provider = _provider ?? context.read<OfflineGameProvider>();
     if (!mounted || _isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
     _isGameOverDialogShowing = true;
@@ -78,6 +89,9 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
       myUserId: provider.offlinePlayerId ?? 'local',
       isLocalCoop: isCoop,
       myTeam: provider.myTeam,
+      elapsedSeconds: provider.elapsedSeconds.value,
+      movesCount: provider.moveHistory.value.length,
+      isOffline: true,
       onRematch: () {
         provider.requestRematch();
       },
@@ -149,8 +163,6 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
             : baseRotation)
         : 0.0;
 
-    final isMyTurn = isLocalCoop || (provider.currentTurn.value == provider.myTeam);
-
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),
       body: SafeArea(
@@ -160,14 +172,14 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
             MoveHistoryPanel(
               moveHistory: provider.moveHistory,
               viewingMoveIndex: provider.viewingMoveIndex,
-              onSelectMove: provider.viewMove,
-              onLive: provider.viewLive,
+              onSelectMove: provider.viewMoveAt,
+              onLive: provider.goLive,
             ),
 
             // 2. Opponent Player Info Bar
             ValueListenableBuilder<bool>(
               valueListenable: provider.isAiThinking,
-              builder: (_, thinking, __) {
+              builder: (_, thinking, _) {
                 return PlayerInfoBar(
                   isOpponent: true,
                   name: opponentName,
@@ -191,76 +203,40 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   child: AspectRatio(
                     aspectRatio: isHorizontal ? 7 / 4 : 4 / 7,
-                    child: ValueListenableBuilder<KitaGameEngine>(
-                      valueListenable: provider.gameEngine,
-                      builder: (ctx, engine, _) {
-                        final validMoves = _selectedPos != null
-                            ? engine
-                                .getLegalMoves()
-                                .where((m) => m.fromPos == _selectedPos)
-                                .map((m) => m.toPos)
-                                .toSet()
-                            : <KitaPos>{};
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: provider.viewingMoveIndex,
+                      builder: (ctx, viewIdx, _) {
+                        return ValueListenableBuilder<KitaGameEngine>(
+                          valueListenable: provider.gameEngine,
+                          builder: (c1, engine, _) {
+                            return ValueListenableBuilder<bool>(
+                              valueListenable: provider.isAiThinking,
+                              builder: (c2, aiThinking, _) {
+                                return ValueListenableBuilder<List<KitaMove>>(
+                                  valueListenable: provider.legalMoves,
+                                  builder: (c3, legal, _) {
+                                    final displayEngine = provider.displayEngine;
+                                    final isLive = !provider.isViewingHistory;
+                                    final isMyTurn = isLocalCoop ||
+                                        (provider.myTeam == displayEngine.turn.name && !aiThinking && isLive);
+                                    final canInteract = isLive && !provider.isGameOver && !aiThinking;
 
-                        String? getPieceIdAt(KitaPos pos) {
-                          for (final entry in engine.activePositions.entries) {
-                            if (entry.value == pos) return entry.key;
-                          }
-                          return null;
-                        }
-
-                        KitaPiece? getPieceAt(KitaPos pos) {
-                          final id = getPieceIdAt(pos);
-                          return id != null ? KitaPiece.allPieces[id] : null;
-                        }
-
-                        return KitaBoardWidget(
-                          pieces: engine.activePositions,
-                          selectedPos: _selectedPos,
-                          validMoves: validMoves,
-                          isHorizontal: isHorizontal,
-                          flipBoard: flipBoard,
-                          pieceRotation: pieceRotation,
-                          theme: settings.currentBoardTheme(isDark),
-                          isCurrentTurn: isMyTurn && !provider.isViewingHistory && !provider.isGameOver,
-                          onTileTap: (pos) {
-                            if (provider.isViewingHistory || provider.isGameOver) return;
-                            if (isVsAi && !isMyTurn) return;
-
-                            final pieceAtPos = getPieceAt(pos);
-                            final currentTurnTeam = engine.turn;
-
-                            if (_selectedPos != null && validMoves.contains(pos)) {
-                              final move = engine.getLegalMoves().firstWhere(
-                                    (m) => m.fromPos == _selectedPos && m.toPos == pos,
-                                  );
-                              provider.makeMove(move);
-                              setState(() => _selectedPos = null);
-                            } else if (pieceAtPos != null && pieceAtPos.team == currentTurnTeam) {
-                              setState(() => _selectedPos = pos);
-                            } else {
-                              setState(() => _selectedPos = null);
-                            }
-                          },
-                          onPieceDropped: (from, to) {
-                            if (provider.isViewingHistory || provider.isGameOver) return;
-                            if (isVsAi && !isMyTurn) return;
-
-                            final legal = engine.getLegalMoves();
-                            final move = legal.cast<KitaMove?>().firstWhere(
-                                  (m) => m?.fromPos == from && m?.toPos == to,
-                                  orElse: () => null,
+                                    return KitaGameBoard(
+                                      displayEngine: displayEngine,
+                                      myTeam: provider.myTeam,
+                                      isMyTurn: isMyTurn,
+                                      isInteractive: canInteract,
+                                      isLocalCoop: isLocalCoop,
+                                      legalMoves: isLive ? legal : const [],
+                                      flipBoard: flipBoard,
+                                      isHorizontal: isHorizontal,
+                                      pieceRotation: pieceRotation,
+                                      onMakeMove: provider.makeMove,
+                                    );
+                                  },
                                 );
-                            if (move != null) {
-                              provider.makeMove(move);
-                            }
-                            setState(() => _selectedPos = null);
-                          },
-                          isPieceDraggable: (pos) {
-                            if (provider.isViewingHistory || provider.isGameOver) return false;
-                            if (isVsAi && !isMyTurn) return false;
-                            final piece = getPieceAt(pos);
-                            return piece != null && piece.team == engine.turn;
+                              },
+                            );
                           },
                         );
                       },

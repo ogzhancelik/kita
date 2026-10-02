@@ -423,8 +423,14 @@ class KitaBoardWidget extends StatelessWidget {
     final canDrag = onPieceDropped != null &&
         (isPieceDraggable == null || isPieceDraggable!(canonicalPos));
 
+    final tappablePiece = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTileTap != null ? () => onTileTap!(canonicalPos) : null,
+      child: renderedPiece,
+    );
+
     if (!canDrag) {
-      return renderedPiece;
+      return tappablePiece;
     }
 
     // Offset the feedback piece vertically upwards so it is not hidden under the user's finger.
@@ -477,7 +483,7 @@ class KitaBoardWidget extends StatelessWidget {
         opacity: 0.25,
         child: renderedPiece,
       ),
-      child: renderedPiece,
+      child: tappablePiece,
     );
   }
 

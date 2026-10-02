@@ -582,9 +582,7 @@ class OnlineGameProvider extends ChangeNotifier {
   /// View the board state at a specific move index.
   /// Index 0 = initial position, 1 = after first move, etc.
   void viewMoveAt(int index) {
-    if (index < 0 ||
-        index >= _engineSnapshots.length ||
-        index == _engineSnapshots.length - 1) {
+    if (index < 0 || index >= _engineSnapshots.length) {
       viewingMoveIndex.value = -1; // Go live
       notifyListeners();
       return;
@@ -639,7 +637,7 @@ class OnlineGameProvider extends ChangeNotifier {
     if (!canStepForward) return;
     final current = viewingMoveIndex.value;
     if (current == -1) return;
-    if (current < _engineSnapshots.length - 2) {
+    if (current < _engineSnapshots.length - 1) {
       viewMoveAt(current + 1);
     } else {
       goLive();

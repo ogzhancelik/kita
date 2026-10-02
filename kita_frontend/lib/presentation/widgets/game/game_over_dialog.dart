@@ -7,7 +7,7 @@ import '../../../data/models/ws_message_models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/online_game_provider.dart';
 
-/// Modal dialog presented when an online match concludes.
+/// Modal dialog presented when a match concludes (both Online and Offline).
 class GameOverDialog extends StatefulWidget {
   final GameOverPayload gameOverData;
   final String myUserId;
@@ -16,6 +16,9 @@ class GameOverDialog extends StatefulWidget {
   final VoidCallback? onReviewMatch;
   final bool isLocalCoop;
   final String? myTeam;
+  final int? elapsedSeconds;
+  final int? movesCount;
+  final bool isOffline;
 
   const GameOverDialog({
     super.key,
@@ -26,6 +29,9 @@ class GameOverDialog extends StatefulWidget {
     this.onReviewMatch,
     this.isLocalCoop = false,
     this.myTeam,
+    this.elapsedSeconds,
+    this.movesCount,
+    this.isOffline = false,
   });
 
   /// Presents the modal dialog with tap-to-dismiss enabled and smooth scale + fade animation.
@@ -38,6 +44,9 @@ class GameOverDialog extends StatefulWidget {
     VoidCallback? onReviewMatch,
     bool isLocalCoop = false,
     String? myTeam,
+    int? elapsedSeconds,
+    int? movesCount,
+    bool isOffline = false,
   }) {
     return showGeneralDialog(
       context: context,
@@ -54,6 +63,9 @@ class GameOverDialog extends StatefulWidget {
           onReviewMatch: onReviewMatch,
           isLocalCoop: isLocalCoop,
           myTeam: myTeam,
+          elapsedSeconds: elapsedSeconds,
+          movesCount: movesCount,
+          isOffline: isOffline,
         ),
       ),
       transitionBuilder: (dialogContext, anim, secondaryAnim, child) {
@@ -112,12 +124,14 @@ class _GameOverDialogState extends State<GameOverDialog>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final prov = context.read<OnlineGameProvider>();
-    if (_provider != prov) {
-      _provider?.matchState.removeListener(_onMatchStateChanged);
-      _provider = prov;
-      prov.isGameOverDialogActive.value = true;
-      _provider?.matchState.addListener(_onMatchStateChanged);
+    if (!widget.isOffline) {
+      final prov = context.read<OnlineGameProvider>();
+      if (_provider != prov) {
+        _provider?.matchState.removeListener(_onMatchStateChanged);
+        _provider = prov;
+        prov.isGameOverDialogActive.value = true;
+        _provider?.matchState.addListener(_onMatchStateChanged);
+      }
     }
   }
 
@@ -131,8 +145,10 @@ class _GameOverDialogState extends State<GameOverDialog>
   void dispose() {
     _badgeAnimController.dispose();
     _isPopping = true;
-    _provider?.matchState.removeListener(_onMatchStateChanged);
-    _provider?.isGameOverDialogActive.value = false;
+    if (!widget.isOffline) {
+      _provider?.matchState.removeListener(_onMatchStateChanged);
+      _provider?.isGameOverDialogActive.value = false;
+    }
     super.dispose();
   }
 
@@ -267,66 +283,30 @@ class _GameOverDialogState extends State<GameOverDialog>
           ),
 
           // Match stats pill: Elapsed time & Total moves
-          ValueListenableBuilder<int>(
-            valueListenable: provider.elapsedSeconds,
-            builder: (ctx, seconds, _) {
-              final mins = seconds ~/ 60;
-              final secs = seconds % 60;
-              final timeStr =
-                  '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-              final movesCount = provider.moveHistory.value.length;
-              return Container(
-                margin: const EdgeInsets.only(top: 10),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.getSurface(isDark),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.getBorder(isDark)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.timer_outlined,
-                      size: 15,
-                      color: AppColors.getTextMuted(isDark),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      timeStr,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12.5,
-                        color: AppColors.getTextPrimary(isDark),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '•',
-                      style: TextStyle(
-                        color: AppColors.getTextMuted(isDark),
-                        fontSize: 11,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.numbers_rounded,
-                      size: 15,
-                      color: AppColors.getTextMuted(isDark),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'replay.movesCount'.tr(args: ['$movesCount']),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: AppColors.getTextSecondary(isDark),
-                      ),
-                    ),
-                  ],
-                ),
+          Builder(
+            builder: (ctx) {
+              if (widget.isOffline && widget.elapsedSeconds != null) {
+                final seconds = widget.elapsedSeconds!;
+                final mins = seconds ~/ 60;
+                final secs = seconds % 60;
+                final timeStr =
+                    '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+                final movesCount = widget.movesCount ?? 0;
+                return _buildStatsPill(timeStr, movesCount, isDark);
+              }
+
+              return ValueListenableBuilder<int>(
+                valueListenable: provider.elapsedSeconds,
+                builder: (ctx, seconds, _) {
+                  final effectiveSeconds = widget.elapsedSeconds ?? seconds;
+                  final mins = effectiveSeconds ~/ 60;
+                  final secs = effectiveSeconds % 60;
+                  final timeStr =
+                      '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+                  final movesCount =
+                      widget.movesCount ?? provider.moveHistory.value.length;
+                  return _buildStatsPill(timeStr, movesCount, isDark);
+                },
               );
             },
           ),
@@ -338,10 +318,11 @@ class _GameOverDialogState extends State<GameOverDialog>
               widget.gameOverData.ratingChanges!.isNotEmpty)
             _buildRatingChanges(isDark),
 
-          // Rematch pending notification inside GameOverDialog
-          ValueListenableBuilder<RematchOfferedPayload?>(
-            valueListenable: provider.rematchOffer,
-            builder: (ctx, offer, _) {
+          // Rematch pending notification inside GameOverDialog (Online only)
+          if (!widget.isOffline)
+            ValueListenableBuilder<RematchOfferedPayload?>(
+              valueListenable: provider.rematchOffer,
+              builder: (ctx, offer, _) {
               if (offer == null) return const SizedBox.shrink();
               return Container(
                 margin: const EdgeInsets.only(top: 14),
@@ -500,61 +481,133 @@ class _GameOverDialogState extends State<GameOverDialog>
         ),
 
         // Request Rematch button
-        ValueListenableBuilder<bool>(
-          valueListenable: provider.isRematchRequested,
-          builder: (ctx, isRequested, _) {
-            if (isRequested) {
-              return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.4),
+        if (widget.isOffline)
+          ElevatedButton.icon(
+            onPressed: () {
+              _safePop();
+              widget.onRematch();
+            },
+            icon: const Icon(Icons.replay, size: 18),
+            label: Text('online.rematch'.tr()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: AppColors.darkTextPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          )
+        else
+          ValueListenableBuilder<bool>(
+            valueListenable: provider.isRematchRequested,
+            builder: (ctx, isRequested, _) {
+              if (isRequested) {
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primaryGreen),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'online.waitingForRematch'.tr(),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ElevatedButton.icon(
+                onPressed: widget.onRematch,
+                icon: const Icon(Icons.replay, size: 18),
+                label: Text('online.rematch'.tr()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: AppColors.darkTextPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.primaryGreen),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'online.waitingForRematch'.tr(),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-                  ],
-                ),
               );
-            }
-
-            return ElevatedButton.icon(
-              onPressed: widget.onRematch,
-              icon: const Icon(Icons.replay, size: 18),
-              label: Text('online.rematch'.tr()),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: AppColors.darkTextPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
-          },
-        ),
+            },
+          ),
       ],
+    );
+  }
+
+  Widget _buildStatsPill(String timeStr, int movesCount, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.getSurface(isDark),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.getBorder(isDark)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.timer_outlined,
+            size: 15,
+            color: AppColors.getTextMuted(isDark),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            timeStr,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w700,
+              fontSize: 12.5,
+              color: AppColors.getTextPrimary(isDark),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '•',
+            style: TextStyle(
+              color: AppColors.getTextMuted(isDark),
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.numbers_rounded,
+            size: 15,
+            color: AppColors.getTextMuted(isDark),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            'replay.movesCount'.tr(args: ['$movesCount']),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: AppColors.getTextSecondary(isDark),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

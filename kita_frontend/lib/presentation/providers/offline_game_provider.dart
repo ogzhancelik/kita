@@ -55,10 +55,22 @@ class OfflineGameProvider extends ChangeNotifier {
 
   bool get hasActiveMatch => _hasActiveMatch && gameOverData.value == null;
   bool get isGameOver => gameOverData.value != null;
-  bool get isViewingHistory => viewingMoveIndex.value >= 0;
+  bool get isViewingHistory => viewingMoveIndex.value != -1;
   bool get localCoopIsHorizontal => _localCoopIsHorizontal ?? false;
   String get myTeam => offlinePlayerTeam.name;
   bool get isOffline => true;
+
+  /// Returns the current board engine snapshot to display (live or historical).
+  KitaGameEngine get displayEngine {
+    if (!isViewingHistory || _engineSnapshots.isEmpty) {
+      return gameEngine.value;
+    }
+    final idx = viewingMoveIndex.value;
+    if (idx >= 0 && idx < _engineSnapshots.length) {
+      return _engineSnapshots[idx];
+    }
+    return gameEngine.value;
+  }
 
   String get offlineBotDifficultyLabel {
     switch (offlineBotDifficulty) {
@@ -398,28 +410,27 @@ class OfflineGameProvider extends ChangeNotifier {
 
   // ─── Move History Scrubbing ───────────────────────────────────────
 
-  void viewMove(int index) {
-    if (index < 0 || index >= _engineSnapshots.length - 1) {
-      viewLive();
+  void viewMoveAt(int index) {
+    if (index < 0 || index >= _engineSnapshots.length) {
+      goLive();
       return;
     }
     viewingMoveIndex.value = index;
-    gameEngine.value = _engineSnapshots[index + 1];
-    if (index < moveHistory.value.length) {
-      final rec = moveHistory.value[index];
+    if (index > 0 && index - 1 < moveHistory.value.length) {
+      final rec = moveHistory.value[index - 1];
       lastMove.value = KitaMove(
         pieceId: rec.pieceId,
         fromPos: KitaPos(rec.fromCol, rec.fromRow),
         toPos: KitaPos(rec.toCol, rec.toRow),
       );
+    } else {
+      lastMove.value = null;
     }
+    notifyListeners();
   }
 
-  void viewLive() {
+  void goLive() {
     viewingMoveIndex.value = -1;
-    if (_engineSnapshots.isNotEmpty) {
-      gameEngine.value = _engineSnapshots.last;
-    }
     if (moveHistory.value.isNotEmpty) {
       final rec = moveHistory.value.last;
       lastMove.value = KitaMove(
@@ -430,30 +441,36 @@ class OfflineGameProvider extends ChangeNotifier {
     } else {
       lastMove.value = null;
     }
+    notifyListeners();
   }
 
+  // Aliases for compatibility
+  void viewMove(int index) {
+    viewMoveAt(index >= 0 && index < moveHistory.value.length ? index + 1 : index);
+  }
+
+  void viewLive() => goLive();
+
   void stepBackward() {
+    if (_engineSnapshots.length <= 1) return;
     final current = viewingMoveIndex.value;
     if (current == -1) {
-      if (moveHistory.value.length > 1) {
-        viewMove(moveHistory.value.length - 2);
-      } else if (moveHistory.value.length == 1) {
-        viewingMoveIndex.value = -2;
-        gameEngine.value = _engineSnapshots.first;
-        lastMove.value = null;
+      if (_engineSnapshots.length > 1) {
+        viewMoveAt(_engineSnapshots.length - 2);
       }
     } else if (current > 0) {
-      viewMove(current - 1);
+      viewMoveAt(current - 1);
     }
   }
 
   void stepForward() {
+    if (_engineSnapshots.length <= 1) return;
     final current = viewingMoveIndex.value;
     if (current == -1) return;
-    if (current < moveHistory.value.length - 1) {
-      viewMove(current + 1);
+    if (current < _engineSnapshots.length - 1) {
+      viewMoveAt(current + 1);
     } else {
-      viewLive();
+      goLive();
     }
   }
 
