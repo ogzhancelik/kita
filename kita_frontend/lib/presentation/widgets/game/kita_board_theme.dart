@@ -19,6 +19,8 @@ class KitaBoardTheme {
   final Color blackKingAccent;
   final bool showTileValues;
   final bool showCoordinateLabels;
+  final Color lastMoveHighlightColor;
+  final Color lastMoveLineColor;
 
   /// If provided, overrides dynamic scaling with a fixed border radius in pixels.
   final double? fixedTileBorderRadius;
@@ -77,6 +79,8 @@ class KitaBoardTheme {
     this.blackKingAccent = const Color(0xFFE74C3C),
     this.showTileValues = true,
     this.showCoordinateLabels = true,
+    this.lastMoveHighlightColor = AppColors.lastMoveHighlight,
+    this.lastMoveLineColor = AppColors.lastMoveLine,
     double? tileBorderRadius,
     double? tileSpacing,
     double? tileValueFontSize,
@@ -152,6 +156,8 @@ class KitaBoardTheme {
     Color? blackKingAccent,
     bool? showTileValues,
     bool? showCoordinateLabels,
+    Color? lastMoveHighlightColor,
+    Color? lastMoveLineColor,
     double? tileBorderRadius,
     double? tileSpacing,
     double? tileValueFontSize,
@@ -178,6 +184,8 @@ class KitaBoardTheme {
       blackKingAccent: blackKingAccent ?? this.blackKingAccent,
       showTileValues: showTileValues ?? this.showTileValues,
       showCoordinateLabels: showCoordinateLabels ?? this.showCoordinateLabels,
+      lastMoveHighlightColor: lastMoveHighlightColor ?? this.lastMoveHighlightColor,
+      lastMoveLineColor: lastMoveLineColor ?? this.lastMoveLineColor,
       tileBorderRadius: tileBorderRadius ?? fixedTileBorderRadius,
       tileSpacing: tileSpacing ?? fixedTileSpacing,
       tileValueFontSize: tileValueFontSize ?? fixedTileValueFontSize,
@@ -206,6 +214,16 @@ class KitaBoardTheme {
     return copyWith(valueColors: swapped);
   }
 
+  /// Returns a copy of the theme with flat/sharp tiles (0 border radius, 0 spacing, and black tile border).
+  KitaBoardTheme asFlatTiles([bool flat = true]) {
+    if (!flat) return this;
+    return copyWith(
+      tileBorderRadius: 0.0,
+      tileSpacing: 0.0,
+      borderColor: AppColors.boardFlatBorder,
+    );
+  }
+
   factory KitaBoardTheme.minecraft() {
     return KitaBoardTheme(
       valueColors: const {
@@ -225,6 +243,8 @@ class KitaBoardTheme {
         0,
         0,
       ).withValues(alpha: 0.5),
+      lastMoveHighlightColor: const Color(0xFFFFD700),
+      lastMoveLineColor: const Color(0xFFFFD700),
       tileValueColor: AppColors.darkCard,
     );
   }
@@ -245,6 +265,8 @@ class KitaBoardTheme {
             },
       selectedHighlightColor: const Color(0xFFF1C40F).withValues(alpha: 0.85),
       validMoveHighlightColor: const Color(0xFF00FF88).withValues(alpha: 0.85),
+      lastMoveHighlightColor: const Color(0xFFF7F769),
+      lastMoveLineColor: const Color(0xFFF7F769),
       tileValueColor: const Color.fromARGB(
         255,
         255,
@@ -264,6 +286,8 @@ class KitaBoardTheme {
       },
       selectedHighlightColor: Color(0xFFF39C12),
       validMoveHighlightColor: Color(0xFFef9d0d),
+      lastMoveHighlightColor: Color(0xFFFFD166),
+      lastMoveLineColor: Color(0xFFFFD166),
       tileValueColor: Colors.white,
     );
   }
@@ -278,6 +302,8 @@ class KitaBoardTheme {
       },
       selectedHighlightColor: AppColors.boardOceanSelected,
       validMoveHighlightColor: AppColors.boardOceanHighlight,
+      lastMoveHighlightColor: AppColors.boardOceanHighlight,
+      lastMoveLineColor: AppColors.boardOceanHighlight,
       tileValueColor: Colors.white,
     );
   }
@@ -292,6 +318,8 @@ class KitaBoardTheme {
       },
       selectedHighlightColor: Color(0xFFF1C40F),
       validMoveHighlightColor: Color(0xFF00E676),
+      lastMoveHighlightColor: Color(0xFFE056FD),
+      lastMoveLineColor: Color(0xFFE056FD),
       tileValueColor: Colors.white,
     );
   }
@@ -306,6 +334,8 @@ class KitaBoardTheme {
       },
       selectedHighlightColor: AppColors.primaryGreen,
       validMoveHighlightColor: Color(0xFF3498DB),
+      lastMoveHighlightColor: Color(0xFFBDC3C7),
+      lastMoveLineColor: Color(0xFFBDC3C7),
       tileValueColor: Colors.white70,
     );
   }

@@ -20,6 +20,9 @@ import 'tutorial_models.dart';
 class TutorialScreen extends StatefulWidget {
   final bool isFirstLaunch;
 
+  /// Tracks whether the tutorial screen is currently open and active.
+  static bool isTutorialOpen = false;
+
   const TutorialScreen({
     super.key,
     this.isFirstLaunch = false,
@@ -63,8 +66,15 @@ class _TutorialScreenState extends State<TutorialScreen> {
   @override
   void initState() {
     super.initState();
+    TutorialScreen.isTutorialOpen = true;
     _lessons = TutorialLessonsData.getLessons();
     _initStepState();
+  }
+
+  @override
+  void dispose() {
+    TutorialScreen.isTutorialOpen = false;
+    super.dispose();
   }
 
   void _initStepState() {

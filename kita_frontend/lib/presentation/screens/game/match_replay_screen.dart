@@ -1071,25 +1071,33 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final boardTheme = _getBoardTheme(context, isDark);
 
     // Highlight the move executed to reach current state
-    final Set<KitaPos> lastMoveHighlights = {};
+    KitaMove? lastMove;
     if (_isSandboxMode) {
       if (_sandboxStep > 0 && _sandboxStep - 1 < _sandboxMoves.length) {
-        final lastMove = _sandboxMoves[_sandboxStep - 1];
-        lastMoveHighlights.add(lastMove.fromPos);
-        lastMoveHighlights.add(lastMove.toPos);
+        lastMove = _sandboxMoves[_sandboxStep - 1];
       }
     } else {
       if (_currentStep > 0 && _currentStep <= _match!.moves.length) {
-        final lastMove = _match!.moves[_currentStep - 1];
-        lastMoveHighlights.add(KitaPos(lastMove.fromCol, lastMove.fromRow));
-        lastMoveHighlights.add(KitaPos(lastMove.toCol, lastMove.toRow));
+        final m = _match!.moves[_currentStep - 1];
+        if (!m.isSpecialIndicator) {
+          lastMove = KitaMove(
+            pieceId: m.piece,
+            fromPos: KitaPos(m.fromCol, m.fromRow),
+            toPos: KitaPos(m.toCol, m.toRow),
+          );
+        }
       }
     }
+
+    final gameSettings = Provider.of<GameSettingsProvider>(context, listen: false);
 
     return KitaBoardWidget(
       pieces: currentEngine.activePositions,
       selectedPos: _selectedPos,
-      validMoves: _selectedPieceId != null ? _validMoves : lastMoveHighlights,
+      validMoves: _validMoves,
+      lastMoves: currentEngine.lastTwoMoves,
+      lastMove: lastMove,
+      lastMoveIndicator: gameSettings.lastMoveIndicator,
       onTileTap: _onTileTap,
       isHorizontal: _isHorizontal,
       flipBoard: _flipBoard,

@@ -8,9 +8,6 @@ This document outlines the planned features and development milestones for the M
 
 ## 🎨 UI & Design Systems
 
-- [ ] **Last Move Indicator & Toggle Setting**:
-  - Visual highlight / marker on origin and destination tiles of the last executed move (essential for Kita's reversal prevention and last-stand tracking).
-  - In-game / user settings toggle option to enable or disable the "Last Move" visual indicator (Backend ready, frontend integration pending).
 - [ ] Load screen
 - [ ] Logo etc. design
 
@@ -68,6 +65,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Eliminate blocking full-screen offline gate; seamlessly route offline launches directly to Dashboard with guest profile fallback.
   - [x] Contextual offline warning banner on main menu ("You are offline right now. [Retry]") matching Guest notice styling with one-tap connection recheck.
   - [x] Dynamically replace "Open Rooms" and "Friends" cards on the main menu with "Play vs Computer" and "Local 2P Co-op" actions when offline.
+  - [x] Rate limit & throttle connection error warnings (2-min cooldown, duplicate debouncing, and full suppression during offline matches, tutorial, and background polling).
 
 ### AI Engine Integration
 - [x] **Inference Engine (Pure Dart Forward Pass)**:
@@ -231,6 +229,10 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
     - [x] Toggle auto-rotation of pieces on turn switch.
     - [x] Set default piece rotation orientation (Vertical 0° / Horizontal 90°).
   - [x] Swap tile colors for 1 and 3 (1s lighter, 3s darker) with live board and theme preview synchronization.
+- [x] **Last Move Indicator & Toggle Setting**:
+  - Visual indicator showing last 2 moves (last move of White + last move of Black) with 3 selectable modes in settings: **Line** (default: clean semi-transparent path lines with rounded joints/ends rendered in front of board tiles but behind pieces), **Highlight** (origin and destination tile glow, essential for reversal prohibition tracking), and **Off** (disabled).
+  - Graph-based path reconstruction algorithm ([`KitaBoardConfig.findPath`](file:///c:/Kita_Fullstack/kita_frontend/lib/data/models/game_models.dart)) dynamically finding unique shortest step routes (1-3 steps) for both teams without tile-value step constraints.
+  - Persistent user preference in [`GameSettingsProvider`](file:///c:/Kita_Fullstack/kita_frontend/lib/presentation/providers/game_settings_provider.dart) with 3-way toggle selector in [`MatchSettingsDialog`](file:///c:/Kita_Fullstack/kita_frontend/lib/presentation/widgets/home/match_settings_dialog.dart) and full EN/TR localization.
 - [x] **Interactive Tutorial System Overhaul**:
   - [x] Streamlined 3-lesson curriculum (1. The Board & Pieces, 2. Movement & Rules, 3. Victory & Draws).
   - [x] Removed titles from explanation cards; multi-card layout with inline mint highlights for key victory concepts.
@@ -238,6 +240,7 @@ Allows instant gameplay without relying on active server matchmaking, serves as 
   - [x] Multi-board sub-tab selector for Tile Values (1s, 2s, 3s) and Dynamic Steps (King on 2 vs 3).
   - [x] Unrestricted interactive engine allowing player to select any piece with live legal move validation and retry prompts.
   - [x] Interactive AI automatic response for reversal rule demonstration (`D4D2`), checkmate capture, trap win (`A7C7`), and last stand retaliation ending in Draw.
-  - [x] Full EN and TR localization synchronization.
+- [x] **Offline Match Board Scaling Parity**:
+  - [x] Rescaled offline match board in [`OfflineMatchScreen`](file:///c:/Kita_Fullstack/kita_frontend/lib/presentation/screens/game/offline_match_screen.dart) to touch the screen's sides edge-to-edge (matching [`OnlineMatchScreen`](file:///c:/Kita_Fullstack/kita_frontend/lib/presentation/screens/game/online_match_screen.dart)) by removing fixed horizontal padding and redundant outer AspectRatio wrappers.
 
 ---

@@ -46,6 +46,13 @@ class KitaGameBoard extends StatefulWidget {
   /// Optional theme override (if null, resolved via [GameSettingsProvider])
   final KitaBoardTheme? theme;
 
+  /// The last executed moves to display (e.g. [previousMove, mostRecentMove] in chronological order).
+  /// If null, falls back to [displayEngine.lastTwoMoves].
+  final List<KitaMove>? lastMoves;
+
+  /// The last executed move to display, if any. If null, falls back to [displayEngine.mostRecentMove].
+  final KitaMove? lastMove;
+
   /// Callback when a valid move is made by the player
   final void Function(KitaMove move)? onMakeMove;
 
@@ -61,6 +68,8 @@ class KitaGameBoard extends StatefulWidget {
     this.isHorizontal = true,
     this.pieceRotation,
     this.theme,
+    this.lastMoves,
+    this.lastMove,
     this.onMakeMove,
   });
 
@@ -343,10 +352,18 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
       effectiveRotation = 0.0;
     }
 
+    final effectiveLastMoves =
+        widget.lastMoves ?? widget.displayEngine.lastTwoMoves;
+    final effectiveLastMove =
+        widget.lastMove ?? widget.displayEngine.mostRecentMove;
+
     return KitaBoardWidget(
       pieces: widget.displayEngine.activePositions,
       selectedPos: _selectedPos,
       validMoves: _validMoves,
+      lastMoves: effectiveLastMoves,
+      lastMove: effectiveLastMove,
+      lastMoveIndicator: gameSettings.lastMoveIndicator,
       flipBoard: widget.flipBoard,
       isHorizontal: widget.isHorizontal,
       pieceRotation: effectiveRotation,

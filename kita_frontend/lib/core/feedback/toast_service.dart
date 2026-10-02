@@ -9,6 +9,11 @@ class KitaToast {
   static final GlobalKey<ScaffoldMessengerState> messengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
+  static String? _lastToastMessage;
+  static ToastType? _lastToastType;
+  static DateTime? _lastToastTime;
+  static const Duration _duplicateDebounceWindow = Duration(seconds: 4);
+
   static void show({
     required String message,
     ToastType type = ToastType.info,
@@ -16,6 +21,17 @@ class KitaToast {
     VoidCallback? onAction,
     String? actionLabel,
   }) {
+    final now = DateTime.now();
+    if (_lastToastMessage == message &&
+        _lastToastType == type &&
+        _lastToastTime != null &&
+        now.difference(_lastToastTime!) < _duplicateDebounceWindow) {
+      return;
+    }
+    _lastToastMessage = message;
+    _lastToastType = type;
+    _lastToastTime = now;
+
     ScaffoldMessengerState? state;
     try {
       state = messengerKey.currentState;

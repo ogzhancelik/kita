@@ -21,6 +21,8 @@ class GameSettingsProvider extends ChangeNotifier {
   bool _localCoopAutoRotate = true;
   String _localCoopDefaultRotation = 'vertical';
   bool _swapTileColors = false;
+  String _lastMoveIndicator = 'line'; // 'line', 'highlight', 'off'
+  String _boardTileStyle = 'rounded'; // 'rounded', 'flat'
 
   static const String _themeStorageKey = 'kita_board_theme';
   static const String _orientationStorageKey = 'kita_board_orientation';
@@ -29,6 +31,8 @@ class GameSettingsProvider extends ChangeNotifier {
   static const String _localCoopAutoRotateKey = 'kita_local_coop_auto_rotate';
   static const String _localCoopDefaultRotationKey = 'kita_local_coop_default_rotation';
   static const String _swapTileColorsKey = 'kita_swap_tile_colors';
+  static const String _lastMoveIndicatorKey = 'kita_last_move_indicator';
+  static const String _boardTileStyleKey = 'kita_board_tile_style';
 
   GameSettingsProvider([SecureStorageService? storage])
       : _storage = storage ?? SecureStorageService() {
@@ -43,6 +47,12 @@ class GameSettingsProvider extends ChangeNotifier {
   String get localCoopDefaultRotation => _localCoopDefaultRotation;
   bool get isLocalCoopHorizontal => _localCoopDefaultRotation == 'horizontal';
   bool get swapTileColors => _swapTileColors;
+  String get lastMoveIndicator => _lastMoveIndicator;
+  bool get isLastMoveHighlight => _lastMoveIndicator == 'highlight';
+  bool get isLastMoveLine => _lastMoveIndicator == 'line';
+  bool get isLastMoveOff => _lastMoveIndicator == 'off';
+  String get boardTileStyle => _boardTileStyle;
+  bool get isFlatTiles => _boardTileStyle == 'flat';
 
   bool get isHorizontal => _boardOrientation == 'horizontal';
 
@@ -56,6 +66,8 @@ class GameSettingsProvider extends ChangeNotifier {
         _storage.readString(_localCoopAutoRotateKey),
         _storage.readString(_localCoopDefaultRotationKey),
         _storage.readString(_swapTileColorsKey),
+        _storage.readString(_lastMoveIndicatorKey),
+        _storage.readString(_boardTileStyleKey),
       ]);
 
       final savedTheme = results[0];
@@ -94,8 +106,32 @@ class GameSettingsProvider extends ChangeNotifier {
         _swapTileColors = savedSwapTileColors == 'true';
       }
 
+      final savedLastMoveIndicator = results[7];
+      if (savedLastMoveIndicator != null && savedLastMoveIndicator.isNotEmpty) {
+        _lastMoveIndicator = savedLastMoveIndicator;
+      }
+
+      final savedBoardTileStyle = results[8];
+      if (savedBoardTileStyle != null && savedBoardTileStyle.isNotEmpty) {
+        _boardTileStyle = savedBoardTileStyle;
+      }
+
       notifyListeners();
     } catch (_) {}
+  }
+
+  Future<void> setBoardTileStyle(String style) async {
+    if (_boardTileStyle == style) return;
+    _boardTileStyle = style;
+    notifyListeners();
+    await _storage.writeString(_boardTileStyleKey, style);
+  }
+
+  Future<void> setLastMoveIndicator(String mode) async {
+    if (_lastMoveIndicator == mode) return;
+    _lastMoveIndicator = mode;
+    notifyListeners();
+    await _storage.writeString(_lastMoveIndicatorKey, mode);
   }
 
   Future<void> setBoardTheme(String theme) async {
@@ -169,16 +205,20 @@ class GameSettingsProvider extends ChangeNotifier {
   }
 
   /// Returns the corresponding [KitaBoardTheme] for current selection,
-  /// with tile colors 1 and 3 swapped if [_swapTileColors] is enabled.
+  /// with tile colors 1 and 3 swapped if [_swapTileColors] is enabled,
+  /// and flat tile style applied if [_boardTileStyle] is 'flat'.
   KitaBoardTheme currentBoardTheme(bool isDark) {
     final base = _resolveThemeByKey(_boardTheme, isDark);
-    return base.withSwappedColors(_swapTileColors);
+    final withSwap = base.withSwappedColors(_swapTileColors);
+    return withSwap.asFlatTiles(isFlatTiles);
   }
 
-  /// Returns a preview [KitaBoardTheme] by key with tile swap applied.
+  /// Returns a preview [KitaBoardTheme] by key with tile swap applied
+  /// and flat tile style applied if [_boardTileStyle] is 'flat'.
   KitaBoardTheme previewTheme(String themeKey, bool isDark) {
     final base = _resolveThemeByKey(themeKey, isDark);
-    return base.withSwappedColors(_swapTileColors);
+    final withSwap = base.withSwappedColors(_swapTileColors);
+    return withSwap.asFlatTiles(isFlatTiles);
   }
 
   KitaBoardTheme _resolveThemeByKey(String key, bool isDark) {

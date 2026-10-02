@@ -21,8 +21,11 @@ import 'dart:async';
 import 'data/models/dm_models.dart';
 import 'data/models/friend_models.dart';
 import 'data/models/ws_message_models.dart';
+import 'core/network/api_client.dart';
+import 'presentation/screens/game/offline_match_screen.dart';
 import 'presentation/screens/game/online_match_screen.dart';
 import 'presentation/screens/splash_gate_screen.dart';
+import 'presentation/screens/tutorial/tutorial_screen.dart';
 import 'presentation/widgets/matchmaking/activity_conflict_dialog.dart';
 import 'presentation/widgets/matchmaking/top_match_invite_banner.dart';
 
@@ -76,6 +79,8 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    ApiClient.isOfflineActivityActive = () =>
+        OfflineMatchScreen.isMatchScreenOpen || TutorialScreen.isTutorialOpen;
   }
 
   @override
@@ -115,7 +120,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final authProv = context.read<AuthProvider>();
-        if (authProv.isAuthenticated && !authProv.isGuest) {
+        if (authProv.isAuthenticated && !authProv.isGuest && !authProv.isOnlineUnavailable) {
           context.read<NotificationProvider>().loadNotifications();
           context.read<DmProvider>().startListening(myUserId: authProv.currentUser?.id);
         }
@@ -126,7 +131,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     _friendsPollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) {
         final authProv = context.read<AuthProvider>();
-        if (authProv.isAuthenticated && !authProv.isGuest) {
+        if (authProv.isAuthenticated && !authProv.isGuest && !authProv.isOnlineUnavailable) {
           _friendsProv?.loadAll();
           context.read<NotificationProvider>().loadNotifications();
         }
@@ -153,13 +158,15 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       final authProv = context.read<AuthProvider>();
-      if (authProv.isAuthenticated && !authProv.isGuest) {
+      if (authProv.isAuthenticated && !authProv.isGuest && !authProv.isOnlineUnavailable) {
         _friendsProv?.loadAll();
         context.read<NotificationProvider>().loadNotifications();
         context.read<DmProvider>().startListening(myUserId: authProv.currentUser?.id);
       }
-      _onlineProv?.requestOnlineCount();
-      _onlineProv?.requestRoomsList(page: 1, limit: 10);
+      if (!authProv.isOnlineUnavailable) {
+        _onlineProv?.requestOnlineCount();
+        _onlineProv?.requestRoomsList(page: 1, limit: 10);
+      }
     }
   }
 

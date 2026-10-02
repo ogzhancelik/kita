@@ -167,6 +167,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
       backgroundColor: AppColors.getBackground(isDark),
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 1. Move History Panel (Scrubbable)
             MoveHistoryPanel(
@@ -199,19 +200,18 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
             // 3. Central Board Area
             Expanded(
               child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: AspectRatio(
-                    aspectRatio: isHorizontal ? 7 / 4 : 4 / 7,
-                    child: ValueListenableBuilder<int>(
-                      valueListenable: provider.viewingMoveIndex,
-                      builder: (ctx, viewIdx, _) {
-                        return ValueListenableBuilder<KitaGameEngine>(
-                          valueListenable: provider.gameEngine,
-                          builder: (c1, engine, _) {
-                            return ValueListenableBuilder<bool>(
-                              valueListenable: provider.isAiThinking,
-                              builder: (c2, aiThinking, _) {
+                child: ValueListenableBuilder<int>(
+                  valueListenable: provider.viewingMoveIndex,
+                  builder: (ctx, viewIdx, _) {
+                    return ValueListenableBuilder<KitaGameEngine>(
+                      valueListenable: provider.gameEngine,
+                      builder: (c1, engine, _) {
+                        return ValueListenableBuilder<bool>(
+                          valueListenable: provider.isAiThinking,
+                          builder: (c2, aiThinking, _) {
+                            return ValueListenableBuilder<KitaMove?>(
+                              valueListenable: provider.lastMove,
+                              builder: (c0, currentLastMove, _) {
                                 return ValueListenableBuilder<List<KitaMove>>(
                                   valueListenable: provider.legalMoves,
                                   builder: (c3, legal, _) {
@@ -228,6 +228,8 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
                                       isInteractive: canInteract,
                                       isLocalCoop: isLocalCoop,
                                       legalMoves: isLive ? legal : const [],
+                                      lastMoves: displayEngine.lastTwoMoves,
+                                      lastMove: currentLastMove,
                                       flipBoard: flipBoard,
                                       isHorizontal: isHorizontal,
                                       pieceRotation: pieceRotation,
@@ -240,8 +242,8 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
                           },
                         );
                       },
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ),

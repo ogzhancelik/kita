@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/models/game_models.dart';
 import 'kita_board_theme.dart';
+import 'last_move_line_painter.dart';
 
 /// Data payload carried when dragging a piece on the Kita board.
 class PieceDragData {
@@ -25,6 +26,21 @@ class KitaBoardWidget extends StatelessWidget {
 
   /// Set of valid move target positions to highlight
   final Set<KitaPos> validMoves;
+
+  /// The recent moves to display (e.g. [lastMoveWhite, lastMoveBlack] in chronological order)
+  final List<KitaMove>? lastMoves;
+
+  /// The last move executed by White, if any
+  final KitaMove? lastMoveWhite;
+
+  /// The last move executed by Black, if any
+  final KitaMove? lastMoveBlack;
+
+  /// Single last executed move (fallback)
+  final KitaMove? lastMove;
+
+  /// Mode for the last move indicator: 'highlight', 'line', or 'off'
+  final String lastMoveIndicator;
 
   /// Callback when an active, valid tile is tapped
   final void Function(KitaPos pos)? onTileTap;
@@ -71,6 +87,11 @@ class KitaBoardWidget extends StatelessWidget {
     required this.pieces,
     this.selectedPos,
     this.validMoves = const {},
+    this.lastMoves,
+    this.lastMoveWhite,
+    this.lastMoveBlack,
+    this.lastMove,
+    this.lastMoveIndicator = 'line',
     this.onTileTap,
     this.onPieceDropped,
     this.onPieceDragStarted,
@@ -98,6 +119,41 @@ class KitaBoardWidget extends StatelessWidget {
       posToPiece[pos] = id;
     });
 
+    final List<KitaMove> effectiveLastMoves;
+    if (lastMoves != null && lastMoves!.isNotEmpty) {
+      effectiveLastMoves = lastMoves!;
+    } else {
+      final list = <KitaMove>[];
+      if (lastMoveWhite != null && lastMoveBlack != null) {
+        if (lastMove != null && lastMove == lastMoveWhite) {
+          list.add(lastMoveBlack!);
+          list.add(lastMoveWhite!);
+        } else {
+          list.add(lastMoveWhite!);
+          list.add(lastMoveBlack!);
+        }
+      } else if (lastMoveWhite != null) {
+        list.add(lastMoveWhite!);
+      } else if (lastMoveBlack != null) {
+        list.add(lastMoveBlack!);
+      } else if (lastMove != null) {
+        list.add(lastMove!);
+      }
+      effectiveLastMoves = list;
+    }
+
+    final List<LastMovePathData> pathDataList = [];
+    if (lastMoveIndicator == 'line' && effectiveLastMoves.isNotEmpty) {
+      for (int i = 0; i < effectiveLastMoves.length; i++) {
+        final m = effectiveLastMoves[i];
+        final isLatest = (i == effectiveLastMoves.length - 1);
+        final path = KitaBoardConfig.findPath(m.fromPos, m.toPos);
+        if (path != null && path.length >= 2) {
+          pathDataList.add(LastMovePathData(path: path, isLatest: isLatest));
+        }
+      }
+    }
+
     return Center(
       child: AspectRatio(
         aspectRatio: colsCount / rowsCount,
@@ -105,35 +161,88 @@ class KitaBoardWidget extends StatelessWidget {
           builder: (context, constraints) {
             final double cellSize = constraints.maxWidth / colsCount;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            return Stack(
               children: [
-                for (int r = 0; r < rowsCount; r++)
-                  Expanded(
-                    flex: 1,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (int c = 0; c < colsCount; c++)
-                          Expanded(
-                            flex: 1,
-                            child: AspectRatio(
-                              aspectRatio: 1.0,
-                              child: _buildCell(
-                                context: context,
-                                displayCol: c,
-                                displayRow: r,
-                                cellSize: cellSize,
-                                posToPiece: posToPiece,
-                                theme: currentTheme,
-                                colsCount: colsCount,
-                                rowsCount: rowsCount,
+                // Layer 1: Board Tiles & Coordinates
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (int r = 0; r < rowsCount; r++)
+                      Expanded(
+                        flex: 1,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (int c = 0; c < colsCount; c++)
+                              Expanded(
+                                flex: 1,
+                                child: AspectRatio(
+                                  aspectRatio: 1.0,
+                                  child: _buildTileCell(
+                                    context: context,
+                                    displayCol: c,
+                                    displayRow: r,
+                                    cellSize: cellSize,
+                                    posToPiece: posToPiece,
+                                    theme: currentTheme,
+                                    colsCount: colsCount,
+                                    rowsCount: rowsCount,
+                                    effectiveLastMoves: effectiveLastMoves,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                      ],
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+
+                // Layer 2: Last Move Lines (in front of board tiles, behind pieces)
+                if (pathDataList.isNotEmpty)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: LastMoveLinePainter(
+                          paths: pathDataList,
+                          isHorizontal: isHorizontal,
+                          flipBoard: flipBoard,
+                          cellSize: cellSize,
+                          lineColor: currentTheme.lastMoveLineColor,
+                        ),
+                      ),
                     ),
                   ),
+
+                // Layer 3: Pieces (rendered ON TOP of the lines)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (int r = 0; r < rowsCount; r++)
+                      Expanded(
+                        flex: 1,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (int c = 0; c < colsCount; c++)
+                              Expanded(
+                                flex: 1,
+                                child: AspectRatio(
+                                  aspectRatio: 1.0,
+                                  child: _buildPieceCell(
+                                    context: context,
+                                    displayCol: c,
+                                    displayRow: r,
+                                    cellSize: cellSize,
+                                    posToPiece: posToPiece,
+                                    theme: currentTheme,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ],
             );
           },
@@ -157,7 +266,7 @@ class KitaBoardWidget extends StatelessWidget {
     return KitaPos(canonicalCol, canonicalRow);
   }
 
-  Widget _buildCell({
+  Widget _buildTileCell({
     required BuildContext context,
     required int displayCol,
     required int displayRow,
@@ -166,6 +275,7 @@ class KitaBoardWidget extends StatelessWidget {
     required KitaBoardTheme theme,
     required int colsCount,
     required int rowsCount,
+    required List<KitaMove> effectiveLastMoves,
   }) {
     final canonicalPos = _mapToCanonical(displayCol, displayRow);
     final isValid = KitaBoardConfig.isValidTile(
@@ -184,6 +294,28 @@ class KitaBoardWidget extends StatelessWidget {
     );
     final isSelected = selectedPos == canonicalPos;
     final isValidMove = validMoves.contains(canonicalPos);
+
+    bool isLastMove = false;
+    bool isLastMoveDest = false;
+    bool isLatest = false;
+
+    if (lastMoveIndicator == 'highlight' && effectiveLastMoves.isNotEmpty) {
+      for (int i = effectiveLastMoves.length - 1; i >= 0; i--) {
+        final m = effectiveLastMoves[i];
+        if (canonicalPos == m.toPos) {
+          isLastMove = true;
+          isLastMoveDest = true;
+          isLatest = (i == effectiveLastMoves.length - 1);
+          break;
+        } else if (canonicalPos == m.fromPos) {
+          isLastMove = true;
+          isLastMoveDest = false;
+          isLatest = (i == effectiveLastMoves.length - 1);
+          break;
+        }
+      }
+    }
+
     final pieceId = posToPiece[canonicalPos];
     final piece = pieceId != null ? KitaPiece.allPieces[pieceId] : null;
 
@@ -213,8 +345,6 @@ class KitaBoardWidget extends StatelessWidget {
     final double effectiveBorderRadius =
         theme.effectiveTileBorderRadius(cellSize);
 
-    final double innerSize = max(cellSize - (effectiveTileSpacing * 2), 16.0);
-    final double pieceSize = innerSize * 0.72;
     final double tileValueFontSize = theme.effectiveTileValueFontSize(cellSize);
     final double labelFontSize = theme.effectiveCoordinateLabelFontSize(cellSize);
     final double badgeVerticalOffset = min(cellSize * 0.04, 6.0);
@@ -261,7 +391,11 @@ class KitaBoardWidget extends StatelessWidget {
                     ? (isCurrentTurn ? 2.5 : 2.0)
                     : isValidMove
                         ? (isCurrentTurn ? 2.5 : 1.6)
-                        : 0.8;
+                        : isLastMove
+                            ? (isLatest
+                                ? (isLastMoveDest ? 2.2 : 1.8)
+                                : (isLastMoveDest ? 1.8 : 1.4))
+                            : (effectiveTileSpacing <= 0 ? 1.0 : 0.8);
 
             return Material(
               color: Colors.transparent,
@@ -277,7 +411,16 @@ class KitaBoardWidget extends StatelessWidget {
                         ? selectedBg
                         : isHoveredValidMove
                             ? theme.validMoveHighlightColor.withValues(alpha: 0.35)
-                            : cellBaseColor,
+                            : isLastMove
+                                ? Color.alphaBlend(
+                                    theme.lastMoveHighlightColor.withValues(
+                                      alpha: isLatest
+                                          ? (isLastMoveDest ? 0.32 : 0.22)
+                                          : (isLastMoveDest ? 0.20 : 0.13),
+                                    ),
+                                    cellBaseColor,
+                                  )
+                                : cellBaseColor,
                     borderRadius: BorderRadius.circular(effectiveBorderRadius),
                     border: Border.all(
                       color: isSelected
@@ -286,17 +429,38 @@ class KitaBoardWidget extends StatelessWidget {
                               ? theme.validMoveHighlightColor
                               : isValidMove
                                   ? moveBorderColor
-                                  : Colors.white.withValues(alpha: 0.15),
+                                  : isLastMove
+                                      ? theme.lastMoveHighlightColor.withValues(
+                                          alpha: isLatest
+                                              ? (isLastMoveDest ? 0.85 : 0.60)
+                                              : (isLastMoveDest ? 0.55 : 0.38),
+                                        )
+                                      : (effectiveTileSpacing <= 0
+                                          ? theme.borderColor
+                                          : Colors.white.withValues(alpha: 0.15)),
                       width: effectiveBorderWidth,
                     ),
                     boxShadow: [
-                      BoxShadow(
-                        color: isHoveredValidMove
-                            ? theme.validMoveHighlightColor.withValues(alpha: 0.4)
-                            : Colors.black.withValues(alpha: 0.22),
-                        offset: const Offset(0, 2),
-                        blurRadius: isHoveredValidMove ? 6 : 3,
-                      ),
+                      if (effectiveTileSpacing > 0 || isHoveredValidMove || isLastMove || isSelected)
+                        BoxShadow(
+                          color: isHoveredValidMove
+                              ? theme.validMoveHighlightColor.withValues(alpha: 0.4)
+                              : isLastMove
+                                  ? theme.lastMoveHighlightColor.withValues(
+                                      alpha: isLatest
+                                          ? (isLastMoveDest ? 0.35 : 0.22)
+                                          : (isLastMoveDest ? 0.20 : 0.12),
+                                    )
+                                  : isSelected
+                                      ? selectedBorderColor.withValues(alpha: 0.35)
+                                      : Colors.black.withValues(alpha: 0.22),
+                          offset: (effectiveTileSpacing <= 0 && (isSelected || isHoveredValidMove || isLastMove))
+                              ? Offset.zero
+                              : const Offset(0, 2),
+                          blurRadius: isHoveredValidMove
+                              ? 6
+                              : (isLastMove ? (isLatest ? 5 : 3) : 3),
+                        ),
                     ],
                   ),
                   child: Stack(
@@ -387,22 +551,60 @@ class KitaBoardWidget extends StatelessWidget {
                             ),
                           ),
                         ),
-
-                      // 5. Piece on Tile (tam ortada)
-                      if (piece != null)
-                        Center(
-                          child: _buildPieceWidget(
-                            context: context,
-                            piece: piece,
-                            pieceId: pieceId!,
-                            canonicalPos: canonicalPos,
-                            pieceSize: pieceSize,
-                            theme: theme,
-                          ),
-                        ),
                     ],
                   ),
                 ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPieceCell({
+    required BuildContext context,
+    required int displayCol,
+    required int displayRow,
+    required double cellSize,
+    required Map<KitaPos, String> posToPiece,
+    required KitaBoardTheme theme,
+  }) {
+    final canonicalPos = _mapToCanonical(displayCol, displayRow);
+    final isValid = KitaBoardConfig.isValidTile(
+      canonicalPos.col,
+      canonicalPos.row,
+    );
+
+    if (!isValid) return const SizedBox.shrink();
+
+    final pieceId = posToPiece[canonicalPos];
+    if (pieceId == null) return const SizedBox.shrink();
+
+    final piece = KitaPiece.allPieces[pieceId];
+    if (piece == null) return const SizedBox.shrink();
+
+    final double effectiveTileSpacing = theme.effectiveTileSpacing(cellSize);
+    final double innerSize = max(cellSize - (effectiveTileSpacing * 2), 16.0);
+    final double pieceSize = innerSize * 0.72;
+
+    return Padding(
+      padding: EdgeInsets.all(effectiveTileSpacing),
+      child: SizedBox.expand(
+        child: DragTarget<PieceDragData>(
+          onWillAcceptWithDetails: (details) => onPieceDropped != null,
+          onAcceptWithDetails: (details) {
+            onPieceDropped?.call(details.data.fromPos, canonicalPos);
+          },
+          builder: (context, candidateData, rejectedData) {
+            return Center(
+              child: _buildPieceWidget(
+                context: context,
+                piece: piece,
+                pieceId: pieceId,
+                canonicalPos: canonicalPos,
+                pieceSize: pieceSize,
+                theme: theme,
               ),
             );
           },

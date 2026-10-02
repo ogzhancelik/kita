@@ -140,23 +140,31 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    // Default optimistic: Keep online UI layout, don't flash offline menu
-    _isOffline = false;
-    _isServerDown = false;
-    notifyListeners();
-
-    // 1. Proactively reconnect WebSocket immediately (don't wait for dormant backoff timers)
-    WebSocketService.instance.reconnectNow();
-
-    // 2. Gentle network interface check
+    // 1. Gentle network interface check
     final hasNet = await _connectivity.hasInternet();
     if (!hasNet) {
       _isOffline = true;
+      _isServerDown = false;
       notifyListeners();
       return;
     }
 
-    // 3. Silent health / profile refresh
+    // 2. Health check before assuming server is reachable
+    final isHealthy = await ConnectivityService.checkApiHealth(ApiConstants.baseUrl);
+    if (!isHealthy) {
+      _isServerDown = true;
+      notifyListeners();
+      return;
+    }
+
+    _isOffline = false;
+    _isServerDown = false;
+    notifyListeners();
+
+    // 3. Proactively reconnect WebSocket immediately (don't wait for dormant backoff timers)
+    WebSocketService.instance.reconnectNow();
+
+    // 4. Silent health / profile refresh
     if (isAuthenticated && _token != null) {
       refreshProfile();
     }
@@ -410,7 +418,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> refreshProfile() async {
     if (!isAuthenticated || _token == null) return;
     try {
-      final profile = await _apiService.getMe();
+      final profile = await _apiService.getMe(silent: true);
       _currentUser = profile;
       await _storage.saveUser(profile);
       _isServerDown = false;

@@ -137,7 +137,49 @@ class MatchSettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // Section 2: Board Orientation
+                    // Section: Tile Style (Rounded vs Flat/Adjacent)
+                    _buildSectionHeader(
+                      context: context,
+                      isDark: isDark,
+                      title: 'settings.boardTileStyle'.tr(),
+                      icon: Icons.grid_view_rounded,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'settings.boardTileStyleDesc'.tr(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildTileStyleSelector(context, gameSettings, isDark),
+                    const SizedBox(height: 20),
+
+                    // Section 2: Last Move Indicator
+                    _buildSectionHeader(
+                      context: context,
+                      isDark: isDark,
+                      title: 'settings.highlightLastMove'.tr(),
+                      icon: Icons.history_rounded,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'settings.highlightLastMoveDesc'.tr(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLastMoveSelector(context, gameSettings, isDark),
+                    const SizedBox(height: 20),
+
+                    // Section 3: Board Orientation
                     _buildSectionHeader(
                       context: context,
                       isDark: isDark,
@@ -404,6 +446,185 @@ class MatchSettingsDialog extends StatelessWidget {
           width: 0.5,
         ),
       ),
+    );
+  }
+
+  Widget _buildLastMoveSelector(
+    BuildContext context,
+    GameSettingsProvider gameSettings,
+    bool isDark,
+  ) {
+    final options = [
+      {
+        'key': 'highlight',
+        'title': 'settings.lastMoveHighlight'.tr(),
+        'icon': Icons.square_rounded,
+      },
+      {
+        'key': 'line',
+        'title': 'settings.lastMoveLine'.tr(),
+        'icon': Icons.timeline_rounded,
+      },
+      {
+        'key': 'off',
+        'title': 'settings.lastMoveOff'.tr(),
+        'icon': Icons.visibility_off_rounded,
+      },
+    ];
+
+    return Row(
+      children: options.map((opt) {
+        final key = opt['key'] as String;
+        final title = opt['title'] as String;
+        final icon = opt['icon'] as IconData;
+        final isSelected = gameSettings.lastMoveIndicator == key;
+
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => gameSettings.setLastMoveIndicator(key),
+                borderRadius: BorderRadius.circular(12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primaryGreen
+                          : (isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        icon,
+                        size: 22,
+                        color: isSelected
+                            ? AppColors.primaryGreen
+                            : (isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.lightTextMuted),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected
+                              ? (isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.lightTextPrimary)
+                              : (isDark
+                                  ? AppColors.darkTextMuted
+                                  : AppColors.lightTextMuted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTileStyleSelector(
+    BuildContext context,
+    GameSettingsProvider gameSettings,
+    bool isDark,
+  ) {
+    final options = [
+      {
+        'key': 'rounded',
+        'title': 'settings.tileStyleRounded'.tr(),
+        'icon': Icons.rounded_corner_rounded,
+      },
+      {
+        'key': 'flat',
+        'title': 'settings.tileStyleFlat'.tr(),
+        'icon': Icons.crop_square_rounded,
+      },
+    ];
+
+    return Row(
+      children: options.map((opt) {
+        final key = opt['key'] as String;
+        final title = opt['title'] as String;
+        final icon = opt['icon'] as IconData;
+        final isSelected = gameSettings.boardTileStyle == key;
+
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => gameSettings.setBoardTileStyle(key),
+                borderRadius: BorderRadius.circular(12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primaryGreen
+                          : (isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        icon,
+                        size: 22,
+                        color: isSelected
+                            ? AppColors.primaryGreen
+                            : (isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.lightTextMuted),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected
+                              ? (isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.lightTextPrimary)
+                              : (isDark
+                                  ? AppColors.darkTextMuted
+                                  : AppColors.lightTextMuted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 

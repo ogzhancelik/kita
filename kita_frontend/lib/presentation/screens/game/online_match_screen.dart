@@ -805,18 +805,40 @@ class _BoardSection extends StatelessWidget {
             final isMyTurn = provider.myTeam == displayEngine.turn.name && isLive;
             final canInteract = isLive && displayEngine.getStatus() == GameStatus.ongoing;
 
-            return ValueListenableBuilder<List<KitaMove>>(
-              valueListenable: provider.legalMoves,
-              builder: (c2, legal, _) {
-                return KitaGameBoard(
-                  displayEngine: displayEngine,
-                  myTeam: provider.myTeam ?? 'white',
-                  isMyTurn: isMyTurn,
-                  isInteractive: canInteract,
-                  legalMoves: isLive ? legal : const [],
-                  flipBoard: flipBoard,
-                  isHorizontal: isHorizontal,
-                  onMakeMove: provider.makeMove,
+            return ValueListenableBuilder<KitaMove?>(
+              valueListenable: provider.lastMove,
+              builder: (c0, liveLastMove, _) {
+                final KitaMove? effectiveLastMove;
+                if (isLive) {
+                  effectiveLastMove = liveLastMove;
+                } else if (viewIdx >= 0 &&
+                    viewIdx < provider.moveHistory.value.length) {
+                  final rec = provider.moveHistory.value[viewIdx];
+                  effectiveLastMove = KitaMove(
+                    pieceId: rec.pieceId,
+                    fromPos: KitaPos(rec.fromCol, rec.fromRow),
+                    toPos: KitaPos(rec.toCol, rec.toRow),
+                  );
+                } else {
+                  effectiveLastMove = null;
+                }
+
+                return ValueListenableBuilder<List<KitaMove>>(
+                  valueListenable: provider.legalMoves,
+                  builder: (c2, legal, _) {
+                    return KitaGameBoard(
+                      displayEngine: displayEngine,
+                      myTeam: provider.myTeam ?? 'white',
+                      isMyTurn: isMyTurn,
+                      isInteractive: canInteract,
+                      legalMoves: isLive ? legal : const [],
+                      lastMoves: displayEngine.lastTwoMoves,
+                      lastMove: effectiveLastMove,
+                      flipBoard: flipBoard,
+                      isHorizontal: isHorizontal,
+                      onMakeMove: provider.makeMove,
+                    );
+                  },
                 );
               },
             );

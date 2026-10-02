@@ -12,7 +12,6 @@ import '../../providers/online_game_provider.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../tutorial/tutorial_screen.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/home/dashboard_action_dock.dart';
 import '../../widgets/home/dashboard_friends_ribbon.dart';

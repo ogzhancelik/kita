@@ -1226,10 +1226,31 @@ class OnlineGameProvider extends ChangeNotifier {
 
     final turn = data.turn == 'white' ? PieceTeam.white : PieceTeam.black;
 
+    final prevEngine = gameEngine.value;
+    KitaMove? lmWhite = prevEngine.executedMoveWhite ?? prevEngine.lastMoveWhite;
+    KitaMove? lmBlack = prevEngine.executedMoveBlack ?? prevEngine.lastMoveBlack;
+    if (data.lastMove != null) {
+      final km = KitaMove(
+        pieceId: data.lastMove!.pieceId,
+        fromPos: KitaPos(data.lastMove!.fromCol, data.lastMove!.fromRow),
+        toPos: KitaPos(data.lastMove!.toCol, data.lastMove!.toRow),
+      );
+      final movingTeam = data.turn == 'white' ? 'black' : 'white';
+      if (movingTeam == 'white') {
+        lmWhite = km;
+      } else {
+        lmBlack = km;
+      }
+    }
+
     // Rebuild engine from backend state (backend is authoritative)
     gameEngine.value = KitaGameEngine.custom(
       positions: positions,
       turn: turn,
+      lastMoveWhite: lmWhite,
+      lastMoveBlack: lmBlack,
+      executedMoveWhite: lmWhite,
+      executedMoveBlack: lmBlack,
       kingEatenBy: data.kingEatenBy,
       moveCount: data.moveCount,
     );

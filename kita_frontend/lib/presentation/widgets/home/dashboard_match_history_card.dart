@@ -34,6 +34,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
 
   String? _lastUserId;
   bool? _lastIsGuest;
+  bool? _lastIsOnlineUnavailable;
   bool _routeSubscribed = false;
 
   @override
@@ -58,9 +59,13 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     final authProv = context.read<AuthProvider>();
     final currentUserId = authProv.currentUser?.id;
     final currentIsGuest = authProv.isGuest;
-    if (_lastUserId != currentUserId || _lastIsGuest != currentIsGuest) {
+    final currentIsOnlineUnavailable = authProv.isOnlineUnavailable;
+    if (_lastUserId != currentUserId ||
+        _lastIsGuest != currentIsGuest ||
+        _lastIsOnlineUnavailable != currentIsOnlineUnavailable) {
       _lastUserId = currentUserId;
       _lastIsGuest = currentIsGuest;
+      _lastIsOnlineUnavailable = currentIsOnlineUnavailable;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _fetchMatches(reset: true);
       });
@@ -102,6 +107,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     final authProv = context.read<AuthProvider>();
     final user = authProv.currentUser;
     final isGuest = authProv.isGuest || user == null;
+    final isOnlineUnavailable = authProv.isOnlineUnavailable;
 
     if (reset) {
       _offset = 0;
@@ -120,22 +126,21 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
           ? await LocalMatchHistoryService.instance.getMatches()
           : <MatchRecordModel>[];
 
-      if (isGuest) {
-        if (mounted) {
-          setState(() {
-            _matches = offlineList;
-            _isLoading = false;
-            _hasMore = false;
-          });
+      List<MatchRecordModel> onlineList = [];
+      if (!isGuest && !isOnlineUnavailable && user != null) {
+        try {
+          onlineList = await _matchApiService
+              .getUserMatches(
+                user.id,
+                limit: _pageSize,
+                offset: _offset,
+              )
+              .timeout(const Duration(seconds: 4));
+        } catch (e) {
+          debugPrint('[DashboardMatchHistoryCard] Offline or error fetching online matches: $e');
+          onlineList = [];
         }
-        return;
       }
-
-      final onlineList = await _matchApiService.getUserMatches(
-        user.id,
-        limit: _pageSize,
-        offset: _offset,
-      );
 
       if (mounted) {
         setState(() {
@@ -154,8 +159,14 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
               }
             }
             _matches = deduplicated.take(_pageSize).toList();
+            _hasMore = onlineList.length == _pageSize || deduplicated.length > _matches.length;
           } else {
-            current.addAll(onlineList);
+            if (onlineList.isNotEmpty) {
+              current.addAll(onlineList);
+            }
+            if (showOffline) {
+              current.addAll(offlineList);
+            }
             current.sort((a, b) => b.startedAt.compareTo(a.startedAt));
             final seenIds = <String>{};
             final deduplicated = <MatchRecordModel>[];
@@ -164,14 +175,16 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                 deduplicated.add(m);
               }
             }
-            _matches = deduplicated;
+            final nextCount = _matches.length + _pageSize;
+            _matches = deduplicated.take(nextCount).toList();
+            _hasMore = onlineList.length == _pageSize || deduplicated.length > _matches.length;
           }
-          _hasMore = onlineList.length == _pageSize;
           _offset += onlineList.length;
           _isLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[DashboardMatchHistoryCard] Unexpected error: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -469,7 +482,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
     final bool isVsAi = match.isVsAi;
     final opponentName = opponent?.username ??
-        (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'Black' : 'White'));
+        (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'history.blackTeam'.tr() : 'history.whiteTeam'.tr()));
     final opponentRating = opponent?.rating ?? 1200;
 
     final isDraw = match.isDraw;

@@ -10,6 +10,20 @@ class ApiClient {
   /// Global callback invoked when API reachability status changes (server down or recovered).
   static void Function(bool isServerDown)? onServerStatusChanged;
 
+  /// Global callback to check if an offline activity (offline match or tutorial) is currently active.
+  static bool Function()? isOfflineActivityActive;
+
+  /// Timestamp of the last displayed connection error toast.
+  static DateTime? _lastConnectionErrorToastTime;
+
+  /// Cooldown duration between connection error warnings to prevent toast spamming.
+  static const Duration connectionErrorToastCooldown = Duration(minutes: 2);
+
+  /// Resets the connection error throttle (e.g. after receiving a successful response).
+  static void resetConnectionErrorThrottle() {
+    _lastConnectionErrorToastTime = null;
+  }
+
   static ApiClient? _instance;
 
   late final Dio dio;
@@ -98,6 +112,7 @@ class _AuthInterceptor extends Interceptor {
 class _ResponseInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
+    ApiClient.resetConnectionErrorThrottle();
     ApiClient.onServerStatusChanged?.call(false);
     return handler.next(response);
   }
@@ -163,8 +178,23 @@ class _ErrorInterceptor extends Interceptor {
     // Show floating toast if not marked silent and not an unauthorized / session error
     final isSilent = err.requestOptions.extra['silent'] == true;
     final isAuthError = messageKey == 'errUnauthorized' || messageKey == 'errTokenExpired';
+    final isNetworkOrServerIssue = isConnectionIssue || isServer5xx;
+
     if (!isSilent && !isAuthError) {
-      KitaToast.error(translated);
+      if (isNetworkOrServerIssue) {
+        final isOfflineActivity = ApiClient.isOfflineActivityActive?.call() ?? false;
+        final now = DateTime.now();
+        final isThrottled = ApiClient._lastConnectionErrorToastTime != null &&
+            now.difference(ApiClient._lastConnectionErrorToastTime!) <
+                ApiClient.connectionErrorToastCooldown;
+
+        if (!isOfflineActivity && !isThrottled) {
+          ApiClient._lastConnectionErrorToastTime = now;
+          KitaToast.error(translated);
+        }
+      } else {
+        KitaToast.error(translated);
+      }
     }
 
     return handler.next(err);

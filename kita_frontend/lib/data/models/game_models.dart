@@ -232,6 +232,39 @@ class KitaBoardConfig {
 
     return destinations;
   }
+
+  /// Finds the step-by-step path from [start] to [target] for a move.
+  /// On the Kita board, between any two valid move positions there is a unique shortest path.
+  static List<KitaPos>? findPath(KitaPos start, KitaPos target, [int? steps]) {
+    if (start == target) return [start];
+
+    final queue = <List<KitaPos>>[
+      [start]
+    ];
+    final visited = <KitaPos>{start};
+
+    while (queue.isNotEmpty) {
+      final currentPath = queue.removeAt(0);
+      final currentPos = currentPath.last;
+
+      if (currentPos == target) {
+        if (steps == null || (currentPath.length - 1) == steps) {
+          return currentPath;
+        }
+      }
+
+      final maxSteps = steps ?? 3;
+      if (currentPath.length - 1 < maxSteps) {
+        for (final neighbor in (adjacency[currentPos] ?? [])) {
+          if (!visited.contains(neighbor)) {
+            visited.add(neighbor);
+            queue.add([...currentPath, neighbor]);
+          }
+        }
+      }
+    }
+    return null;
+  }
 }
 
 // ─── Game State for 3-fold repetition (matches backend state.go) ─────
@@ -469,6 +502,8 @@ class KitaGameEngine {
   final PieceTeam turn;
   final KitaMove? lastMoveWhite;
   final KitaMove? lastMoveBlack;
+  final KitaMove? executedMoveWhite;
+  final KitaMove? executedMoveBlack;
   final String kingEatenBy; // '', 'white', 'black', 'both'
   final Map<KitaGameState, int> stateHistory;
   final int moveCount;
@@ -478,6 +513,8 @@ class KitaGameEngine {
     required this.turn,
     this.lastMoveWhite,
     this.lastMoveBlack,
+    this.executedMoveWhite,
+    this.executedMoveBlack,
     this.kingEatenBy = '',
     required this.stateHistory,
     this.moveCount = 0,
@@ -504,6 +541,8 @@ class KitaGameEngine {
     PieceTeam turn = PieceTeam.white,
     KitaMove? lastMoveWhite,
     KitaMove? lastMoveBlack,
+    KitaMove? executedMoveWhite,
+    KitaMove? executedMoveBlack,
     String kingEatenBy = '',
     Map<KitaGameState, int>? stateHistory,
     int moveCount = 0,
@@ -514,6 +553,8 @@ class KitaGameEngine {
       turn: turn,
       lastMoveWhite: lastMoveWhite,
       lastMoveBlack: lastMoveBlack,
+      executedMoveWhite: executedMoveWhite ?? lastMoveWhite,
+      executedMoveBlack: executedMoveBlack ?? lastMoveBlack,
       kingEatenBy: kingEatenBy,
       stateHistory: history,
       moveCount: moveCount,
@@ -531,8 +572,29 @@ class KitaGameEngine {
   /// True when one king has been eaten but game continues for last stand
   bool get isLastStand => kingEatenBy.isNotEmpty && kingEatenBy != 'both';
 
-  KitaMove? get currentLastMove =>
-      turn == PieceTeam.white ? lastMoveWhite : lastMoveBlack;
+  /// The move that was executed immediately prior to the current state (i.e. by the opponent of [turn]).
+  KitaMove? get mostRecentMove {
+    if (moveCount == 0) return null;
+    return turn == PieceTeam.white
+        ? (executedMoveBlack ?? lastMoveBlack)
+        : (executedMoveWhite ?? lastMoveWhite);
+  }
+
+  /// The move that was executed two half-turns ago (i.e. by [turn] on their previous turn).
+  KitaMove? get previousMove {
+    if (moveCount <= 1) return null;
+    return turn == PieceTeam.white
+        ? (executedMoveWhite ?? lastMoveWhite)
+        : (executedMoveBlack ?? lastMoveBlack);
+  }
+
+  /// Returns the last moves of both teams (White and Black), in chronological order.
+  List<KitaMove> get lastTwoMoves {
+    final list = <KitaMove>[];
+    if (previousMove != null) list.add(previousMove!);
+    if (mostRecentMove != null) list.add(mostRecentMove!);
+    return list;
+  }
 
   /// Step count for current turn based on opponent king's tile value
   int get currentStepCount {
@@ -741,11 +803,18 @@ class KitaGameEngine {
     // Copy state history
     final newHistory = Map<KitaGameState, int>.from(stateHistory);
 
+    final KitaMove? newExecutedWhite =
+        turn == PieceTeam.white ? move : executedMoveWhite;
+    final KitaMove? newExecutedBlack =
+        turn == PieceTeam.black ? move : executedMoveBlack;
+
     final newGame = KitaGameEngine._(
       positions: newPos,
       turn: newTurn,
       lastMoveWhite: normalizedLmw,
       lastMoveBlack: normalizedLmb,
+      executedMoveWhite: newExecutedWhite,
+      executedMoveBlack: newExecutedBlack,
       kingEatenBy: newKeb,
       stateHistory: newHistory,
       moveCount: moveCount + 1,
@@ -766,6 +835,8 @@ class KitaGameEngine {
       turn: turn,
       lastMoveWhite: lastMoveWhite,
       lastMoveBlack: lastMoveBlack,
+      executedMoveWhite: executedMoveWhite,
+      executedMoveBlack: executedMoveBlack,
       kingEatenBy: kingEatenBy,
       stateHistory: Map<KitaGameState, int>.from(stateHistory),
       moveCount: moveCount,
