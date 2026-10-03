@@ -40,13 +40,18 @@ class NotificationProvider extends ChangeNotifier {
 
     try {
       final result = await _apiService.fetchNotifications();
-      // Keep any active live rematch notifications in memory
-      final rematches = _notifications.where((n) => n.type == KitaNotificationType.rematch).toList();
+      // Keep any active live rematch or pending challenge notifications in memory
+      final activeLive = _notifications.where((n) =>
+          n.isPending && (n.type == KitaNotificationType.rematch || n.type == KitaNotificationType.challenge)
+      ).toList();
       _notifications.clear();
-      _notifications.addAll(rematches);
+      _notifications.addAll(activeLive);
 
       for (final n in result.notifications) {
-        if (!_notifications.any((existing) => existing.id == n.id)) {
+        final existingIdx = _notifications.indexWhere((existing) => existing.id == n.id);
+        if (existingIdx >= 0) {
+          _notifications[existingIdx] = n;
+        } else {
           _notifications.add(n);
         }
       }
@@ -475,6 +480,13 @@ class NotificationProvider extends ChangeNotifier {
     final id = '${notifType.name}_${req.id}';
     final existingIdx = _notifications.indexWhere((n) => n.id == id);
 
+    final existingExpiresAt = existingIdx >= 0 ? _notifications[existingIdx].expiresAt : null;
+    final expiresAt = req.expiresAt ??
+        existingExpiresAt ??
+        (notifType == KitaNotificationType.challenge
+            ? req.createdAt.add(const Duration(hours: 24))
+            : req.createdAt.add(const Duration(seconds: 60)));
+
     final notif = KitaNotification(
       id: id,
       type: notifType,
@@ -490,7 +502,8 @@ class NotificationProvider extends ChangeNotifier {
       actorId: req.senderId,
       matchId: notifType == KitaNotificationType.rematch ? req.id : null,
       inviteId: notifType == KitaNotificationType.challenge ? req.id : null,
-      timestamp: DateTime.now(),
+      expiresAt: expiresAt,
+      timestamp: req.createdAt,
     );
 
     if (existingIdx >= 0) {

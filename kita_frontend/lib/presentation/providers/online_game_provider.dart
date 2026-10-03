@@ -582,6 +582,15 @@ class OnlineGameProvider extends ChangeNotifier {
     }
   }
 
+  /// Dismisses the incoming challenge banner/request without sending a decline to server,
+  /// keeping the challenge notification alive in the notification center.
+  void dismissIncomingChallenge([String? inviteId]) {
+    if (inviteId == null || incomingMatchRequest.value?.id == inviteId) {
+      incomingMatchRequest.value = null;
+      notifyListeners();
+    }
+  }
+
   // ─── Move History Scrubbing ───────────────────────────────────────
 
   /// View the board state at a specific move index.
@@ -894,6 +903,7 @@ class OnlineGameProvider extends ChangeNotifier {
         if (msg.payload != null) {
           final payload = MatchInvitationPayload.fromJson(msg.payload!);
           matchInvitation.value = payload;
+          final expiresAt = payload.expiresAt ?? DateTime.now().add(const Duration(hours: 24));
           incomingMatchRequest.value = IncomingMatchRequest(
             type: IncomingMatchRequestType.friendInvite,
             id: payload.inviteId,
@@ -902,6 +912,7 @@ class OnlineGameProvider extends ChangeNotifier {
             senderRating: payload.inviterRating,
             timeControl: payload.timeControl,
             colorPreference: payload.colorPreference,
+            expiresAt: expiresAt,
           );
           notifyListeners();
         }

@@ -409,6 +409,16 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
               }
               _onlineProv?.declineIncomingRequest();
             },
+            onTimeout: () {
+              _isInviteDialogShowing = false;
+              if (isChallenge) {
+                // For challenges, dismissing the 20s floating banner does not decline the invite.
+                // The challenge notification stays alive in the notification center for 24h.
+                _onlineProv?.dismissIncomingChallenge(capturedReqId);
+              } else {
+                _onlineProv?.declineIncomingRequest();
+              }
+            },
           ).then((_) {
             _isInviteDialogShowing = false;
           });

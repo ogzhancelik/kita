@@ -27,6 +27,7 @@ class TopMatchInviteDialog extends StatefulWidget {
     required IncomingMatchRequest request,
     required VoidCallback onAccept,
     required VoidCallback onDecline,
+    VoidCallback? onTimeout,
   }) {
     return showGeneralDialog(
       context: context,
@@ -77,7 +78,11 @@ class TopMatchInviteDialog extends StatefulWidget {
                     if (dialogCtx.mounted) {
                       Navigator.of(dialogCtx, rootNavigator: true).pop();
                     }
-                    onDecline();
+                    if (onTimeout != null) {
+                      onTimeout();
+                    } else {
+                      onDecline();
+                    }
                   },
                 ),
               ),

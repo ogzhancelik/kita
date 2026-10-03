@@ -39,6 +39,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
   late String _conversationId;
   late String _myId;
   late String _myUsername;
+  int _lastTimelineCount = 0;
 
   @override
   void initState() {
@@ -52,6 +53,9 @@ class _DmChatScreenState extends State<DmChatScreen> {
     _conversationId = dmConversationId(_myId, widget.friend.userId);
 
     final dmProv = context.read<DmProvider>();
+    if (_myId.isNotEmpty) {
+      dmProv.setMyUserId(_myId);
+    }
     dmProv.setActiveConversation(_conversationId);
     dmProv.loadHistory(_conversationId);
     dmProv.loadSharedMatches(
@@ -98,12 +102,16 @@ class _DmChatScreenState extends State<DmChatScreen> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool immediate = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final target = _scrollController.position.maxScrollExtent;
+      if (immediate) {
+        _scrollController.jumpTo(target);
+      } else {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
+          target,
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
       }
@@ -117,6 +125,8 @@ class _DmChatScreenState extends State<DmChatScreen> {
     context.read<DmProvider>().sendDm(
           recipientId: widget.friend.userId,
           content: text,
+          senderId: _myId,
+          senderUsername: _myUsername,
         );
     _scrollToBottom();
   }
@@ -245,8 +255,22 @@ class _DmChatScreenState extends State<DmChatScreen> {
           );
         }
 
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => _scrollToBottom());
+        if (timeline.length != _lastTimelineCount) {
+          final isInitial = _lastTimelineCount == 0;
+          _lastTimelineCount = timeline.length;
+          final isMyMsg =
+              timeline.isNotEmpty && timeline.last.dm?.senderId == _myId;
+          final isNearBottom = !_scrollController.hasClients ||
+              (_scrollController.position.maxScrollExtent -
+                      _scrollController.position.pixels <
+                  250);
+
+          if (isInitial) {
+            _scrollToBottom(immediate: true);
+          } else if (isMyMsg || isNearBottom) {
+            _scrollToBottom(immediate: false);
+          }
+        }
 
         return ListView.builder(
           controller: _scrollController,

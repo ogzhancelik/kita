@@ -62,7 +62,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         // Start DM real-time listener for authenticated (non-guest) users
         if (authProv.isAuthenticated && !authProv.isGuest) {
-          context.read<DmProvider>().startListening();
+          context.read<DmProvider>().startListening(
+                myUserId: authProv.currentUser?.id,
+              );
         }
       }
 

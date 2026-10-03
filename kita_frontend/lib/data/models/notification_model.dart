@@ -76,11 +76,17 @@ class KitaNotification {
   bool get isActionable => type != KitaNotificationType.info;
   bool get isExpired {
     if (status == NotificationStatus.expired) return true;
-    if (type == KitaNotificationType.challenge || type == KitaNotificationType.rematch) {
+    if (type == KitaNotificationType.challenge) {
       if (expiresAt != null) {
         return DateTime.now().isAfter(expiresAt!);
       }
-      // Live WS challenge: 60s timeout
+      return DateTime.now().difference(timestamp).inSeconds > 24 * 3600;
+    }
+    if (type == KitaNotificationType.rematch) {
+      if (expiresAt != null) {
+        return DateTime.now().isAfter(expiresAt!);
+      }
+      // Live WS rematch: 60s timeout
       return DateTime.now().difference(timestamp).inSeconds > 60;
     }
     return false;

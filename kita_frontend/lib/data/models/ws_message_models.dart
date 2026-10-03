@@ -723,6 +723,7 @@ class MatchInvitationPayload {
   final int inviterAvatarIndex;
   final int timeControl;
   final String colorPreference;
+  final DateTime? expiresAt;
 
   const MatchInvitationPayload({
     required this.inviteId,
@@ -732,9 +733,15 @@ class MatchInvitationPayload {
     this.inviterAvatarIndex = 0,
     required this.timeControl,
     this.colorPreference = 'random',
+    this.expiresAt,
   });
 
   factory MatchInvitationPayload.fromJson(Map<String, dynamic> json) {
+    DateTime? expiresAt;
+    final expRaw = json['expires_at'];
+    if (expRaw is num && expRaw > 0) {
+      expiresAt = DateTime.fromMillisecondsSinceEpoch(expRaw.toInt() * 1000);
+    }
     return MatchInvitationPayload(
       inviteId: json['invite_id'] as String? ?? '',
       inviterId: json['inviter_id'] as String? ?? '',
@@ -743,6 +750,7 @@ class MatchInvitationPayload {
       inviterAvatarIndex: (json['inviter_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       colorPreference: json['color_preference'] as String? ?? 'random',
+      expiresAt: expiresAt,
     );
   }
 }
@@ -763,6 +771,7 @@ class IncomingMatchRequest {
   final int timeControl;
   final String colorPreference;
   final DateTime createdAt;
+  final DateTime? expiresAt;
 
   IncomingMatchRequest({
     required this.type,
@@ -773,6 +782,7 @@ class IncomingMatchRequest {
     required this.timeControl,
     this.colorPreference = 'random',
     DateTime? createdAt,
+    this.expiresAt,
   }) : createdAt = createdAt ?? DateTime.now();
 }
 

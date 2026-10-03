@@ -395,7 +395,7 @@ class KitaBoardWidget extends StatelessWidget {
                             ? (isLatest
                                 ? (isLastMoveDest ? 2.2 : 1.8)
                                 : (isLastMoveDest ? 1.8 : 1.4))
-                            : (effectiveTileSpacing <= 0 ? 1.0 : 0.8);
+                            : 0.8;
 
             return Material(
               color: Colors.transparent,
@@ -435,9 +435,7 @@ class KitaBoardWidget extends StatelessWidget {
                                               ? (isLastMoveDest ? 0.85 : 0.60)
                                               : (isLastMoveDest ? 0.55 : 0.38),
                                         )
-                                      : (effectiveTileSpacing <= 0
-                                          ? theme.borderColor
-                                          : Colors.white.withValues(alpha: 0.15)),
+                                      : Colors.white.withValues(alpha: 0.15),
                       width: effectiveBorderWidth,
                     ),
                     boxShadow: [

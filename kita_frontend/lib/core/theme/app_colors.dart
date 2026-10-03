@@ -46,7 +46,6 @@ class AppColors {
   static const Color boardOceanSelected = Color(0xFFFFD166); // Sunlit warm gold for Ocean Azure theme
   static const Color lastMoveHighlight = Color(0xFFF7F769);
   static const Color lastMoveLine = accent;
-  static const Color boardFlatBorder = Color(0xFF111111); // Crisp black border for flat adjacent tiles
 
   // --- Rating & Badges ---
   static const Color ratingGold = Color(0xFFFFC83B);

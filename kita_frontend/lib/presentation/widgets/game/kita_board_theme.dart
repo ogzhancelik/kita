@@ -214,13 +214,14 @@ class KitaBoardTheme {
     return copyWith(valueColors: swapped);
   }
 
-  /// Returns a copy of the theme with flat/sharp tiles (0 border radius, 0 spacing, and black tile border).
+  /// Returns a copy of the theme with flat/sharp tiles (0 border radius, halved padding).
   KitaBoardTheme asFlatTiles([bool flat = true]) {
     if (!flat) return this;
     return copyWith(
       tileBorderRadius: 0.0,
-      tileSpacing: 0.0,
-      borderColor: AppColors.boardFlatBorder,
+      tileSpacingRatio: tileSpacingRatio / 2.0,
+      maxTileSpacing: maxTileSpacing / 2.0,
+      tileSpacing: fixedTileSpacing != null ? (fixedTileSpacing! / 2.0) : null,
     );
   }
 

@@ -163,7 +163,9 @@ class DmProvider extends ChangeNotifier {
 
     try {
       final msgs = await _apiService.getHistory(conversationId);
-      _history[conversationId] = msgs;
+      final current = _history[conversationId] ?? [];
+      final pending = current.where((m) => m.id < 0).toList();
+      _history[conversationId] = [...msgs, ...pending];
       // Seed preview if missing
       if (msgs.isNotEmpty && !_previews.containsKey(conversationId)) {
         _previews[conversationId] = msgs.last;
@@ -236,10 +238,35 @@ class DmProvider extends ChangeNotifier {
 
   // ─── Send ────────────────────────────────────────────────────────────
 
-  /// Sends a DM over WebSocket. The echo (dm_broadcast) from the server will
-  /// append the message to history — no optimistic update needed since the WS
-  /// round-trip is near-instant on LAN/cloud.
-  void sendDm({required String recipientId, required String content}) {
+  /// Sends a DM over WebSocket. Optimistically appends the message to history
+  /// so the chat UI updates immediately without waiting for server round-trip.
+  void sendDm({
+    required String recipientId,
+    required String content,
+    String? senderId,
+    String? senderUsername,
+  }) {
+    final myId = senderId ?? _myUserId ?? '';
+    final convId = myId.isNotEmpty ? dmConversationId(myId, recipientId) : '';
+
+    if (convId.isNotEmpty) {
+      final optimisticMsg = DmMessage(
+        id: -DateTime.now().millisecondsSinceEpoch,
+        conversationId: convId,
+        senderId: myId,
+        senderUsername: senderUsername ?? '',
+        recipientId: recipientId,
+        content: content,
+        createdAt: DateTime.now(),
+      );
+
+      final conv = _history[convId] ?? [];
+      _history[convId] = [...conv, optimisticMsg];
+      _previews[convId] = optimisticMsg;
+      onDmInteraction.value = (userId: recipientId, time: optimisticMsg.createdAt);
+      notifyListeners();
+    }
+
     WebSocketService.instance.send(WsClientType.dmSend, {
       'recipient_id': recipientId,
       'content': content,
@@ -255,17 +282,27 @@ class DmProvider extends ChangeNotifier {
 
     final dm = DmMessage.fromJson(payload);
 
-    // Append to history if it's loaded
-    final conv = _history[dm.conversationId];
-    if (conv != null) {
+    // Check if the sender is ourselves (echo from server)
+    final isMe = _myUserId != null && _myUserId!.isNotEmpty && dm.senderId == _myUserId;
+
+    // Append to history or replace matching optimistic message
+    final conv = _history[dm.conversationId] ?? [];
+    final optIndex = conv.indexWhere(
+      (m) =>
+          m.id < 0 &&
+          m.senderId == dm.senderId &&
+          m.content == dm.content,
+    );
+    if (optIndex != -1) {
+      final updated = List<DmMessage>.from(conv);
+      updated[optIndex] = dm;
+      _history[dm.conversationId] = updated;
+    } else if (!conv.any((m) => m.id == dm.id)) {
       _history[dm.conversationId] = [...conv, dm];
     }
 
     // Update preview
     _previews[dm.conversationId] = dm;
-
-    // Check if the sender is ourselves (echo from server)
-    final isMe = _myUserId != null && _myUserId!.isNotEmpty && dm.senderId == _myUserId;
 
     final otherUserId = isMe ? dm.recipientId : dm.senderId;
     if (otherUserId.isNotEmpty) {
@@ -285,6 +322,9 @@ class DmProvider extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  @visibleForTesting
+  void handleWsMessageForTesting(WsMessage msg) => _onWsMessage(msg);
 
   @override
   void dispose() {

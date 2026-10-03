@@ -391,7 +391,7 @@ class _NotificationTileState extends State<NotificationTile> {
                                     totalDuration: notification.expiresAt != null
                                         ? notification.expiresAt!
                                             .difference(notification.timestamp)
-                                        : const Duration(seconds: 60),
+                                        : const Duration(hours: 24),
                                     size: 38.0,
                                     strokeWidth: 1.8,
                                     color: AppColors.accentSecondary,
