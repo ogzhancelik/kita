@@ -183,7 +183,7 @@ class MatchInvitationDialog extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      'side'.tr(),
+                      'game.side'.tr(),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.getTextMuted(isDark),

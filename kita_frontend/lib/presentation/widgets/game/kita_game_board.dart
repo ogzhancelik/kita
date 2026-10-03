@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/feedback/haptic_service.dart';
 import '../../../data/models/game_models.dart';
 import '../../providers/game_settings_provider.dart';
 import 'kita_board_theme.dart';
@@ -256,6 +257,7 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
     if (tappedPieceId != null) {
       final piece = KitaPiece.allPieces[tappedPieceId];
       if (piece != null && _isOurPiece(piece)) {
+        HapticService.instance.selection();
         final Set<KitaPos> movesForPiece;
         if (widget.isMyTurn &&
             piece.team == widget.displayEngine.turn &&

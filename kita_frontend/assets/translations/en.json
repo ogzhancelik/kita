@@ -168,6 +168,7 @@
     "aiBot": "Kita Bot",
     "player2": "Player 2",
     "side": "Side",
+    "you": "You",
     "playWhite": "White (First)",
     "playBlack": "Black (Second)",
     "playRandom": "Random",
@@ -384,6 +385,8 @@
     "offlineMatches": "Offline Matches",
     "offlineBadge": "OFFLINE",
     "vsAi": "VS AI",
+    "blackTeam": "Black Player",
+    "whiteTeam": "White Player",
     "guestOfflineNotice": "Showing offline games on this device. These will be deleted when you log off."
   },
   "replay": {
@@ -470,6 +473,7 @@
     "cancel": "Cancel",
     "resignAndLeave": "Resign & Leave",
     "matchMenu": "Match Menu",
+    "drawOfferTitle": "Offer Draw",
     "drawOffer": "Offer Draw",
     "drawOfferConfirm": "Send a draw offer to the opponent?",
     "drawOfferSent": "Draw offer sent to opponent.",
@@ -486,6 +490,7 @@
     "reportSubmitted": "Report submitted. Thank you for keeping Kita fair!",
     "submit": "Submit",
     "totalTime": "Total Time",
+    "stepBack": "Previous Move",
     "stepBackward": "Previous Move",
     "stepForward": "Next Move",
     "toggleChat": "Toggle Chat",
@@ -663,6 +668,7 @@
     "save": "Save",
     "paste": "Paste",
     "saved": "API URL saved successfully!",
+    "savedButUnreachable": "API URL saved, but server is unreachable. Check the URL and try again.",
     "unreachable": "Server unreachable. Check the URL and try again."
   },
   "dm": {
@@ -689,6 +695,7 @@
     "startNewChat": "New Chat",
     "selectFriend": "Select a Friend",
     "noFriendsFound": "No friends found",
+    "noChatsFound": "No chats found",
     "guestNotice": "Log in with an account to chat with friends.",
     "you": "You: ",
     "noMessages": "No messages yet"

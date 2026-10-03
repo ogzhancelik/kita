@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../core/feedback/haptic_service.dart';
 import '../../core/feedback/sound_service.dart';
 import '../../data/models/game_models.dart';
 import '../../data/models/kita_ai.dart';
@@ -195,8 +196,10 @@ class OfflineGameProvider extends ChangeNotifier {
     final isCapture = engine.activePositions.values.contains(move.toPos);
     if (isCapture) {
       SoundService.instance.playCapture();
+      HapticService.instance.medium();
     } else {
       SoundService.instance.playMove();
+      HapticService.instance.light();
     }
 
     final nextEngine = engine.applyMove(move);
@@ -242,6 +245,7 @@ class OfflineGameProvider extends ChangeNotifier {
     if (!hasActiveMatch) return;
 
     SoundService.instance.playCapture();
+    HapticService.instance.medium();
     final retaliatedEngine = currentEngine.applyMove(retaliationMove);
     lastMove.value = retaliationMove;
 
@@ -303,6 +307,7 @@ class OfflineGameProvider extends ChangeNotifier {
       matchState.value = OnlineMatchState.gameOver;
       _stopClockTimer();
       SoundService.instance.playGameOver();
+      HapticService.instance.heavy();
       _saveOfflineGameRecord(payload);
       _clearPersistedActiveOfflineMatch();
       notifyListeners();
@@ -372,6 +377,7 @@ class OfflineGameProvider extends ChangeNotifier {
     matchState.value = OnlineMatchState.gameOver;
     _stopClockTimer();
     SoundService.instance.playGameOver();
+    HapticService.instance.heavy();
     _saveOfflineGameRecord(payload);
     _clearPersistedActiveOfflineMatch();
     notifyListeners();
@@ -716,8 +722,21 @@ class OfflineGameProvider extends ChangeNotifier {
     _clockTimer?.cancel();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!hasActiveMatch) return;
-      elapsedSeconds.value++;
+      if (_matchStartedAt != null) {
+        elapsedSeconds.value =
+            DateTime.now().difference(_matchStartedAt!).inSeconds;
+      } else {
+        elapsedSeconds.value++;
+      }
     });
+  }
+
+  /// Call when app resumes from background.
+  void syncClocks() {
+    if (hasActiveMatch && _matchStartedAt != null) {
+      elapsedSeconds.value =
+          DateTime.now().difference(_matchStartedAt!).inSeconds;
+    }
   }
 
   void _stopClockTimer() {

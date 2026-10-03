@@ -27,7 +27,8 @@ class OfflineMatchScreen extends StatefulWidget {
   State<OfflineMatchScreen> createState() => _OfflineMatchScreenState();
 }
 
-class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
+class _OfflineMatchScreenState extends State<OfflineMatchScreen>
+    with WidgetsBindingObserver {
   OfflineGameProvider? _provider;
   bool _isGameOverDialogShowing = false;
   Timer? _gameOverDialogTimer;
@@ -36,6 +37,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
   void initState() {
     super.initState();
     OfflineMatchScreen.isMatchScreenOpen = true;
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -51,10 +53,18 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     OfflineMatchScreen.isMatchScreenOpen = false;
     _gameOverDialogTimer?.cancel();
     _provider?.gameOverData.removeListener(_onGameOver);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _provider?.syncClocks();
+    }
   }
 
   void _onGameOver() {
@@ -343,7 +353,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen> {
           IconButton(
             icon: const Icon(Icons.chevron_left_rounded),
             color: AppColors.getTextPrimary(isDark),
-            tooltip: 'online.stepBack'.tr(),
+            tooltip: 'online.stepBackward'.tr(),
             onPressed: provider.stepBackward,
           ),
           IconButton(

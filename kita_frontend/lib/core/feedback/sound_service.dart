@@ -25,6 +25,9 @@ class SoundService {
   // Dedicated player for the game-over fanfare
   AudioPlayer? _gameOverPlayer;
 
+  // Dedicated player for urgent low-time alerts
+  AudioPlayer? _lowTimePlayer;
+
   bool _initialized = false;
 
   /// Game sound effect audio context:
@@ -67,6 +70,10 @@ class SoundService {
       _gameOverPlayer = AudioPlayer();
       await _gameOverPlayer?.setAudioContext(_gameAudioContext);
       await _gameOverPlayer?.setReleaseMode(ReleaseMode.stop);
+
+      _lowTimePlayer = AudioPlayer();
+      await _lowTimePlayer?.setAudioContext(_gameAudioContext);
+      await _lowTimePlayer?.setReleaseMode(ReleaseMode.stop);
     } catch (_) {}
   }
 
@@ -77,6 +84,22 @@ class SoundService {
 
   /// Play the king-capture sound.
   Future<void> playCapture() => _playPooled('sounds/capture.mp3');
+
+  /// Play the urgent low-time countdown tick alert.
+  Future<void> playLowTime() async {
+    if (!enabled) return;
+    if (!_initialized) {
+      await initialize();
+    }
+    try {
+      _lowTimePlayer ??= AudioPlayer();
+      await _lowTimePlayer?.stop();
+      await _lowTimePlayer?.play(
+        AssetSource('sounds/low_time.mp3'),
+        ctx: _gameAudioContext,
+      );
+    } catch (_) {}
+  }
 
   /// Play the end-of-game notification sound.
   Future<void> playGameOver() async {

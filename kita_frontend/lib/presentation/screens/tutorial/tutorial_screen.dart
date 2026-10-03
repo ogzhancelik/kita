@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/feedback/haptic_service.dart';
 import '../../../core/feedback/sound_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
@@ -134,6 +135,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
           _undoStage = 2;
         });
         SoundService.instance.playMove();
+        HapticService.instance.light();
       });
       return;
     }
@@ -311,6 +313,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
       _interactiveFeedback = null;
     });
     SoundService.instance.playMove();
+    HapticService.instance.light();
   }
 
   void _executeUndoDemonstrationMove(KitaMove move) {
@@ -324,6 +327,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
       _interactiveFeedback = null;
     });
     SoundService.instance.playMove();
+    HapticService.instance.light();
   }
 
   void _executeCaptureKingMove(KitaMove move) {
@@ -340,6 +344,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
         _interactiveFeedback = null;
       });
       SoundService.instance.playCapture();
+      HapticService.instance.medium();
     } else {
       // Made a legal move, but not the king capture
       setState(() {
@@ -363,6 +368,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
         _interactiveFeedback = null;
       });
       SoundService.instance.playMove();
+      HapticService.instance.light();
     } else {
       setState(() {
         _interactiveFeedback = 'tutorial.tryAgain'.tr();
@@ -384,6 +390,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
         _interactiveFeedback = null;
       });
       SoundService.instance.playCapture();
+      HapticService.instance.medium();
 
       // Automatic retaliation: Black BP1 at (6, 1) captures White King at (6, 3)
       Timer(const Duration(milliseconds: 650), () {
@@ -403,6 +410,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
           _undoStage = 0;
         });
         SoundService.instance.playCapture();
+        HapticService.instance.medium();
       });
     } else {
       setState(() {

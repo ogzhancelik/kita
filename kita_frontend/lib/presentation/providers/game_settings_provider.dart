@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/feedback/haptic_service.dart';
 import '../../core/feedback/sound_service.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../widgets/game/kita_board_theme.dart';
@@ -8,6 +9,7 @@ import '../widgets/game/kita_board_theme.dart';
 /// - Board Orientation (horizontal, vertical)
 /// - Flip Direction (auto, white, black)
 /// - Audio / Sound Effects (enabled / disabled)
+/// - Haptic Feedback (enabled / disabled)
 /// - 2P Local Coop: Auto-rotate pieces on turn switch (enabled / disabled)
 /// - 2P Local Coop: Default piece orientation ('vertical' = 0°, 'horizontal' = 90°)
 /// - Swap tile colors for 1 and 3 (1s lighter, 3s darker)
@@ -18,6 +20,7 @@ class GameSettingsProvider extends ChangeNotifier {
   String _boardOrientation = 'horizontal';
   String _flipDirection = 'auto';
   bool _soundEnabled = true;
+  bool _hapticsEnabled = true;
   bool _localCoopAutoRotate = true;
   String _localCoopDefaultRotation = 'vertical';
   bool _swapTileColors = false;
@@ -28,6 +31,7 @@ class GameSettingsProvider extends ChangeNotifier {
   static const String _orientationStorageKey = 'kita_board_orientation';
   static const String _flipStorageKey = 'kita_flip_direction';
   static const String _soundStorageKey = 'kita_sound_enabled';
+  static const String _hapticsStorageKey = 'kita_haptics_enabled';
   static const String _localCoopAutoRotateKey = 'kita_local_coop_auto_rotate';
   static const String _localCoopDefaultRotationKey = 'kita_local_coop_default_rotation';
   static const String _swapTileColorsKey = 'kita_swap_tile_colors';
@@ -43,6 +47,7 @@ class GameSettingsProvider extends ChangeNotifier {
   String get boardOrientation => _boardOrientation;
   String get flipDirection => _flipDirection;
   bool get soundEnabled => _soundEnabled;
+  bool get hapticsEnabled => _hapticsEnabled;
   bool get localCoopAutoRotate => _localCoopAutoRotate;
   String get localCoopDefaultRotation => _localCoopDefaultRotation;
   bool get isLocalCoopHorizontal => _localCoopDefaultRotation == 'horizontal';
@@ -63,6 +68,7 @@ class GameSettingsProvider extends ChangeNotifier {
         _storage.readString(_orientationStorageKey),
         _storage.readString(_flipStorageKey),
         _storage.readString(_soundStorageKey),
+        _storage.readString(_hapticsStorageKey),
         _storage.readString(_localCoopAutoRotateKey),
         _storage.readString(_localCoopDefaultRotationKey),
         _storage.readString(_swapTileColorsKey),
@@ -91,27 +97,33 @@ class GameSettingsProvider extends ChangeNotifier {
         SoundService.instance.enabled = _soundEnabled;
       }
 
-      final savedAutoRotate = results[4];
+      final savedHaptics = results[4];
+      if (savedHaptics != null && savedHaptics.isNotEmpty) {
+        _hapticsEnabled = savedHaptics == 'true';
+        HapticService.instance.enabled = _hapticsEnabled;
+      }
+
+      final savedAutoRotate = results[5];
       if (savedAutoRotate != null && savedAutoRotate.isNotEmpty) {
         _localCoopAutoRotate = savedAutoRotate == 'true';
       }
 
-      final savedDefaultRotation = results[5];
+      final savedDefaultRotation = results[6];
       if (savedDefaultRotation != null && savedDefaultRotation.isNotEmpty) {
         _localCoopDefaultRotation = savedDefaultRotation;
       }
 
-      final savedSwapTileColors = results[6];
+      final savedSwapTileColors = results[7];
       if (savedSwapTileColors != null && savedSwapTileColors.isNotEmpty) {
         _swapTileColors = savedSwapTileColors == 'true';
       }
 
-      final savedLastMoveIndicator = results[7];
+      final savedLastMoveIndicator = results[8];
       if (savedLastMoveIndicator != null && savedLastMoveIndicator.isNotEmpty) {
         _lastMoveIndicator = savedLastMoveIndicator;
       }
 
-      final savedBoardTileStyle = results[8];
+      final savedBoardTileStyle = results[9];
       if (savedBoardTileStyle != null && savedBoardTileStyle.isNotEmpty) {
         _boardTileStyle = savedBoardTileStyle;
       }
@@ -181,6 +193,18 @@ class GameSettingsProvider extends ChangeNotifier {
 
   Future<void> toggleSound() async {
     await setSoundEnabled(!_soundEnabled);
+  }
+
+  Future<void> setHapticsEnabled(bool enabled) async {
+    if (_hapticsEnabled == enabled) return;
+    _hapticsEnabled = enabled;
+    HapticService.instance.enabled = enabled;
+    notifyListeners();
+    await _storage.writeString(_hapticsStorageKey, enabled.toString());
+  }
+
+  Future<void> toggleHaptics() async {
+    await setHapticsEnabled(!_hapticsEnabled);
   }
 
   Future<void> setLocalCoopAutoRotate(bool autoRotate) async {

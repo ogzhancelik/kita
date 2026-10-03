@@ -37,7 +37,8 @@ class OnlineMatchScreen extends StatefulWidget {
   State<OnlineMatchScreen> createState() => _OnlineMatchScreenState();
 }
 
-class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
+class _OnlineMatchScreenState extends State<OnlineMatchScreen>
+    with WidgetsBindingObserver {
   OnlineGameProvider? _provider;
   bool _isGameOverDialogShowing = false;
   Timer? _gameOverDialogTimer;
@@ -47,6 +48,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
   void initState() {
     super.initState();
     OnlineMatchScreen.isMatchScreenOpen = true;
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -64,11 +66,19 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _gameOverDialogTimer?.cancel();
     OnlineMatchScreen.isMatchScreenOpen = false;
     _provider?.gameOverData.removeListener(_onGameOver);
     _provider?.matchState.removeListener(_onMatchStateChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _provider?.syncClocks();
+    }
   }
 
   void _onMatchStateChanged() {

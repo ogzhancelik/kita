@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/feedback/haptic_service.dart';
 import '../../../core/feedback/sound_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
@@ -405,8 +406,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
     if (_isCapture(baseList.last, move)) {
       SoundService.instance.playCapture();
+      HapticService.instance.medium();
     } else {
       SoundService.instance.playMove();
+      HapticService.instance.light();
     }
     final nextEngine = baseList.last.applyMove(move);
 
@@ -442,6 +445,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final baseList = _sandboxStates.sublist(0, _sandboxStep + 1);
     final baseMoves = _sandboxMoves.sublist(0, _sandboxStep);
     SoundService.instance.playCapture();
+    HapticService.instance.medium();
     final nextEngine = baseList.last.applyMove(retaliationMove);
 
     setState(() {

@@ -124,6 +124,22 @@ class SettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
+                    // --- Haptic Feedback Setting ---
+                    _buildSettingsTile(
+                      isDark: isDark,
+                      icon: gameSettings.hapticsEnabled ? Icons.vibration_rounded : Icons.smartphone_rounded,
+                      iconColor: AppColors.accentSecondary,
+                      title: 'settings.haptics'.tr(),
+                      subtitle: 'settings.hapticsDesc'.tr(),
+                      trailing: Switch(
+                        value: gameSettings.hapticsEnabled,
+                        activeThumbColor: AppColors.accentSecondary,
+                        activeTrackColor: AppColors.accentSecondary.withValues(alpha: 0.4),
+                        onChanged: (val) => gameSettings.setHapticsEnabled(val),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
                     // --- Language Setting ---
                     _buildSettingsTile(
                       isDark: isDark,

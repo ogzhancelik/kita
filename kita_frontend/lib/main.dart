@@ -69,6 +69,7 @@ class KitaApp extends StatefulWidget {
 
 class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   OnlineGameProvider? _onlineProv;
+  OfflineGameProvider? _offlineProv;
   FriendsProvider? _friendsProv;
   DmProvider? _dmProv;
   bool _isInviteDialogShowing = false;
@@ -86,6 +87,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _offlineProv = context.read<OfflineGameProvider>();
     final online = context.read<OnlineGameProvider>();
     if (_onlineProv != online) {
       _onlineProv?.incomingMatchRequest.removeListener(_onIncomingRequestChanged);
@@ -157,6 +159,8 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
+      _onlineProv?.syncClocks();
+      _offlineProv?.syncClocks();
       final authProv = context.read<AuthProvider>();
       if (authProv.isAuthenticated && !authProv.isGuest && !authProv.isOnlineUnavailable) {
         _friendsProv?.loadAll();

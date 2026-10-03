@@ -168,6 +168,7 @@
     "aiBot": "Kita Bot",
     "player2": "Oyuncu 2",
     "side": "Taraf",
+    "you": "Sen",
     "playWhite": "Beyaz (İlk)",
     "playBlack": "Siyah (İkinci)",
     "playRandom": "Rastgele",
@@ -301,6 +302,7 @@
     "soundEffects": "Ses Efektleri",
     "soundEffectsDesc": "Hamle, taş alma ve oyun sonu seslerini çal",
     "haptics": "Titreşim Geri Bildirimi",
+    "hapticsDesc": "Hamle, taş alma ve uyarılarda titret",
     "matchSettings": "Maç Ayarları",
     "matchSettingsDesc": "Tahta teması, yönü ve görünümü",
     "rulesGuide": "Nasıl Oynanır? (Kurallar)",
@@ -383,6 +385,8 @@
     "offlineMatches": "Çevrimdışı Maçlar",
     "offlineBadge": "ÇEVRİMDISI",
     "vsAi": "Yapay Zeka",
+    "blackTeam": "Siyah Oyuncu",
+    "whiteTeam": "Beyaz Oyuncu",
     "guestOfflineNotice": "Bu cihazdaki çevrimdışı maçlar gösteriliyor. Çıkış yaptığınızda silinecektir."
   },
   "replay": {
@@ -469,6 +473,7 @@
     "cancel": "İptal",
     "resignAndLeave": "Terk Et & Ayrıl",
     "matchMenu": "Maç Menüsü",
+    "drawOfferTitle": "Beraberlik Teklif Et",
     "drawOffer": "Berabere İsteği",
     "drawOfferConfirm": "Rakibe beraberlik teklif edilsin mi?",
     "drawOfferSent": "Rakibe beraberlik teklifi gönderildi.",
@@ -485,6 +490,7 @@
     "reportSubmitted": "Şikayet iletildi. Adil oyun için teşekkür ederiz!",
     "submit": "Gönder",
     "totalTime": "Toplam Süre",
+    "stepBack": "Önceki Hamle",
     "stepBackward": "Önceki Hamle",
     "stepForward": "Sonraki Hamle",
     "toggleChat": "Sohbeti Aç/Kapat",
@@ -662,6 +668,7 @@
     "save": "Kaydet",
     "paste": "Yapıştır",
     "saved": "API URL başarıyla kaydedildi!",
+    "savedButUnreachable": "API adresi kaydedildi fakat sunucuya ulaşılamıyor. Adresi kontrol edip tekrar deneyin.",
     "unreachable": "Sunucuya ulaşılamıyor. URL'yi kontrol edip tekrar deneyin."
   },
   "dm": {
@@ -688,6 +695,7 @@
     "startNewChat": "Yeni Sohbet",
     "selectFriend": "Arkadaş Seç",
     "noFriendsFound": "Arkadaş bulunamadı",
+    "noChatsFound": "Sohbet bulunamadı",
     "guestNotice": "Arkadaşlarınla sohbet etmek için giriş yap.",
     "you": "Sen: ",
     "noMessages": "Henüz mesaj yok"

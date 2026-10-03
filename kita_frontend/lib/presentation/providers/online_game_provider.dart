@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/feedback/haptic_service.dart';
 import '../../core/feedback/sound_service.dart';
 import '../../core/feedback/toast_service.dart';
 import '../../data/models/dm_models.dart';
@@ -47,6 +48,10 @@ class OnlineGameProvider extends ChangeNotifier {
   final WebSocketService _ws = WebSocketService.instance;
   StreamSubscription<WsMessage>? _wsSubscription;
   Timer? _clockTimer;
+  bool _lowTimeAlertPlayed = false;
+  DateTime? _turnStartedAt;
+  int _turnBaseRemainingMs = 0;
+  DateTime? _queueStartedAt;
 
   // ─── Core Match State ─────────────────────────────────────────────
 
@@ -1104,7 +1109,9 @@ class OnlineGameProvider extends ChangeNotifier {
     currentTurn.value = 'white';
 
     matchState.value = OnlineMatchState.inMatch;
-    _matchStartedAt = DateTime.now();
+    _matchStartedAt ??= DateTime.now();
+    _turnStartedAt = _matchStartedAt;
+    _turnBaseRemainingMs = timeControl;
     _stopQueueTimer();
     _startClockTimer();
 
@@ -1119,6 +1126,10 @@ class OnlineGameProvider extends ChangeNotifier {
     whiteRemainingMs.value = data.whiteRemainingMs;
     blackRemainingMs.value = data.blackRemainingMs;
     currentTurn.value = data.turn;
+
+    _turnStartedAt = DateTime.now();
+    _turnBaseRemainingMs =
+        data.turn == 'white' ? data.whiteRemainingMs : data.blackRemainingMs;
 
     if (data.startedAt != null) {
       _matchStartedAt = data.startedAt;
@@ -1145,10 +1156,14 @@ class OnlineGameProvider extends ChangeNotifier {
 
       if (isCapture) {
         SoundService.instance.playCapture();
+        HapticService.instance.medium();
       } else {
         SoundService.instance.playMove();
+        HapticService.instance.light();
       }
     }
+
+    _lowTimeAlertPlayed = false;
 
     // Sync frontend engine from backend positions
     _syncEngineFromBackend(data);
@@ -1265,12 +1280,21 @@ class OnlineGameProvider extends ChangeNotifier {
           DateTime.now().difference(_matchStartedAt!).inSeconds;
     }
 
+    if (data.reason == 'timeout') {
+      if (data.winner == 'white') {
+        blackRemainingMs.value = 0;
+      } else if (data.winner == 'black') {
+        whiteRemainingMs.value = 0;
+      }
+    }
+
     gameOverData.value = data;
     matchState.value = OnlineMatchState.gameOver;
     drawOffer.value = null;
     isDrawOfferPending.value = false;
     _stopClockTimer();
     SoundService.instance.playGameOver();
+    HapticService.instance.heavy();
     LocalMatchHistoryService.instance.notifyMatchesChanged();
     notifyListeners();
   }
@@ -1391,47 +1415,94 @@ class OnlineGameProvider extends ChangeNotifier {
   void _startClockTimer() {
     _stopClockTimer();
 
+    _turnStartedAt = DateTime.now();
+    _turnBaseRemainingMs = currentTurn.value == 'white'
+        ? whiteRemainingMs.value
+        : blackRemainingMs.value;
+
     _clockTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
-      if (matchState.value != OnlineMatchState.inMatch) return;
-
-      // Client-side interpolation: deduct 100ms from the active player's clock if timed match
-      if (timeControl > 0) {
-        if (currentTurn.value == 'white') {
-          final remaining = whiteRemainingMs.value - 100;
-          whiteRemainingMs.value = remaining > 0 ? remaining : 0;
-        } else {
-          final remaining = blackRemainingMs.value - 100;
-          blackRemainingMs.value = remaining > 0 ? remaining : 0;
-        }
-      }
-
-      // Update elapsed seconds for both timed and unlimited (no time limit) modes
-      if (_matchStartedAt != null) {
-        elapsedSeconds.value = DateTime.now()
-            .difference(_matchStartedAt!)
-            .inSeconds;
-      }
+      _tickClock();
     });
+  }
+
+  void _tickClock() {
+    if (matchState.value != OnlineMatchState.inMatch) return;
+
+    // Client-side interpolation: deduct real elapsed milliseconds from active player's clock
+    if (timeControl > 0 && _turnStartedAt != null) {
+      final elapsedMs =
+          DateTime.now().difference(_turnStartedAt!).inMilliseconds;
+      final remaining = _turnBaseRemainingMs - elapsedMs;
+      final clampedRemaining = remaining > 0 ? remaining : 0;
+
+      if (currentTurn.value == 'white') {
+        whiteRemainingMs.value = clampedRemaining;
+      } else {
+        blackRemainingMs.value = clampedRemaining;
+      }
+
+      // Low-time alert sound & haptic played once when local player has <= 10 seconds on their turn
+      final activeTeam = myTeam;
+      if (activeTeam != null && currentTurn.value == activeTeam) {
+        final myRemainingMs = clampedRemaining;
+        if (myRemainingMs > 0 && myRemainingMs <= 10000) {
+          if (!_lowTimeAlertPlayed) {
+            _lowTimeAlertPlayed = true;
+            SoundService.instance.playLowTime();
+            HapticService.instance.medium();
+          }
+        } else if (myRemainingMs > 10000) {
+          _lowTimeAlertPlayed = false;
+        }
+      } else {
+        _lowTimeAlertPlayed = false;
+      }
+    }
+
+    // Update elapsed seconds for both timed and unlimited (no time limit) modes
+    if (_matchStartedAt != null) {
+      elapsedSeconds.value =
+          DateTime.now().difference(_matchStartedAt!).inSeconds;
+    }
   }
 
   void _stopClockTimer() {
     _clockTimer?.cancel();
     _clockTimer = null;
+    _turnStartedAt = null;
+    _turnBaseRemainingMs = 0;
+    _lowTimeAlertPlayed = false;
+  }
+
+  /// Call when app resumes from background (lifecycle change, web tab focus).
+  void syncClocks() {
+    if (matchState.value == OnlineMatchState.inMatch) {
+      _tickClock();
+    } else if (matchState.value == OnlineMatchState.inQueue &&
+        _queueStartedAt != null) {
+      queueElapsedSeconds.value =
+          DateTime.now().difference(_queueStartedAt!).inSeconds;
+    }
   }
 
   // ─── Queue Timer ──────────────────────────────────────────────────
 
   void _startQueueTimer() {
     _stopQueueTimer();
+    _queueStartedAt = DateTime.now();
     queueElapsedSeconds.value = 0;
     _queueTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      queueElapsedSeconds.value++;
+      if (_queueStartedAt != null) {
+        queueElapsedSeconds.value =
+            DateTime.now().difference(_queueStartedAt!).inSeconds;
+      }
     });
   }
 
   void _stopQueueTimer() {
     _queueTimer?.cancel();
     _queueTimer = null;
+    _queueStartedAt = null;
     queueElapsedSeconds.value = 0;
   }
 
