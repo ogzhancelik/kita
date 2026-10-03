@@ -32,10 +32,10 @@ class VsAiConfigDialog extends StatefulWidget {
 }
 
 class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
-  static int _cachedDifficulty = 1;
+  static int _cachedDifficulty = 2;
   static String _cachedSide = 'random';
 
-  int _selectedDifficulty = _cachedDifficulty; // 0: Easy, 1: Medium, 2: Hard
+  int _selectedDifficulty = _cachedDifficulty; // 0: Novice, 1: Easy, 2: Medium, 3: Hard
   String _selectedSide = _cachedSide; // 'white', 'random', 'black'
 
   @override
@@ -51,7 +51,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       final savedSide = prefs.getString(VsAiConfigDialog.prefSideKey);
 
       bool changed = false;
-      if (savedDiff != null && savedDiff >= 0 && savedDiff <= 2) {
+      if (savedDiff != null && savedDiff >= 0 && savedDiff <= 3) {
         _cachedDifficulty = savedDiff;
         _selectedDifficulty = savedDiff;
         changed = true;
@@ -144,29 +144,39 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
               children: [
                 Expanded(
                   child: _buildDifficultyOption(
+                    title: 'game.novice'.tr(),
+                    rating: '800',
+                    value: 0,
+                    icon: Icons.school_rounded,
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _buildDifficultyOption(
                     title: 'game.easy'.tr(),
                     rating: '1000',
-                    value: 0,
+                    value: 1,
                     icon: Icons.sentiment_satisfied_rounded,
                     isDark: isDark,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: _buildDifficultyOption(
                     title: 'game.medium'.tr(),
                     rating: '1200',
-                    value: 1,
+                    value: 2,
                     icon: Icons.military_tech_rounded,
                     isDark: isDark,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: _buildDifficultyOption(
                     title: 'game.hard'.tr(),
                     rating: '1400',
-                    value: 2,
+                    value: 3,
                     icon: Icons.workspace_premium_rounded,
                     isDark: isDark,
                   ),
@@ -295,7 +305,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       },
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
           color: isSelected
               ? activeColor.withValues(alpha: 0.12)
@@ -317,7 +327,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
             Text(
               title,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 color: isSelected
                     ? AppColors.getTextPrimary(isDark)
@@ -328,7 +338,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
             ),
             const SizedBox(height: 2),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
                 color: isSelected
                     ? activeColor.withValues(alpha: 0.2)
@@ -338,7 +348,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
               child: Text(
                 rating,
                 style: TextStyle(
-                  fontSize: 9.5,
+                  fontSize: 9,
                   fontWeight: FontWeight.w700,
                   color: isSelected ? activeColor : AppColors.getTextMuted(isDark),
                 ),

@@ -72,13 +72,17 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   // Board presentation
   bool _isHorizontal = true;
   bool _flipBoard = false;
-  int _themeIndex = 0;
+  final int _themeIndex = 0;
 
   // AI Evaluation
   final KitaAI _ai = KitaAI.instance;
   bool _aiReady = false;
+  List<double> _stateScores = [];
   List<MoveEvaluation?> _evaluations = [];
+  List<double> _sandboxStateScores = [];
   List<MoveEvaluation?> _sandboxEvaluations = [];
+  int _evalGeneration = 0;
+  int _sandboxEvalGeneration = 0;
 
   // Interactive Sandbox Fork State
   bool _isSandboxMode = false;
@@ -102,6 +106,19 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     return KitaGameEngine();
   }
 
+  double? get _currentActiveScore {
+    if (_isSandboxMode) {
+      if (_sandboxStateScores.length > _sandboxStep) {
+        return _sandboxStateScores[_sandboxStep];
+      }
+      return null;
+    }
+    if (_stateScores.length > _currentStep) {
+      return _stateScores[_currentStep];
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -116,6 +133,8 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
   @override
   void dispose() {
+    _evalGeneration++;
+    _sandboxEvalGeneration++;
     _playbackTimer?.cancel();
     _movesScrollController.dispose();
     super.dispose();
@@ -219,14 +238,28 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   void _computeMoveEvaluations() {
     if (_states.length < 2 || _match == null) {
       _evaluations = [];
+      _stateScores = [];
       return;
     }
 
-    final List<double> stateScores = [];
+    // Pass 1: Fast initial evaluation (depth 1) so UI displays advantage points immediately
+    final List<double> fastScores = [];
     for (final state in _states) {
-      stateScores.add(AiAdvantageBar.computeWhiteAdvantageScore(state, _aiReady ? _ai : null));
+      fastScores.add(AiAdvantageBar.computeWhiteAdvantageScore(
+        state,
+        _aiReady ? _ai : null,
+        1,
+      ));
     }
 
+    _stateScores = fastScores;
+    _evaluations = _buildEvaluationsFromScores(fastScores);
+
+    // Pass 2: Progressive refinement to depth 3 with event-loop yielding
+    _refineMoveEvaluationsDepth3();
+  }
+
+  List<MoveEvaluation?> _buildEvaluationsFromScores(List<double> scores) {
     final List<MoveEvaluation?> evals = [];
     for (int i = 1; i < _states.length; i++) {
       final move = _movesByPly[i];
@@ -234,40 +267,151 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         evals.add(null);
         continue;
       }
-      final isWhite = i % 2 == 1; // 1-based ply: 1 is White, 2 is Black, etc.
+      final isWhite = i % 2 == 1; // 1-based ply: 1 is White, 2 is Black
       evals.add(MoveEvaluation.compute(
-        whiteScoreBefore: stateScores[i - 1],
-        whiteScoreAfter: stateScores[i],
+        whiteScoreBefore: scores[i - 1],
+        whiteScoreAfter: scores[i],
         isWhiteMove: isWhite,
       ));
     }
+    return evals;
+  }
 
-    _evaluations = evals;
+  Future<void> _refineMoveEvaluationsDepth3() async {
+    if (!_aiReady || _states.length < 2 || _match == null) return;
+
+    final gen = ++_evalGeneration;
+    final List<double> refinedScores = List<double>.from(_stateScores);
+    if (refinedScores.length != _states.length) {
+      refinedScores.length = _states.length;
+    }
+
+    for (int i = 0; i < _states.length; i++) {
+      if (!mounted || gen != _evalGeneration) return;
+
+      refinedScores[i] = AiAdvantageBar.computeWhiteAdvantageScore(
+        _states[i],
+        _ai,
+        3,
+      );
+
+      // Yield every 2 plies to maintain 60/120 FPS UI smoothness
+      if (i % 2 == 0) {
+        await Future.delayed(Duration.zero);
+        if (!mounted || gen != _evalGeneration) return;
+
+        setState(() {
+          _stateScores = List<double>.from(refinedScores);
+          _evaluations = _buildEvaluationsFromScores(refinedScores);
+        });
+      }
+    }
+
+    if (!mounted || gen != _evalGeneration) return;
+    setState(() {
+      _stateScores = refinedScores;
+      _evaluations = _buildEvaluationsFromScores(refinedScores);
+    });
   }
 
   void _computeSandboxEvaluations() {
     if (_sandboxStates.length < 2) {
       _sandboxEvaluations = [];
+      if (_sandboxStates.isNotEmpty) {
+        if (_sandboxStateScores.isEmpty) {
+          final baseScore = (_stateScores.length > _forkStep)
+              ? _stateScores[_forkStep]
+              : AiAdvantageBar.computeWhiteAdvantageScore(
+                  _sandboxStates.first,
+                  _aiReady ? _ai : null,
+                  3,
+                );
+          _sandboxStateScores = [baseScore];
+        }
+      } else {
+        _sandboxStateScores = [];
+      }
       return;
     }
 
-    final List<double> stateScores = [];
-    for (final state in _sandboxStates) {
-      stateScores.add(AiAdvantageBar.computeWhiteAdvantageScore(state, _aiReady ? _ai : null));
+    // Ensure state 0 (fork point) has a valid depth-3 score
+    if (_sandboxStateScores.isEmpty) {
+      final baseScore = (_stateScores.length > _forkStep)
+          ? _stateScores[_forkStep]
+          : AiAdvantageBar.computeWhiteAdvantageScore(
+              _sandboxStates.first,
+              _aiReady ? _ai : null,
+              3,
+            );
+      _sandboxStateScores = [baseScore];
     }
 
+    // Trim scores if sandbox branched from an earlier step
+    if (_sandboxStateScores.length > _sandboxStates.length) {
+      _sandboxStateScores = _sandboxStateScores.sublist(0, _sandboxStates.length);
+    }
+
+    final int startIndex = _sandboxStateScores.length;
+
+    // Pass 1: Fast initial pass (depth 1) ONLY for newly added states
+    for (int i = startIndex; i < _sandboxStates.length; i++) {
+      _sandboxStateScores.add(AiAdvantageBar.computeWhiteAdvantageScore(
+        _sandboxStates[i],
+        _aiReady ? _ai : null,
+        1,
+      ));
+    }
+
+    _sandboxEvaluations = _buildSandboxEvaluationsFromScores(_sandboxStateScores);
+
+    // Pass 2: Progressive refinement to depth 3 ONLY for newly added states
+    if (startIndex < _sandboxStates.length) {
+      _refineSandboxEvaluationsDepth3(startIndex: startIndex);
+    }
+  }
+
+  List<MoveEvaluation?> _buildSandboxEvaluationsFromScores(List<double> scores) {
     final List<MoveEvaluation?> evals = [];
     for (int i = 1; i < _sandboxStates.length; i++) {
       final globalPly = _forkStep + i;
       final isWhite = globalPly % 2 == 1;
       evals.add(MoveEvaluation.compute(
-        whiteScoreBefore: stateScores[i - 1],
-        whiteScoreAfter: stateScores[i],
+        whiteScoreBefore: scores[i - 1],
+        whiteScoreAfter: scores[i],
         isWhiteMove: isWhite,
       ));
     }
+    return evals;
+  }
 
-    _sandboxEvaluations = evals;
+  Future<void> _refineSandboxEvaluationsDepth3({int startIndex = 1}) async {
+    if (!_aiReady || _sandboxStates.length < 2) return;
+
+    final gen = ++_sandboxEvalGeneration;
+
+    for (int i = startIndex; i < _sandboxStates.length; i++) {
+      if (!mounted || gen != _sandboxEvalGeneration || !_isSandboxMode) return;
+
+      final refinedScore = AiAdvantageBar.computeWhiteAdvantageScore(
+        _sandboxStates[i],
+        _ai,
+        3,
+      );
+
+      if (!mounted || gen != _sandboxEvalGeneration || !_isSandboxMode) return;
+
+      if (i < _sandboxStateScores.length) {
+        _sandboxStateScores[i] = refinedScore;
+      }
+
+      setState(() {
+        _sandboxStateScores = List<double>.from(_sandboxStateScores);
+        _sandboxEvaluations = _buildSandboxEvaluationsFromScores(_sandboxStateScores);
+      });
+
+      // Yield after each refined ply
+      await Future.delayed(Duration.zero);
+    }
   }
 
   void _jumpToStep(int step) {
@@ -342,6 +486,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         _sandboxStates = [_states[_forkStep]];
         _sandboxMoves = [];
         _sandboxStep = 0;
+        _sandboxStateScores = (_stateScores.length > _forkStep)
+            ? [_stateScores[_forkStep]]
+            : [];
       }
 
       _applySandboxMove(move);
@@ -413,9 +560,14 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     }
     final nextEngine = baseList.last.applyMove(move);
 
+    final baseScores = (_sandboxStateScores.length > _sandboxStep + 1)
+        ? _sandboxStateScores.sublist(0, _sandboxStep + 1)
+        : List<double>.from(_sandboxStateScores);
+
     setState(() {
       _sandboxStates = [...baseList, nextEngine];
       _sandboxMoves = [...baseMoves, move];
+      _sandboxStateScores = baseScores;
       _sandboxStep = _sandboxStates.length - 1;
       _selectedPos = null;
       _selectedPieceId = null;
@@ -448,9 +600,14 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     HapticService.instance.medium();
     final nextEngine = baseList.last.applyMove(retaliationMove);
 
+    final baseScores = (_sandboxStateScores.length > _sandboxStep + 1)
+        ? _sandboxStateScores.sublist(0, _sandboxStep + 1)
+        : List<double>.from(_sandboxStateScores);
+
     setState(() {
       _sandboxStates = [...baseList, nextEngine];
       _sandboxMoves = [...baseMoves, retaliationMove];
+      _sandboxStateScores = baseScores;
       _sandboxStep = _sandboxStates.length - 1;
       _isAutoRetaliating = false;
     });
@@ -468,6 +625,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       _sandboxStates = [_states[_forkStep]];
       _sandboxMoves = [];
       _sandboxStep = 0;
+      _sandboxStateScores = (_stateScores.length > _forkStep)
+          ? [_stateScores[_forkStep]]
+          : [];
     }
 
     setState(() => _isAiThinking = true);
@@ -487,6 +647,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   }
 
   void _exitSandbox({int? jumpToStep}) {
+    _sandboxEvalGeneration++;
     setState(() {
       _isSandboxMode = false;
       _selectedPos = null;
@@ -499,26 +660,20 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
   void _resetToFork() {
     if (_sandboxStates.isEmpty) return;
+    _sandboxEvalGeneration++;
     setState(() {
       _sandboxStates = [_sandboxStates.first];
       _sandboxMoves = [];
       _sandboxStep = 0;
+      _sandboxStateScores = _sandboxStateScores.isNotEmpty ? [_sandboxStateScores.first] : [];
+      _sandboxEvaluations = [];
       _selectedPos = null;
       _selectedPieceId = null;
       _validMoves = {};
     });
   }
 
-  void _undoSandboxMove() {
-    if (_sandboxStep > 0) {
-      setState(() {
-        _sandboxStep--;
-        _selectedPos = null;
-        _selectedPieceId = null;
-        _validMoves = {};
-      });
-    }
-  }
+
 
   void _jumpToSandboxStep(int step) {
     if (_sandboxStates.isEmpty) return;
@@ -721,6 +876,8 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                           child: AiAdvantageBar(
                             engine: _activeEngine,
                             ai: _aiReady ? _ai : null,
+                            score: _currentActiveScore,
+                            depth: 3,
                             thickness: 26,
                           ),
                         ),
@@ -1608,6 +1765,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
+
             // Reset to Fork
             TextButton.icon(
               icon: const Icon(Icons.restart_alt_rounded, size: 16),

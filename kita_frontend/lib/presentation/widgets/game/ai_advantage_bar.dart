@@ -16,21 +16,33 @@ class AiAdvantageBar extends StatelessWidget {
   /// Overall thickness (width for vertical, height for horizontal)
   final double thickness;
 
+  /// Optional precomputed score from White's perspective to avoid search recomputation
+  final double? score;
+
+  /// Search depth when score is not precomputed (default: 3)
+  final int depth;
+
   const AiAdvantageBar({
     super.key,
     required this.engine,
     this.ai,
+    this.score,
+    this.depth = 3,
     this.isVertical = false,
     this.thickness = 22.0,
   });
 
   /// Computes absolute evaluation from White's perspective.
   /// Standard range: [-1.0, 1.0] for ongoing games, ±10.0 for terminal wins.
-  double get whiteAdvantageScore => computeWhiteAdvantageScore(engine, ai);
+  double get whiteAdvantageScore => score ?? computeWhiteAdvantageScore(engine, ai, depth);
 
   /// Computes absolute evaluation from White's perspective.
   /// Standard range: [-1.0, 1.0] for ongoing games, ±10.0 for terminal wins.
-  static double computeWhiteAdvantageScore(KitaGameEngine engine, [KitaAI? ai]) {
+  static double computeWhiteAdvantageScore(
+    KitaGameEngine engine, [
+    KitaAI? ai,
+    int depth = 3,
+  ]) {
     final status = engine.getStatus();
     if (status == GameStatus.whiteWins) return 10.0;
     if (status == GameStatus.blackWins) return -10.0;
@@ -38,7 +50,7 @@ class AiAdvantageBar extends StatelessWidget {
 
     final effectiveAi = ai ?? KitaAI.instance;
     if (effectiveAi.isInitialized) {
-      final raw = effectiveAi.evaluateStateWithSearch(engine);
+      final raw = effectiveAi.evaluateStateWithSearch(engine, depth: depth);
       return (engine.turn == PieceTeam.white) ? raw : -raw;
     } else {
       try {

@@ -21,7 +21,7 @@ import 'online_game_provider.dart';
 /// - Allows the user to have an active offline match and an active online match simultaneously.
 class OfflineGameProvider extends ChangeNotifier {
   PlayMode offlinePlayMode = PlayMode.vsAi;
-  int offlineBotDifficulty = 1; // 0: Easy, 1: Medium, 2: Hard
+  int offlineBotDifficulty = 2; // 0: Novice, 1: Easy, 2: Medium, 3: Hard
   PieceTeam offlinePlayerTeam = PieceTeam.white;
   String? offlinePlayerId;
   String? offlinePlayerName;
@@ -76,10 +76,12 @@ class OfflineGameProvider extends ChangeNotifier {
   String get offlineBotDifficultyLabel {
     switch (offlineBotDifficulty) {
       case 0:
-        return 'game.easy'.tr();
-      case 2:
-        return 'game.hard'.tr();
+        return 'game.novice'.tr();
       case 1:
+        return 'game.easy'.tr();
+      case 3:
+        return 'game.hard'.tr();
+      case 2:
       default:
         return 'game.medium'.tr();
     }
@@ -100,7 +102,7 @@ class OfflineGameProvider extends ChangeNotifier {
       opponentInfo = OpponentInfo(
         id: 'bot',
         name: 'game.aiBot'.tr(),
-        rating: 1000 + difficulty * 200,
+        rating: 800 + difficulty * 200,
         avatarIndex: 7,
       );
       notifyListeners();
@@ -113,7 +115,7 @@ class OfflineGameProvider extends ChangeNotifier {
   void startOfflineMatch({
     required PlayMode mode,
     PieceTeam playerTeam = PieceTeam.white,
-    int botDifficulty = 1,
+    int botDifficulty = 2,
     String? playerId,
     String? playerName,
     int? playerRating,
@@ -132,7 +134,7 @@ class OfflineGameProvider extends ChangeNotifier {
     _lastOfflineMatchRecord = null;
 
     if (mode == PlayMode.vsAi) {
-      final botRating = 1000 + botDifficulty * 200;
+      final botRating = 800 + botDifficulty * 200;
       opponentInfo = OpponentInfo(
         id: 'bot',
         name: 'game.aiBot'.tr(),
@@ -341,10 +343,9 @@ class OfflineGameProvider extends ChangeNotifier {
 
     final diffIndex = offlineBotDifficulty.clamp(0, AIDifficulty.all.length - 1);
     final diff = AIDifficulty.all[diffIndex];
-    final botMove = ai.chooseMove(
+    final botMove = ai.chooseMoveWithDifficulty(
       gameEngine.value,
-      depth: diff.depth,
-      temperature: diff.temperature,
+      diff,
     );
 
     isAiThinking.value = false;
@@ -505,9 +506,9 @@ class OfflineGameProvider extends ChangeNotifier {
         rating: 1200,
       );
     } else {
-      final botRating = 1000 + offlineBotDifficulty * 200;
-      final botDifficultyNames = ['Easy', 'Medium', 'Hard'];
-      final diffName = (offlineBotDifficulty >= 0 && offlineBotDifficulty <= 2)
+      final botRating = 800 + offlineBotDifficulty * 200;
+      final botDifficultyNames = ['Novice', 'Easy', 'Medium', 'Hard'];
+      final diffName = (offlineBotDifficulty >= 0 && offlineBotDifficulty <= 3)
           ? botDifficultyNames[offlineBotDifficulty]
           : 'Medium';
       final botUsername = 'AI Bot ($diffName)';
@@ -646,7 +647,7 @@ class OfflineGameProvider extends ChangeNotifier {
       _lastOfflineMatchRecord = null;
 
       if (offlinePlayMode == PlayMode.vsAi) {
-        final botRating = 1000 + offlineBotDifficulty * 200;
+        final botRating = 800 + offlineBotDifficulty * 200;
         opponentInfo = OpponentInfo(
           id: 'bot',
           name: 'game.aiBot'.tr(),

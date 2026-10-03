@@ -541,7 +541,9 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     final rating = opponent?.rating ?? 1200;
     final username = (opponent?.username ?? '').toLowerCase();
 
-    if (rating <= 1000 || username.contains('easy') || username.contains('beginner')) {
+    if (rating <= 800 || username.contains('novice') || username.contains('acemi')) {
+      return 'game.novice'.tr();
+    } else if (rating <= 1000 || username.contains('easy') || username.contains('beginner')) {
       return 'game.easy'.tr();
     } else if (rating >= 1400 || username.contains('hard') || username.contains('grandmaster')) {
       return 'game.hard'.tr();

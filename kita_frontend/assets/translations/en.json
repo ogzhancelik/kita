@@ -160,6 +160,7 @@
     "returnToMenu": "Return to Menu",
     "leaveMatchConfirm": "Are you sure you want to leave this game and return to the main menu?",
     "difficulty": "Difficulty",
+    "novice": "Novice",
     "easy": "Beginner",
     "medium": "Intermediate",
     "hard": "Grandmaster",

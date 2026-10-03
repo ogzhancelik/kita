@@ -55,18 +55,26 @@ class AIDifficulty {
   final int depth;
   final double temperature;
   final String label;
+  final bool isTacticalRandom;
 
   const AIDifficulty({
     required this.depth,
     required this.temperature,
     required this.label,
+    this.isTacticalRandom = false,
   });
 
+  static const novice = AIDifficulty(
+    depth: 3,
+    temperature: 1.0,
+    label: 'Novice',
+    isTacticalRandom: true,
+  );
   static const easy = AIDifficulty(depth: 1, temperature: 0.5, label: 'Easy');
   static const medium = AIDifficulty(depth: 2, temperature: 0.2, label: 'Medium');
   static const hard = AIDifficulty(depth: 3, temperature: 0.1, label: 'Hard');
 
-  static const all = [easy, medium, hard];
+  static const all = [novice, easy, medium, hard];
 }
 
 // ─── Scored Move ─────────────────────────────────────────────────────
@@ -289,20 +297,18 @@ class KitaAI {
     final tensor = gameToTensor(engine);
     double score = _net.forward(tensor);
 
-    // Normalize the opening phase to keep the advantage closer to 0.0
-    // Applies during the first 6 plies (3 full turns)
-    if (engine.moveCount < 6) {
-      // Starts at ~16% of the real score and scales up to 100% by move 6
-      double factor = (engine.moveCount + 1) / 6.0;
-      score *= factor;
-    }
+    // Opening phase normalizer: temporarily disabled (coeff = 1.0) to evaluate pure NN output
+    // if (engine.moveCount < 6) {
+    //   double factor = (engine.moveCount + 1) / 6.0;
+    //   score *= factor;
+    // }
 
     return score;
   }
 
-  /// Evaluates the state using a shallow search (Quiescence Search)
-  /// to resolve immediate tactical blunders before passing to the static evaluator.
-  double evaluateStateWithSearch(KitaGameEngine engine, {int depth = 1}) {
+  /// Evaluates the state using search (Negamax with alpha-beta pruning)
+  /// to resolve tactical blunders and combinations before passing to the static evaluator.
+  double evaluateStateWithSearch(KitaGameEngine engine, {int depth = 3}) {
     return _negamax(engine, depth, -double.infinity, double.infinity);
   }
 
@@ -520,12 +526,149 @@ class KitaAI {
     AIDifficulty difficulty, {
     bool addDirichletNoise = true,
   }) {
+    if (difficulty.isTacticalRandom) {
+      return chooseMoveTacticalRandom(engine, depth: difficulty.depth);
+    }
     return chooseMove(
       engine,
       depth: difficulty.depth,
       temperature: difficulty.temperature,
       addDirichletNoise: addDirichletNoise,
     );
+  }
+
+  /// Choose a move using a pure 3-depth tactical search (Novice tier):
+  /// - Avoids any direct or forced loss within depth (opponent wins).
+  /// - Executes a direct win immediately (or forced win within search).
+  /// - If no win/loss found in search, plays randomly among non-losing moves.
+  KitaMove? chooseMoveTacticalRandom(
+    KitaGameEngine engine, {
+    int depth = 3,
+  }) {
+    final moves = engine.getLegalMoves();
+    if (moves.isEmpty) return null;
+    if (moves.length == 1) return moves.first;
+
+    final aiTeam = engine.turn;
+    final moveScores = <KitaMove, int>{};
+
+    for (final move in moves) {
+      final nextEngine = engine.applyMove(move);
+      final status = nextEngine.getStatus();
+
+      if (status != GameStatus.ongoing) {
+        if (status == GameStatus.draw) {
+          moveScores[move] = 0;
+        } else {
+          final isAiWin = (aiTeam == PieceTeam.white && status == GameStatus.whiteWins) ||
+                          (aiTeam == PieceTeam.black && status == GameStatus.blackWins);
+          // Direct win in 1 move gets the highest score (+100)
+          moveScores[move] = isAiWin ? 100 : -100;
+        }
+        continue;
+      }
+
+      // Minimax evaluation for remaining depth:
+      // AI wants to maximize (+), opponent wants to minimize (-).
+      final score = _tacticalMinimax(
+        nextEngine,
+        depthRemaining: depth - 1,
+        aiTeam: aiTeam,
+        alpha: -1000,
+        beta: 1000,
+      );
+      moveScores[move] = score;
+    }
+
+    // 1. Direct win in 1 move (score == 100)
+    final directWins = moves.where((m) => moveScores[m] == 100).toList();
+    if (directWins.isNotEmpty) {
+      return directWins[_rng.nextInt(directWins.length)];
+    }
+
+    // 2. Forced win within depth 3 (score > 0)
+    final forcedWins = moves.where((m) => moveScores[m]! > 0).toList();
+    if (forcedWins.isNotEmpty) {
+      final maxScore = forcedWins.map((m) => moveScores[m]!).reduce(math.max);
+      final bestWins = forcedWins.where((m) => moveScores[m]! == maxScore).toList();
+      return bestWins[_rng.nextInt(bestWins.length)];
+    }
+
+    // 3. Safe moves (score >= 0): avoids direct loss and forced loss within depth
+    // "If no win/loses found in search it just plays randomly."
+    final safeMoves = moves.where((m) => moveScores[m]! >= 0).toList();
+    if (safeMoves.isNotEmpty) {
+      return safeMoves[_rng.nextInt(safeMoves.length)];
+    }
+
+    // 4. All moves lead to a loss: pick the move that delays the loss the longest
+    final maxScore = moves.map((m) => moveScores[m]!).reduce(math.max);
+    final bestLosingMoves = moves.where((m) => moveScores[m]! == maxScore).toList();
+    return bestLosingMoves[_rng.nextInt(bestLosingMoves.length)];
+  }
+
+  /// Tactical terminal minimax (win/loss/draw) with alpha-beta pruning.
+  int _tacticalMinimax(
+    KitaGameEngine state, {
+    required int depthRemaining,
+    required PieceTeam aiTeam,
+    required int alpha,
+    required int beta,
+  }) {
+    final status = state.getStatus();
+    if (status != GameStatus.ongoing) {
+      if (status == GameStatus.draw) return 0;
+      final isAiWin = (aiTeam == PieceTeam.white && status == GameStatus.whiteWins) ||
+                      (aiTeam == PieceTeam.black && status == GameStatus.blackWins);
+      return isAiWin ? (10 + depthRemaining) : (-10 - depthRemaining);
+    }
+
+    if (depthRemaining <= 0) {
+      return 0; // Search horizon reached with no win or loss detected
+    }
+
+    final moves = state.getLegalMoves();
+    if (moves.isEmpty) {
+      final isAiTurn = state.turn == aiTeam;
+      return isAiTurn ? (-10 - depthRemaining) : (10 + depthRemaining);
+    }
+
+    final isAiTurn = state.turn == aiTeam;
+    if (isAiTurn) {
+      // Maximizing (AI)
+      int maxEval = -1000;
+      for (final move in moves) {
+        final nextState = state.applyMove(move);
+        final eval = _tacticalMinimax(
+          nextState,
+          depthRemaining: depthRemaining - 1,
+          aiTeam: aiTeam,
+          alpha: alpha,
+          beta: beta,
+        );
+        if (eval > maxEval) maxEval = eval;
+        if (maxEval > alpha) alpha = maxEval;
+        if (alpha >= beta) break;
+      }
+      return maxEval;
+    } else {
+      // Minimizing (Opponent)
+      int minEval = 1000;
+      for (final move in moves) {
+        final nextState = state.applyMove(move);
+        final eval = _tacticalMinimax(
+          nextState,
+          depthRemaining: depthRemaining - 1,
+          aiTeam: aiTeam,
+          alpha: alpha,
+          beta: beta,
+        );
+        if (eval < minEval) minEval = eval;
+        if (minEval < beta) beta = minEval;
+        if (alpha >= beta) break;
+      }
+      return minEval;
+    }
   }
 
   static final _rng = math.Random();

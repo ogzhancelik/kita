@@ -10,6 +10,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] Splash / loading screen
 - [ ] App logo, branding, and icon design
 - [ ] In-match hamburger menu and settings recoloring.
+- [ ] There are too many explanations everywhere, prune them ("play" hamburger menu, "play vs computer" choice menu etc.)
 
 ### 🛡️ Moderation & Support
 - [ ] In-game player reporting system
@@ -57,7 +58,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Rule Enforcement**: Full engine validation for reversal prohibition, last-stand retaliation, and draw rules
 - [x] **Offline Mode Experience**: Seamless offline dashboard routing, connection banners, and local game state persistence
 - [x] **AI Neural Network Engine**: Pure Dart forward-pass inference model with negamax search
-- [x] **AI Difficulty & Opening Book**: 3 difficulty tiers (Beginner, Intermediate, Grandmaster) with bundled opening book
+- [x] **AI Difficulty & Opening Book**: 4 difficulty tiers (Novice, Beginner, Intermediate, Grandmaster) with 3-depth blunder-checking tactical search and bundled opening book
 - [x] **Unified Game Screen**: Integrated AI and Pass & Play into the standard match interface
 
 ---
@@ -99,7 +100,7 @@ This document tracks planned features, active backlog items, and completed miles
 
 - [x] **Match Recording**: Server-side JSONB move sequence logging and local device history for offline games
 - [x] **Interactive Replay Viewer**: Step-by-step playback, auto-play with speed controls, and outcome markers
-- [x] **AI Game Analysis**: Visual board advantage bar and move quality badges (good, inaccuracy, mistake, blunder)
+- [x] **AI Game Analysis**: Visual board advantage bar and move quality badges (good, inaccuracy, mistake, blunder) powered by progressive depth-3 Negamax search refinement
 - [x] **Interactive Sandbox Fork**: Explore alternate move variations directly from any replay position
 - [x] **Replay Sharing**: Export and import `.kita` / `.json` match files with instant replay viewing
 
