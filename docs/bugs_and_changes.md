@@ -1,0 +1,2 @@
+- [ ] piece rotation in local coop is broken
+- [ ] improve tutorial
