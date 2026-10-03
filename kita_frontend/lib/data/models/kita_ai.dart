@@ -297,11 +297,6 @@ class KitaAI {
     final tensor = gameToTensor(engine);
     double score = _net.forward(tensor);
 
-    // Opening phase normalizer: temporarily disabled (coeff = 1.0) to evaluate pure NN output
-    // if (engine.moveCount < 6) {
-    //   double factor = (engine.moveCount + 1) / 6.0;
-    //   score *= factor;
-    // }
 
     return score;
   }

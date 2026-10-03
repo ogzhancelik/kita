@@ -703,9 +703,18 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   }
 
   void _scrollToActiveMove() {
-    if (!_movesScrollController.hasClients || _currentStep <= 0) return;
+    if (!_movesScrollController.hasClients) return;
+    if (_currentStep <= 0) {
+      _movesScrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
     const rowHeight = 44.0;
-    final targetOffset = ((_currentStep - 1) / 2) * rowHeight;
+    final rowIndex = (_currentStep - 1) ~/ 2;
+    final targetOffset = rowIndex * rowHeight;
     _movesScrollController.animateTo(
       targetOffset.clamp(0.0, _movesScrollController.position.maxScrollExtent),
       duration: const Duration(milliseconds: 200),
