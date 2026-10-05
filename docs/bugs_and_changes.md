@@ -1,2 +1,3 @@
-- [ ] piece rotation in local coop is broken
+- [ ] 90 degrees piece orientation in local coop setting is the wrong way clockwise
 - [ ] improve tutorial
+- [ ] There are too many explanations everywhere, prune them ("play" hamburger menu, "play vs computer" choice menu etc.)

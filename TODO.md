@@ -10,7 +10,6 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] Splash / loading screen
 - [ ] App logo, branding, and icon design
 - [ ] In-match hamburger menu and settings recoloring.
-- [ ] There are too many explanations everywhere, prune them ("play" hamburger menu, "play vs computer" choice menu etc.)
 
 ### 🛡️ Moderation & Support
 - [ ] In-game player reporting system
