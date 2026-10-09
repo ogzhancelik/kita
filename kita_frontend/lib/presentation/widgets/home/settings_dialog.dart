@@ -114,7 +114,6 @@ class SettingsDialog extends StatelessWidget {
                       icon: gameSettings.soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
                       iconColor: AppColors.accentGold,
                       title: 'settings.soundEffects'.tr(),
-                      subtitle: 'settings.soundEffectsDesc'.tr(),
                       trailing: Switch(
                         value: gameSettings.soundEnabled,
                         activeThumbColor: AppColors.accentGold,
@@ -130,7 +129,6 @@ class SettingsDialog extends StatelessWidget {
                       icon: gameSettings.hapticsEnabled ? Icons.vibration_rounded : Icons.smartphone_rounded,
                       iconColor: AppColors.accentSecondary,
                       title: 'settings.haptics'.tr(),
-                      subtitle: 'settings.hapticsDesc'.tr(),
                       trailing: Switch(
                         value: gameSettings.hapticsEnabled,
                         activeThumbColor: AppColors.accentSecondary,
@@ -199,7 +197,6 @@ class SettingsDialog extends StatelessWidget {
                       icon: Icons.menu_book_rounded,
                       iconColor: AppColors.accentGold,
                       title: 'settings.rulesGuide'.tr(),
-                      subtitle: 'settings.rulesGuideDesc'.tr(),
                       onTap: () {
                         Navigator.of(context).pop();
                         TutorialScreen.launch(context);
@@ -299,7 +296,7 @@ class SettingsDialog extends StatelessWidget {
     required IconData icon,
     required Color iconColor,
     required String title,
-    required String subtitle,
+    String? subtitle,
     Widget? trailing,
     VoidCallback? onTap,
   }) {
@@ -327,6 +324,7 @@ class SettingsDialog extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
@@ -336,14 +334,16 @@ class SettingsDialog extends StatelessWidget {
                     color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                if (subtitle != null && subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

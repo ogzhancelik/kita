@@ -71,27 +71,14 @@ class PlayMenuDialog extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'dashboard.playMenu'.tr(),
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                        ),
+                    Text(
+                      'dashboard.playMenu'.tr(),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'dashboard.playMenuSubtitle'.tr(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
                   IconButton(
                     icon: Icon(
                       Icons.close_rounded,
@@ -127,7 +114,6 @@ class PlayMenuDialog extends StatelessWidget {
                     _buildActionCard(
                       context: context,
                       title: 'dashboard.playAI'.tr(),
-                      subtitle: 'game.offlineAIDesc'.tr(),
                       icon: Icons.smart_toy_rounded,
                       iconBg: AppColors.primaryGreen,
                       badge: 'dashboard.badgeOffline'.tr(),
@@ -144,7 +130,6 @@ class PlayMenuDialog extends StatelessWidget {
                     _buildActionCard(
                       context: context,
                       title: 'game.localCoopTitle'.tr(),
-                      subtitle: 'game.localCoopDesc'.tr(),
                       icon: Icons.people_outline_rounded,
                       iconBg: AppColors.accent,
                       badge: 'dashboard.badgeOffline'.tr(),
@@ -220,7 +205,6 @@ class PlayMenuDialog extends StatelessWidget {
                     _buildActionCard(
                       context: context,
                       title: 'dashboard.friends'.tr(),
-                      subtitle: 'dashboard.friendsDesc'.tr(),
                       icon: Icons.person_search_rounded,
                       iconBg: AppColors.accentGold,
                       isDark: isDark,
@@ -290,124 +274,78 @@ class PlayMenuDialog extends StatelessWidget {
           }
         },
         child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.guestOrange.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.bolt_rounded,
-                      color: AppColors.guestOrange,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'dashboard.findMatch'.tr(),
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.guestOrange.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'dashboard.badgeOnline'.tr(),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.guestOrange,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'dashboard.findMatchDesc'.tr(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 14,
-                    color: AppColors.guestOrange,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              // Warning Notice & Live Count
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.guestOrange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.guestOrange.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: const Icon(
+                  Icons.bolt_rounded,
+                  color: AppColors.guestOrange,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      size: 15,
-                      color: AppColors.guestOrange,
+                    Text(
+                      'dashboard.findMatch'.tr(),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      ),
                     ),
-                    const SizedBox(width: 6),
-                    Expanded(
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.guestOrange.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Text(
-                        'dashboard.matchmakingWarning'.tr(),
+                        'dashboard.badgeOnline'.tr(),
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                           color: AppColors.guestOrange,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    ValueListenableBuilder(
-                      valueListenable: onlineProv.onlineCount,
-                      builder: (ctx, count, _) {
-                        final total = count?.totalOnline ?? 1;
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withValues(alpha: 0.18),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '$total Online',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryGreen,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
                   ],
                 ),
+              ),
+              ValueListenableBuilder(
+                valueListenable: onlineProv.onlineCount,
+                builder: (ctx, count, _) {
+                  final total = count?.totalOnline ?? 1;
+                  return Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '$total Online',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: AppColors.guestOrange,
               ),
             ],
           ),
@@ -537,7 +475,7 @@ class PlayMenuDialog extends StatelessWidget {
   Widget _buildActionCard({
     required BuildContext context,
     required String title,
-    required String subtitle,
+    String? subtitle,
     required IconData icon,
     required Color iconBg,
     String? badge,
@@ -549,7 +487,7 @@ class PlayMenuDialog extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkBg : AppColors.lightBg,
           borderRadius: BorderRadius.circular(12),
@@ -571,6 +509,7 @@ class PlayMenuDialog extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
@@ -602,14 +541,16 @@ class PlayMenuDialog extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

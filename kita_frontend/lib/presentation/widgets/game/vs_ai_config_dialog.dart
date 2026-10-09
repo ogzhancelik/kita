@@ -113,15 +113,6 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
               color: AppColors.getTextPrimary(isDark),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'game.offlineAIDesc'.tr(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.getTextMuted(isDark),
-            ),
-          ),
         ],
       ),
       content: ConstrainedBox(

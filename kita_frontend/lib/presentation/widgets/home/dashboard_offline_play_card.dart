@@ -77,94 +77,102 @@ class DashboardOfflinePlayCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Primary: Play vs Computer (AI Engine)
-          _buildPlayOption(
-            context: context,
-            title: 'dashboard.playAI'.tr(),
-            subtitle: 'game.offlineAIDesc'.tr(),
-            icon: Icons.smart_toy_rounded,
-            iconColor: AppColors.primaryLight,
-            iconBg: AppColors.primary.withValues(alpha: 0.2),
-            isPrimary: true,
-            isDark: isDark,
-            onTap: () {
-              VsAiConfigDialog.show(context);
-            },
-          ),
-          const SizedBox(height: 10),
-
-          // Secondary: Local 2P Co-op (Pass & Play)
-          _buildPlayOption(
-            context: context,
-            title: 'game.localCoopTitle'.tr(),
-            subtitle: 'game.localCoopDesc'.tr(),
-            icon: Icons.people_outline_rounded,
-            iconColor: AppColors.accent,
-            iconBg: AppColors.accent.withValues(alpha: 0.18),
-            isPrimary: false,
-            isDark: isDark,
-            onTap: () async {
-              if (offlineProv.hasActiveMatch) {
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (dialogCtx) => AlertDialog(
-                    backgroundColor: AppColors.getCard(isDark),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    title: Text(
-                      'online.conflictDialogTitle'.tr(),
-                      style: TextStyle(
-                        color: AppColors.getTextPrimary(isDark),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    content: Text(
-                      'online.conflictAbandonOfflineDesc'.tr(),
-                      style: TextStyle(
-                        color: AppColors.getTextSecondary(isDark),
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(dialogCtx).pop(false),
-                        child: Text(
-                          'online.cancel'.tr(),
-                          style: TextStyle(color: AppColors.getTextSecondary(isDark)),
-                        ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryGreen,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: () => Navigator.of(dialogCtx).pop(true),
-                        child: Text('online.abandonAndProceed'.tr()),
-                      ),
-                    ],
+          // Horizontal mode options (Side by Side, like friends tab)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Option 1: Play vs Computer (AI Engine)
+                Expanded(
+                  child: _buildPlayOption(
+                    context: context,
+                    title: 'dashboard.playAI'.tr(),
+                    icon: Icons.smart_toy_rounded,
+                    iconColor: AppColors.primaryLight,
+                    iconBg: AppColors.primary.withValues(alpha: 0.2),
+                    isDark: isDark,
+                    onTap: () {
+                      VsAiConfigDialog.show(context);
+                    },
                   ),
-                );
-                if (confirmed != true) return;
-                offlineProv.resignAndClear();
-              }
+                ),
+                const SizedBox(width: 10),
 
-              offlineProv.startOfflineMatch(
-                mode: PlayMode.localCoop,
-                playerId: authProv.currentUser?.id,
-                playerName: authProv.currentUser?.username ??
-                    authProv.guestProfile?.nickname ??
-                    'Guest',
-                isGuest: authProv.isGuest || authProv.currentUser == null,
-              );
+                // Option 2: Local 2P Co-op (Pass & Play)
+                Expanded(
+                  child: _buildPlayOption(
+                    context: context,
+                    title: 'game.localCoopTitle'.tr(),
+                    icon: Icons.people_outline_rounded,
+                    iconColor: AppColors.accent,
+                    iconBg: AppColors.accent.withValues(alpha: 0.18),
+                    isDark: isDark,
+                    onTap: () async {
+                      if (offlineProv.hasActiveMatch) {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogCtx) => AlertDialog(
+                            backgroundColor: AppColors.getCard(isDark),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: Text(
+                              'online.conflictDialogTitle'.tr(),
+                              style: TextStyle(
+                                color: AppColors.getTextPrimary(isDark),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            content: Text(
+                              'online.conflictAbandonOfflineDesc'.tr(),
+                              style: TextStyle(
+                                color: AppColors.getTextSecondary(isDark),
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(dialogCtx).pop(false),
+                                child: Text(
+                                  'online.cancel'.tr(),
+                                  style: TextStyle(color: AppColors.getTextSecondary(isDark)),
+                                ),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryGreen,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                                child: Text('online.abandonAndProceed'.tr()),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed != true) return;
+                        offlineProv.resignAndClear();
+                      }
 
-              if (context.mounted) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const OfflineMatchScreen(),
-                    settings: const RouteSettings(name: '/offline_match'),
+                      offlineProv.startOfflineMatch(
+                        mode: PlayMode.localCoop,
+                        playerId: authProv.currentUser?.id,
+                        playerName: authProv.currentUser?.username ??
+                            authProv.guestProfile?.nickname ??
+                            'Guest',
+                        isGuest: authProv.isGuest || authProv.currentUser == null,
+                      );
+
+                      if (context.mounted) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const OfflineMatchScreen(),
+                            settings: const RouteSettings(name: '/offline_match'),
+                          ),
+                        );
+                      }
+                    },
                   ),
-                );
-              }
-            },
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -174,99 +182,93 @@ class DashboardOfflinePlayCard extends StatelessWidget {
   Widget _buildPlayOption({
     required BuildContext context,
     required String title,
-    required String subtitle,
     required IconData icon,
     required Color iconColor,
     required Color iconBg,
-    required bool isPrimary,
     required bool isDark,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBg : AppColors.lightBg,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isPrimary
-                  ? AppColors.primary.withValues(alpha: 0.4)
-                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-              width: isPrimary ? 1.5 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: iconBg,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: iconColor.withValues(alpha: 0.35),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
                 ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
+                const SizedBox(height: 8),
+
+                // Name
+                SizedBox(
+                  height: 34,
+                  child: Center(
+                    child: Text(
                       title,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w700,
                         color: isDark
                             ? AppColors.darkTextPrimary
                             : AppColors.lightTextPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isPrimary
-                      ? AppColors.primary
-                      : (isDark ? AppColors.darkCard : AppColors.lightCard),
-                  borderRadius: BorderRadius.circular(8),
-                  border: isPrimary
-                      ? null
-                      : Border.all(
-                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                          width: 1,
-                        ),
-                ),
-                child: Text(
-                  'dashboard.playAction'.tr(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isPrimary
-                        ? Colors.white
-                        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+
+                // Play Button
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    elevation: 1,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  onPressed: onTap,
+                  child: Text(
+                    'dashboard.playAction'.tr(),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

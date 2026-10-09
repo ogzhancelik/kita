@@ -131,7 +131,6 @@ class MatchSettingsDialog extends StatelessWidget {
                       icon: Icons.swap_vert_circle_rounded,
                       iconColor: AppColors.accentGold,
                       title: 'settings.swapTileColors'.tr(),
-                      subtitle: 'settings.swapTileColorsDesc'.tr(),
                       value: gameSettings.swapTileColors,
                       onChanged: (val) => gameSettings.setSwapTileColors(val),
                     ),
@@ -274,7 +273,7 @@ class MatchSettingsDialog extends StatelessWidget {
     required IconData icon,
     required Color iconColor,
     required String title,
-    required String subtitle,
+    String? subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
@@ -302,6 +301,7 @@ class MatchSettingsDialog extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
@@ -313,16 +313,18 @@ class MatchSettingsDialog extends StatelessWidget {
                         : AppColors.lightTextPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: isDark
-                        ? AppColors.darkTextMuted
-                        : AppColors.lightTextMuted,
+                if (subtitle != null && subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
