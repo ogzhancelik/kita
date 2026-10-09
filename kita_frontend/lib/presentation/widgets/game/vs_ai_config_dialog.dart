@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
+import '../../../data/models/kita_ai.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/offline_game_provider.dart';
 import '../../screens/game/offline_match_screen.dart';
@@ -35,7 +36,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
   static int _cachedDifficulty = 2;
   static String _cachedSide = 'random';
 
-  int _selectedDifficulty = _cachedDifficulty; // 0: Novice, 1: Easy, 2: Medium, 3: Hard
+  int _selectedDifficulty = _cachedDifficulty; // 0: Novice, 1: Easy, 2: Medium, 3: Master, 4: Grandmaster
   String _selectedSide = _cachedSide; // 'white', 'random', 'black'
 
   @override
@@ -51,7 +52,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       final savedSide = prefs.getString(VsAiConfigDialog.prefSideKey);
 
       bool changed = false;
-      if (savedDiff != null && savedDiff >= 0 && savedDiff <= 3) {
+      if (savedDiff != null && savedDiff >= 0 && savedDiff <= 4) {
         _cachedDifficulty = savedDiff;
         _selectedDifficulty = savedDiff;
         changed = true;
@@ -145,39 +146,53 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
                 Expanded(
                   child: _buildDifficultyOption(
                     title: 'game.novice'.tr(),
-                    rating: '800',
+                    rating: '${AIDifficulty.novice.elo}',
                     value: 0,
                     icon: Icons.school_rounded,
                     isDark: isDark,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildDifficultyOption(
                     title: 'game.easy'.tr(),
-                    rating: '1000',
+                    rating: '${AIDifficulty.easy.elo}',
                     value: 1,
                     icon: Icons.sentiment_satisfied_rounded,
                     isDark: isDark,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildDifficultyOption(
                     title: 'game.medium'.tr(),
-                    rating: '1200',
+                    rating: '${AIDifficulty.medium.elo}',
                     value: 2,
                     icon: Icons.military_tech_rounded,
                     isDark: isDark,
                   ),
                 ),
-                const SizedBox(width: 6),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
                 Expanded(
                   child: _buildDifficultyOption(
                     title: 'game.hard'.tr(),
-                    rating: '1400',
+                    rating: '${AIDifficulty.master.elo}',
                     value: 3,
                     icon: Icons.workspace_premium_rounded,
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildDifficultyOption(
+                    title: 'game.grandmaster'.tr(),
+                    rating: '${AIDifficulty.grandmaster.elo}',
+                    value: 4,
+                    icon: Icons.emoji_events_rounded,
                     isDark: isDark,
                   ),
                 ),

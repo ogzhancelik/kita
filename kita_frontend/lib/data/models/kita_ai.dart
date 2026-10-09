@@ -55,12 +55,14 @@ class AIDifficulty {
   final int depth;
   final double temperature;
   final String label;
+  final int elo;
   final bool isTacticalRandom;
 
   const AIDifficulty({
     required this.depth,
     required this.temperature,
     required this.label,
+    required this.elo,
     this.isTacticalRandom = false,
   });
 
@@ -68,13 +70,23 @@ class AIDifficulty {
     depth: 3,
     temperature: 1.0,
     label: 'Novice',
+    elo: 900,
     isTacticalRandom: true,
   );
-  static const easy = AIDifficulty(depth: 1, temperature: 0.5, label: 'Easy');
-  static const medium = AIDifficulty(depth: 2, temperature: 0.2, label: 'Medium');
-  static const hard = AIDifficulty(depth: 3, temperature: 0.1, label: 'Hard');
+  static const easy = AIDifficulty(depth: 1, temperature: 0.5, label: 'Easy', elo: 1000);
+  static const medium = AIDifficulty(depth: 2, temperature: 0.2, label: 'Medium', elo: 1200);
+  static const master = AIDifficulty(depth: 3, temperature: 0.1, label: 'Master', elo: 1400);
+  static const hard = master; // Alias for backward compatibility
+  static const grandmaster = AIDifficulty(depth: 4, temperature: 0.1, label: 'Grandmaster', elo: 1500);
 
-  static const all = [novice, easy, medium, hard];
+  static const all = [novice, easy, medium, master, grandmaster];
+
+  static int getRatingForDifficulty(int index) {
+    if (index >= 0 && index < all.length) {
+      return all[index].elo;
+    }
+    return medium.elo;
+  }
 }
 
 // ─── Scored Move ─────────────────────────────────────────────────────

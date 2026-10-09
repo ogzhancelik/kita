@@ -635,7 +635,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     if (!mounted) return;
 
     final aiMove = _aiReady
-        ? _ai.chooseMoveWithDifficulty(_activeEngine, AIDifficulty.hard)
+        ? _ai.chooseMoveWithDifficulty(_activeEngine, AIDifficulty.grandmaster)
         : null;
 
     if (!mounted) return;
@@ -1033,6 +1033,38 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
 
 
+  String _getAiDifficultyLabel(UserProfile? bot) {
+    final username = (bot?.username ?? '').toLowerCase();
+    if (username.contains('grandmaster') || username.contains('büyük')) {
+      return 'game.grandmaster'.tr();
+    }
+    if (username.contains('novice') || username.contains('acemi')) {
+      return 'game.novice'.tr();
+    }
+    if (username.contains('easy') || username.contains('beginner') || username.contains('başlangıç')) {
+      return 'game.easy'.tr();
+    }
+    if (username.contains('hard') || username.contains('master') || username.contains('usta')) {
+      return 'game.hard'.tr();
+    }
+    if (username.contains('medium') || username.contains('intermediate') || username.contains('orta')) {
+      return 'game.medium'.tr();
+    }
+
+    final rating = bot?.rating ?? 1200;
+    if (rating <= 950) {
+      return 'game.novice'.tr();
+    } else if (rating <= 1100) {
+      return 'game.easy'.tr();
+    } else if (rating <= 1300) {
+      return 'game.medium'.tr();
+    } else if (rating <= 1450) {
+      return 'game.hard'.tr();
+    } else {
+      return 'game.grandmaster'.tr();
+    }
+  }
+
   /// Player info bar styled symmetrically with online/offline PlayerInfoBar.
   /// For bottom player (user's eye): puts the player's color on bottom-right (Black if black, white if white).
   Widget _buildPlayerInfoBar({
@@ -1044,11 +1076,17 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final isWhite = team == 'white';
     final teamColor = isWhite ? Colors.white : const Color(0xFF222222);
 
-    final playerName = player?.username ??
+    final rawName = player?.username ??
         (isWhite ? 'replay.whiteTeam'.tr() : 'replay.blackTeam'.tr());
     final playerRating = player?.rating ?? 1200;
 
-    final isBot = player?.id == 'bot' || playerName.toLowerCase().contains('ai bot');
+    final isBot = player?.id == 'bot' ||
+        rawName.toLowerCase().contains('ai bot') ||
+        rawName.toLowerCase().contains('kita bot') ||
+        rawName.toLowerCase().contains('bot');
+
+    final playerName = isBot ? 'game.aiBot'.tr() : rawName;
+    final ratingBadgeText = isBot ? _getAiDifficultyLabel(player) : '$playerRating';
     final avatarIdx = (player?.avatarIndex != null)
         ? player!.avatarIndex
         : (playerName.hashCode.abs() % AvatarPicker.avatars.length);
@@ -1154,7 +1192,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            '$playerRating',
+            ratingBadgeText,
             style: const TextStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w800,
@@ -1194,18 +1232,20 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         ),
       ),
       child: InkWell(
-        onTap: () {
-          final isGuest = player?.id.startsWith('guest-') ?? false;
-          UserProfileDialog.show(
-            context,
-            userId: player?.id,
-            profile: player,
-            fallbackName: playerName,
-            fallbackAvatarIndex: avatarIdx,
-            fallbackRating: playerRating,
-            isGuest: isGuest,
-          );
-        },
+        onTap: isBot
+            ? null
+            : () {
+                final isGuest = player?.id.startsWith('guest-') ?? false;
+                UserProfileDialog.show(
+                  context,
+                  userId: player?.id,
+                  profile: player,
+                  fallbackName: playerName,
+                  fallbackAvatarIndex: avatarIdx,
+                  fallbackRating: playerRating,
+                  isGuest: isGuest,
+                );
+              },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: isBottom
@@ -1934,8 +1974,20 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     if (_match == null) return;
     final match = _match!;
 
-    final whiteName = match.whitePlayer?.username ?? 'White';
-    final blackName = match.blackPlayer?.username ?? 'Black';
+    final isWhiteBot = match.whitePlayer?.id == 'bot' ||
+        (match.whitePlayer?.username.toLowerCase().contains('bot') ?? false);
+    final isBlackBot = match.blackPlayer?.id == 'bot' ||
+        (match.blackPlayer?.username.toLowerCase().contains('bot') ?? false);
+
+    final whiteName = isWhiteBot ? 'game.aiBot'.tr() : (match.whitePlayer?.username ?? 'White');
+    final blackName = isBlackBot ? 'game.aiBot'.tr() : (match.blackPlayer?.username ?? 'Black');
+
+    final whiteLabel = isWhiteBot
+        ? '$whiteName (${_getAiDifficultyLabel(match.whitePlayer)})'
+        : '$whiteName (${match.whitePlayer?.rating ?? 1200})';
+    final blackLabel = isBlackBot
+        ? '$blackName (${_getAiDifficultyLabel(match.blackPlayer)})'
+        : '$blackName (${match.blackPlayer?.rating ?? 1200})';
 
     String outcomeText;
     Color outcomeColor;
@@ -1980,7 +2032,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '$whiteName (${match.whitePlayer?.rating ?? 1200})',
+                  whiteLabel,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.getTextPrimary(isDark),
@@ -1991,7 +2043,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                   style: TextStyle(color: AppColors.getTextMuted(isDark)),
                 ),
                 Text(
-                  '$blackName (${match.blackPlayer?.rating ?? 1200})',
+                  blackLabel,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.getTextPrimary(isDark),

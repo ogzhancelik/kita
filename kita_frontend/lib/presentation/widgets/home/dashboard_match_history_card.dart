@@ -346,17 +346,31 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
   }
 
   String _getAiDifficultyLabel(UserProfile? opponent) {
-    final rating = opponent?.rating ?? 1200;
     final username = (opponent?.username ?? '').toLowerCase();
 
-    if (rating <= 800 || username.contains('novice') || username.contains('acemi')) {
+    if (username.contains('grandmaster') || username.contains('büyük')) {
+      return 'game.grandmaster'.tr();
+    } else if (username.contains('novice') || username.contains('acemi')) {
       return 'game.novice'.tr();
-    } else if (rating <= 1000 || username.contains('easy') || username.contains('beginner')) {
+    } else if (username.contains('easy') || username.contains('beginner') || username.contains('başlangıç')) {
       return 'game.easy'.tr();
-    } else if (rating >= 1400 || username.contains('hard') || username.contains('grandmaster')) {
+    } else if (username.contains('hard') || username.contains('master') || username.contains('usta')) {
+      return 'game.hard'.tr();
+    } else if (username.contains('medium') || username.contains('intermediate') || username.contains('orta')) {
+      return 'game.medium'.tr();
+    }
+
+    final rating = opponent?.rating ?? 1200;
+    if (rating <= 950) {
+      return 'game.novice'.tr();
+    } else if (rating <= 1100) {
+      return 'game.easy'.tr();
+    } else if (rating <= 1300) {
+      return 'game.medium'.tr();
+    } else if (rating <= 1450) {
       return 'game.hard'.tr();
     } else {
-      return 'game.medium'.tr();
+      return 'game.grandmaster'.tr();
     }
   }
 

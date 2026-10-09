@@ -7,7 +7,7 @@ This document tracks planned features, active backlog items, and completed miles
 ## 📋 Backlog & In Progress
 
 ### 🎨 UI & Design Systems
-- [ ] Splash / loading screen
+- [ ] Splash / loading screen (do we need it?)
 - [ ] App logo, branding, and icon design
 - [ ] In-match hamburger menu and settings recoloring.
 
@@ -57,7 +57,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Rule Enforcement**: Full engine validation for reversal prohibition, last-stand retaliation, and draw rules
 - [x] **Offline Mode Experience**: Seamless offline dashboard routing, connection banners, and local game state persistence
 - [x] **AI Neural Network Engine**: Pure Dart forward-pass inference model with negamax search
-- [x] **AI Difficulty & Opening Book**: 4 difficulty tiers (Novice, Beginner, Intermediate, Grandmaster) with 3-depth blunder-checking tactical search and bundled opening book
+- [x] **AI Difficulty & Opening Book**: 5 difficulty tiers (Novice, Beginner, Intermediate, Master, Grandmaster) with depth-4 Negamax search and bundled opening book
 - [x] **Unified Game Screen**: Integrated AI and Pass & Play into the standard match interface
 
 ---

@@ -14,12 +14,20 @@ void main() {
       ai = KitaAI.instance;
     });
 
-    test('AIDifficulty.novice is defined correctly as 4th tier below beginner', () {
-      expect(AIDifficulty.all.length, 4);
+    test('AIDifficulty has 5 difficulty tiers including Novice and Grandmaster', () {
+      expect(AIDifficulty.all.length, 5);
       expect(AIDifficulty.all.first, equals(AIDifficulty.novice));
       expect(AIDifficulty.novice.depth, equals(3));
       expect(AIDifficulty.novice.isTacticalRandom, isTrue);
       expect(AIDifficulty.novice.label, equals('Novice'));
+      expect(AIDifficulty.novice.elo, equals(900));
+      expect(AIDifficulty.easy.elo, equals(1000));
+      expect(AIDifficulty.medium.elo, equals(1200));
+      expect(AIDifficulty.master.elo, equals(1400));
+      expect(AIDifficulty.grandmaster.depth, equals(4));
+      expect(AIDifficulty.grandmaster.temperature, equals(0.1));
+      expect(AIDifficulty.grandmaster.label, equals('Grandmaster'));
+      expect(AIDifficulty.grandmaster.elo, equals(1500));
     });
 
     test('Direct win: executes immediate winning move (captures opponent King)', () {
@@ -125,7 +133,7 @@ void main() {
       );
 
       expect(prov.offlineBotDifficulty, equals(0));
-      expect(prov.opponentInfo?.rating, equals(800));
+      expect(prov.opponentInfo?.rating, equals(900));
       expect(prov.offlineBotDifficultyLabel, isNotEmpty);
 
       prov.setOfflineBotDifficulty(1); // Easy/Beginner
@@ -136,9 +144,13 @@ void main() {
       expect(prov.offlineBotDifficulty, equals(2));
       expect(prov.opponentInfo?.rating, equals(1200));
 
-      prov.setOfflineBotDifficulty(3); // Hard/Grandmaster
+      prov.setOfflineBotDifficulty(3); // Master
       expect(prov.offlineBotDifficulty, equals(3));
       expect(prov.opponentInfo?.rating, equals(1400));
+
+      prov.setOfflineBotDifficulty(4); // Grandmaster
+      expect(prov.offlineBotDifficulty, equals(4));
+      expect(prov.opponentInfo?.rating, equals(1500));
 
       prov.dispose();
     });
