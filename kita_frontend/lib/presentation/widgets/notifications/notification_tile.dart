@@ -369,7 +369,7 @@ class _NotificationTileState extends State<NotificationTile> {
                                     notifProv.declineNotification(
                                         context, notification.id);
                                   },
-                                  tooltip: 'notifications.decline'.tr(),
+                                  tooltip: 'common.decline'.tr(),
                                   icon: const Icon(
                                     Icons.close_rounded,
                                     color: AppColors.lossRed,
@@ -403,7 +403,7 @@ class _NotificationTileState extends State<NotificationTile> {
                                         notifProv.acceptNotification(
                                             context, notification.id);
                                       },
-                                      tooltip: 'notifications.accept'.tr(),
+                                      tooltip: 'common.accept'.tr(),
                                       icon: const Icon(
                                         Icons.check_rounded,
                                         color: Colors.white,
@@ -422,7 +422,7 @@ class _NotificationTileState extends State<NotificationTile> {
                                       notifProv.acceptNotification(
                                           context, notification.id);
                                     },
-                                    tooltip: 'notifications.accept'.tr(),
+                                    tooltip: 'common.accept'.tr(),
                                     icon: const Icon(
                                       Icons.check_rounded,
                                       color: Colors.white,
@@ -474,10 +474,10 @@ class _NotificationTileState extends State<NotificationTile> {
                                   ? 'notifications.expired'.tr()
                                   : notification.status ==
                                           NotificationStatus.accepted
-                                      ? 'notifications.accept'.tr()
+                                      ? 'common.accept'.tr()
                                       : notification.status ==
                                               NotificationStatus.declined
-                                          ? 'notifications.decline'.tr()
+                                          ? 'common.decline'.tr()
                                           : 'notifications.read'.tr(),
                           style: TextStyle(
                             fontSize: 10.5,

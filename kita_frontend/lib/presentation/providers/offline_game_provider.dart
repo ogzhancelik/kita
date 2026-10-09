@@ -148,7 +148,7 @@ class OfflineGameProvider extends ChangeNotifier {
       _localCoopIsHorizontal = false; // Start in vertical board mode by default for Local Coop
       opponentInfo = OpponentInfo(
         id: 'local_player',
-        name: playerTeam == PieceTeam.white ? 'game.playBlack'.tr() : 'game.playWhite'.tr(),
+        name: playerTeam == PieceTeam.white ? 'common.black'.tr() : 'common.white'.tr(),
         rating: 1200,
         avatarIndex: 1,
       );
@@ -499,12 +499,12 @@ class OfflineGameProvider extends ChangeNotifier {
       blackPlayerId = 'local_black';
       whiteUser = UserProfile(
         id: 'local_white',
-        username: 'game.playWhite'.tr(),
+        username: 'common.white'.tr(),
         rating: 1200,
       );
       blackUser = UserProfile(
         id: 'local_black',
-        username: 'game.playBlack'.tr(),
+        username: 'common.black'.tr(),
         rating: 1200,
       );
     } else {
@@ -655,7 +655,7 @@ class OfflineGameProvider extends ChangeNotifier {
       } else {
         opponentInfo = OpponentInfo(
           id: 'local_player',
-          name: offlinePlayerTeam == PieceTeam.white ? 'game.playBlack'.tr() : 'game.playWhite'.tr(),
+          name: offlinePlayerTeam == PieceTeam.white ? 'common.black'.tr() : 'common.white'.tr(),
           rating: 1200,
           avatarIndex: 1,
         );

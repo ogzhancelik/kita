@@ -206,7 +206,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
               children: [
                 Expanded(
                   child: _buildSideOption(
-                    title: 'game.playWhite'.tr(),
+                    title: 'common.white'.tr(),
                     sideKey: 'white',
                     icon: Icons.circle,
                     iconColor: AppColors.boardLightSquare,
@@ -217,7 +217,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildSideOption(
-                    title: 'game.playRandom'.tr(),
+                    title: 'common.random'.tr(),
                     sideKey: 'random',
                     icon: Icons.shuffle_rounded,
                     iconColor: AppColors.ratingGold,
@@ -228,7 +228,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildSideOption(
-                    title: 'game.playBlack'.tr(),
+                    title: 'common.black'.tr(),
                     sideKey: 'black',
                     icon: Icons.circle,
                     iconColor: AppColors.darkSurfaceElevated,
@@ -458,7 +458,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
             TextButton(
               onPressed: () => Navigator.of(dialogCtx).pop(false),
               child: Text(
-                'online.cancel'.tr(),
+                'common.cancel'.tr(),
                 style: TextStyle(color: AppColors.getTextSecondary(isDark)),
               ),
             ),

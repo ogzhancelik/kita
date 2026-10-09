@@ -638,12 +638,12 @@ class MatchSettingsDialog extends StatelessWidget {
     final options = [
       {
         'key': 'horizontal',
-        'title': 'settings.orientationHorizontal'.tr(),
+        'title': 'common.orientationHorizontal'.tr(),
         'icon': Icons.stay_current_landscape_rounded,
       },
       {
         'key': 'vertical',
-        'title': 'settings.orientationVertical'.tr(),
+        'title': 'common.orientationVertical'.tr(),
         'icon': Icons.stay_current_portrait_rounded,
       },
     ];

@@ -272,7 +272,7 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
                     // Decline button
                     IconButton(
                       onPressed: widget.onDecline,
-                      tooltip: 'online.decline'.tr(),
+                      tooltip: 'common.decline'.tr(),
                       icon: const Icon(
                         Icons.close_rounded,
                         color: AppColors.lossRed,
@@ -294,7 +294,7 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
                         Icons.check_rounded,
                         size: 16,
                       ),
-                      label: Text('online.accept'.tr()),
+                      label: Text('common.accept'.tr()),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accentSecondary,
                         foregroundColor: Colors.white,

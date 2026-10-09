@@ -142,7 +142,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
     final isBlack = provider.myTeam == 'black';
 
     final opponentName = isLocalCoop
-        ? (isBlack ? 'game.playWhite'.tr() : 'game.playBlack'.tr())
+        ? (isBlack ? 'common.white'.tr() : 'common.black'.tr())
         : (provider.opponentInfo?.name ?? 'game.aiBot'.tr());
 
     final opponentRatingLabel = isVsAi
@@ -150,7 +150,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
         : (isLocalCoop ? '2P' : null);
 
     final myDisplayName = isLocalCoop
-        ? (isBlack ? 'game.playBlack'.tr() : 'game.playWhite'.tr())
+        ? (isBlack ? 'common.black'.tr() : 'common.white'.tr())
         : (authProv.isAuthenticated ? authProv.displayName : 'game.you'.tr());
 
     final myRating = (authProv.isAuthenticated && authProv.currentUser?.rating != null)
@@ -353,13 +353,13 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
           IconButton(
             icon: const Icon(Icons.chevron_left_rounded),
             color: AppColors.getTextPrimary(isDark),
-            tooltip: 'online.stepBackward'.tr(),
+            tooltip: 'common.prevMove'.tr(),
             onPressed: provider.stepBackward,
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right_rounded),
             color: AppColors.getTextPrimary(isDark),
-            tooltip: 'online.stepForward'.tr(),
+            tooltip: 'common.nextMove'.tr(),
             onPressed: provider.stepForward,
           ),
         ],

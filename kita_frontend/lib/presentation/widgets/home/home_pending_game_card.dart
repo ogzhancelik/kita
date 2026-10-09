@@ -365,7 +365,7 @@ class HomePendingGameCard extends StatelessWidget {
     final badgeLabel = isBot ? offlineProv.offlineBotDifficultyLabel : '2P';
 
     final isMyTurn = isLocalCoop
-        ? (offlineProv.currentTurn.value == 'white' ? 'game.playWhite'.tr() : 'game.playBlack'.tr())
+        ? (offlineProv.currentTurn.value == 'white' ? 'common.white'.tr() : 'common.black'.tr())
         : (offlineProv.currentTurn.value == offlineProv.myTeam
             ? 'dashboard.pendingSection.yourTurn'.tr()
             : 'dashboard.pendingSection.opponentTurn'.tr());

@@ -488,7 +488,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 ),
                 const SizedBox(height: 16),
                 KitaButton(
-                  text: 'leaderboard.retry'.tr(),
+                  text: 'common.retry'.tr(),
                   icon: Icons.refresh_rounded,
                   variant: KitaButtonVariant.primary,
                   onPressed: _loadLeaderboard,
@@ -536,7 +536,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 ),
                 const SizedBox(height: 16),
                 KitaButton(
-                  text: 'leaderboard.refresh'.tr(),
+                  text: 'common.refresh'.tr(),
                   icon: Icons.refresh_rounded,
                   variant: KitaButtonVariant.outline,
                   height: 40,
@@ -929,7 +929,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ],
       ),
     );
-  }  Widget _buildPodiumColumn({
+  }
+  Widget _buildPodiumColumn({
     required UserProfile player,
     required int rank,
     required Color medalColor,

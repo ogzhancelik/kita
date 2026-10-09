@@ -276,7 +276,7 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
                   Navigator.of(context).pop();
                 },
                 child: Text(
-                  'online.cancel'.tr(),
+                  'common.cancel'.tr(),
                   style: TextStyle(color: AppColors.getTextSecondary(isDark)),
                 ),
               ),
@@ -644,7 +644,7 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
-            'online.cancel'.tr(),
+            'common.cancel'.tr(),
             style: TextStyle(color: AppColors.getTextSecondary(isDark)),
           ),
         ),

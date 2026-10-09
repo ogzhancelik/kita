@@ -77,7 +77,7 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'online.refresh'.tr(),
+            tooltip: 'common.refresh'.tr(),
             onPressed: _fetchRooms,
           ),
         ],

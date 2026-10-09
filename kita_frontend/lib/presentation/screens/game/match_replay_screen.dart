@@ -1077,7 +1077,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final teamColor = isWhite ? Colors.white : const Color(0xFF222222);
 
     final rawName = player?.username ??
-        (isWhite ? 'replay.whiteTeam'.tr() : 'replay.blackTeam'.tr());
+        (isWhite ? 'common.white'.tr() : 'common.black'.tr());
     final playerRating = player?.rating ?? 1200;
 
     final isBot = player?.id == 'bot' ||
@@ -1132,7 +1132,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
           ),
           const SizedBox(width: 4.5),
           Text(
-            isWhite ? 'replay.whiteTeam'.tr() : 'replay.blackTeam'.tr(),
+            isWhite ? 'common.white'.tr() : 'common.black'.tr(),
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
@@ -1883,7 +1883,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         children: [
           // Previous move (◀)
           IconButton(
-            tooltip: 'replay.prevMove'.tr(),
+            tooltip: 'common.prevMove'.tr(),
             icon: const Icon(Icons.fast_rewind_rounded, size: 24),
             color: _currentStep > 0
                 ? AppColors.getTextPrimary(isDark)
@@ -1905,7 +1905,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
           // Next move (▶)
           IconButton(
-            tooltip: 'replay.nextMove'.tr(),
+            tooltip: 'common.nextMove'.tr(),
             icon: const Icon(Icons.fast_forward_rounded, size: 24),
             color: _currentStep < _states.length - 1
                 ? AppColors.getTextPrimary(isDark)

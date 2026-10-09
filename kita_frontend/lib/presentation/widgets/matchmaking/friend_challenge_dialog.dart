@@ -166,8 +166,8 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                           const SizedBox(width: 4),
                           Text(
                             widget.friend.isOnline
-                                ? 'online.onlineStatus'.tr()
-                                : 'online.offlineStatus'.tr(),
+                                ? 'common.online'.tr()
+                                : 'common.offline'.tr(),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: widget.friend.isOnline ? FontWeight.w600 : FontWeight.normal,
@@ -215,14 +215,14 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
             spacing: 8,
             children: [
               _buildChoiceChip(
-                label: 'online.colorRandom'.tr(),
+                label: 'common.random'.tr(),
                 icon: Icons.shuffle_rounded,
                 isSelected: _selectedColor == 'random',
                 isDark: isDark,
                 onSelected: () => setState(() => _selectedColor = 'random'),
               ),
               _buildChoiceChip(
-                label: 'online.colorWhite'.tr(),
+                label: 'common.white'.tr(),
                 icon: Icons.circle,
                 iconColor: AppColors.darkTextPrimary,
                 isSelected: _selectedColor == 'white',
@@ -230,7 +230,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                 onSelected: () => setState(() => _selectedColor = 'white'),
               ),
               _buildChoiceChip(
-                label: 'online.colorBlack'.tr(),
+                label: 'common.black'.tr(),
                 icon: Icons.circle_outlined,
                 isSelected: _selectedColor == 'black',
                 isDark: isDark,
@@ -266,7 +266,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
-            'online.cancel'.tr(),
+            'common.cancel'.tr(),
             style: TextStyle(
               color: AppColors.getTextSecondary(isDark),
             ),

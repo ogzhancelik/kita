@@ -387,7 +387,7 @@ class SettingsDialog extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
-              'settings.cancel'.tr(),
+              'common.cancel'.tr(),
               style: TextStyle(
                 color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
               ),

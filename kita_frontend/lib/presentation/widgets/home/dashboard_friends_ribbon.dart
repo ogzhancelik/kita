@@ -382,7 +382,7 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
             ),
             const SizedBox(height: 8),
             Text(
-              'dashboard.allFriends'.tr(),
+              'common.viewAll'.tr(),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,

@@ -64,7 +64,7 @@ class _FriendsScreenState extends State<FriendsScreen>
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),
       appBar: AppBar(
-        title: Text('online.friendsTitle'.tr()),
+        title: Text('online.friends'.tr()),
         backgroundColor: AppColors.getCard(isDark),
         bottom: TabBar(
           controller: _tabController,
@@ -359,7 +359,7 @@ class _FriendsScreenState extends State<FriendsScreen>
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
-              'online.cancel'.tr(),
+              'common.cancel'.tr(),
               style: TextStyle(color: AppColors.getTextMuted(isDark)),
             ),
           ),
@@ -413,7 +413,7 @@ class _FriendsScreenState extends State<FriendsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('online.cancel'.tr()),
+            child: Text('common.cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () async {

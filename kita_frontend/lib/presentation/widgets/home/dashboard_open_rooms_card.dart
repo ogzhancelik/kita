@@ -97,7 +97,7 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                 onPressed: () => CreateRoomDialog.show(context),
                 icon: const Icon(Icons.add_rounded, size: 16, color: AppColors.primaryGreen),
                 label: Text(
-                  'dashboard.createRoomShort'.tr(),
+                  'dashboard.createRoom'.tr(),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,

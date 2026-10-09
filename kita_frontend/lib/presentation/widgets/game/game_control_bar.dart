@@ -142,7 +142,7 @@ class GameControlBar extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('online.cancel'.tr()),
+            child: Text('common.cancel'.tr()),
           ),
           TextButton(
             onPressed: () {

@@ -342,7 +342,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Text(
                     authProv.isRetryingConnection
                         ? 'dashboard.retrying'.tr()
-                        : 'dashboard.retry'.tr(),
+                        : 'common.retry'.tr(),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,

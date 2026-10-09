@@ -451,7 +451,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text('online.accept'.tr()),
+              child: Text('common.accept'.tr()),
             ),
             const SizedBox(width: 6),
             OutlinedButton(
@@ -470,7 +470,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text('online.decline'.tr()),
+              child: Text('common.decline'.tr()),
             ),
           ],
         ),
@@ -570,7 +570,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                           ElevatedButton.icon(
                             onPressed: () => provider.acceptRematch(),
                             icon: const Icon(Icons.check_rounded, size: 14),
-                            label: Text('online.accept'.tr()),
+                            label: Text('common.accept'.tr()),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryGreen,
                               foregroundColor: Colors.white,
@@ -591,7 +591,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                           const SizedBox(width: 6),
                           IconButton(
                             onPressed: () => provider.declineRematch(),
-                            tooltip: 'online.decline'.tr(),
+                            tooltip: 'common.decline'.tr(),
                             icon: const Icon(Icons.close_rounded, size: 16),
                             color: AppColors.lossRed,
                             padding: const EdgeInsets.all(4),
@@ -713,7 +713,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: Text(
-                'online.cancel'.tr(),
+                'common.cancel'.tr(),
                 style: TextStyle(color: AppColors.getTextMuted(isDark)),
               ),
             ),
@@ -757,7 +757,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('online.cancel'.tr()),
+            child: Text('common.cancel'.tr()),
           ),
           TextButton(
             onPressed: () {

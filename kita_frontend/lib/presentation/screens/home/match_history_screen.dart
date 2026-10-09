@@ -309,7 +309,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                               ),
                               const SizedBox(height: 12),
                               KitaButton(
-                                text: 'leaderboard.retry'.tr(),
+                                text: 'common.retry'.tr(),
                                 height: 38,
                                 fontSize: 13,
                                 onPressed: _fetchMatches,

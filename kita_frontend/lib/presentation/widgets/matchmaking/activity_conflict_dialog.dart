@@ -165,7 +165,7 @@ class ActivityConflictHelper {
             TextButton(
               onPressed: () => Navigator.of(dialogCtx).pop(false),
               child: Text(
-                'online.cancel'.tr(),
+                'common.cancel'.tr(),
                 style: TextStyle(
                   color: AppColors.getTextSecondary(isDark),
                   fontWeight: FontWeight.w600,

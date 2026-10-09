@@ -213,7 +213,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
                       fontWeight: FontWeight.w700,
                       color: AppColors.getTextPrimary(isDark))),
               Text(
-                widget.friend.isOnline ? 'dm.online'.tr() : 'dm.offline'.tr(),
+                widget.friend.isOnline ? 'common.online'.tr() : 'common.offline'.tr(),
                 style: TextStyle(
                     fontSize: 11,
                     color: widget.friend.isOnline

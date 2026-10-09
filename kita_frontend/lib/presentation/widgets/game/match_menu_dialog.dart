@@ -221,8 +221,8 @@ class MatchMenuDialog extends StatelessWidget {
                 iconColor: AppColors.primaryGreen,
                 title: 'online.rotateBoard'.tr(),
                 subtitle: isHorizontal
-                    ? 'game.orientationHorizontal'.tr()
-                    : 'game.orientationVertical'.tr(),
+                    ? 'common.orientationHorizontal'.tr()
+                    : 'common.orientationVertical'.tr(),
                 textColor: AppColors.getTextPrimary(isDark),
                 showChevron: false,
                 onTap: () {
@@ -332,7 +332,7 @@ class MatchMenuDialog extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: Text('online.cancel'.tr()),
+                  child: Text('common.cancel'.tr()),
                 ),
               ),
             ],
@@ -380,7 +380,7 @@ class MatchMenuDialog extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
-              'online.cancel'.tr(),
+              'common.cancel'.tr(),
               style: TextStyle(color: AppColors.getTextSecondary(isDark)),
             ),
           ),
@@ -430,7 +430,7 @@ class MatchMenuDialog extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
-              'online.cancel'.tr(),
+              'common.cancel'.tr(),
               style: TextStyle(color: AppColors.getTextSecondary(isDark)),
             ),
           ),

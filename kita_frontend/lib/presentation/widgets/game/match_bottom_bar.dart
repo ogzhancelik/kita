@@ -122,7 +122,7 @@ class MatchBottomBar extends StatelessWidget {
                     color: canBack
                         ? AppColors.getTextPrimary(isDark)
                         : AppColors.getTextMuted(isDark),
-                    tooltip: 'online.stepBackward'.tr(),
+                    tooltip: 'common.prevMove'.tr(),
                     onPressed: canBack ? provider.stepBackward : null,
                   ),
                   const SizedBox(width: 4),
@@ -131,7 +131,7 @@ class MatchBottomBar extends StatelessWidget {
                     color: canForward
                         ? AppColors.getTextPrimary(isDark)
                         : AppColors.getTextMuted(isDark),
-                    tooltip: 'online.stepForward'.tr(),
+                    tooltip: 'common.nextMove'.tr(),
                     onPressed: canForward ? provider.stepForward : null,
                   ),
                 ],

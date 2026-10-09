@@ -99,7 +99,7 @@ class HomeNotificationSummaryCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    'notifications.viewAll'.tr(),
+                    'common.viewAll'.tr(),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

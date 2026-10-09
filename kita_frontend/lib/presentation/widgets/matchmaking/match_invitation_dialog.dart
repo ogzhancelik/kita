@@ -203,7 +203,7 @@ class MatchInvitationDialog extends StatelessWidget {
             Navigator.of(context).pop();
           },
           child: Text(
-            'online.decline'.tr(),
+            'common.decline'.tr(),
             style: const TextStyle(color: AppColors.lossRed),
           ),
         ),
@@ -224,7 +224,7 @@ class MatchInvitationDialog extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          child: Text('online.accept'.tr()),
+          child: Text('common.accept'.tr()),
         ),
       ],
     );

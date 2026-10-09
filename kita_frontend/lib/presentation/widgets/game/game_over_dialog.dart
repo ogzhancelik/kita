@@ -389,7 +389,7 @@ class _GameOverDialogState extends State<GameOverDialog>
                         Expanded(
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.close_rounded, size: 16),
-                            label: Text('online.decline'.tr()),
+                            label: Text('common.decline'.tr()),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.lossRed,
                               side: BorderSide(
@@ -418,7 +418,7 @@ class _GameOverDialogState extends State<GameOverDialog>
                         Expanded(
                           child: ElevatedButton.icon(
                             icon: const Icon(Icons.check_rounded, size: 16),
-                            label: Text('online.accept'.tr()),
+                            label: Text('common.accept'.tr()),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryGreen,
                               foregroundColor: Colors.white,
@@ -705,7 +705,7 @@ class _GameOverDialogState extends State<GameOverDialog>
     switch (reason) {
       case 'resignation':
       case 'reason_resigned':
-        if (isLocalCoop) return 'reasonResigned'.tr();
+        if (isLocalCoop) return 'online.reasonPlayerResigned'.tr();
         return isWinner ? 'online.reasonResigned'.tr() : 'online.reasonYouResigned'.tr();
       case 'timeout':
       case 'reason_timeout':

@@ -656,7 +656,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                         Icons.arrow_back_rounded,
                         color: AppColors.getTextPrimary(isDark),
                       ),
-                      tooltip: 'tutorial.previous'.tr(),
+                      tooltip: 'common.back'.tr(),
                       onPressed: _onPrevious,
                     ),
                     const SizedBox(width: 4),
@@ -1109,7 +1109,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                     // Back button
                     if (!_isFirstStepOverall)
                       KitaButton(
-                        text: 'tutorial.previous'.tr(),
+                        text: 'common.back'.tr(),
                         icon: Icons.chevron_left_rounded,
                         variant: KitaButtonVariant.secondary,
                         width: 105,
