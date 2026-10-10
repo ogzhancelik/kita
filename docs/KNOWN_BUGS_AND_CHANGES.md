@@ -3,3 +3,4 @@
 - [x] There are too many explanations everywhere, prune them ("play" hamburger menu, "play vs computer" choice menu etc.)
 - [x] It says easy/medium/hard in Replay Mode for AI's instead of their correct names. Instead, remove the ELO from bots and put correct beginner/intermediate/grandmaster names there, just like it is in play mode.
 - [ ] No time etc. choice in Local 2P Coop mode. Should be?
+- [ ] Rearrange settings menu
