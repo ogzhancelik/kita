@@ -115,12 +115,12 @@ class ReplayFileService {
   /// Returns the loaded [MatchRecordModel], or `null` if cancelled.
   Future<MatchRecordModel?> pickAndLoadReplay({String? dialogTitle}) async {
     try {
-      final List<PlatformFile>? result = await FilePickerPlatform.instance.pickFiles(
+      final result = await FilePickerPlatform.instance.pickFiles(
         dialogTitle: dialogTitle ?? 'Select Kita Replay File',
         type: FileType.any,
       );
 
-      if (result == null || result.isEmpty) {
+      if (result.isEmpty) {
         return null;
       }
 

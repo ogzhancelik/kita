@@ -1,11 +1,11 @@
 {
-    "name": "kita_frontend",
-    "short_name": "kita_frontend",
+    "name": "Kita Online",
+    "short_name": "Kita Online",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#562838",
+    "theme_color": "#BF5377",
+    "description": "Kita Online",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

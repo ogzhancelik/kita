@@ -58,7 +58,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       _offlineMatches = await LocalMatchHistoryService.instance.getMatches();
 
       // 3. Fetch online matches from backend API if not guest
-      if (!isGuest && user != null) {
+      if (!mounted) return;
+      if (!isGuest) {
         try {
           context.read<AuthProvider>().refreshProfile();
           final list = await _matchApiService
@@ -422,7 +423,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           ),
           Switch.adaptive(
             value: _showOfflineMatches,
-            activeColor: AppColors.primaryGreen,
+            activeThumbColor: AppColors.primaryGreen,
             onChanged: _toggleOfflineFilter,
           ),
         ],

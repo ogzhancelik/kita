@@ -127,7 +127,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
           : <MatchRecordModel>[];
 
       List<MatchRecordModel> onlineList = [];
-      if (!isGuest && !isOnlineUnavailable && user != null) {
+      if (!isGuest && !isOnlineUnavailable) {
         try {
           onlineList = await _matchApiService
               .getUserMatches(

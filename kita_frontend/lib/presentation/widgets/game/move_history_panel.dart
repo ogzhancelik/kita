@@ -96,7 +96,7 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
           return ValueListenableBuilder<int>(
             valueListenable: viewingMoveIndexListenable,
             builder: (c1, viewIdx, _) {
-              final onLiveTap = widget.onLive ?? (onlineProv != null ? onlineProv.goLive : null);
+              final onLiveTap = widget.onLive ?? onlineProv?.goLive;
 
               return Row(
                 children: [

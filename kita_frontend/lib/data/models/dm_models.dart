@@ -1,4 +1,5 @@
 /// Data models for the Direct Message (DM) system.
+library;
 
 class DmMessage {
   final int id;

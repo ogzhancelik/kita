@@ -8,7 +8,7 @@ This document tracks planned features, active backlog items, and completed miles
 
 ### 🎨 UI & Design Systems
 - [ ] Splash / loading screen (do we need it?)
-- [ ] App logo, branding, and icon design
+- [x] App logo, branding, and icon design (Android launcher icons, Web icons & Kita Online naming)
 - [ ] In-match hamburger menu and settings recoloring.
 
 ### 🛡️ Moderation & Support

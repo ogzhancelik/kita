@@ -101,3 +101,4 @@ Telefon veya başka bir cihazdan: `http://<BİLGİSAYAR_IP>:3000` adresine girme
 
 ### 5. Backend göstermeyle Build et
 flutter build apk --dart-define=SHOW_API_CONFIG=true
+flutter run -d R6CW902GP2B --dart-define=SHOW_API_CONFIG=true

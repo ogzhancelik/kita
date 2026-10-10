@@ -122,11 +122,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: RefreshIndicator(
                   onRefresh: () async {
                     final currentAuth = context.read<AuthProvider>();
+                    final onlineProv = context.read<OnlineGameProvider>();
                     if (currentAuth.isOnlineUnavailable) {
                       await currentAuth.retryConnection();
                     }
                     if (!currentAuth.isOnlineUnavailable) {
-                      context.read<OnlineGameProvider>().requestRoomsList(page: 1, limit: 10);
+                      onlineProv.requestRoomsList(page: 1, limit: 10);
                       await currentAuth.refreshProfile();
                     }
                     LocalMatchHistoryService.instance.notifyMatchesChanged();

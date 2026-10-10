@@ -62,7 +62,6 @@ class _TutorialScreenState extends State<TutorialScreen> {
 
   // Stage for undo demonstration (0 = initial, 1 = AI moving automatically, 2 = White turn)
   int _undoStage = 0;
-  String? _undoFirstPieceId;
 
   @override
   void initState() {
@@ -83,7 +82,6 @@ class _TutorialScreenState extends State<TutorialScreen> {
     _currentSubBoardIndex = 0;
     _interactiveFeedback = null;
     _undoStage = 0;
-    _undoFirstPieceId = null;
 
     if (step.interactiveType == InteractiveStepType.undoDemonstration) {
       // Keep the board from Lesson 2 Step 2 (or default WP1 A4 -> C4)

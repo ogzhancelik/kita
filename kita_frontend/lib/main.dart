@@ -447,7 +447,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
       navigatorObservers: [appRouteObserver],
-      title: 'Kita Fullstack',
+      title: 'Kita Online',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: KitaToast.messengerKey,
       localizationsDelegates: context.localizationDelegates,
