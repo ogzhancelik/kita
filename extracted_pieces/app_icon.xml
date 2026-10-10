@@ -20,18 +20,20 @@
     <path
         android:fillColor="#562838"
         android:pathData="M 512,512 L 1024,512 L 1024,1024 L 512,1024 Z" />
-    <!-- Pawn Drop Shadow -->
-    <path
-        android:fillColor="#59000000"
-        android:pathData="M 242.0,300.5 L 782.0,300.5 Q 782.0,570.5 512.0,813.5 Q 242.0,570.5 242.0,300.5 Z" />
-    <!-- Pawn Body -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:strokeColor="#40000000"
-        android:strokeWidth="2"
-        android:pathData="M 242.0,255.5 L 782.0,255.5 Q 782.0,525.5 512.0,768.5 Q 242.0,525.5 242.0,255.5 Z" />
-    <!-- Pawn Center Emblem Circle -->
-    <path
-        android:fillColor="#BDC3C7"
-        android:pathData="M 512.0,327.5 a 108.0,108.0 0 1,0 0,216.0 a 108.0,108.0 0 1,0 0,-216.0 Z" />
+    <group android:translateY="36">
+        <!-- Pawn Drop Shadow -->
+        <path
+            android:fillColor="#59000000"
+            android:pathData="M 242.0,300.5 L 782.0,300.5 Q 782.0,570.5 512.0,813.5 Q 242.0,570.5 242.0,300.5 Z" />
+        <!-- Pawn Body -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#40000000"
+            android:strokeWidth="2"
+            android:pathData="M 242.0,255.5 L 782.0,255.5 Q 782.0,525.5 512.0,768.5 Q 242.0,525.5 242.0,255.5 Z" />
+        <!-- Pawn Center Emblem Circle -->
+        <path
+            android:fillColor="#BDC3C7"
+            android:pathData="M 512.0,327.5 a 108.0,108.0 0 1,0 0,216.0 a 108.0,108.0 0 1,0 0,-216.0 Z" />
+    </group>
 </vector>
