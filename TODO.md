@@ -22,6 +22,7 @@ This document tracks planned features, active backlog items, and completed miles
 
 ### NEEDS CHECKING
 - [ ] Lichess seslerini kullanıyoruz, free to use mu? https://github.com/lichess-org/lila/blob/master/COPYING.md
+- [ ] Play Store compliances
 
 ---
 

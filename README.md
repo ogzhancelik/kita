@@ -39,15 +39,27 @@ You can launch both the Go backend and Flutter web server with a single command:
   ```
   This launches the backend on `:8080`, frontend on `0.0.0.0:3000`, and displays your local IP address for multi-device testing.
 
+- **Frontend Only:**
+  ```powershell
+  .\start_all.ps1 -f
+  ```
+  Runs only the Flutter web server on `0.0.0.0:3000`.
+
+- **Backend Only:**
+  ```powershell
+  .\start_all.ps1 -b
+  ```
+  Runs only the Go backend API server on `:8080` with real-time log output.
+
 - **Cloudflare Tunnel (Public Worldwide Sharing):**
   ```bash
   # Git Bash / Linux / macOS:
   ./start_all.sh --tunnel
 
   # PowerShell (Windows):
-  .\start_all.ps1 -Tunnel
+  .\start_all.ps1 -Tunnel   # (or .\start_all.ps1 -t, can be combined with -f or -b)
   ```
-  This exposes both backend and frontend via ephemeral Cloudflare Tunnels, automatically passes `--dart-define=API_URL=<backend_tunnel_url>` to Flutter, and outputs shareable public HTTPS/WSS URLs.
+  This exposes services via ephemeral Cloudflare Tunnels, automatically passes `--dart-define=API_URL=<backend_tunnel_url>` to Flutter, and outputs shareable public HTTPS/WSS URLs.
 
 ### 📁 Repository Structure
 

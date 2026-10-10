@@ -4,25 +4,51 @@
  Starts Go backend and Flutter web-server.
 
  Usage:
-   .\start_all.ps1              # Local / LAN mode (http://<ip>:3000)
+   .\start_all.ps1              # Local / LAN mode (backend & frontend)
+   .\start_all.ps1 -Frontend    # Frontend only (port 3000)
+   .\start_all.ps1 -f           # Alias for -Frontend
+   .\start_all.ps1 -Backend     # Backend only (port 8080)
+   .\start_all.ps1 -b           # Alias for -Backend
    .\start_all.ps1 -Tunnel      # Public Cloudflare Tunnel mode (trycloudflare.com)
    .\start_all.ps1 -t           # Alias for -Tunnel
+   .\start_all.ps1 -f -t        # Frontend only via Cloudflare Tunnel
+   .\start_all.ps1 -b -t        # Backend only via Cloudflare Tunnel
 ==============================================================================
 #>
 param(
     [switch]$Tunnel,
     [switch]$t,
-    [switch]$Help
+    [switch]$Frontend,
+    [switch]$f,
+    [switch]$Backend,
+    [switch]$b,
+    [switch]$Help,
+    [switch]$h
 )
 
-if ($Help) {
-    Write-Host "Usage: .\start_all.ps1 [-Tunnel | -t]"
-    Write-Host "  (no args) : Runs locally on 0.0.0.0:3000 and prints your LAN IP"
-    Write-Host "  -Tunnel   : Exposes backend and frontend via Cloudflare Tunnels"
+if ($Help -or $h) {
+    Write-Host "Usage: .\start_all.ps1 [-Frontend | -f] [-Backend | -b] [-Tunnel | -t]"
+    Write-Host "  (no args)      : Runs both backend and frontend locally"
+    Write-Host "  -Frontend (-f) : Runs ONLY the Flutter frontend web server"
+    Write-Host "  -Backend  (-b) : Runs ONLY the Go backend API server"
+    Write-Host "  -Tunnel   (-t) : Exposes services via Cloudflare Tunnels (trycloudflare.com)"
     exit 0
 }
 
 $IsTunnel = $Tunnel -or $t
+$RunFrontend = $true
+$RunBackend = $true
+
+$OnlyFrontend = ($Frontend -or $f) -and -not ($Backend -or $b)
+$OnlyBackend = ($Backend -or $b) -and -not ($Frontend -or $f)
+
+if ($OnlyFrontend) {
+    $RunBackend = $false
+    $RunFrontend = $true
+} elseif ($OnlyBackend) {
+    $RunFrontend = $false
+    $RunBackend = $true
+}
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BackendDir = Join-Path $ScriptDir "kita_backend"
@@ -68,18 +94,25 @@ function Cleanup {
             } catch {}
         }
     }
-    if (Test-Path $BackendPidFile) {
-        $restartedPid = Get-Content $BackendPidFile -ErrorAction SilentlyContinue
-        if ($restartedPid) {
-            try {
-                Start-Process -FilePath "taskkill.exe" -ArgumentList "/F", "/T", "/PID", $restartedPid -NoNewWindow -Wait -ErrorAction SilentlyContinue
-                Stop-Process -Id $restartedPid -Force -ErrorAction SilentlyContinue
-            } catch {}
+    if ($RunBackend) {
+        if (Test-Path $BackendPidFile) {
+            $restartedPid = Get-Content $BackendPidFile -ErrorAction SilentlyContinue
+            if ($restartedPid) {
+                try {
+                    Start-Process -FilePath "taskkill.exe" -ArgumentList "/F", "/T", "/PID", $restartedPid -NoNewWindow -Wait -ErrorAction SilentlyContinue
+                    Stop-Process -Id $restartedPid -Force -ErrorAction SilentlyContinue
+                } catch {}
+            }
+            Remove-Item -Path $BackendPidFile -Force -ErrorAction SilentlyContinue
         }
+        Free-Port 8080
     }
-    Free-Port 8080
-    Free-Port 3000
-    Remove-Item -Path $RunDir -Recurse -Force -ErrorAction SilentlyContinue
+    if ($RunFrontend) {
+        Free-Port 3000
+    }
+    if ($RunBackend -and $RunFrontend) {
+        Remove-Item -Path $RunDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
     Set-Location $ScriptDir
     Write-Host "All services stopped. Bye!" -ForegroundColor Green
 }
@@ -118,110 +151,172 @@ function Extract-TunnelUrl([string]$logFile, [string]$serviceName, [int]$timeout
 try {
     $LocalIP = Get-LocalIP
 
-    # Ensure ports are clear of stale processes before starting
-    Free-Port 8080
-
-    # 1. Start Go Backend
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host " [1/3] Starting Kita Backend (Go / Gin)..." -ForegroundColor Cyan
-    Write-Host "====================================================" -ForegroundColor Cyan
-
-    $backendPsi = New-Object System.Diagnostics.ProcessStartInfo
-    $backendPsi.FileName = "go"
-    $backendPsi.Arguments = "run ./cmd/api/main.go"
-    $backendPsi.WorkingDirectory = $BackendDir
-    $backendPsi.RedirectStandardOutput = $true
-    $backendPsi.RedirectStandardError = $true
-    $backendPsi.UseShellExecute = $false
-    $backendPsi.CreateNoWindow = $true
-
-    $backendProc = [System.Diagnostics.Process]::Start($backendPsi)
-    $processes.Add($backendProc)
-    Set-Content -Path $BackendPidFile -Value $backendProc.Id
-
-    # Stream output to log file asynchronously
-    Register-ObjectEvent -InputObject $backendProc -EventName OutputDataReceived -Action {
-        if ($EventArgs.Data) { Add-Content -Path $using:BackendLog -Value $EventArgs.Data }
-    } | Out-Null
-    Register-ObjectEvent -InputObject $backendProc -EventName ErrorDataReceived -Action {
-        if ($EventArgs.Data) { Add-Content -Path $using:BackendLog -Value $EventArgs.Data }
-    } | Out-Null
-    $backendProc.BeginOutputReadLine()
-    $backendProc.BeginErrorReadLine()
-
-    Start-Sleep -Seconds 2
-    if ($backendProc.HasExited) {
-        Write-Host "Error: Backend failed to start. Logs:" -ForegroundColor Red
-        if (Test-Path $BackendLog) { Get-Content $BackendLog }
-        exit 1
+    # Ensure ports are clear before starting
+    if ($RunBackend) {
+        Free-Port 8080
     }
-    Write-Host "Backend is running (PID: $($backendProc.Id)) on port 8080." -ForegroundColor Green
+    if ($RunFrontend) {
+        Free-Port 3000
+    }
 
-    # 2. Cloudflare Tunnels
+    # 1. Start Go Backend (if enabled)
+    if ($RunBackend) {
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host " Starting Kita Backend (Go / Gin)..." -ForegroundColor Cyan
+        Write-Host "====================================================" -ForegroundColor Cyan
+
+        $backendPsi = New-Object System.Diagnostics.ProcessStartInfo
+        $backendPsi.FileName = "go"
+        $backendPsi.Arguments = "run ./cmd/api/main.go"
+        $backendPsi.WorkingDirectory = $BackendDir
+        $backendPsi.RedirectStandardOutput = $true
+        $backendPsi.RedirectStandardError = $true
+        $backendPsi.UseShellExecute = $false
+        $backendPsi.CreateNoWindow = $true
+
+        $backendProc = [System.Diagnostics.Process]::Start($backendPsi)
+        $processes.Add($backendProc)
+        Set-Content -Path $BackendPidFile -Value $backendProc.Id
+
+        # Stream output to log file asynchronously (and console if running backend only)
+        if (-not $RunFrontend) {
+            Register-ObjectEvent -InputObject $backendProc -EventName OutputDataReceived -Action {
+                if ($EventArgs.Data) {
+                    Add-Content -Path $using:BackendLog -Value $EventArgs.Data
+                    [Console]::WriteLine($EventArgs.Data)
+                }
+            } | Out-Null
+            Register-ObjectEvent -InputObject $backendProc -EventName ErrorDataReceived -Action {
+                if ($EventArgs.Data) {
+                    Add-Content -Path $using:BackendLog -Value $EventArgs.Data
+                    [Console]::Error.WriteLine($EventArgs.Data)
+                }
+            } | Out-Null
+        } else {
+            Register-ObjectEvent -InputObject $backendProc -EventName OutputDataReceived -Action {
+                if ($EventArgs.Data) { Add-Content -Path $using:BackendLog -Value $EventArgs.Data }
+            } | Out-Null
+            Register-ObjectEvent -InputObject $backendProc -EventName ErrorDataReceived -Action {
+                if ($EventArgs.Data) { Add-Content -Path $using:BackendLog -Value $EventArgs.Data }
+            } | Out-Null
+        }
+        $backendProc.BeginOutputReadLine()
+        $backendProc.BeginErrorReadLine()
+
+        Start-Sleep -Seconds 2
+        if ($backendProc.HasExited) {
+            Write-Host "Error: Backend failed to start. Logs:" -ForegroundColor Red
+            if (Test-Path $BackendLog) { Get-Content $BackendLog }
+            exit 1
+        }
+        Write-Host "Backend is running (PID: $($backendProc.Id)) on port 8080." -ForegroundColor Green
+    }
+
+    # 2. Cloudflare Tunnels (if enabled)
     $CfBackendUrl = $null
     $CfFrontendUrl = $null
 
     if ($IsTunnel) {
         Write-Host "`n====================================================" -ForegroundColor Cyan
-        Write-Host " [2/3] Establishing Cloudflare Tunnels..." -ForegroundColor Cyan
+        Write-Host " Establishing Cloudflare Tunnels..." -ForegroundColor Cyan
         Write-Host "====================================================" -ForegroundColor Cyan
 
         # Backend Tunnel
-        Write-Host "Starting Backend Tunnel (http://localhost:8080)..."
-        $cfBackendProc = Start-Process cloudflared -ArgumentList "tunnel", "--url", "http://localhost:8080" -RedirectStandardError $CfBackendLog -PassThru -NoNewWindow
-        $processes.Add($cfBackendProc)
+        if ($RunBackend) {
+            Write-Host "Starting Backend Tunnel (http://localhost:8080)..."
+            $cfBackendProc = Start-Process cloudflared -ArgumentList "tunnel", "--url", "http://localhost:8080" -RedirectStandardError $CfBackendLog -PassThru -NoNewWindow
+            $processes.Add($cfBackendProc)
 
-        $CfBackendUrl = Extract-TunnelUrl $CfBackendLog "Backend" 30
-        if (-not $CfBackendUrl) {
-            Write-Host "Could not obtain backend Cloudflare URL." -ForegroundColor Red
-            exit 1
+            $CfBackendUrl = Extract-TunnelUrl $CfBackendLog "Backend" 30
+            if (-not $CfBackendUrl) {
+                Write-Host "Could not obtain backend Cloudflare URL." -ForegroundColor Red
+                exit 1
+            }
+        } elseif ($RunFrontend -and (Test-Path $CfBackendLog)) {
+            $match = Select-String -Path $CfBackendLog -Pattern 'https://[-a-zA-Z0-9]+\.trycloudflare\.com' | Select-Object -First 1
+            if ($match) {
+                $CfBackendUrl = $match.Matches[0].Value
+                Write-Host "Found existing Backend Tunnel URL: $CfBackendUrl" -ForegroundColor Cyan
+            }
         }
 
         # Frontend Tunnel
-        Write-Host "Starting Frontend Tunnel (http://localhost:3000)..."
-        $cfFrontendProc = Start-Process cloudflared -ArgumentList "tunnel", "--url", "http://localhost:3000" -RedirectStandardError $CfFrontendLog -PassThru -NoNewWindow
-        $processes.Add($cfFrontendProc)
+        if ($RunFrontend) {
+            Write-Host "Starting Frontend Tunnel (http://localhost:3000)..."
+            $cfFrontendProc = Start-Process cloudflared -ArgumentList "tunnel", "--url", "http://localhost:3000" -RedirectStandardError $CfFrontendLog -PassThru -NoNewWindow
+            $processes.Add($cfFrontendProc)
 
-        $CfFrontendUrl = Extract-TunnelUrl $CfFrontendLog "Frontend" 30
-        if (-not $CfFrontendUrl) {
-            Write-Host "Could not obtain frontend Cloudflare URL." -ForegroundColor Red
-            exit 1
+            $CfFrontendUrl = Extract-TunnelUrl $CfFrontendLog "Frontend" 30
+            if (-not $CfFrontendUrl) {
+                Write-Host "Could not obtain frontend Cloudflare URL." -ForegroundColor Red
+                exit 1
+            }
         }
     }
 
     # 3. Print Banner
     Write-Host "`n====================================================================" -ForegroundColor Magenta
-    Write-Host "                     KITA SERVER READY TO PLAY                      " -ForegroundColor Magenta
+    if ($RunBackend -and $RunFrontend) {
+        Write-Host "                     KITA SERVER READY TO PLAY                      " -ForegroundColor Magenta
+    } elseif ($RunBackend) {
+        Write-Host "                     KITA BACKEND READY                             " -ForegroundColor Magenta
+    } else {
+        Write-Host "                     KITA FRONTEND READY                            " -ForegroundColor Magenta
+    }
     Write-Host "====================================================================" -ForegroundColor Magenta
     if ($IsTunnel) {
         Write-Host " Mode:               Cloudflare Tunnel (Public Access Worldwide)`n" -ForegroundColor Yellow
-        Write-Host " [>] Public Frontend: $CfFrontendUrl" -ForegroundColor Cyan
-        Write-Host " [>] Public Backend:  $CfBackendUrl" -ForegroundColor Cyan
-        $wsUrl = $CfBackendUrl -replace '^https://', 'wss://'
-        Write-Host " [>] Public WS:       $wsUrl/ws" -ForegroundColor Cyan
-        Write-Host "`n [>] Local Network:   http://${LocalIP}:3000"
-        Write-Host " [>] Localhost:       http://localhost:3000"
+        if ($RunFrontend) {
+            Write-Host " [>] Public Frontend: $CfFrontendUrl" -ForegroundColor Cyan
+        }
+        if ($RunBackend -or $CfBackendUrl) {
+            Write-Host " [>] Public Backend:  $CfBackendUrl" -ForegroundColor Cyan
+            $wsUrl = $CfBackendUrl -replace '^https://', 'wss://'
+            Write-Host " [>] Public WS:       $wsUrl/ws" -ForegroundColor Cyan
+        }
+        if ($RunFrontend) {
+            Write-Host "`n [>] Local Network:   http://${LocalIP}:3000"
+            Write-Host " [>] Localhost:       http://localhost:3000"
+        }
+        if ($RunBackend) {
+            Write-Host " [>] Backend API:     http://${LocalIP}:8080"
+            Write-Host " [>] Backend Local:   http://localhost:8080"
+        }
     } else {
         Write-Host " Mode:               Local Area Network (LAN)`n" -ForegroundColor Yellow
-        Write-Host " [>] Network URL:     http://${LocalIP}:3000" -ForegroundColor Cyan
-        Write-Host " [>] Localhost:       http://localhost:3000"
-        Write-Host " [>] Backend API:     http://${LocalIP}:8080"
+        if ($RunFrontend) {
+            Write-Host " [>] Network URL:     http://${LocalIP}:3000" -ForegroundColor Cyan
+            Write-Host " [>] Localhost:       http://localhost:3000"
+        }
+        if ($RunBackend) {
+            Write-Host " [>] Backend API:     http://${LocalIP}:8080"
+            Write-Host " [>] Backend Local:   http://localhost:8080"
+        }
         Write-Host "`n Tip: Run with -Tunnel to share globally via Cloudflare!" -ForegroundColor DarkGray
     }
     Write-Host "====================================================================`n" -ForegroundColor Magenta
 
-    # 4. Start Flutter Web Server
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Write-Host " [3/3] Starting Kita Frontend (Flutter Web Server)..." -ForegroundColor Cyan
-    Write-Host "====================================================" -ForegroundColor Cyan
-    Set-Location $FrontendDir
+    # 4. Start Flutter Web Server (if enabled)
+    if ($RunFrontend) {
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host " Starting Kita Frontend (Flutter Web Server)..." -ForegroundColor Cyan
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Set-Location $FrontendDir
 
-    if ($IsTunnel) {
-        Write-Host "Executing: flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000 --dart-define=API_URL=$CfBackendUrl" -ForegroundColor DarkGray
-        flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000 "--dart-define=API_URL=$CfBackendUrl"
+        if ($IsTunnel -and $CfBackendUrl) {
+            Write-Host "Executing: flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000 --dart-define=API_URL=$CfBackendUrl" -ForegroundColor DarkGray
+            flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000 "--dart-define=API_URL=$CfBackendUrl"
+        } else {
+            Write-Host "Executing: flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000" -ForegroundColor DarkGray
+            flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000
+        }
     } else {
-        Write-Host "Executing: flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000" -ForegroundColor DarkGray
-        flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000
+        # Backend-only mode: keep process running and streaming until stopped
+        Write-Host "Kita Backend is running. Streaming logs below..." -ForegroundColor Green
+        Write-Host "Press Ctrl+C to stop backend.`n" -ForegroundColor DarkGray
+        while (-not $backendProc.HasExited) {
+            Start-Sleep -Milliseconds 500
+        }
     }
 } finally {
     Cleanup
