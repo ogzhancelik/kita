@@ -464,7 +464,10 @@
     "winRate": "Win Rate",
     "rating": "Current ELO",
     "wld": "Wins / Losses / Draws",
-    "sendMessage": "Send Message"
+    "sendMessage": "Send Message",
+    "addFriend": "Add Friend",
+    "friendRequestSent": "Friend request sent!",
+    "requestPending": "Request Sent"
   },
   "apiConfig": {
     "label": "API SERVER URL",

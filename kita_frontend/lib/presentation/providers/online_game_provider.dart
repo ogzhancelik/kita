@@ -28,16 +28,30 @@ enum OnlineMatchState {
 /// Opponent information.
 class OpponentInfo {
   final String id;
-  final String name;
+  final String _name;
   final int rating;
   final int avatarIndex;
 
   const OpponentInfo({
     required this.id,
-    required this.name,
+    required String name,
     required this.rating,
     this.avatarIndex = 0,
-  });
+  // ignore: prefer_initializing_formals
+  }) : _name = name;
+
+  String get name {
+    if (id == 'bot' || _name == 'game.aiBot') {
+      return 'game.aiBot'.tr();
+    }
+    if (_name == 'common.black') {
+      return 'common.black'.tr();
+    }
+    if (_name == 'common.white') {
+      return 'common.white'.tr();
+    }
+    return _name;
+  }
 }
 
 /// Central provider for all online game state.

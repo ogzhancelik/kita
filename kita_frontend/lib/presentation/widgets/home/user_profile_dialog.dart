@@ -24,6 +24,7 @@ class UserProfileDialog extends StatefulWidget {
   final bool? isGuest;
   final bool? isBot;
   final VoidCallback? onInvite;
+  final VoidCallback? onChatPressed;
 
   const UserProfileDialog({
     super.key,
@@ -35,6 +36,7 @@ class UserProfileDialog extends StatefulWidget {
     this.isGuest,
     this.isBot,
     this.onInvite,
+    this.onChatPressed,
   });
 
   static Future<void> show(
@@ -47,6 +49,7 @@ class UserProfileDialog extends StatefulWidget {
     bool? isGuest,
     bool? isBot,
     VoidCallback? onInvite,
+    VoidCallback? onChatPressed,
   }) {
     FocusManager.instance.primaryFocus?.unfocus();
     return showModalBottomSheet(
@@ -62,6 +65,7 @@ class UserProfileDialog extends StatefulWidget {
         isGuest: isGuest,
         isBot: isBot,
         onInvite: onInvite,
+        onChatPressed: onChatPressed,
       ),
     ).whenComplete(() {
       FocusManager.instance.primaryFocus?.unfocus();
@@ -75,6 +79,7 @@ class UserProfileDialog extends StatefulWidget {
 class _UserProfileDialogState extends State<UserProfileDialog> {
   UserProfile? _fetchedProfile;
   bool _isLoading = false;
+  bool _isSendingFriendRequest = false;
 
   @override
   void initState() {
@@ -298,11 +303,13 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        StatBadge(
-                          rating: rating,
-                          isGuest: isGuest,
-                        ),
-                        const SizedBox(width: 8),
+                        if (!isGuest) ...[
+                          StatBadge(
+                            rating: rating,
+                            isGuest: isGuest,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
@@ -388,7 +395,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               Expanded(
                                 child: _buildStatItem(
                                   label: 'profile.rating'.tr(),
-                                  value: '$rating',
+                                  value: isGuest ? '—' : '$rating',
                                   icon: Icons.military_tech_rounded,
                                   color: AppColors.ratingGold,
                                   isDark: isDark,
@@ -411,8 +418,23 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     ),
 
                     // Quick Actions (Send Message / Invite to Match)
+                    // Quick Actions (Add Friend / Send Message / Invite to Match)
                     () {
                       final targetId = isCurrent ? authProv.currentUser?.id : (user?.id ?? widget.userId);
+                      final friendsProv = context.watch<FriendsProvider>();
+                      final isFriend = targetId != null && friendsProv.friends.any((f) => f.userId == targetId);
+                      final isPendingOutgoing = targetId != null && friendsProv.outgoingRequests.any((r) => r.userId == targetId);
+                      final isPendingIncoming = targetId != null && friendsProv.incomingRequests.any((r) => r.userId == targetId);
+
+                      final canAddFriend = !isCurrent &&
+                          !isBot &&
+                          !isGuest &&
+                          targetId != null &&
+                          targetId.isNotEmpty &&
+                          authProv.isAuthenticated &&
+                          !authProv.isGuest &&
+                          !isFriend;
+
                       final canSendMessage = !isCurrent &&
                           !isBot &&
                           !isGuest &&
@@ -421,7 +443,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           authProv.isAuthenticated &&
                           !authProv.isGuest;
 
-                      if (isCurrent || (!canSendMessage && widget.onInvite == null)) {
+                      if (isCurrent || (!canSendMessage && !canAddFriend && widget.onInvite == null)) {
                         return const SizedBox.shrink();
                       }
 
@@ -443,7 +465,10 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           );
                         }
                         Navigator.of(context).pop();
-                        final friendsProv = context.read<FriendsProvider>();
+                        if (widget.onChatPressed != null) {
+                          widget.onChatPressed!();
+                          return;
+                        }
                         final friend = friendsProv.friends.firstWhere(
                           (f) => f.userId == targetId,
                           orElse: () => FriendItemModel(
@@ -464,6 +489,42 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             settings: RouteSettings(name: '/dm_$targetId'),
                           ),
                         );
+                      }
+
+                      Future<void> handleAddFriend() async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        if (isPendingIncoming) {
+                          final req = friendsProv.incomingRequests.firstWhere((r) => r.userId == targetId);
+                          final ok = await friendsProv.acceptRequest(req.friendshipId);
+                          if (!mounted) return;
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ok
+                                    ? 'notifications.friendRequestAcceptedTitle'.tr()
+                                    : (friendsProv.errorMessage ?? 'common.error'.tr()),
+                              ),
+                              backgroundColor: ok ? AppColors.primaryGreen : AppColors.lossRed,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } else {
+                          setState(() => _isSendingFriendRequest = true);
+                          final ok = await friendsProv.sendRequest(displayName);
+                          if (!mounted) return;
+                          setState(() => _isSendingFriendRequest = false);
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ok
+                                    ? 'profile.friendRequestSent'.tr()
+                                    : (friendsProv.errorMessage ?? 'common.error'.tr()),
+                              ),
+                              backgroundColor: ok ? AppColors.primaryGreen : AppColors.lossRed,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       }
 
                       Widget buildSendMessageLabel(double fontSize) {
@@ -497,92 +558,135 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                         );
                       }
 
+                      Widget buildAddFriendButton(double fontSize) {
+                        return ElevatedButton.icon(
+                          onPressed: (isPendingOutgoing || _isSendingFriendRequest) ? null : handleAddFriend,
+                          icon: _isSendingFriendRequest
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.darkTextPrimary,
+                                  ),
+                                )
+                              : Icon(
+                                  isPendingOutgoing
+                                      ? Icons.hourglass_top_rounded
+                                      : isPendingIncoming
+                                          ? Icons.check_rounded
+                                          : Icons.person_add_rounded,
+                                  size: 18,
+                                ),
+                          label: Text(
+                            isPendingOutgoing
+                                ? 'profile.requestPending'.tr()
+                                : isPendingIncoming
+                                    ? 'common.accept'.tr()
+                                    : 'profile.addFriend'.tr(),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryGreen,
+                            foregroundColor: AppColors.darkTextPrimary,
+                            disabledBackgroundColor: AppColors.getSurface(isDark),
+                            disabledForegroundColor: AppColors.getTextMuted(isDark),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                      }
+
+                      Widget buildSendMessageButton(double fontSize) {
+                        return ElevatedButton.icon(
+                          onPressed: openChat,
+                          icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+                          label: buildSendMessageLabel(fontSize),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryVibrant,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                      }
+
+                      Widget buildInviteButton(double fontSize) {
+                        return ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            widget.onInvite!();
+                          },
+                          icon: const Icon(Icons.sports_esports_rounded, size: 18),
+                          label: Text(
+                            'online.sendInvite'.tr(),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: canAddFriend ? AppColors.accentSecondary : AppColors.primaryGreen,
+                            foregroundColor: canAddFriend ? Colors.white : AppColors.darkTextPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                      }
+
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const SizedBox(height: 16),
-                          if (canSendMessage && widget.onInvite != null)
+                          if (canAddFriend && canSendMessage) ...[
                             Row(
                               children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: openChat,
-                                    icon: const Icon(Icons.chat_bubble_rounded, size: 18),
-                                    label: buildSendMessageLabel(13.5),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryVibrant,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                Expanded(child: buildAddFriendButton(13.5)),
                                 const SizedBox(width: 10),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                      widget.onInvite!();
-                                    },
-                                    icon: const Icon(Icons.sports_esports_rounded, size: 18),
-                                    label: Text(
-                                      'online.sendInvite'.tr(),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primaryGreen,
-                                      foregroundColor: AppColors.darkTextPrimary,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                Expanded(child: buildSendMessageButton(13.5)),
                               ],
-                            )
-                          else if (canSendMessage)
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: openChat,
-                                icon: const Icon(Icons.chat_bubble_rounded, size: 19),
-                                label: buildSendMessageLabel(14),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryVibrant,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            )
-                          else if (widget.onInvite != null)
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                  widget.onInvite!();
-                                },
-                                icon: const Icon(Icons.sports_esports_rounded, size: 20),
-                                label: Text(
-                                  'online.sendInvite'.tr(),
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryGreen,
-                                  foregroundColor: AppColors.darkTextPrimary,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
                             ),
+                            if (widget.onInvite != null) ...[
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: buildInviteButton(13.5),
+                              ),
+                            ],
+                          ] else if (canSendMessage && widget.onInvite != null) ...[
+                            Row(
+                              children: [
+                                Expanded(child: buildSendMessageButton(13.5)),
+                                const SizedBox(width: 10),
+                                Expanded(child: buildInviteButton(13.5)),
+                              ],
+                            ),
+                          ] else if (canSendMessage) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: buildSendMessageButton(14),
+                            ),
+                          ] else if (canAddFriend) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: buildAddFriendButton(14),
+                            ),
+                            if (widget.onInvite != null) ...[
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: buildInviteButton(14),
+                              ),
+                            ],
+                          ] else if (widget.onInvite != null) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: buildInviteButton(14),
+                            ),
+                          ],
                         ],
                       );
                     }(),

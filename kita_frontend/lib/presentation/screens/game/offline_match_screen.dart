@@ -143,7 +143,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
 
     final opponentName = isLocalCoop
         ? (isBlack ? 'common.white'.tr() : 'common.black'.tr())
-        : (provider.opponentInfo?.name ?? 'game.aiBot'.tr());
+        : 'game.aiBot'.tr();
 
     final opponentRatingLabel = isVsAi
         ? provider.offlineBotDifficultyLabel

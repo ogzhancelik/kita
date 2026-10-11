@@ -5,12 +5,16 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/dm_models.dart';
 import '../../../data/models/friend_models.dart';
+import '../../../data/services/user_api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dm_provider.dart';
+import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/dm/match_chat_card_widget.dart';
+import '../../widgets/home/user_profile_dialog.dart';
+import '../../widgets/matchmaking/friend_challenge_dialog.dart';
 
 /// Merged timeline item — either a DM message or a MatchChatCard.
 class _TimelineItem {
@@ -39,11 +43,27 @@ class _DmChatScreenState extends State<DmChatScreen> {
   late String _conversationId;
   late String _myId;
   late String _myUsername;
+  late FriendItemModel _friend;
   int _lastTimelineCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _friend = widget.friend;
+    if (_friend.username == 'Player' || _friend.username.isEmpty) {
+      UserApiService().getUserProfile(_friend.userId).then((profile) {
+        if (mounted) {
+          setState(() {
+            _friend = _friend.copyWith(
+              username: profile.username,
+              avatarIndex: profile.avatarIndex,
+              rating: profile.rating,
+            );
+          });
+        }
+      }).catchError((_) {});
+    }
+
     final auth = context.read<AuthProvider>();
     _myId = auth.currentUser?.id ?? '';
     if (_myId.isEmpty) {
@@ -52,23 +72,26 @@ class _DmChatScreenState extends State<DmChatScreen> {
     _myUsername = auth.currentUser?.username ?? '';
     _conversationId = dmConversationId(_myId, widget.friend.userId);
 
-    final dmProv = context.read<DmProvider>();
-    if (_myId.isNotEmpty) {
-      dmProv.setMyUserId(_myId);
-    }
-    dmProv.setActiveConversation(_conversationId);
-    dmProv.loadHistory(_conversationId);
-    dmProv.loadSharedMatches(
-      _conversationId,
-      _myId,
-      widget.friend.userId,
-      refresh: true,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final dmProv = context.read<DmProvider>();
+      if (_myId.isNotEmpty) {
+        dmProv.setMyUserId(_myId);
+      }
+      dmProv.setActiveConversation(_conversationId);
+      dmProv.loadHistory(_conversationId);
+      dmProv.loadSharedMatches(
+        _conversationId,
+        _myId,
+        widget.friend.userId,
+        refresh: true,
+      );
 
-    context.read<NotificationProvider>().deleteChatNotifications(
-          _conversationId,
-          actorId: widget.friend.userId,
-        );
+      context.read<NotificationProvider>().deleteChatNotifications(
+            _conversationId,
+            actorId: widget.friend.userId,
+          );
+    });
 
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
@@ -122,11 +145,15 @@ class _DmChatScreenState extends State<DmChatScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     _controller.clear();
+    final auth = context.read<AuthProvider>();
     context.read<DmProvider>().sendDm(
-          recipientId: widget.friend.userId,
+          recipientId: _friend.userId,
           content: text,
           senderId: _myId,
           senderUsername: _myUsername,
+          senderAvatarIndex: auth.avatarIndex,
+          recipientUsername: _friend.username,
+          recipientAvatarIndex: _friend.avatarIndex,
         );
     _scrollToBottom();
   }
@@ -160,69 +187,114 @@ class _DmChatScreenState extends State<DmChatScreen> {
     );
   }
 
+  void _openProfileCard(FriendItemModel friend) {
+    FocusScope.of(context).unfocus();
+    UserProfileDialog.show(
+      context,
+      userId: friend.userId,
+      fallbackName: friend.username,
+      fallbackAvatarIndex: friend.avatarIndex,
+      fallbackRating: friend.rating,
+      onInvite: () {
+        final onlineProv = context.read<OnlineGameProvider>();
+        FriendChallengeDialog.show(
+          context: context,
+          friend: friend,
+          onlineProv: onlineProv,
+        );
+      },
+      onChatPressed: () {
+        _focusNode.requestFocus();
+      },
+    );
+  }
+
   AppBar _buildAppBar(bool isDark) {
+    final friendsProv = context.watch<FriendsProvider>();
+    final friend = friendsProv.friends.firstWhere(
+      (f) => f.userId == _friend.userId,
+      orElse: () => _friend,
+    );
     final avatarItem = AvatarPicker
-        .avatars[widget.friend.avatarIndex % AvatarPicker.avatars.length];
+        .avatars[friend.avatarIndex % AvatarPicker.avatars.length];
     return AppBar(
       backgroundColor: AppColors.getCard(isDark),
       elevation: 0,
+      centerTitle: false,
+      titleSpacing: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
         color: AppColors.getTextPrimary(isDark),
         onPressed: () => Navigator.of(context).pop(),
       ),
-      title: Row(
-        children: [
-          Stack(
+      title: InkWell(
+        onTap: () => _openProfileCard(friend),
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: avatarItem.accentColor.withAlpha(46),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: avatarItem.accentColor, width: 1.5),
-                ),
-                child: Icon(avatarItem.icon,
-                    color: avatarItem.accentColor, size: 20),
-              ),
-              if (widget.friend.isOnline)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
+              Stack(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: AppColors.online,
+                      color: avatarItem.accentColor.withAlpha(46),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                          color: AppColors.getCard(isDark), width: 1.5),
+                      border: Border.all(color: avatarItem.accentColor, width: 1.5),
                     ),
+                    child: Icon(avatarItem.icon,
+                        color: avatarItem.accentColor, size: 20),
                   ),
+                  if (friend.isOnline)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AppColors.online,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: AppColors.getCard(isDark), width: 1.5),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      friend.username,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.getTextPrimary(isDark),
+                      ),
+                    ),
+                    Text(
+                      friend.isOnline ? 'common.online'.tr() : 'common.offline'.tr(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: friend.isOnline
+                            ? AppColors.online
+                            : AppColors.getTextMuted(isDark),
+                      ),
+                    ),
+                  ],
                 ),
-            ],
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.friend.username,
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.getTextPrimary(isDark))),
-              Text(
-                widget.friend.isOnline ? 'common.online'.tr() : 'common.offline'.tr(),
-                style: TextStyle(
-                    fontSize: 11,
-                    color: widget.friend.isOnline
-                        ? AppColors.online
-                        : AppColors.getTextMuted(isDark)),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

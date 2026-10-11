@@ -1853,14 +1853,28 @@ func (h *Hub) handleDmSend(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
+	recipientUsername := saved.RecipientUsername
+	recipientAvatarIndex := saved.RecipientAvatarIndex
+	if recipientUsername == "" {
+		h.mu.RLock()
+		if rc, ok := h.clients[dto.RecipientID]; ok {
+			recipientUsername = rc.Username
+			recipientAvatarIndex = rc.AvatarIndex
+		}
+		h.mu.RUnlock()
+	}
+
 	broadcast := DmBroadcastDTO{
-		ID:             saved.ID,
-		ConversationID: saved.ConversationID,
-		SenderID:       client.UserID,
-		SenderUsername: client.Username,
-		RecipientID:    dto.RecipientID,
-		Content:        saved.Content,
-		CreatedAt:      saved.CreatedAt,
+		ID:                   saved.ID,
+		ConversationID:       saved.ConversationID,
+		SenderID:             client.UserID,
+		SenderUsername:       client.Username,
+		SenderAvatarIndex:    client.AvatarIndex,
+		RecipientID:          dto.RecipientID,
+		RecipientUsername:    recipientUsername,
+		RecipientAvatarIndex: recipientAvatarIndex,
+		Content:              saved.Content,
+		CreatedAt:            saved.CreatedAt,
 	}
 
 	// Deliver to sender (echo) and recipient

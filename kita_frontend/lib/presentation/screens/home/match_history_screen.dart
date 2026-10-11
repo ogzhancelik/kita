@@ -692,8 +692,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
     final bool isVsAi = match.isVsAi;
-    final opponentName = opponent?.username ??
-        (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'Black' : 'White'));
+    final opponentName = (opponent?.id == 'bot' || opponent?.username == 'game.aiBot' || isVsAi)
+        ? 'game.aiBot'.tr()
+        : (opponent?.username ??
+            (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'common.black'.tr() : 'common.white'.tr())));
     final opponentRating = opponent?.rating ?? 1200;
 
     final isDraw = match.isDraw;

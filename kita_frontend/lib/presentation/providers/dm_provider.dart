@@ -245,6 +245,9 @@ class DmProvider extends ChangeNotifier {
     required String content,
     String? senderId,
     String? senderUsername,
+    String? recipientUsername,
+    int? senderAvatarIndex,
+    int? recipientAvatarIndex,
   }) {
     final myId = senderId ?? _myUserId ?? '';
     final convId = myId.isNotEmpty ? dmConversationId(myId, recipientId) : '';
@@ -255,7 +258,10 @@ class DmProvider extends ChangeNotifier {
         conversationId: convId,
         senderId: myId,
         senderUsername: senderUsername ?? '',
+        senderAvatarIndex: senderAvatarIndex ?? 0,
         recipientId: recipientId,
+        recipientUsername: recipientUsername ?? '',
+        recipientAvatarIndex: recipientAvatarIndex ?? 0,
         content: content,
         createdAt: DateTime.now(),
       );

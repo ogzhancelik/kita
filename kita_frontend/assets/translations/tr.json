@@ -464,7 +464,10 @@
     "winRate": "Galibiyet Oranı",
     "rating": "Mevcut ELO",
     "wld": "Galibiyet / Mağlubiyet / Beraberlik",
-    "sendMessage": "Mesaj Gönder"
+    "sendMessage": "Mesaj Gönder",
+    "addFriend": "Arkadaş Ekle",
+    "friendRequestSent": "Arkadaşlık isteği gönderildi!",
+    "requestPending": "İstek Gönderildi"
   },
   "apiConfig": {
     "label": "API SUNUCU URL",

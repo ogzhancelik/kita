@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/dm_models.dart';
 import '../../../data/models/friend_models.dart';
+import '../../../data/models/user_model.dart';
+import '../../../data/services/user_api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
@@ -46,18 +48,48 @@ class _ChatsScreenState extends State<ChatsScreen> {
     super.dispose();
   }
 
+  final Map<String, UserProfile> _profileCache = {};
+  final Set<String> _pendingProfileFetches = {};
+
+  void _fetchProfileIfNeeded(String userId) {
+    if (userId.isEmpty || _pendingProfileFetches.contains(userId) || _profileCache.containsKey(userId)) {
+      return;
+    }
+    _pendingProfileFetches.add(userId);
+    UserApiService().getUserProfile(userId).then((profile) {
+      if (mounted) {
+        setState(() {
+          _profileCache[userId] = profile;
+        });
+      }
+    }).catchError((_) {
+      // Ignore network errors on background fetch
+    }).whenComplete(() {
+      _pendingProfileFetches.remove(userId);
+    });
+  }
+
   void _openChat(FriendItemModel friend) {
+    var targetFriend = friend;
+    final cached = _profileCache[friend.userId];
+    if (cached != null && (targetFriend.username == 'Player' || targetFriend.username.isEmpty)) {
+      targetFriend = targetFriend.copyWith(
+        username: cached.username,
+        avatarIndex: cached.avatarIndex,
+        rating: cached.rating,
+      );
+    }
     final myId = context.read<AuthProvider>().currentUser?.id ?? '';
     if (myId.isNotEmpty) {
-      final convId = dmConversationId(myId, friend.userId);
+      final convId = dmConversationId(myId, targetFriend.userId);
       context.read<NotificationProvider>().deleteChatNotifications(
             convId,
-            actorId: friend.userId,
+            actorId: targetFriend.userId,
           );
     }
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => DmChatScreen(friend: friend),
+        builder: (_) => DmChatScreen(friend: targetFriend),
       ),
     );
   }
@@ -137,18 +169,44 @@ class _ChatsScreenState extends State<ChatsScreen> {
         }
       }
 
-      friend ??= FriendItemModel(
-        friendshipId: '',
-        userId: otherUserId,
-        username: preview.senderId == otherUserId && preview.senderUsername.isNotEmpty
-            ? preview.senderUsername
-            : 'Player',
-        rating: 1200,
-        status: 'friend',
-        direction: 'friend',
-        isOnline: false,
-        createdAt: preview.createdAt,
-      );
+      if (friend == null) {
+        String name = '';
+        int avatarIndex = 0;
+        int rating = 1200;
+
+        if (preview.senderId == otherUserId) {
+          if (preview.senderUsername.isNotEmpty && preview.senderUsername != 'Player') {
+            name = preview.senderUsername;
+          }
+          avatarIndex = preview.senderAvatarIndex;
+        } else if (preview.recipientId == otherUserId) {
+          if (preview.recipientUsername.isNotEmpty && preview.recipientUsername != 'Player') {
+            name = preview.recipientUsername;
+          }
+          avatarIndex = preview.recipientAvatarIndex;
+        }
+
+        final cached = _profileCache[otherUserId];
+        if (cached != null) {
+          name = cached.username;
+          avatarIndex = cached.avatarIndex;
+          rating = cached.rating;
+        } else if (name.isEmpty) {
+          _fetchProfileIfNeeded(otherUserId);
+        }
+
+        friend = FriendItemModel(
+          friendshipId: '',
+          userId: otherUserId,
+          username: name.isNotEmpty ? name : 'Player',
+          avatarIndex: avatarIndex,
+          rating: rating,
+          status: 'accepted',
+          direction: 'friend',
+          isOnline: false,
+          createdAt: preview.createdAt,
+        );
+      }
 
       final isMe = preview.senderId == myId;
       final snippet = isMe

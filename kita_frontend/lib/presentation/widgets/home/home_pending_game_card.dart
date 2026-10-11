@@ -360,7 +360,7 @@ class HomePendingGameCard extends StatelessWidget {
 
     final opponentName = isLocalCoop
         ? 'game.player2'.tr()
-        : (offlineProv.opponentInfo?.name ?? 'game.aiBot'.tr());
+        : 'game.aiBot'.tr();
 
     final badgeLabel = isBot ? offlineProv.offlineBotDifficultyLabel : '2P';
 

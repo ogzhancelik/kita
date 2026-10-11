@@ -323,12 +323,15 @@ type DmSendDTO struct {
 }
 
 type DmBroadcastDTO struct {
-	ID             uint      `json:"id"`
-	ConversationID string    `json:"conversation_id"`
-	SenderID       string    `json:"sender_id"`
-	SenderUsername string    `json:"sender_username"`
-	RecipientID    string    `json:"recipient_id"`
-	Content        string    `json:"content"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID                   uint      `json:"id"`
+	ConversationID       string    `json:"conversation_id"`
+	SenderID             string    `json:"sender_id"`
+	SenderUsername       string    `json:"sender_username"`
+	SenderAvatarIndex    int       `json:"sender_avatar_index"`
+	RecipientID          string    `json:"recipient_id"`
+	RecipientUsername    string    `json:"recipient_username,omitempty"`
+	RecipientAvatarIndex int       `json:"recipient_avatar_index,omitempty"`
+	Content              string    `json:"content"`
+	CreatedAt            time.Time `json:"created_at"`
 }
 

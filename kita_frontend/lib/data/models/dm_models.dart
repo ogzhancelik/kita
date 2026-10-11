@@ -6,7 +6,10 @@ class DmMessage {
   final String conversationId;
   final String senderId;
   final String senderUsername;
+  final int senderAvatarIndex;
   final String recipientId;
+  final String recipientUsername;
+  final int recipientAvatarIndex;
   final String content;
   final DateTime createdAt;
 
@@ -15,7 +18,10 @@ class DmMessage {
     required this.conversationId,
     required this.senderId,
     required this.senderUsername,
+    this.senderAvatarIndex = 0,
     required this.recipientId,
+    this.recipientUsername = '',
+    this.recipientAvatarIndex = 0,
     required this.content,
     required this.createdAt,
   });
@@ -26,7 +32,10 @@ class DmMessage {
       conversationId: json['conversation_id'] as String? ?? '',
       senderId: json['sender_id'] as String? ?? '',
       senderUsername: json['sender_username'] as String? ?? '',
+      senderAvatarIndex: (json['sender_avatar_index'] as num?)?.toInt() ?? 0,
       recipientId: json['recipient_id'] as String? ?? '',
+      recipientUsername: json['recipient_username'] as String? ?? '',
+      recipientAvatarIndex: (json['recipient_avatar_index'] as num?)?.toInt() ?? 0,
       content: json['content'] as String? ?? '',
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
@@ -38,7 +47,10 @@ class DmMessage {
         'conversation_id': conversationId,
         'sender_id': senderId,
         'sender_username': senderUsername,
+        'sender_avatar_index': senderAvatarIndex,
         'recipient_id': recipientId,
+        'recipient_username': recipientUsername,
+        'recipient_avatar_index': recipientAvatarIndex,
         'content': content,
         'created_at': createdAt.toIso8601String(),
       };

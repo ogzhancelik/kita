@@ -497,8 +497,10 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     final bool isWhite = match.isUserWhite(currentUserId);
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
     final bool isVsAi = match.isVsAi;
-    final opponentName = opponent?.username ??
-        (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'history.blackTeam'.tr() : 'history.whiteTeam'.tr()));
+    final opponentName = (opponent?.id == 'bot' || opponent?.username == 'game.aiBot' || isVsAi)
+        ? 'game.aiBot'.tr()
+        : (opponent?.username ??
+            (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'history.blackTeam'.tr() : 'history.whiteTeam'.tr())));
     final opponentRating = opponent?.rating ?? 1200;
 
     final isDraw = match.isDraw;
