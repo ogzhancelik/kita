@@ -17,7 +17,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Recent Matches Count Indicator**: Remove Recent Matches dashboard header's match counter (e.g., "5").
 - [ ] **Settings Menu Cleanup**: Reorder Settings dialog to place "How to Play" immediately above "Logout", and remove the redundant "About Kita" tile.
 - [ ] **Standardize Draw Outcome Color**: Standardize draw match status badges, chips, and result banners to warning yellow in theme colors.
-- [ ] **Text Overflow & Truncation Audit**: Audit labels, chips, and subtitles across small screen viewports to ensure clean ellipsis (`TextOverflow.ellipsis`).
+- [ ] **Text Visibility & Overflow Resilience Audit**: Audit labels, chips, and subtitles across small screens; ensure multi-line reflow (Wrap), tooltips for truncated nicknames/rooms, and fallback ellipsis without losing essential context.
 - [ ] **App Branding & Assets Update**: Update loading screen branding, application launcher icons, and store display name across all platforms.
 - [ ] **Android 12+ Splash Screen Tuning**: Configure native Android splash screen theme to eliminate double-splash flicker on app launch.
 - [x] App logo, branding, and icon design (Android launcher icons, Web icons & Kita Online naming)
@@ -36,7 +36,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Chat Emoji Picker & In-Match Reaction Emotes**: Add an emoji selector to chat input and a quick-tap in-game reaction emotes sheet during live matches.
 
 ### 🚪 Lobby, Rooms & Matchmaking
-- [ ] **Private Room Waiting State Animation**: Add dynamic loading/searching visual indicator while waiting for opponent in private rooms.
+- [ ] **Room Waiting State Animation**: Add dynamic loading/searching visual indicator while waiting for opponent in rooms.
 - [ ] **Lobby Room Expansion Indicator (>5 Rooms)**: Show a clickable `...` / "View All" tile in the dashboard public rooms widget when more than 5 rooms exist to navigate to the full Room Browser page.
 - [ ] **Room Code Share Sheet**: Add one-tap "Share Room Code" action invoking native share sheet (WhatsApp, clipboard, etc.).
 - [ ] **Room Join Alert & Timed Match Start Confirmation**: Notify the host immediately upon an opponent joining, and introduce a mutual "Ready" confirmation before starting the countdown clock in timed rooms.
