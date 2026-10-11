@@ -188,7 +188,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '★ ${widget.friend.rating}',
+                    '★ ${widget.friend.displayRating}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -290,6 +290,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
               widget.friend.userId,
               friendName: widget.friend.username,
               friendRating: widget.friend.rating,
+              friendIsProvisional: widget.friend.isProvisional,
               timeControl: _selectedTimeControl,
               colorPreference: _selectedColor,
             );

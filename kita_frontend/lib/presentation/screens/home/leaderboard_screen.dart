@@ -1041,7 +1041,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              '${player.rating} ELO',
+              '${player.displayRating} ELO',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -1203,7 +1203,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     const Icon(Icons.star_rounded, size: 13, color: AppColors.ratingGold),
                     const SizedBox(width: 3),
                     Text(
-                      '${player.rating}',
+                      player.displayRating,
                       style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w900,
@@ -1396,7 +1396,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         const Icon(Icons.star_rounded, size: 12, color: AppColors.ratingGold),
                         const SizedBox(width: 2),
                         Text(
-                          '${userProfile.rating}',
+                          userProfile.displayRating,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w900,

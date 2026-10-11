@@ -164,15 +164,6 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
     final effectiveFlip = settings.shouldFlipBoard(provider.myTeam);
     final flipBoard = isLocalCoop ? false : effectiveFlip;
 
-    final isBlackTurn = provider.currentTurn.value == 'black';
-    final activePlayerIsAtTop = flipBoard ? !isBlackTurn : isBlackTurn;
-    final double baseRotation = settings.isLocalCoopHorizontal ? 0.25 : 0.0;
-    final double pieceRotation = isLocalCoop
-        ? (settings.localCoopAutoRotate
-            ? (baseRotation + (activePlayerIsAtTop ? 0.5 : 0.0))
-            : baseRotation)
-        : 0.0;
-
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),
       body: SafeArea(
@@ -242,7 +233,6 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
                                       lastMove: currentLastMove,
                                       flipBoard: flipBoard,
                                       isHorizontal: isHorizontal,
-                                      pieceRotation: pieceRotation,
                                       onMakeMove: provider.makeMove,
                                     );
                                   },

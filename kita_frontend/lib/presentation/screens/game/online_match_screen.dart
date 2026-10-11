@@ -270,6 +270,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                       isOpponent: true,
                       name: opponentName,
                       rating: opponentRating,
+                      isProvisional: provider.opponentInfo?.isProvisional ?? false,
                       ratingLabel: opponentRatingLabel,
                       avatarIndex: provider.opponentInfo?.avatarIndex,
                       isBot: isOpponentBot,
@@ -292,6 +293,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                           fallbackName: opponentName,
                           fallbackAvatarIndex: opp?.avatarIndex,
                           fallbackRating: opponentRating,
+                          fallbackIsProvisional: opp?.isProvisional,
                           isBot: isBot,
                           isGuest: isGuest,
                         );
@@ -302,6 +304,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                       isOpponent: false,
                       name: myDisplayName,
                       rating: myRating,
+                      isProvisional: authProv.currentUser?.isProvisional ?? false,
                       avatarIndex: authProv.avatarIndex,
                       team: provider.myTeam ?? 'white',
                       remainingMs: isBlack

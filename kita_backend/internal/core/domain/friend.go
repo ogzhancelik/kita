@@ -27,8 +27,9 @@ type FriendItem struct {
 	UserID       string    `json:"user_id"`
 	Username     string    `json:"username"`
 	AvatarIndex  int       `json:"avatar_index"`
-	Rating       int       `json:"rating"`
-	Status       string    `json:"status"`
+	Rating            int       `json:"rating"`
+	IsProvisional     bool      `json:"is_provisional"`
+	Status            string    `json:"status"`
 	Direction    string    `json:"direction"` // "friend", "incoming", "outgoing"
 	IsOnline          bool      `json:"is_online"`
 	CreatedAt         time.Time `json:"created_at"`

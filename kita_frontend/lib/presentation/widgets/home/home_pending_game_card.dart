@@ -135,8 +135,7 @@ class HomePendingGameCard extends StatelessWidget {
     EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
   }) {
     final opponentName = onlineProv.opponentInfo?.name ?? 'online.opponent'.tr();
-    final opponentRating = onlineProv.opponentInfo?.rating ?? 1200;
-    final badgeLabel = '★ $opponentRating';
+    final badgeLabel = '★ ${onlineProv.opponentInfo?.displayRating ?? "1200"}';
     final isMyTurn = (onlineProv.currentTurn.value == onlineProv.myTeam);
     final tcStr = _formatTimeControl(onlineProv.timeControl);
 
@@ -815,7 +814,7 @@ class HomePendingGameCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            '★ ${rematch.opponentRating}',
+                            '★ ${rematch.opponentRating}${rematch.opponentIsProvisional == true ? "?" : ""}',
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -958,7 +957,7 @@ class HomePendingGameCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            '★ ${challenge.friendRating}',
+                            '★ ${challenge.friendRating}${challenge.friendIsProvisional == true ? "?" : ""}',
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,

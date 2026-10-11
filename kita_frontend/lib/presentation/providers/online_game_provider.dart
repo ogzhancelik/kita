@@ -31,14 +31,18 @@ class OpponentInfo {
   final String _name;
   final int rating;
   final int avatarIndex;
+  final bool isProvisional;
 
   const OpponentInfo({
     required this.id,
     required String name,
     required this.rating,
     this.avatarIndex = 0,
+    this.isProvisional = false,
   // ignore: prefer_initializing_formals
   }) : _name = name;
+
+  String get displayRating => isProvisional ? '$rating?' : '$rating';
 
   String get name {
     if (id == 'bot' || _name == 'game.aiBot') {
@@ -476,6 +480,7 @@ class OnlineGameProvider extends ChangeNotifier {
     String friendId, {
     String? friendName,
     int? friendRating,
+    bool? friendIsProvisional,
     int timeControl = 180000,
     String colorPreference = 'random',
   }) {
@@ -483,6 +488,7 @@ class OnlineGameProvider extends ChangeNotifier {
       friendId: friendId,
       friendName: friendName ?? 'Friend',
       friendRating: friendRating,
+      friendIsProvisional: friendIsProvisional,
       timeControl: timeControl,
       colorPreference: colorPreference,
       sentAt: DateTime.now(),
@@ -829,6 +835,7 @@ class OnlineGameProvider extends ChangeNotifier {
             id: payload.matchId,
             senderName: payload.requesterName,
             senderRating: opponentInfo?.rating ?? 1200,
+            senderIsProvisional: opponentInfo?.isProvisional ?? false,
             timeControl: payload.timeControl,
             colorPreference: payload.colorPreference ?? 'random',
           );
@@ -924,6 +931,7 @@ class OnlineGameProvider extends ChangeNotifier {
             senderId: payload.inviterId,
             senderName: payload.inviterName,
             senderRating: payload.inviterRating,
+            senderIsProvisional: payload.inviterIsProvisional,
             timeControl: payload.timeControl,
             colorPreference: payload.colorPreference,
             expiresAt: expiresAt,
@@ -1053,6 +1061,7 @@ class OnlineGameProvider extends ChangeNotifier {
       name: data.opponentName,
       rating: data.opponentRating,
       avatarIndex: data.opponentAvatarIndex,
+      isProvisional: data.opponentIsProvisional,
     );
 
     // Clear rematch & invite requests
@@ -1310,6 +1319,21 @@ class OnlineGameProvider extends ChangeNotifier {
         blackRemainingMs.value = 0;
       } else if (data.winner == 'black') {
         whiteRemainingMs.value = 0;
+      }
+    }
+
+    if (data.ratingChanges != null && opponentInfo != null && data.ratingChanges!.containsKey(opponentInfo!.id)) {
+      final oppChange = data.ratingChanges![opponentInfo!.id];
+      if (oppChange is Map<String, dynamic>) {
+        final newRating = (oppChange['new'] as num?)?.toInt() ?? opponentInfo!.rating;
+        final isProv = oppChange['is_provisional'] as bool? ?? opponentInfo!.isProvisional;
+        opponentInfo = OpponentInfo(
+          id: opponentInfo!.id,
+          name: opponentInfo!._name,
+          rating: newRating,
+          avatarIndex: opponentInfo!.avatarIndex,
+          isProvisional: isProv,
+        );
       }
     }
 

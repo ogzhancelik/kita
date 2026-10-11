@@ -27,6 +27,7 @@ class KitaNotification {
   final String subtitle;
   final String? senderName;
   final int? senderRating;
+  final bool? senderIsProvisional;
   final int? timeControl;
   final String? colorPreference;
   final String? matchId;
@@ -47,6 +48,7 @@ class KitaNotification {
     required this.subtitle,
     this.senderName,
     this.senderRating,
+    this.senderIsProvisional,
     this.timeControl,
     this.colorPreference,
     this.matchId,
@@ -116,6 +118,7 @@ class KitaNotification {
       subtitle: subtitle ?? this.subtitle,
       senderName: senderName,
       senderRating: senderRating,
+      senderIsProvisional: senderIsProvisional,
       timeControl: timeControl,
       colorPreference: colorPreference,
       matchId: matchId,
@@ -204,6 +207,10 @@ class KitaNotification {
         (payloadMap['sender_rating'] as num?)?.toInt() ??
         (json['sender_rating'] as num?)?.toInt();
 
+    final bool? senderIsProvisional = (payloadMap['is_provisional'] as bool?) ??
+        (payloadMap['sender_is_provisional'] as bool?) ??
+        (json['sender_is_provisional'] as bool?);
+
     final int? timeControl = (payloadMap['time_control'] as num?)?.toInt() ??
         (json['time_control'] as num?)?.toInt();
 
@@ -241,6 +248,7 @@ class KitaNotification {
       subtitle: json['subtitle']?.toString() ?? '',
       senderName: senderName,
       senderRating: senderRating,
+      senderIsProvisional: senderIsProvisional,
       timeControl: timeControl,
       colorPreference: colorPreference,
       matchId: matchId,

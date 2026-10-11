@@ -289,7 +289,7 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
         ),
         const SizedBox(height: 2),
         Text(
-          '${player.rating}',
+          player.displayRating,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 11,

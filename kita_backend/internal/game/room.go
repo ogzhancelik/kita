@@ -175,27 +175,29 @@ func (r *Room) startLocked() {
 
 	// 1. Oyunculara maç bulundu ve takımları bildirilir
 	r.WhitePlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
-		MatchID:             r.ID,
-		YourTeam:            "white",
-		OpponentID:          r.BlackPlayer.UserID,
-		OpponentName:        r.BlackPlayer.Username,
-		OpponentRating:      r.BlackPlayer.Rating,
-		OpponentAvatarIndex: r.BlackPlayer.AvatarIndex,
-		TimeControl:         r.TimeControl,
-		StartedAt:           &r.StartedAt,
-		ElapsedSeconds:      0,
+		MatchID:               r.ID,
+		YourTeam:              "white",
+		OpponentID:            r.BlackPlayer.UserID,
+		OpponentName:          r.BlackPlayer.Username,
+		OpponentRating:        r.BlackPlayer.Rating,
+		OpponentIsProvisional: r.BlackPlayer.IsProvisional,
+		OpponentAvatarIndex:   r.BlackPlayer.AvatarIndex,
+		TimeControl:           r.TimeControl,
+		StartedAt:             &r.StartedAt,
+		ElapsedSeconds:        0,
 	})
 
 	r.BlackPlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
-		MatchID:             r.ID,
-		YourTeam:            "black",
-		OpponentID:          r.WhitePlayer.UserID,
-		OpponentName:        r.WhitePlayer.Username,
-		OpponentRating:      r.WhitePlayer.Rating,
-		OpponentAvatarIndex: r.WhitePlayer.AvatarIndex,
-		TimeControl:         r.TimeControl,
-		StartedAt:           &r.StartedAt,
-		ElapsedSeconds:      0,
+		MatchID:               r.ID,
+		YourTeam:              "black",
+		OpponentID:            r.WhitePlayer.UserID,
+		OpponentName:          r.WhitePlayer.Username,
+		OpponentRating:        r.WhitePlayer.Rating,
+		OpponentIsProvisional: r.WhitePlayer.IsProvisional,
+		OpponentAvatarIndex:   r.WhitePlayer.AvatarIndex,
+		TimeControl:           r.TimeControl,
+		StartedAt:             &r.StartedAt,
+		ElapsedSeconds:        0,
 	})
 
 	// 2. İlk chess clock timeout'u başlatılır (beyazın sırası)
@@ -728,11 +730,13 @@ func (r *Room) HandleReconnect(client *Client) bool {
 	oppID := ""
 	oppName := ""
 	oppRating := 1200
+	oppIsProvisional := false
 	oppAvatar := 0
 	if opp != nil {
 		oppID = opp.UserID
 		oppName = opp.Username
 		oppRating = opp.Rating
+		oppIsProvisional = opp.IsProvisional
 		oppAvatar = opp.AvatarIndex
 	}
 
@@ -762,12 +766,13 @@ func (r *Room) HandleReconnect(client *Client) bool {
 	copy(chatHistoryCopy, r.ChatHistory)
 
 	client.SendJSON(TypeMatchFound, MatchFoundDTO{
-		MatchID:             r.ID,
-		YourTeam:            team,
-		OpponentID:          oppID,
-		OpponentName:        oppName,
-		OpponentRating:      oppRating,
-		OpponentAvatarIndex: oppAvatar,
+		MatchID:               r.ID,
+		YourTeam:              team,
+		OpponentID:            oppID,
+		OpponentName:          oppName,
+		OpponentRating:        oppRating,
+		OpponentIsProvisional: oppIsProvisional,
+		OpponentAvatarIndex:   oppAvatar,
 		TimeControl:         r.TimeControl,
 		IsReconnect:         true,
 		StartedAt:           &r.StartedAt,
@@ -900,10 +905,16 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 			if newR, ok := whiteChange["new"].(int); ok {
 				r.WhitePlayer.Rating = newR
 			}
+			if isProv, ok := whiteChange["is_provisional"].(bool); ok {
+				r.WhitePlayer.IsProvisional = isProv
+			}
 		}
 		if blackChange, ok := ratingChanges[r.BlackPlayer.UserID].(map[string]interface{}); ok {
 			if newR, ok := blackChange["new"].(int); ok {
 				r.BlackPlayer.Rating = newR
+			}
+			if isProv, ok := blackChange["is_provisional"].(bool); ok {
+				r.BlackPlayer.IsProvisional = isProv
 			}
 		}
 	}

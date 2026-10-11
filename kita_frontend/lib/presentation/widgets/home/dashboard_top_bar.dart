@@ -94,6 +94,7 @@ class DashboardTopBar extends StatelessWidget {
                           StatBadge(
                             rating: user?.rating ?? 1200,
                             isGuest: isGuest,
+                            isProvisional: user?.isProvisional ?? true,
                           ),
                         ],
                       ),

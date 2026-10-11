@@ -297,7 +297,7 @@ class _NotificationTileState extends State<NotificationTile> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  '★ ${notification.senderRating}',
+                                  '★ ${notification.senderRating}${notification.senderIsProvisional == true ? '?' : ''}',
                                   style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,

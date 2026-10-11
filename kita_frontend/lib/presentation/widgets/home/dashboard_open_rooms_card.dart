@@ -197,7 +197,7 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        '${room.hostRating}',
+                        room.displayRating,
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,

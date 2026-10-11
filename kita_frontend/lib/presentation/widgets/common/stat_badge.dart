@@ -5,11 +5,13 @@ import '../../../core/theme/app_colors.dart';
 class StatBadge extends StatelessWidget {
   final int rating;
   final bool isGuest;
+  final bool isProvisional;
 
   const StatBadge({
     super.key,
     required this.rating,
     this.isGuest = false,
+    this.isProvisional = false,
   });
 
   @override
@@ -54,7 +56,7 @@ class StatBadge extends StatelessWidget {
           const Icon(Icons.emoji_events_rounded, size: 14, color: AppColors.ratingGold),
           const SizedBox(width: 4),
           Text(
-            '$rating',
+            isProvisional ? '$rating?' : '$rating',
             style: const TextStyle(
               color: AppColors.ratingGold,
               fontSize: 12.5,

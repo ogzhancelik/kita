@@ -155,8 +155,9 @@ type MatchFoundDTO struct {
 	YourTeam            string             `json:"your_team"` // "white" or "black"
 	OpponentID          string             `json:"opponent_id"`
 	OpponentName        string             `json:"opponent_name"`
-	OpponentRating      int                `json:"opponent_rating"`
-	OpponentAvatarIndex int                `json:"opponent_avatar_index"`
+	OpponentRating         int                `json:"opponent_rating"`
+	OpponentIsProvisional  bool               `json:"opponent_is_provisional"`
+	OpponentAvatarIndex    int                `json:"opponent_avatar_index"`
 	TimeControl         int64              `json:"time_control"`
 	IsReconnect         bool               `json:"is_reconnect,omitempty"`
 	StartedAt           *time.Time         `json:"started_at,omitempty"`
@@ -228,8 +229,9 @@ type RoomInfoDTO struct {
 	RoomCode        string `json:"room_code"`
 	HostID          string `json:"host_id,omitempty"`
 	HostName        string `json:"host_name"`
-	HostRating      int    `json:"host_rating"`
-	HostAvatarIndex int    `json:"host_avatar_index"`
+	HostRating        int    `json:"host_rating"`
+	HostIsProvisional bool   `json:"host_is_provisional"`
+	HostAvatarIndex   int    `json:"host_avatar_index"`
 	TimeControl     int64  `json:"time_control"`
 	IsPrivate       bool   `json:"is_private"`
 }
@@ -268,8 +270,9 @@ type MatchInvitationDTO struct {
 	InviteID           string `json:"invite_id"`
 	InviterID          string `json:"inviter_id"`
 	InviterName        string `json:"inviter_name"`
-	InviterRating      int    `json:"inviter_rating"`
-	InviterAvatarIndex int    `json:"inviter_avatar_index"`
+	InviterRating        int    `json:"inviter_rating"`
+	InviterIsProvisional bool   `json:"inviter_is_provisional"`
+	InviterAvatarIndex   int    `json:"inviter_avatar_index"`
 	TimeControl        int64  `json:"time_control"`
 	ColorPreference    string `json:"color_preference,omitempty"`
 	ExpiresAt          int64  `json:"expires_at,omitempty"`

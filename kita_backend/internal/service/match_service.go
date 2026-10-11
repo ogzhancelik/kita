@@ -76,10 +76,13 @@ func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Matc
 		if newR < 100 {
 			newR = 100
 		}
+		whiteTotal := whiteUser.Wins + whiteUser.Losses + whiteUser.Draws + 1
+		whiteIsProv := (whiteTotal < domain.ProvisionalGamesThreshold) || (wRD > domain.ProvisionalRDThreshold)
 		ratingChanges[match.WhitePlayerID] = map[string]interface{}{
-			"old":  oldR,
-			"new":  newR,
-			"diff": newR - oldR,
+			"old":            oldR,
+			"new":            newR,
+			"diff":           newR - oldR,
+			"is_provisional": whiteIsProv,
 		}
 	}
 	if blackUser != nil {
@@ -88,10 +91,13 @@ func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Matc
 		if newR < 100 {
 			newR = 100
 		}
+		blackTotal := blackUser.Wins + blackUser.Losses + blackUser.Draws + 1
+		blackIsProv := (blackTotal < domain.ProvisionalGamesThreshold) || (bRD > domain.ProvisionalRDThreshold)
 		ratingChanges[match.BlackPlayerID] = map[string]interface{}{
-			"old":  oldR,
-			"new":  newR,
-			"diff": newR - oldR,
+			"old":            oldR,
+			"new":            newR,
+			"diff":           newR - oldR,
+			"is_provisional": blackIsProv,
 		}
 	}
 

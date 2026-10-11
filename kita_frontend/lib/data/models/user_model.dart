@@ -3,6 +3,7 @@ class UserProfile {
   final String username;
   final int avatarIndex;
   final int rating;
+  final bool isProvisional;
   final int wins;
   final int losses;
   final int draws;
@@ -15,6 +16,7 @@ class UserProfile {
     required this.username,
     this.avatarIndex = 0,
     this.rating = 1200,
+    this.isProvisional = false,
     this.wins = 0,
     this.losses = 0,
     this.draws = 0,
@@ -23,11 +25,14 @@ class UserProfile {
     this.createdAt,
   });
 
+  String get displayRating => isProvisional ? '$rating?' : '$rating';
+
   UserProfile copyWith({
     String? id,
     String? username,
     int? avatarIndex,
     int? rating,
+    bool? isProvisional,
     int? wins,
     int? losses,
     int? draws,
@@ -40,6 +45,7 @@ class UserProfile {
       username: username ?? this.username,
       avatarIndex: avatarIndex ?? this.avatarIndex,
       rating: rating ?? this.rating,
+      isProvisional: isProvisional ?? this.isProvisional,
       wins: wins ?? this.wins,
       losses: losses ?? this.losses,
       draws: draws ?? this.draws,
@@ -50,15 +56,18 @@ class UserProfile {
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    final totalGames = (json['total_games'] as num?)?.toInt() ?? 0;
+    final isProv = json['is_provisional'] as bool? ?? (totalGames < 5);
     return UserProfile(
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? 'Player',
       avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
       rating: (json['rating'] as num?)?.toInt() ?? 1200,
+      isProvisional: isProv,
       wins: (json['wins'] as num?)?.toInt() ?? 0,
       losses: (json['losses'] as num?)?.toInt() ?? 0,
       draws: (json['draws'] as num?)?.toInt() ?? 0,
-      totalGames: (json['total_games'] as num?)?.toInt() ?? 0,
+      totalGames: totalGames,
       winRate: (json['win_rate'] as num?)?.toDouble() ?? 0.0,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
@@ -72,6 +81,7 @@ class UserProfile {
       'username': username,
       'avatar_index': avatarIndex,
       'rating': rating,
+      'is_provisional': isProvisional,
       'wins': wins,
       'losses': losses,
       'draws': draws,

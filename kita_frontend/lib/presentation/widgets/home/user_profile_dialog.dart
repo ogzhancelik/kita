@@ -21,6 +21,7 @@ class UserProfileDialog extends StatefulWidget {
   final String? fallbackName;
   final int? fallbackAvatarIndex;
   final int? fallbackRating;
+  final bool? fallbackIsProvisional;
   final bool? isGuest;
   final bool? isBot;
   final VoidCallback? onInvite;
@@ -33,6 +34,7 @@ class UserProfileDialog extends StatefulWidget {
     this.fallbackName,
     this.fallbackAvatarIndex,
     this.fallbackRating,
+    this.fallbackIsProvisional,
     this.isGuest,
     this.isBot,
     this.onInvite,
@@ -46,6 +48,7 @@ class UserProfileDialog extends StatefulWidget {
     String? fallbackName,
     int? fallbackAvatarIndex,
     int? fallbackRating,
+    bool? fallbackIsProvisional,
     bool? isGuest,
     bool? isBot,
     VoidCallback? onInvite,
@@ -62,6 +65,7 @@ class UserProfileDialog extends StatefulWidget {
         fallbackName: fallbackName,
         fallbackAvatarIndex: fallbackAvatarIndex,
         fallbackRating: fallbackRating,
+        fallbackIsProvisional: fallbackIsProvisional,
         isGuest: isGuest,
         isBot: isBot,
         onInvite: onInvite,
@@ -162,6 +166,10 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     final int rating = isCurrent
         ? (user?.rating ?? 1200)
         : (user?.rating ?? widget.fallbackRating ?? 1200);
+
+    final bool isProvisional = isCurrent
+        ? (authProv.currentUser?.isProvisional ?? true)
+        : (user?.isProvisional ?? widget.fallbackIsProvisional ?? false);
 
     String badgeText;
     Color badgeColor;
@@ -307,6 +315,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           StatBadge(
                             rating: rating,
                             isGuest: isGuest,
+                            isProvisional: isProvisional,
                           ),
                           const SizedBox(width: 8),
                         ],
@@ -395,7 +404,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               Expanded(
                                 child: _buildStatItem(
                                   label: 'profile.rating'.tr(),
-                                  value: isGuest ? '—' : '$rating',
+                                  value: isGuest ? '—' : (isProvisional ? '$rating?' : '$rating'),
                                   icon: Icons.military_tech_rounded,
                                   color: AppColors.ratingGold,
                                   isDark: isDark,
@@ -477,6 +486,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             username: displayName,
                             avatarIndex: rawAvatarIndex,
                             rating: rating,
+                            isProvisional: isProvisional,
                             status: 'accepted',
                             direction: 'friend',
                             isOnline: true,

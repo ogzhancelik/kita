@@ -346,7 +346,7 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
     } else if (widget.isLocalCoop) {
       final isBlackTurn = widget.displayEngine.turn == PieceTeam.black;
       final activePlayerIsAtTop = widget.flipBoard ? !isBlackTurn : isBlackTurn;
-      final double baseRotation = gameSettings.isLocalCoopHorizontal ? 0.25 : 0.0;
+      final double baseRotation = gameSettings.isLocalCoopHorizontal ? -0.25 : 0.0;
       effectiveRotation = gameSettings.localCoopAutoRotate
           ? (baseRotation + (activePlayerIsAtTop ? 0.5 : 0.0))
           : baseRotation;

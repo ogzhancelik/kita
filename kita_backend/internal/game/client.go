@@ -55,6 +55,7 @@ type Client struct {
 	UserID         string
 	Username       string
 	Rating         int
+	IsProvisional  bool
 	CurrentMatchID string
 	AvatarIndex    int
 	Activity       PlayerActivity // Explicit state machine — set via Hub.enterActivityLocked
@@ -77,14 +78,15 @@ type Client struct {
 
 // OutgoingInvite represents an outgoing match invitation sent to a friend.
 type OutgoingInvite struct {
-	InviteID     string    `json:"invite_id"`
-	FriendID     string    `json:"friend_id"`
-	FriendName   string    `json:"friend_name,omitempty"`
-	FriendRating int       `json:"friend_rating,omitempty"`
-	TimeControl  int64     `json:"time_control"`
-	ColorPref    string    `json:"color_preference"`
-	CreatedAt    time.Time `json:"created_at"`
-	ExpiresAt    time.Time `json:"expires_at"`
+	InviteID            string    `json:"invite_id"`
+	FriendID            string    `json:"friend_id"`
+	FriendName          string    `json:"friend_name,omitempty"`
+	FriendRating        int       `json:"friend_rating,omitempty"`
+	FriendIsProvisional bool      `json:"friend_is_provisional,omitempty"`
+	TimeControl         int64     `json:"time_control"`
+	ColorPref           string    `json:"color_preference"`
+	CreatedAt           time.Time `json:"created_at"`
+	ExpiresAt           time.Time `json:"expires_at"`
 }
 
 func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating int, avatarIndex ...int) *Client {

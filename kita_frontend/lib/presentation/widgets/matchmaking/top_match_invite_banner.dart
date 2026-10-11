@@ -244,7 +244,7 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  '★ ${req.senderRating}',
+                                  '★ ${req.displayRating}',
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,

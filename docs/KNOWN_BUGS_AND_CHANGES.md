@@ -19,7 +19,7 @@ This document tracks identified bugs, UX glitches, and quick changes across the 
 
 ## 🔄 Changes & Adjustments
 
-- [ ] 90 degrees piece orientation in local coop setting is the wrong way clockwise
+- [x] 90 degrees piece orientation in local coop setting is the wrong way clockwise
 - [ ] improve tutorial
 - [x] There are too many explanations everywhere, prune them ("play" hamburger menu, "play vs computer" choice menu etc.)
 - [x] It says easy/medium/hard in Replay Mode for AI's instead of their correct names. Instead, remove the ELO from bots and put correct beginner/intermediate/grandmaster names there, just like it is in play mode.

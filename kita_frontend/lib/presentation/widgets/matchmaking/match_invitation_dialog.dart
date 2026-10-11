@@ -120,7 +120,7 @@ class MatchInvitationDialog extends StatelessWidget {
                 Column(
                   children: [
                     Text(
-                      '${invitation.inviterRating}',
+                      invitation.displayRating,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -128,7 +128,7 @@ class MatchInvitationDialog extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Rating',
+                      'profile.rating'.tr(),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.getTextMuted(isDark),

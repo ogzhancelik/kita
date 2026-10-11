@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+const (
+	ProvisionalGamesThreshold = 5
+	ProvisionalRDThreshold    = 180.0
+)
+
 type User struct {
 	ID              string        `json:"id" gorm:"primaryKey;type:uuid"`
 	Username        string        `json:"username" gorm:"uniqueIndex;not null"`
@@ -22,17 +27,29 @@ type User struct {
 	Settings        *UserSettings `json:"settings,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
+func (u *User) IsProvisional() bool {
+	total := u.Wins + u.Losses + u.Draws
+	if total < ProvisionalGamesThreshold {
+		return true
+	}
+	if u.RatingDeviation <= 0 {
+		return false
+	}
+	return u.RatingDeviation > ProvisionalRDThreshold
+}
+
 type UserProfile struct {
-	ID          string    `json:"id"`
-	Username    string    `json:"username"`
-	AvatarIndex int       `json:"avatar_index"`
-	Rating      int       `json:"rating"`
-	Wins        int       `json:"wins"`
-	Losses      int       `json:"losses"`
-	Draws       int       `json:"draws"`
-	Total       int       `json:"total_games"`
-	WinRate     float64   `json:"win_rate"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID            string    `json:"id"`
+	Username      string    `json:"username"`
+	AvatarIndex   int       `json:"avatar_index"`
+	Rating        int       `json:"rating"`
+	IsProvisional bool      `json:"is_provisional"`
+	Wins          int       `json:"wins"`
+	Losses        int       `json:"losses"`
+	Draws         int       `json:"draws"`
+	Total         int       `json:"total_games"`
+	WinRate       float64   `json:"win_rate"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 func (u *User) ToProfile() UserProfile {
@@ -42,15 +59,17 @@ func (u *User) ToProfile() UserProfile {
 		winRate = float64(u.Wins) / float64(total) * 100
 	}
 	return UserProfile{
-		ID:          u.ID,
-		Username:    u.Username,
-		AvatarIndex: u.AvatarIndex,
-		Rating:      int(math.Round(u.Rating)),
-		Wins:        u.Wins,
-		Losses:      u.Losses,
-		Draws:       u.Draws,
-		Total:       total,
-		WinRate:     winRate,
-		CreatedAt:   u.CreatedAt,
+		ID:            u.ID,
+		Username:      u.Username,
+		AvatarIndex:   u.AvatarIndex,
+		Rating:        int(math.Round(u.Rating)),
+		IsProvisional: u.IsProvisional(),
+		Wins:          u.Wins,
+		Losses:        u.Losses,
+		Draws:         u.Draws,
+		Total:         total,
+		WinRate:       winRate,
+		CreatedAt:     u.CreatedAt,
 	}
 }
+

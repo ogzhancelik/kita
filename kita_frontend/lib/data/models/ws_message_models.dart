@@ -247,6 +247,7 @@ class MatchFoundPayload {
   final String opponentId;
   final String opponentName;
   final int opponentRating;
+  final bool opponentIsProvisional;
   final int opponentAvatarIndex;
   final int timeControl;
   final bool isReconnect;
@@ -261,6 +262,7 @@ class MatchFoundPayload {
     required this.opponentId,
     required this.opponentName,
     required this.opponentRating,
+    this.opponentIsProvisional = false,
     this.opponentAvatarIndex = 0,
     required this.timeControl,
     this.isReconnect = false,
@@ -269,6 +271,9 @@ class MatchFoundPayload {
     this.moveHistory = const [],
     this.chatHistory = const [],
   });
+
+  String get displayOpponentRating =>
+      opponentIsProvisional ? '$opponentRating?' : '$opponentRating';
 
   factory MatchFoundPayload.fromJson(Map<String, dynamic> json) {
     DateTime? started;
@@ -304,6 +309,7 @@ class MatchFoundPayload {
       opponentId: json['opponent_id'] as String? ?? '',
       opponentName: json['opponent_name'] as String? ?? 'Opponent',
       opponentRating: (json['opponent_rating'] as num?)?.toInt() ?? 1200,
+      opponentIsProvisional: json['opponent_is_provisional'] as bool? ?? false,
       opponentAvatarIndex: (json['opponent_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       isReconnect: json['is_reconnect'] as bool? ?? false,
@@ -321,6 +327,7 @@ class PendingOutgoingChallenge {
   final String friendId;
   final String friendName;
   final int? friendRating;
+  final bool? friendIsProvisional;
   final int timeControl;
   final String colorPreference;
   final DateTime sentAt;
@@ -331,6 +338,7 @@ class PendingOutgoingChallenge {
     required this.friendId,
     required this.friendName,
     this.friendRating,
+    this.friendIsProvisional,
     required this.timeControl,
     required this.colorPreference,
     required this.sentAt,
@@ -342,6 +350,7 @@ class PendingOutgoingChallenge {
     String? friendId,
     String? friendName,
     int? friendRating,
+    bool? friendIsProvisional,
     int? timeControl,
     String? colorPreference,
     DateTime? sentAt,
@@ -352,6 +361,7 @@ class PendingOutgoingChallenge {
       friendId: friendId ?? this.friendId,
       friendName: friendName ?? this.friendName,
       friendRating: friendRating ?? this.friendRating,
+      friendIsProvisional: friendIsProvisional ?? this.friendIsProvisional,
       timeControl: timeControl ?? this.timeControl,
       colorPreference: colorPreference ?? this.colorPreference,
       sentAt: sentAt ?? this.sentAt,
@@ -364,6 +374,7 @@ class PendingOutgoingChallenge {
     'friend_id': friendId,
     'friend_name': friendName,
     if (friendRating != null) 'friend_rating': friendRating,
+    if (friendIsProvisional != null) 'friend_is_provisional': friendIsProvisional,
     'time_control': timeControl,
     'color_preference': colorPreference,
     'sent_at': sentAt.toIso8601String(),
@@ -395,6 +406,7 @@ class PendingOutgoingChallenge {
       friendId: json['friend_id'] as String? ?? '',
       friendName: json['friend_name'] as String? ?? 'Friend',
       friendRating: json['friend_rating'] as int?,
+      friendIsProvisional: json['friend_is_provisional'] as bool?,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 180000,
       colorPreference: json['color_preference'] as String? ?? 'random',
       sentAt: sentTime,
@@ -634,6 +646,7 @@ class RoomInfoPayload {
   final String? hostId;
   final String hostName;
   final int hostRating;
+  final bool hostIsProvisional;
   final int hostAvatarIndex;
   final int timeControl;
   final bool isPrivate;
@@ -643,10 +656,14 @@ class RoomInfoPayload {
     this.hostId,
     required this.hostName,
     required this.hostRating,
+    this.hostIsProvisional = false,
     this.hostAvatarIndex = 0,
     required this.timeControl,
     required this.isPrivate,
   });
+
+  String get displayRating =>
+      hostIsProvisional ? '$hostRating?' : '$hostRating';
 
   factory RoomInfoPayload.fromJson(Map<String, dynamic> json) {
     return RoomInfoPayload(
@@ -654,6 +671,7 @@ class RoomInfoPayload {
       hostId: json['host_id'] as String?,
       hostName: json['host_name'] as String? ?? 'Unknown',
       hostRating: (json['host_rating'] as num?)?.toInt() ?? 1200,
+      hostIsProvisional: json['host_is_provisional'] as bool? ?? false,
       hostAvatarIndex: (json['host_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       isPrivate: json['is_private'] as bool? ?? false,
@@ -725,6 +743,7 @@ class MatchInvitationPayload {
   final String inviterId;
   final String inviterName;
   final int inviterRating;
+  final bool inviterIsProvisional;
   final int inviterAvatarIndex;
   final int timeControl;
   final String colorPreference;
@@ -735,11 +754,15 @@ class MatchInvitationPayload {
     required this.inviterId,
     required this.inviterName,
     required this.inviterRating,
+    this.inviterIsProvisional = false,
     this.inviterAvatarIndex = 0,
     required this.timeControl,
     this.colorPreference = 'random',
     this.expiresAt,
   });
+
+  String get displayRating =>
+      inviterIsProvisional ? '$inviterRating?' : '$inviterRating';
 
   factory MatchInvitationPayload.fromJson(Map<String, dynamic> json) {
     DateTime? expiresAt;
@@ -752,6 +775,7 @@ class MatchInvitationPayload {
       inviterId: json['inviter_id'] as String? ?? '',
       inviterName: json['inviter_name'] as String? ?? '',
       inviterRating: (json['inviter_rating'] as num?)?.toInt() ?? 1200,
+      inviterIsProvisional: json['inviter_is_provisional'] as bool? ?? false,
       inviterAvatarIndex: (json['inviter_avatar_index'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       colorPreference: json['color_preference'] as String? ?? 'random',
@@ -773,6 +797,7 @@ class IncomingMatchRequest {
   final String? senderId;
   final String senderName;
   final int senderRating;
+  final bool senderIsProvisional;
   final int timeControl;
   final String colorPreference;
   final DateTime createdAt;
@@ -784,11 +809,15 @@ class IncomingMatchRequest {
     this.senderId,
     required this.senderName,
     this.senderRating = 1200,
+    this.senderIsProvisional = false,
     required this.timeControl,
     this.colorPreference = 'random',
     DateTime? createdAt,
     this.expiresAt,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  String get displayRating =>
+      senderIsProvisional ? '$senderRating?' : '$senderRating';
 }
 
 class PendingOutgoingRematch {
@@ -796,6 +825,7 @@ class PendingOutgoingRematch {
   final String opponentId;
   final String opponentName;
   final int? opponentRating;
+  final bool? opponentIsProvisional;
   final int? opponentAvatarIndex;
   final int timeControl;
   final DateTime sentAt;
@@ -805,6 +835,7 @@ class PendingOutgoingRematch {
     required this.opponentId,
     required this.opponentName,
     this.opponentRating,
+    this.opponentIsProvisional,
     this.opponentAvatarIndex,
     required this.timeControl,
     required this.sentAt,

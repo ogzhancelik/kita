@@ -849,22 +849,25 @@ func (h *Hub) getPublicRoomsDTOLocked(page, limit int) RoomsListDTO {
 			hostID := ""
 			hostName := "Unknown"
 			hostRating := 1200
+			hostIsProvisional := false
 			hostAvatarIndex := 0
 			if room.Host != nil {
 				hostID = room.Host.UserID
 				hostName = room.Host.Username
 				hostRating = room.Host.Rating
+				hostIsProvisional = room.Host.IsProvisional
 				hostAvatarIndex = room.Host.AvatarIndex
 			}
 			items = append(items, roomItem{
 				dto: RoomInfoDTO{
-					RoomCode:        room.RoomCode,
-					HostID:          hostID,
-					HostName:        hostName,
-					HostRating:      hostRating,
-					HostAvatarIndex: hostAvatarIndex,
-					TimeControl:     room.TimeControl,
-					IsPrivate:       room.IsPrivate,
+					RoomCode:          room.RoomCode,
+					HostID:            hostID,
+					HostName:          hostName,
+					HostRating:        hostRating,
+					HostIsProvisional: hostIsProvisional,
+					HostAvatarIndex:   hostAvatarIndex,
+					TimeControl:       room.TimeControl,
+					IsPrivate:         room.IsPrivate,
 				},
 				startedAt: room.StartedAt,
 			})
@@ -1340,14 +1343,15 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 
 	// Send live invitation to online friend
 	friend.SendJSON(TypeMatchInvitation, MatchInvitationDTO{
-		InviteID:           inviteID,
-		InviterID:          client.UserID,
-		InviterName:        client.Username,
-		InviterRating:      client.Rating,
-		InviterAvatarIndex: client.AvatarIndex,
-		TimeControl:        timeControl,
-		ColorPreference:    colorPref,
-		ExpiresAt:          expiresAt.Unix(),
+		InviteID:             inviteID,
+		InviterID:            client.UserID,
+		InviterName:          client.Username,
+		InviterRating:        client.Rating,
+		InviterIsProvisional: client.IsProvisional,
+		InviterAvatarIndex:   client.AvatarIndex,
+		TimeControl:          timeControl,
+		ColorPreference:      colorPref,
+		ExpiresAt:            expiresAt.Unix(),
 	})
 
 	// Also persist notification for online friend
