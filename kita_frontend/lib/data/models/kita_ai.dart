@@ -85,7 +85,7 @@ class AIDifficulty {
     if (index >= 0 && index < all.length) {
       return all[index].elo;
     }
-    return medium.elo;
+    return easy.elo;
   }
 }
 

@@ -21,7 +21,7 @@ import 'online_game_provider.dart';
 /// - Allows the user to have an active offline match and an active online match simultaneously.
 class OfflineGameProvider extends ChangeNotifier {
   PlayMode offlinePlayMode = PlayMode.vsAi;
-  int offlineBotDifficulty = 2; // 0: Novice, 1: Easy, 2: Medium, 3: Master, 4: Grandmaster
+  int offlineBotDifficulty = 1; // 0: Novice, 1: Easy (Beginner), 2: Medium (Intermediate), 3: Master, 4: Grandmaster
   PieceTeam offlinePlayerTeam = PieceTeam.white;
   String? offlinePlayerId;
   String? offlinePlayerName;
@@ -77,15 +77,15 @@ class OfflineGameProvider extends ChangeNotifier {
     switch (offlineBotDifficulty) {
       case 0:
         return 'game.novice'.tr();
-      case 1:
-        return 'game.easy'.tr();
+      case 2:
+        return 'game.medium'.tr();
       case 3:
         return 'game.hard'.tr();
       case 4:
         return 'game.grandmaster'.tr();
-      case 2:
+      case 1:
       default:
-        return 'game.medium'.tr();
+        return 'game.easy'.tr();
     }
   }
 
@@ -117,7 +117,7 @@ class OfflineGameProvider extends ChangeNotifier {
   void startOfflineMatch({
     required PlayMode mode,
     PieceTeam playerTeam = PieceTeam.white,
-    int botDifficulty = 2,
+    int botDifficulty = 1,
     String? playerId,
     String? playerName,
     int? playerRating,

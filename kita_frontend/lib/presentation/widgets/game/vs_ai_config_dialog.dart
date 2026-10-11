@@ -33,10 +33,10 @@ class VsAiConfigDialog extends StatefulWidget {
 }
 
 class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
-  static int _cachedDifficulty = 2;
+  static int _cachedDifficulty = 1;
   static String _cachedSide = 'random';
 
-  int _selectedDifficulty = _cachedDifficulty; // 0: Novice, 1: Easy, 2: Medium, 3: Master, 4: Grandmaster
+  int _selectedDifficulty = _cachedDifficulty; // 0: Novice, 1: Easy (Beginner), 2: Medium (Intermediate), 3: Master, 4: Grandmaster
   String _selectedSide = _cachedSide; // 'white', 'random', 'black'
 
   @override
