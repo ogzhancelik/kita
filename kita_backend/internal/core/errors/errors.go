@@ -7,6 +7,8 @@ const (
 	ErrValidationFailed ErrorCode = "ERR_VALIDATION_FAILED"
 	ErrMissingField     ErrorCode = "ERR_MISSING_FIELD"
 	ErrInvalidFormat    ErrorCode = "ERR_INVALID_FORMAT"
+	ErrUsernameReserved ErrorCode = "ERR_USERNAME_RESERVED"
+	ErrUsernameInvalid  ErrorCode = "ERR_USERNAME_INVALID"
 
 	// Auth
 	ErrUnauthorized        ErrorCode = "ERR_UNAUTHORIZED"

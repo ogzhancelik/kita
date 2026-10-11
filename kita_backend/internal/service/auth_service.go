@@ -17,9 +17,11 @@ import (
 )
 
 var (
-	ErrUserAlreadyExists = errors.New("username or email already in use")
+	ErrUserAlreadyExists  = errors.New("username or email already in use")
 	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrInvalidToken      = errors.New("invalid or expired token")
+	ErrInvalidToken       = errors.New("invalid or expired token")
+	ErrUsernameReserved   = errors.New("this username is reserved")
+	ErrInvalidUsername    = errors.New("username must be 2-15 characters and contain only letters, numbers, underscores, or hyphens")
 )
 
 type authService struct {
@@ -39,11 +41,14 @@ func NewAuthService(userRepo ports.UserRepository) ports.AuthService {
 }
 
 func (s *authService) Register(ctx context.Context, username, email, password string) (*domain.User, string, error) {
-	username = strings.TrimSpace(username)
 	email = strings.ToLower(strings.TrimSpace(email))
 
-	if username == "" || email == "" || len(password) < 6 {
-		return nil, "", errors.New("username, valid email, and password (min 6 chars) are required")
+	if err := ValidateUsername(username); err != nil {
+		return nil, "", err
+	}
+
+	if email == "" || len(password) < 6 {
+		return nil, "", errors.New("valid email and password (min 6 chars) are required")
 	}
 
 	existingUser, _ := s.userRepo.FindByUsername(ctx, username)

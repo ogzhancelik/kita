@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 
 class KitaTextField extends StatefulWidget {
@@ -12,6 +13,8 @@ class KitaTextField extends StatefulWidget {
   final bool enabled;
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
+  final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
 
   const KitaTextField({
     super.key,
@@ -25,6 +28,8 @@ class KitaTextField extends StatefulWidget {
     this.enabled = true,
     this.onChanged,
     this.onSubmitted,
+    this.inputFormatters,
+    this.maxLength,
   });
 
   @override
@@ -61,12 +66,15 @@ class _KitaTextFieldState extends State<KitaTextField> {
             validator: widget.validator,
             onChanged: widget.onChanged,
             onFieldSubmitted: widget.onSubmitted,
+            inputFormatters: widget.inputFormatters,
+            maxLength: widget.maxLength,
             style: TextStyle(
               color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
               fontSize: 14.5,
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
+              counterText: widget.maxLength != null ? '' : null,
               hintText: widget.hint,
               hintStyle: TextStyle(
                 color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,

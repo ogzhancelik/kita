@@ -7,14 +7,14 @@ This document tracks planned features, active backlog items, and completed miles
 ## 📋 Backlog & In Progress
 
 ### 🔐 Auth, Forms & Account Management
-- [ ] **Strict Username Validation**: Disallow whitespace and invalid special characters in username/nickname registration.
+- [x] **Strict Username Validation**: Disallow whitespace and invalid special characters in username/nickname registration (min 2, max 15, alphanumeric/underscore/hyphen, case-insensitive uniqueness, reserved keywords).
 - [ ] **Dedicated Account Settings Tab**: Extract avatar and user profile options into a dedicated Account Settings view, supporting password change and account deletion.
 
 ### 🎨 UI & Design Systems
 - [ ] **Unified Design System & Spacing Alignment**: Standardize spacing, top bars, typography, and page paddings across all secondary screens (Friends, Chats, Groups) using Main Dashboard, Leaderboard, and Match History as reference layouts.
 - [ ] **Settings Quick Controls Row**: Consolidate Theme, Vibration, and Sound toggles into a single compact horizontal strip of 3 rounded/square action tiles within the Settings modal.
-- [ ] **Custom Piece Icons for Move Notation**: Replace generic piece letters/icons in the move history ribbon with custom SVG icons for both Pawn and King matching the app's visual identity.
-- [ ] **Recent Matches Count Indicator**: Add a `+` badge (e.g., `10+`) to the Recent Matches dashboard header when older match records exist.
+- [ ] **Custom Piece Icons for Move Notation**: Replace generic King icons in the move history ribbon with custom SVG icon, matching the app's visual identity.
+- [ ] **Recent Matches Count Indicator**: Remove Recent Matches dashboard header's match counter (e.g., "5").
 - [ ] **Settings Menu Cleanup**: Reorder Settings dialog to place "How to Play" immediately above "Logout", and remove the redundant "About Kita" tile.
 - [ ] **Standardize Draw Outcome Color**: Standardize draw match status badges, chips, and result banners to warning yellow in theme colors.
 - [ ] **Text Visibility & Overflow Resilience Audit**: Audit labels, chips, and subtitles across small screens; ensure multi-line reflow (Wrap), tooltips for truncated nicknames/rooms, and fallback ellipsis without losing essential context.
@@ -25,8 +25,8 @@ This document tracks planned features, active backlog items, and completed miles
 
 ### 👥 Friends & Social
 - [ ] **Global Player Search & Friend Requests**: Replace manual nickname entry box with a dedicated player search view backed by server-side query, showing player tiles with inline "Add Friend" actions.
-- [ ] **Direct Player Challenge**: Allow challenging any user directly from their profile card or chat without requiring an accepted friendship first.
-- [ ] **Quick "Add Friend" from Match & History**: Add one-tap friend request actions directly inside in-match player cards and post-match history views.
+- [x] **Direct Player Challenge**: Allow challenging any user directly from their profile card or chat without requiring an accepted friendship first.
+- [x] **Quick "Add Friend" from Match & History**: Add one-tap friend request actions directly inside in-match player cards and post-match history views.
 - [ ] **Add Friend Shortcut on Home Dashboard**: Add an explicit "+ Add Friend" action to the dashboard friends widget or as a tail card at the end of the friends carousel.
 
 ### 💬 Chat & In-Game Messaging
@@ -42,7 +42,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Room Join Alert & Timed Match Start Confirmation**: Notify the host immediately upon an opponent joining, and introduce a mutual "Ready" confirmation before starting the countdown clock in timed rooms.
 
 ### ♟️ Board & Gameplay Experience
-- [ ] **Scrubbing Live State Restoration**: Clicking the latest move in the notation ribbon should immediately restore interactive live game state with a persistent accent color.
+- [ ] **Scrubbing Live State Restoration**: Clicking the latest move in the notation ribbon should immediately restore interactive live game state with the persistent color.
 - [ ] **Automatic Perspective Mirroring**: Auto-orient board perspective so the local player's pieces always appear on the bottom-right across all non-coop modes.
 - [ ] **Independent Orientation Preferences**: Support independent layout and theme configurations for vertical and horizontal board modes, toggled via hamburger menu.
 - [ ] **Provisional Rating Display ('?')**: Display provisional unrated status (`?`) for new accounts until calibration match count is completed.
@@ -51,7 +51,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Unified Deep Linking, File Association & Replay Sharing**: Comprehensive match replay sharing supporting in-app sharing links/codes (auto-uploading local offline games to server), direct `.kita` file OS association, and deep link universal routing.
 - [ ] **Account-Scoped Local Match Storage**: Isolate locally saved matches per user account ID instead of global shared device storage.
 - [ ] **Match History Lazy Pagination**: Implement infinite scrolling or lazy pagination for the Match History view to optimize performance and prevent bulk fetch lag.
-- [ ] **Match History Date Grouping Dividers**: Remove individual date badges from match cards and group matches by day with slim date divider headers (e.g. "Today", "Yesterday").
+- [ ] **Match History Date Grouping Dividers**: Remove individual date badges from match cards and group matches by day with slim date divider headers (e.g. "Today", "Yesterday", "2 Sep 2026", same format as Direct Chat.).
 
 ### 🛡️ Moderation & Support
 - [ ] In-game player reporting system
@@ -66,7 +66,6 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **System Push Notifications**: OS notifications for opponent moves when app is backgrounded or terminated.
 - [ ] **In-Match Chat vs. Direct Message Architecture**: Decide whether in-match chat should mirror direct messages bidirectionally or remain strictly temporary/ephemeral per match.
 - [ ] **Password Reset & Account Recovery**: Forgot password and email-based recovery pipeline.
-- [ ] **Piece Inversion in Non-Coop Modes**: Test and verify reported piece orientation anomaly outside Pass & Play mode.
 - [ ] **Theme-Adaptive Last Move Indicator**: Custom indicator line/glow styling harmonized with each board theme.
 - [ ] **In-Game Settings Menu Simplification**: Redesign and declutter the in-game hamburger settings drawer.
 

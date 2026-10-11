@@ -26,4 +26,4 @@ This document tracks identified bugs, UX glitches, and quick changes across the 
 - [ ] No time etc. choice in Local 2P Coop mode. Should be?
 - [ ] Rearrange settings menu
 - [x] Remove names of time modes (bullet, blitz, rapid)
-- [ ] Nickname convention (min/max chars, is space allowed, is there "name exists" check etc)
+- [x] Nickname convention (min 2, max 15, allowed chars [a-zA-Z0-9_-], no whitespace, case-insensitive uniqueness, reserved names list)
