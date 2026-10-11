@@ -34,7 +34,7 @@ func (r *userRepo) FindByID(ctx context.Context, id string) (*domain.User, error
 
 func (r *userRepo) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 	var user domain.User
-	if err := r.db.WithContext(ctx).First(&user, "username = ?", username).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&user, "LOWER(username) = LOWER(?)", username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}

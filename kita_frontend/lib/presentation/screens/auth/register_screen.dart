@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -113,12 +114,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: 'auth.username'.tr(),
                     hint: 'auth.usernameHint'.tr(),
                     prefixIcon: Icons.badge_outlined,
+                    maxLength: 15,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
+                      LengthLimitingTextInputFormatter(15),
+                    ],
                     validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
+                      final text = val ?? '';
+                      if (text.isEmpty) {
                         return 'errMissingField'.tr();
                       }
-                      if (val.trim().length < 3) {
+                      if (text.length < 2) {
                         return 'auth.usernameTooShort'.tr();
+                      }
+                      if (text.length > 15) {
+                        return 'auth.usernameTooLong'.tr();
+                      }
+                      if (!RegExp(r'^[a-zA-Z0-9_-]{2,15}$').hasMatch(text)) {
+                        return 'auth.usernameInvalid'.tr();
+                      }
+                      const reserved = {'admin', 'guest', 'system', 'kita', 'bot', 'moderator', 'support'};
+                      if (reserved.contains(text.toLowerCase())) {
+                        return 'auth.usernameReserved'.tr();
                       }
                       return null;
                     },

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,7 +24,7 @@ func (m *mockUserRepoForFriendService) FindByID(ctx context.Context, id string) 
 }
 func (m *mockUserRepoForFriendService) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 	for _, u := range m.users {
-		if u.Username == username {
+		if strings.EqualFold(u.Username, username) {
 			return &u, nil
 		}
 	}

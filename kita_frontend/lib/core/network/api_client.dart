@@ -208,6 +208,10 @@ class _ErrorInterceptor extends Interceptor {
         return 'errMissingField';
       case 'ERR_INVALID_FORMAT':
         return 'errInvalidFormat';
+      case 'ERR_USERNAME_RESERVED':
+        return 'errUsernameReserved';
+      case 'ERR_USERNAME_INVALID':
+        return 'errUsernameInvalid';
       case 'ERR_UNAUTHORIZED':
         return 'errUnauthorized';
       case 'ERR_INVALID_CREDENTIALS':

@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/friends_provider.dart';
@@ -141,6 +143,11 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
                   label: 'guest.nickname'.tr(),
                   hint: 'guest.nicknameHint'.tr(),
                   prefixIcon: Icons.badge_rounded,
+                  maxLength: 15,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
+                    LengthLimitingTextInputFormatter(15),
+                  ],
                 ),
                 const SizedBox(height: 32),
 
@@ -150,13 +157,36 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
                   icon: Icons.play_arrow_rounded,
                   variant: KitaButtonVariant.primary,
                   onPressed: () async {
-                    final name = _nameController.text.trim();
+                    final raw = _nameController.text.trim();
+                    String name = raw;
+                    if (raw.isNotEmpty) {
+                      const reserved = {'admin', 'guest', 'system', 'kita', 'bot', 'moderator', 'support'};
+                      if (raw.length < 2) {
+                        KitaToast.error('auth.usernameTooShort'.tr());
+                        return;
+                      }
+                      if (raw.length > 15) {
+                        KitaToast.error('auth.usernameTooLong'.tr());
+                        return;
+                      }
+                      if (!RegExp(r'^[a-zA-Z0-9_-]{2,15}$').hasMatch(raw)) {
+                        KitaToast.error('auth.usernameInvalid'.tr());
+                        return;
+                      }
+                      if (reserved.contains(raw.toLowerCase())) {
+                        KitaToast.error('auth.usernameReserved'.tr());
+                        return;
+                      }
+                    } else {
+                      name = 'Guest';
+                    }
+
                     if (context.mounted) {
                       context.read<FriendsProvider>().clear();
                       context.read<NotificationProvider>().clear();
                     }
                     await context.read<AuthProvider>().continueAsGuest(
-                          name.isEmpty ? 'Guest' : name,
+                          name,
                           _selectedAvatarIndex,
                         );
                     if (context.mounted) {

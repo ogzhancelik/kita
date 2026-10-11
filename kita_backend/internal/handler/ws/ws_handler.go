@@ -89,7 +89,7 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 		nickname := strings.TrimSpace(c.Query("nickname"))
 		guestUUID := uuid.New().String()[:8]
 		userID = fmt.Sprintf("guest-%s", guestUUID)
-		if nickname != "" {
+		if nickname != "" && service.ValidateUsername(nickname) == nil {
 			username = nickname
 		} else {
 			rnd := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(9000) + 1000

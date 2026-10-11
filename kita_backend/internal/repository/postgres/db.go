@@ -70,6 +70,10 @@ func NewDatabase() (*gorm.DB, error) {
 		_ = db.Exec("ALTER TABLE notifications ALTER COLUMN id TYPE varchar(128) USING id::varchar").Error
 	}
 
+	if db.Migrator().HasTable("users") {
+		_ = db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower ON users (LOWER(username));").Error
+	}
+
 	log.Println("[Postgres] Database connected and schema migrated successfully")
 	return db, nil
 }

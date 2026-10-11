@@ -22,7 +22,7 @@ func NewAuthHandler(authService ports.AuthService, userService ports.UserService
 }
 
 type RegisterRequest struct {
-	Username string `json:"username" binding:"required,min=3,max=30"`
+	Username string `json:"username" binding:"required,min=2,max=15"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
@@ -43,6 +43,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 		if err == service.ErrUserAlreadyExists {
 			SendError(c, http.StatusConflict, errors.ErrUserAlreadyExists, err.Error())
+			return
+		}
+		if err == service.ErrUsernameReserved {
+			SendError(c, http.StatusBadRequest, errors.ErrUsernameReserved, err.Error())
+			return
+		}
+		if err == service.ErrInvalidUsername {
+			SendError(c, http.StatusBadRequest, errors.ErrUsernameInvalid, err.Error())
 			return
 		}
 		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
