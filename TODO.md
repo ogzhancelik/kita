@@ -6,10 +6,52 @@ This document tracks planned features, active backlog items, and completed miles
 
 ## 📋 Backlog & In Progress
 
+### 🔐 Auth, Forms & Account Management
+- [ ] **Strict Username Validation**: Disallow whitespace and invalid special characters in username/nickname registration.
+- [ ] **Dedicated Account Settings Tab**: Extract avatar and user profile options into a dedicated Account Settings view, supporting password change and account deletion.
+
 ### 🎨 UI & Design Systems
-- [ ] Splash / loading screen (do we need it?)
+- [ ] **Unified Design System & Spacing Alignment**: Standardize spacing, top bars, typography, and page paddings across all secondary screens (Friends, Chats, Groups) using Main Dashboard, Leaderboard, and Match History as reference layouts.
+- [ ] **Settings Quick Controls Row**: Consolidate Theme, Vibration, and Sound toggles into a single compact horizontal strip of 3 rounded/square action tiles within the Settings modal.
+- [ ] **Custom Piece Icons for Move Notation**: Replace generic piece letters/icons in the move history ribbon with custom SVG icons for both Pawn and King matching the app's visual identity.
+- [ ] **Recent Matches Count Indicator**: Add a `+` badge (e.g., `10+`) to the Recent Matches dashboard header when older match records exist.
+- [ ] **Settings Menu Cleanup**: Reorder Settings dialog to place "How to Play" immediately above "Logout", and remove the redundant "About Kita" tile.
+- [ ] **Standardize Draw Outcome Color**: Standardize draw match status badges, chips, and result banners to warning yellow in theme colors.
+- [ ] **Text Overflow & Truncation Audit**: Audit labels, chips, and subtitles across small screen viewports to ensure clean ellipsis (`TextOverflow.ellipsis`).
+- [ ] **App Branding & Assets Update**: Update loading screen branding, application launcher icons, and store display name across all platforms.
+- [ ] **Android 12+ Splash Screen Tuning**: Configure native Android splash screen theme to eliminate double-splash flicker on app launch.
 - [x] App logo, branding, and icon design (Android launcher icons, Web icons & Kita Online naming)
 - [ ] In-match hamburger menu and settings recoloring.
+
+### 👥 Friends & Social
+- [ ] **Global Player Search & Friend Requests**: Replace manual nickname entry box with a dedicated player search view backed by server-side query, showing player tiles with inline "Add Friend" actions.
+- [ ] **Direct Player Challenge**: Allow challenging any user directly from their profile card or chat without requiring an accepted friendship first.
+- [ ] **Quick "Add Friend" from Match & History**: Add one-tap friend request actions directly inside in-match player cards and post-match history views.
+- [ ] **Add Friend Shortcut on Home Dashboard**: Add an explicit "+ Add Friend" action to the dashboard friends widget or as a tail card at the end of the friends carousel.
+
+### 💬 Chat & In-Game Messaging
+- [ ] **Direct Chat Layout Spacing**: Tighten excessive horizontal/vertical padding in direct message conversation views.
+- [ ] **Localized Message Timestamps**: Format direct and in-match message timestamps using the client's local device timezone.
+- [ ] **Desktop In-Match Chat Focus**: Auto-focus the match chat input upon typing on desktop/web without requiring an initial mouse click.
+- [ ] **Chat Emoji Picker & In-Match Reaction Emotes**: Add an emoji selector to chat input and a quick-tap in-game reaction emotes sheet during live matches.
+
+### 🚪 Lobby, Rooms & Matchmaking
+- [ ] **Private Room Waiting State Animation**: Add dynamic loading/searching visual indicator while waiting for opponent in private rooms.
+- [ ] **Lobby Room Expansion Indicator (>5 Rooms)**: Show a clickable `...` / "View All" tile in the dashboard public rooms widget when more than 5 rooms exist to navigate to the full Room Browser page.
+- [ ] **Room Code Share Sheet**: Add one-tap "Share Room Code" action invoking native share sheet (WhatsApp, clipboard, etc.).
+- [ ] **Room Join Alert & Timed Match Start Confirmation**: Notify the host immediately upon an opponent joining, and introduce a mutual "Ready" confirmation before starting the countdown clock in timed rooms.
+
+### ♟️ Board & Gameplay Experience
+- [ ] **Scrubbing Live State Restoration**: Clicking the latest move in the notation ribbon should immediately restore interactive live game state with a persistent accent color.
+- [ ] **Automatic Perspective Mirroring**: Auto-orient board perspective so the local player's pieces always appear on the bottom-right across all non-coop modes.
+- [ ] **Independent Orientation Preferences**: Support independent layout and theme configurations for vertical and horizontal board modes, toggled via hamburger menu.
+- [ ] **Provisional Rating Display ('?')**: Display provisional unrated status (`?`) for new accounts until calibration match count is completed.
+
+### 📜 Match Analysis, Replay & History
+- [ ] **Unified Deep Linking, File Association & Replay Sharing**: Comprehensive match replay sharing supporting in-app sharing links/codes (auto-uploading local offline games to server), direct `.kita` file OS association, and deep link universal routing.
+- [ ] **Account-Scoped Local Match Storage**: Isolate locally saved matches per user account ID instead of global shared device storage.
+- [ ] **Match History Lazy Pagination**: Implement infinite scrolling or lazy pagination for the Match History view to optimize performance and prevent bulk fetch lag.
+- [ ] **Match History Date Grouping Dividers**: Remove individual date badges from match cards and group matches by day with slim date divider headers (e.g. "Today", "Yesterday").
 
 ### 🛡️ Moderation & Support
 - [ ] In-game player reporting system
@@ -17,8 +59,16 @@ This document tracks planned features, active backlog items, and completed miles
 
 ### 💡 Under Review / Exploratory (To Be Decided)
 - [ ] Spectator mode (live match viewing)
-- [ ] Deep linking for match record (universal links/app links) that open the app directly.
 - [ ] Achievements & progression badges (for milestones like "First Win", "Undefeated Streak (5/10)", "Defeat Grandmaster AI" etc.)
+- [ ] **Connection & Lifecycle Pipeline**: Unified offline/online state pipeline, web vs. mobile disconnect handling, and dynamic visibility/disabled guards across menu widgets.
+- [ ] **Web Tab Switch Re-render Investigation**: Analyze why switching browser tabs on web triggers a full menu re-render while game view remains unaffected.
+- [ ] **Connection Retry Resiliency**: Validate retry connection edge cases after hot restart or browser cache drops.
+- [ ] **System Push Notifications**: OS notifications for opponent moves when app is backgrounded or terminated.
+- [ ] **In-Match Chat vs. Direct Message Architecture**: Decide whether in-match chat should mirror direct messages bidirectionally or remain strictly temporary/ephemeral per match.
+- [ ] **Password Reset & Account Recovery**: Forgot password and email-based recovery pipeline.
+- [ ] **Piece Inversion in Non-Coop Modes**: Test and verify reported piece orientation anomaly outside Pass & Play mode.
+- [ ] **Theme-Adaptive Last Move Indicator**: Custom indicator line/glow styling harmonized with each board theme.
+- [ ] **In-Game Settings Menu Simplification**: Redesign and declutter the in-game hamburger settings drawer.
 
 ### NEEDS CHECKING
 - [ ] Lichess seslerini kullanıyoruz, free to use mu? https://github.com/lichess-org/lila/blob/master/COPYING.md
