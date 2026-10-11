@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 	"github.com/oguzhancelik/kita/internal/game"
+	"github.com/oguzhancelik/kita/internal/service"
 )
 
 var upgrader = websocket.Upgrader{
