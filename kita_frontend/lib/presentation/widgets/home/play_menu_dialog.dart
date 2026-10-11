@@ -103,7 +103,10 @@ class PlayMenuDialog extends StatelessWidget {
                     ],
 
                     // Mode 1: Rooms (Create & Join) - Default way to play
-                    _buildRoomsActionRow(context, onlineProv, authProv, isDark),
+                    _wrapUnavailable(
+                      isUnavailable: authProv.isOnlineUnavailable,
+                      child: _buildRoomsActionRow(context, onlineProv, authProv, isDark),
+                    ),
                     const SizedBox(height: 12),
 
                     // Mode 2: VS Computer AI
@@ -198,32 +201,38 @@ class PlayMenuDialog extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     // Mode 4: Matchmaking (Find Match - just above Friends)
-                    _buildMatchmakingCard(context, onlineProv, authProv, isDark),
+                    _wrapUnavailable(
+                      isUnavailable: authProv.isOnlineUnavailable,
+                      child: _buildMatchmakingCard(context, onlineProv, authProv, isDark),
+                    ),
                     const SizedBox(height: 12),
 
                     // Mode 5: Friends & Challenges
-                    _buildActionCard(
-                      context: context,
-                      title: 'dashboard.friends'.tr(),
-                      icon: Icons.person_search_rounded,
-                      iconBg: AppColors.accentGold,
-                      isDark: isDark,
-                      onTap: () {
-                        if (authProv.isOnlineUnavailable) {
-                          KitaToast.warning(authProv.isOffline
-                              ? 'dashboard.offlineNotice'.tr()
-                              : 'dashboard.serverDownNotice'.tr());
-                          return;
-                        }
-                        authProv.guardAction(context, () {
-                          Navigator.of(context).pop();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const FriendsScreen(),
-                            ),
-                          );
-                        });
-                      },
+                    _wrapUnavailable(
+                      isUnavailable: authProv.isOnlineUnavailable,
+                      child: _buildActionCard(
+                        context: context,
+                        title: 'dashboard.friends'.tr(),
+                        icon: Icons.person_search_rounded,
+                        iconBg: AppColors.accentGold,
+                        isDark: isDark,
+                        onTap: () {
+                          if (authProv.isOnlineUnavailable) {
+                            KitaToast.warning(authProv.isOffline
+                                ? 'dashboard.offlineNotice'.tr()
+                                : 'dashboard.serverDownNotice'.tr());
+                            return;
+                          }
+                          authProv.guardAction(context, () {
+                            Navigator.of(context).pop();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const FriendsScreen(),
+                              ),
+                            );
+                          });
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -231,6 +240,25 @@ class PlayMenuDialog extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _wrapUnavailable({
+    required bool isUnavailable,
+    required Widget child,
+  }) {
+    if (!isUnavailable) return child;
+    return Opacity(
+      opacity: 0.45,
+      child: ColorFiltered(
+        colorFilter: const ColorFilter.matrix(<double>[
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0,      0,      0,      1, 0,
+        ]),
+        child: child,
       ),
     );
   }
