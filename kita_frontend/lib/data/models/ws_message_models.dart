@@ -2,6 +2,8 @@
 /// All message types and payload structures are 1:1 with the Go backend.
 library;
 
+import 'package:easy_localization/easy_localization.dart';
+
 // ─── WebSocket Message Types ─────────────────────────────────────────
 
 /// Client → Server message types
@@ -80,19 +82,22 @@ class TimeControlPreset {
   static const int fiveMin = 300000;
   static const int unlimited = 0;
 
+  static const List<int> defaultPresets = [
+    oneMin,
+    threeMin,
+    fiveMin,
+    unlimited,
+  ];
+
+  static String format(int ms) {
+    if (ms <= 0) return 'online.timeUnlimited'.tr();
+    final mins = (ms / 60000).round();
+    return 'online.timeMinutes'.tr(args: ['$mins']);
+  }
+
   static String label(int ms) {
-    switch (ms) {
-      case oneMin:
-        return '1 min';
-      case threeMin:
-        return '3 min';
-      case fiveMin:
-        return '5 min';
-      case unlimited:
-        return '∞';
-      default:
-        return '${(ms / 60000).round()} min';
-    }
+    if (ms <= 0) return '∞';
+    return '${(ms / 60000).round()} min';
   }
 }
 

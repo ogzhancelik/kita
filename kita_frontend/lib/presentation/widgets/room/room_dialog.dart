@@ -191,28 +191,13 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [
-              _buildTimeChip(
-                label: 'online.timeBullet'.tr(),
-                value: TimeControlPreset.oneMin,
+            children: TimeControlPreset.defaultPresets.map((preset) {
+              return _buildTimeChip(
+                label: TimeControlPreset.format(preset),
+                value: preset,
                 isDark: isDark,
-              ),
-              _buildTimeChip(
-                label: 'online.timeBlitz'.tr(),
-                value: TimeControlPreset.threeMin,
-                isDark: isDark,
-              ),
-              _buildTimeChip(
-                label: 'online.timeRapid'.tr(),
-                value: TimeControlPreset.fiveMin,
-                isDark: isDark,
-              ),
-              _buildTimeChip(
-                label: 'online.timeUnlimited'.tr(),
-                value: TimeControlPreset.unlimited,
-                isDark: isDark,
-              ),
-            ],
+              );
+            }).toList(),
           ),
 
           const SizedBox(height: 16),

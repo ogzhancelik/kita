@@ -102,15 +102,11 @@ class PlayMenuDialog extends StatelessWidget {
                       const SizedBox(height: 12),
                     ],
 
-                    // Mode 1: Matchmaking (with player count & warning)
-                    _buildMatchmakingCard(context, onlineProv, authProv, isDark),
-                    const SizedBox(height: 12),
-
-                    // Mode 2: Rooms (Create & Join)
+                    // Mode 1: Rooms (Create & Join) - Default way to play
                     _buildRoomsActionRow(context, onlineProv, authProv, isDark),
                     const SizedBox(height: 12),
 
-                    // Mode 3: VS Computer AI
+                    // Mode 2: VS Computer AI
                     _buildActionCard(
                       context: context,
                       title: 'dashboard.playAI'.tr(),
@@ -126,7 +122,7 @@ class PlayMenuDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    // Mode 4: Local Pass & Play (Co-op)
+                    // Mode 3: Local Pass & Play (Co-op)
                     _buildActionCard(
                       context: context,
                       title: 'game.localCoopTitle'.tr(),
@@ -201,6 +197,10 @@ class PlayMenuDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
+                    // Mode 4: Matchmaking (Find Match - just above Friends)
+                    _buildMatchmakingCard(context, onlineProv, authProv, isDark),
+                    const SizedBox(height: 12),
+
                     // Mode 5: Friends & Challenges
                     _buildActionCard(
                       context: context,
@@ -244,14 +244,13 @@ class PlayMenuDialog extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBg : AppColors.lightBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.guestOrange.withValues(alpha: 0.4),
-          width: 1.5,
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         onTap: () async {
           if (authProv.isOnlineUnavailable) {
             KitaToast.warning(authProv.isOffline
@@ -302,50 +301,34 @@ class PlayMenuDialog extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.guestOrange.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'dashboard.badgeOnline'.tr(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.guestOrange,
-                        ),
-                      ),
+                    ValueListenableBuilder(
+                      valueListenable: onlineProv.onlineCount,
+                      builder: (ctx, count, _) {
+                        final total = count?.totalOnline ?? 1;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.guestOrange.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$total ${'dashboard.badgeOnline'.tr()}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.guestOrange,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
-              ValueListenableBuilder(
-                valueListenable: onlineProv.onlineCount,
-                builder: (ctx, count, _) {
-                  final total = count?.totalOnline ?? 1;
-                  return Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '$total Online',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: AppColors.guestOrange,
+                size: 13,
+                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
               ),
             ],
           ),
@@ -364,11 +347,11 @@ class PlayMenuDialog extends StatelessWidget {
       children: [
         // Create Room
         Expanded(
-          child: _buildTileButton(
+          child: _buildSquareRoomCard(
             context: context,
             title: 'dashboard.createRoom'.tr(),
             icon: Icons.meeting_room_rounded,
-            iconColor: AppColors.ratingGold,
+            accentColor: AppColors.ratingGold,
             isDark: isDark,
             onTap: () async {
               if (authProv.isOnlineUnavailable) {
@@ -393,14 +376,14 @@ class PlayMenuDialog extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         // Join with Code
         Expanded(
-          child: _buildTileButton(
+          child: _buildSquareRoomCard(
             context: context,
             title: 'online.joinRoom'.tr(),
             icon: Icons.vpn_key_rounded,
-            iconColor: AppColors.drawGray,
+            accentColor: isDark ? AppColors.accent : AppColors.accentSecondary,
             isDark: isDark,
             onTap: () async {
               if (authProv.isOnlineUnavailable) {
@@ -429,41 +412,55 @@ class PlayMenuDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildTileButton({
+  Widget _buildSquareRoomCard({
     required BuildContext context,
     required String title,
     required IconData icon,
-    required Color iconColor,
+    required Color accentColor,
     required bool isDark,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkBg : AppColors.lightBg,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            color: accentColor.withValues(alpha: isDark ? 0.4 : 0.45),
+            width: 1.5,
           ),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: iconColor, size: 20),
-            const SizedBox(width: 8),
-            Flexible(
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: accentColor,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FittedBox(
+              fit: BoxFit.scaleDown,
               child: Text(
                 title,
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
                   color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                 ),
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

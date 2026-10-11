@@ -253,12 +253,13 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
           Wrap(
             spacing: 8,
             runSpacing: 6,
-            children: [
-              _buildTimeChip('online.timeBullet'.tr(), TimeControlPreset.oneMin, isDark),
-              _buildTimeChip('online.timeBlitz'.tr(), TimeControlPreset.threeMin, isDark),
-              _buildTimeChip('online.timeRapid'.tr(), TimeControlPreset.fiveMin, isDark),
-              _buildTimeChip('online.timeUnlimited'.tr(), TimeControlPreset.unlimited, isDark),
-            ],
+            children: TimeControlPreset.defaultPresets.map((preset) {
+              return _buildTimeChip(
+                TimeControlPreset.format(preset),
+                preset,
+                isDark,
+              );
+            }).toList(),
           ),
         ],
       ),

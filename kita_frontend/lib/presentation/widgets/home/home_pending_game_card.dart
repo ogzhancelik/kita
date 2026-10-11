@@ -24,14 +24,7 @@ import '../room/room_dialog.dart';
 class HomePendingGameCard extends StatelessWidget {
   const HomePendingGameCard({super.key});
 
-  String _formatTimeControl(int ms) {
-    if (ms <= 0) return 'online.timeUnlimited'.tr();
-    if (ms == TimeControlPreset.oneMin) return 'online.timeBullet'.tr();
-    if (ms == TimeControlPreset.threeMin) return 'online.timeBlitz'.tr();
-    if (ms == TimeControlPreset.fiveMin) return 'online.timeRapid'.tr();
-    final mins = ms ~/ 60000;
-    return 'online.minuteShort'.tr(args: ['$mins']);
-  }
+  String _formatTimeControl(int ms) => TimeControlPreset.format(ms);
 
   void _rejoinOnlineGame(BuildContext context) {
     Navigator.of(context).push(

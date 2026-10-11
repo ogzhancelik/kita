@@ -28,14 +28,7 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
     });
   }
 
-  String _formatTimeControl(int ms) {
-    if (ms <= 0) return 'online.timeUnlimited'.tr();
-    final mins = ms ~/ 60000;
-    if (mins == 1) return 'online.timeBullet'.tr();
-    if (mins == 3) return 'online.timeBlitz'.tr();
-    if (mins == 5) return 'online.timeRapid'.tr();
-    return 'online.minuteShort'.tr(args: ['$mins']);
-  }
+  String _formatTimeControl(int ms) => TimeControlPreset.format(ms);
 
   @override
   Widget build(BuildContext context) {
