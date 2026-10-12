@@ -1,303 +1,342 @@
-import 'package:flutter/material.dart';
-
 import '../../../data/models/game_models.dart';
 import 'tutorial_models.dart';
 
 class TutorialLessonsData {
   TutorialLessonsData._();
 
-  static List<TutorialLesson> getLessons() {
+  /// Converts algebraic notation (e.g. "D1", "A7", "C4") to canonical KitaPos
+  static KitaPos parsePos(String str) {
+    final rowChar = str[0].toUpperCase();
+    final colNum = int.parse(str.substring(1));
+    const rowLabels = ['D', 'C', 'B', 'A'];
+    final rowIndex = rowLabels.indexOf(rowChar);
+    return KitaPos(colNum - 1, rowIndex);
+  }
+
+  static List<TutorialPage> getPages() {
     return [
-      _buildLesson1(),
-      _buildLesson2(),
-      _buildLesson3(),
+      _buildPage1(),
+      _buildPage2(),
+      _buildPage3(),
+      _buildPage4(),
+      _buildPage5(),
+      _buildPage6(),
+      _buildPage7(),
+      _buildPage8(),
     ];
   }
 
-  /// Lesson 1: The Board & Pieces
-  static TutorialLesson _buildLesson1() {
+  /// Page 1: Board shape, King and Pawns, White army bottom-right
+  static TutorialPage _buildPage1() {
     final emptyEngine = KitaGameEngine.custom(positions: {});
+    final kingOnlyEngine = KitaGameEngine.custom(positions: {
+      'WK': parsePos('A7'),
+      'BK': parsePos('D1'),
+    });
     final standardEngine = KitaGameEngine();
 
-    // Tile value groups
-    final tilesVal1 = KitaBoardConfig.tiles.entries
+    return TutorialPage(
+      pageNumber: 1,
+      cards: [
+        TutorialCard(
+          textKey: 'tutorial.page1Card1',
+          engine: emptyEngine,
+        ),
+        TutorialCard(
+          textKey: 'tutorial.page1Card2',
+          engine: kingOnlyEngine,
+          tintedTiles: {
+            parsePos('A7'),
+            parsePos('D1'),
+          },
+        ),
+        TutorialCard(
+          textKey: 'tutorial.page1Card3',
+          engine: standardEngine,
+          tintedTiles: {
+            parsePos('A4'),
+            parsePos('B7'),
+            parsePos('D4'),
+            parsePos('C1'),
+          },
+        ),
+        TutorialCard(
+          textKey: 'tutorial.page1Card4',
+          engine: standardEngine,
+          tintedTiles: {
+            parsePos('A7'),
+            parsePos('A4'),
+            parsePos('B7'),
+          },
+        ),
+      ],
+    );
+  }
+
+  /// Page 2: Tile values 1, 2, 3 highlighted one by one with yellow number in text
+  static TutorialPage _buildPage2() {
+    final standardEngine = KitaGameEngine();
+    final val1 = KitaBoardConfig.tiles.entries
         .where((e) => e.value == 1)
         .map((e) => e.key)
         .toSet();
-    final tilesVal2 = KitaBoardConfig.tiles.entries
+    final val2 = KitaBoardConfig.tiles.entries
         .where((e) => e.value == 2)
         .map((e) => e.key)
         .toSet();
-    final tilesVal3 = KitaBoardConfig.tiles.entries
+    final val3 = KitaBoardConfig.tiles.entries
         .where((e) => e.value == 3)
         .map((e) => e.key)
         .toSet();
 
-    return TutorialLesson(
-      lessonNumber: 1,
-      titleKey: 'tutorial.lesson1Title',
-      icon: Icons.grid_view_rounded,
-      steps: [
-        // Step 1: Merged "board layout" and "your army" (2 text cards)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson1Step1Card1',
-            'tutorial.lesson1Step1Card2',
-          ],
+    return TutorialPage(
+      pageNumber: 2,
+      cards: [
+        TutorialCard(
+          textKey: 'tutorial.page2Card1',
           engine: standardEngine,
+          tintedTiles: val1,
         ),
-        // Step 2: "tile values" (3 sub-boards: 1s, 2s, 3s highlighted)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson1Step2Desc',
-          ],
-          engine: emptyEngine,
-          subBoards: [
-            TutorialSubBoard(
-              labelKey: 'tutorial.tileValue1',
-              engine: emptyEngine,
-              validMoves: tilesVal1,
-            ),
-            TutorialSubBoard(
-              labelKey: 'tutorial.tileValue2',
-              engine: emptyEngine,
-              validMoves: tilesVal2,
-            ),
-            TutorialSubBoard(
-              labelKey: 'tutorial.tileValue3',
-              engine: emptyEngine,
-              validMoves: tilesVal3,
-            ),
-          ],
-        ),
-        // Step 3: "goal" (2 text cards: goal of the game + kings captured, pawns not)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson1Step3Card1',
-            'tutorial.lesson1Step3Card2',
-          ],
+        TutorialCard(
+          textKey: 'tutorial.page2Card2',
           engine: standardEngine,
+          tintedTiles: val2,
+        ),
+        TutorialCard(
+          textKey: 'tutorial.page2Card3',
+          engine: standardEngine,
+          tintedTiles: val3,
         ),
       ],
     );
   }
 
-  /// Lesson 2: Movement & Rules
-  static TutorialLesson _buildLesson2() {
-    // Dynamic Steps: 2 sub-boards
-    // Sub-board 1: Black King on D1 (value 2). WP1 on A4 (3, 3) highlighted with 2 steps.
-    final engineKingOnD1 = KitaGameEngine.custom(
-      positions: {
-        'BK': const KitaPos(0, 0), // D1 -> value 2
-        'BP1': const KitaPos(3, 0),
-        'BP2': const KitaPos(0, 1),
-        'WK': const KitaPos(6, 3),
-        'WP1': const KitaPos(3, 3), // A4
-        'WP2': const KitaPos(6, 2),
-      },
-      turn: PieceTeam.white,
-    );
-    final wp1MovesWith2 = engineKingOnD1.getLegalMovesForPiece('WP1');
-
-    // Sub-board 2: Black King on D2 (value 3). WP1 on A4 (3, 3) highlighted with 3 steps.
-    final engineKingOnD2 = KitaGameEngine.custom(
-      positions: {
-        'BK': const KitaPos(1, 0), // D2 -> value 3
-        'BP1': const KitaPos(3, 0),
-        'BP2': const KitaPos(0, 1),
-        'WK': const KitaPos(6, 3),
-        'WP1': const KitaPos(3, 3), // A4
-        'WP2': const KitaPos(6, 2),
-      },
-      turn: PieceTeam.white,
-    );
-    final wp1MovesWith3 = engineKingOnD2.getLegalMovesForPiece('WP1');
-
-    // Standard engine for free interactive move and undo demonstration
+  /// Page 3: Step Count & Making a Move
+  /// Step 1: Non-interactive, highlights opponent King tile.
+  /// Step 2: Interactive, make a move, dynamic Black King reply.
+  static TutorialPage _buildPage3() {
     final standardEngine = KitaGameEngine();
 
-    // Forced Exception Setup:
-    // White has only 1 legal move, which is reversing its previous move.
-    // BK: D1, BP1: D5, BP2: D7, WK: D2, WP1: D3 (last from C4), WP2: D6.
-    final forcedExceptionEngine = KitaGameEngine.custom(
-      positions: {
-        'BK': const KitaPos(0, 0),  // D1
-        'BP1': const KitaPos(4, 0), // D5
-        'BP2': const KitaPos(6, 0), // D7
-        'WK': const KitaPos(1, 0),  // D2
-        'WP1': const KitaPos(2, 0), // D3
-        'WP2': const KitaPos(5, 0), // D6
-      },
-      turn: PieceTeam.white,
-      lastMoveWhite: const KitaMove(
-        pieceId: 'WP1',
-        fromPos: KitaPos(3, 1), // C4
-        toPos: KitaPos(2, 0),   // D3
-      ),
-    );
-    final forcedMoves = forcedExceptionEngine.getLegalMoves();
-
-    return TutorialLesson(
-      lessonNumber: 2,
-      titleKey: 'tutorial.lesson2Title',
-      icon: Icons.directions_run_rounded,
-      steps: [
-        // Step 1: Dynamic Steps (2 sub-boards: King on 2 vs King on 3, highlighting A4)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson2Step1Desc',
-          ],
-          engine: engineKingOnD1,
-          selectedPos: const KitaPos(3, 3),
-          validMoves: wp1MovesWith2,
-          subBoards: [
-            TutorialSubBoard(
-              labelKey: 'tutorial.dynamicStep2',
-              engine: engineKingOnD1,
-              selectedPos: const KitaPos(3, 3),
-              validMoves: wp1MovesWith2,
-            ),
-            TutorialSubBoard(
-              labelKey: 'tutorial.dynamicStep3',
-              engine: engineKingOnD2,
-              selectedPos: const KitaPos(3, 3),
-              validMoves: wp1MovesWith3,
-            ),
-          ],
-        ),
-        // Step 2: Make a Move (Merged walking & try a move, free piece/move choice)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson2Step2Desc',
-          ],
+    return TutorialPage(
+      pageNumber: 3,
+      interactiveType: InteractiveStepType.freeMove,
+      initialEngine: standardEngine,
+      tryItKey: 'tutorial.tryIt',
+      successKey: 'tutorial.lesson2Step2Success',
+      cards: [
+        TutorialCard(
+          textKey: 'tutorial.page3Card1',
           engine: standardEngine,
-          interactiveType: InteractiveStepType.freeMove,
-          successDescKey: 'tutorial.lesson2Step2Success',
+          tintedTiles: {parsePos('D1')},
         ),
-        // Step 3: No Immediate Undos (Interactive with AI automatic D4D2 reply)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson2Step3Desc',
-          ],
+        TutorialCard(
+          textKey: 'tutorial.page3Card2',
           engine: standardEngine,
-          interactiveType: InteractiveStepType.undoDemonstration,
-          successDescKey: 'tutorial.lesson2Step3Success',
-        ),
-        // Step 4: Forced Exception (Setup where White only has 1 legal move and piece is selected)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson2Step4Desc',
-          ],
-          engine: forcedExceptionEngine,
-          selectedPos: const KitaPos(2, 0), // WP1 at D3
-          validMoves: forcedMoves.map((m) => m.toPos).toSet(),
         ),
       ],
     );
   }
 
-  /// Lesson 3: Victory & Draws
-  static TutorialLesson _buildLesson3() {
-    // Step 1 setup: King Elimination (WP1 at D3 can capture BK at D1)
+  /// Page 4: No Undo Rule
+  static TutorialPage _buildPage4() {
+    final standardEngine = KitaGameEngine();
+
+    return TutorialPage(
+      pageNumber: 4,
+      interactiveType: InteractiveStepType.undoDemonstration,
+      initialEngine: standardEngine,
+      tryItKey: 'tutorial.tryIt',
+      successKey: 'tutorial.page4Success',
+      cards: [
+        TutorialCard(
+          textKey: 'tutorial.page4Card1',
+          engine: standardEngine,
+        ),
+      ],
+    );
+  }
+
+  /// Page 5: Forced Exception Rule
+  static TutorialPage _buildPage5() {
+    final forcedEngine = KitaGameEngine.custom(
+      positions: {
+        'WK': parsePos('D2'),
+        'WP1': parsePos('D3'),
+        'WP2': parsePos('D6'),
+        'BK': parsePos('D1'),
+        'BP1': parsePos('D5'),
+        'BP2': parsePos('D7'),
+      },
+      turn: PieceTeam.white,
+      lastMoveWhite: KitaMove(
+        pieceId: 'WP1',
+        fromPos: parsePos('C4'),
+        toPos: parsePos('D3'),
+      ),
+      lastMoveBlack: KitaMove(
+        pieceId: 'BP2',
+        fromPos: parsePos('A7'),
+        toPos: parsePos('D7'),
+      ),
+      moveCount: 2,
+    );
+
+    return TutorialPage(
+      pageNumber: 5,
+      interactiveType: InteractiveStepType.forcedException,
+      initialEngine: forcedEngine,
+      tryItKey: 'tutorial.tryIt',
+      successKey: 'tutorial.page5Success',
+      cards: [
+        TutorialCard(
+          textKey: 'tutorial.page5Card1',
+          engine: forcedEngine,
+        ),
+      ],
+    );
+  }
+
+  /// Page 6: Victory Conditions (Capture King & Trap Opponent)
+  static TutorialPage _buildPage6() {
     final captureEngine = KitaGameEngine.custom(
       positions: {
-        'BK': const KitaPos(0, 0), // D1
-        'BP1': const KitaPos(3, 0),
-        'BP2': const KitaPos(0, 2),
-        'WK': const KitaPos(6, 3),
-        'WP1': const KitaPos(2, 0), // D3
-        'WP2': const KitaPos(6, 2),
+        'WK': parsePos('A7'),
+        'WP1': parsePos('D3'),
+        'WP2': parsePos('B7'),
+        'BK': parsePos('D1'),
+        'BP1': parsePos('B1'),
+        'BP2': parsePos('D5'),
       },
       turn: PieceTeam.white,
+      lastMoveWhite: KitaMove(
+        pieceId: 'WP1',
+        fromPos: parsePos('C4'),
+        toPos: parsePos('D3'),
+      ),
+      lastMoveBlack: KitaMove(
+        pieceId: 'BP1',
+        fromPos: parsePos('A2'),
+        toPos: parsePos('B1'),
+      ),
+      moveCount: 2,
     );
 
-    // Step 2 setup: No Legal Moves (BK:D1, BP:D4, BP:A1, WK:A7, WP:A4, WP:D7)
-    // Correct move is A7C7 (WK from (6, 3) to (6, 1))
     final trapEngine = KitaGameEngine.custom(
       positions: {
-        'BK': const KitaPos(0, 0),  // D1
-        'BP1': const KitaPos(3, 0), // D4
-        'BP2': const KitaPos(0, 3), // A1
-        'WK': const KitaPos(6, 3),  // A7
-        'WP1': const KitaPos(3, 3), // A4
-        'WP2': const KitaPos(6, 0), // D7
+        'WK': parsePos('A7'),
+        'WP1': parsePos('A4'),
+        'WP2': parsePos('D7'),
+        'BK': parsePos('D1'),
+        'BP1': parsePos('A1'),
+        'BP2': parsePos('D4'),
       },
       turn: PieceTeam.white,
+      lastMoveWhite: KitaMove(
+        pieceId: 'WP2',
+        fromPos: parsePos('B7'),
+        toPos: parsePos('D7'),
+      ),
+      lastMoveBlack: KitaMove(
+        pieceId: 'BP1',
+        fromPos: parsePos('C1'),
+        toPos: parsePos('A1'),
+      ),
+      moveCount: 2,
     );
 
-    // Step 3 setup: Last Stand / Retaliation
-    // White WP1 at D3 captures BK at D1. Black BP1 at C7 automatically retaliates to WK at A7.
+    return TutorialPage(
+      pageNumber: 6,
+      interactiveType: InteractiveStepType.captureKing,
+      initialEngine: captureEngine,
+      tryItKey: 'tutorial.tryItWin',
+      successKey: 'tutorial.page6SuccessKing',
+      cards: [
+        TutorialCard(
+          textKey: 'tutorial.page6Card1',
+          engine: captureEngine,
+        ),
+        TutorialCard(
+          textKey: 'tutorial.page6Card2',
+          engine: trapEngine,
+          selectedPos: parsePos('A7'),
+        ),
+      ],
+    );
+  }
+
+  /// Page 7: Retaliation (Last Stand)
+  static TutorialPage _buildPage7() {
     final retaliationEngine = KitaGameEngine.custom(
       positions: {
-        'BK': const KitaPos(0, 0),  // D1
-        'BP1': const KitaPos(6, 1), // C7
-        'BP2': const KitaPos(0, 2),
-        'WK': const KitaPos(6, 3),  // A7
-        'WP1': const KitaPos(2, 0), // D3
-        'WP2': const KitaPos(3, 3), // A4
+        'WK': parsePos('A7'),
+        'WP1': parsePos('D3'),
+        'WP2': parsePos('A4'),
+        'BK': parsePos('D1'),
+        'BP1': parsePos('B1'),
+        'BP2': parsePos('C7'),
       },
       turn: PieceTeam.white,
+      lastMoveWhite: KitaMove(
+        pieceId: 'WP1',
+        fromPos: parsePos('D5'),
+        toPos: parsePos('D3'),
+      ),
+      lastMoveBlack: KitaMove(
+        pieceId: 'BP2',
+        fromPos: parsePos('D6'),
+        toPos: parsePos('C7'),
+      ),
+      moveCount: 2,
     );
 
-    // Step 4 setup: Draws (Repetition & Agreement)
-    final drawEngine = KitaGameEngine.custom(
-      positions: {
-        'BK': null,
-        'BP1': const KitaPos(6, 3),
-        'BP2': const KitaPos(0, 2),
-        'WK': null,
-        'WP1': const KitaPos(0, 0),
-        'WP2': const KitaPos(3, 3),
-      },
-      turn: PieceTeam.white,
-      kingEatenBy: 'both',
-    );
-
-    return TutorialLesson(
-      lessonNumber: 3,
-      titleKey: 'tutorial.lesson3Title',
-      icon: Icons.emoji_events_rounded,
-      steps: [
-        // Step 1: King Elimination (Interactive)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson3Step1Desc',
-          ],
-          engine: captureEngine,
-          selectedPos: const KitaPos(2, 0),
-          validMoves: captureEngine.getLegalMovesForPiece('WP1'),
-          interactiveType: InteractiveStepType.captureKing,
-          successDescKey: 'tutorial.lesson3Step1Success',
-        ),
-        // Step 2: No Legal Moves (Interactive - make one move to win)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson3Step2Desc',
-          ],
-          engine: trapEngine,
-          selectedPos: const KitaPos(6, 3),
-          validMoves: trapEngine.getLegalMovesForPiece('WK'),
-          interactiveType: InteractiveStepType.trapNoLegalMoves,
-          tryItKey: 'tutorial.tryItWin',
-          successDescKey: 'tutorial.lesson3Step2Success',
-        ),
-        // Step 3: Last Stand / Retaliation (Interactive)
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson3Step3Desc',
-          ],
+    return TutorialPage(
+      pageNumber: 7,
+      interactiveType: InteractiveStepType.retaliationDraw,
+      initialEngine: retaliationEngine,
+      tryItKey: 'tutorial.tryIt',
+      successKey: 'tutorial.page7Success',
+      cards: [
+        TutorialCard(
+          textKey: 'tutorial.page7Card1',
           engine: retaliationEngine,
-          selectedPos: const KitaPos(2, 0),
-          validMoves: retaliationEngine.getLegalMovesForPiece('WP1'),
-          interactiveType: InteractiveStepType.retaliationDraw,
-          successDescKey: 'tutorial.lesson3Step3Success',
         ),
-        // Step 4: Repetition & Agreement
-        TutorialStep(
-          textKeys: [
-            'tutorial.lesson3Step4Desc',
-          ],
-          engine: drawEngine,
+      ],
+    );
+  }
+
+  /// Page 8: Repetition & Agreement Draw + Practice Match vs Bot
+  static TutorialPage _buildPage8() {
+    final repetitionEngine = KitaGameEngine.custom(
+      positions: {
+        'WK': parsePos('A6'),
+        'WP1': parsePos('B7'),
+        'WP2': parsePos('A4'),
+        'BK': parsePos('C7'),
+        'BP1': parsePos('D5'),
+        'BP2': parsePos('A1'),
+      },
+      turn: PieceTeam.white,
+      lastMoveWhite: KitaMove(
+        pieceId: 'WP2',
+        fromPos: parsePos('A1'),
+        toPos: parsePos('A4'),
+      ),
+      lastMoveBlack: KitaMove(
+        pieceId: 'BK',
+        fromPos: parsePos('D1'),
+        toPos: parsePos('A1'),
+      ),
+      moveCount: 2,
+    );
+
+    return TutorialPage(
+      pageNumber: 8,
+      interactiveType: InteractiveStepType.repetitionLoop,
+      initialEngine: repetitionEngine,
+      cards: [
+        TutorialCard(
+          textKey: 'tutorial.page8Card1',
+          engine: repetitionEngine,
         ),
       ],
     );

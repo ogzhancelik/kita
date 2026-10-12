@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import '../../../data/models/game_models.dart';
 
 /// Interactive modes for hands-on tutorial steps.
@@ -6,63 +5,61 @@ enum InteractiveStepType {
   none,
   freeMove,
   undoDemonstration,
+  forcedException,
   captureKing,
   trapNoLegalMoves,
   retaliationDraw,
+  repetitionLoop,
 }
 
-/// A sub-board configuration for steps that display multiple boards
-/// (e.g. Tile Values highlighting 1s, 2s, 3s or Dynamic Steps showing King on 2 vs 3).
-class TutorialSubBoard {
-  final String labelKey;
-  final KitaGameEngine engine;
+/// A single explanation card shown on a tutorial page.
+class TutorialCard {
+  final String textKey;
+  final Map<String, String>? namedArgs;
+  final String? badgeKey;
+  final KitaGameEngine? engine;
   final KitaPos? selectedPos;
-  final Set<KitaPos> validMoves;
+  final Set<KitaPos>? validMoves;
+  final Set<KitaPos>? tintedTiles;
+  final List<KitaMove>? lastMoves;
 
-  const TutorialSubBoard({
-    required this.labelKey,
-    required this.engine,
+  const TutorialCard({
+    required this.textKey,
+    this.namedArgs,
+    this.badgeKey,
+    this.engine,
     this.selectedPos,
-    this.validMoves = const {},
+    this.validMoves,
+    this.tintedTiles,
+    this.lastMoves,
   });
 }
 
-/// Represents a single step inside a tutorial lesson.
-class TutorialStep {
-  final List<String> textKeys;
-  final KitaGameEngine engine;
-  final KitaPos? selectedPos;
-  final Set<KitaPos> validMoves;
-  final List<TutorialSubBoard>? subBoards;
+/// Represents a single full tutorial page (Pages 1 to 8).
+class TutorialPage {
+  final int pageNumber;
+  final List<TutorialCard> cards;
   final InteractiveStepType interactiveType;
+  final KitaGameEngine? initialEngine;
+  final KitaPos? initialSelectedPos;
+  final Set<KitaPos>? initialValidMoves;
+  final Set<KitaPos>? initialTintedTiles;
+  final String? successKey;
   final String? tryItKey;
-  final String? successDescKey;
 
-  const TutorialStep({
-    required this.textKeys,
-    required this.engine,
-    this.selectedPos,
-    this.validMoves = const {},
-    this.subBoards,
+  const TutorialPage({
+    required this.pageNumber,
+    required this.cards,
     this.interactiveType = InteractiveStepType.none,
+    this.initialEngine,
+    this.initialSelectedPos,
+    this.initialValidMoves,
+    this.initialTintedTiles,
+    this.successKey,
     this.tryItKey,
-    this.successDescKey,
   });
 
-  bool get isInteractive => interactiveType != InteractiveStepType.none;
-}
-
-/// Represents a full lesson containing one or more steps.
-class TutorialLesson {
-  final int lessonNumber;
-  final String titleKey;
-  final IconData icon;
-  final List<TutorialStep> steps;
-
-  const TutorialLesson({
-    required this.lessonNumber,
-    required this.titleKey,
-    required this.icon,
-    required this.steps,
-  });
+  bool get isInteractive =>
+      interactiveType != InteractiveStepType.none &&
+      interactiveType != InteractiveStepType.repetitionLoop;
 }

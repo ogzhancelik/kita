@@ -43,6 +43,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Room Join Alert & Timed Match Start Confirmation**: Notify the host immediately upon an opponent joining, and introduce a mutual "Ready" confirmation before starting the countdown clock in timed rooms.
 
 ### ♟️ Board & Gameplay Experience
+- [x] **Tutorial Redesign & Board Unification**: Revamped step-by-step tutorial with tap-to-progress engine, sequential card reveals, unified KitaGameBoard parity, and practice match against Beginner AI.
 - [ ] **Scrubbing Live State Restoration**: Clicking the latest move in the notation ribbon should immediately restore interactive live game state with the persistent color.
 - [ ] **Automatic Perspective Mirroring**: Auto-orient board perspective so the local player's pieces always appear on the bottom-right across all non-coop modes.
 - [ ] **Independent Orientation Preferences**: Support independent layout and theme configurations for vertical and horizontal board modes, toggled via hamburger menu.

@@ -9,12 +9,15 @@ import '../../../core/feedback/haptic_service.dart';
 import '../../../core/feedback/sound_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
-import '../../widgets/common/kita_button.dart';
+import '../../providers/offline_game_provider.dart';
+import '../../screens/game/offline_match_screen.dart';
 import '../../widgets/common/kita_card.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/game/kita_board_theme.dart';
 import '../../widgets/game/kita_board_widget.dart';
+import '../../widgets/game/kita_game_board.dart';
 import 'tutorial_lessons_data.dart';
 import 'tutorial_models.dart';
 
@@ -41,630 +44,935 @@ class TutorialScreen extends StatefulWidget {
   State<TutorialScreen> createState() => _TutorialScreenState();
 }
 
-class _TutorialScreenState extends State<TutorialScreen> {
-  late final List<TutorialLesson> _lessons;
-  int _currentLessonIndex = 0;
-  int _currentStepIndex = 0;
-  int _currentSubBoardIndex = 0;
+class _TutorialScreenState extends State<TutorialScreen>
+    with SingleTickerProviderStateMixin {
+  late final List<TutorialPage> _pages;
+  int _currentPageIndex = 0;
+  int _currentCardIndex = 0;
 
-  // Interactive step state
+  // Interactive page state
   KitaGameEngine? _interactiveEngine;
-  Map<String, KitaPos>? _interactivePieces;
   KitaPos? _interactiveSelectedPos;
-  String? _interactiveSelectedPieceId;
   Set<KitaPos> _interactiveValidMoves = {};
   bool _interactiveCompleted = false;
   String? _interactiveFeedback;
 
-  // Board state carried over from Lesson 2 Step 2
-  KitaGameEngine? _lesson2Step2Engine;
-  KitaMove? _lesson2Step2Move;
+  // Stored state from previous pages for continuation & memory
+  final Map<int, KitaGameEngine> _completedEngines = {};
+  final Map<int, bool> _completedPages = {};
+  KitaMove? _playerPage3Move;
+  int _page3Tour = 1;
 
-  // Stage for undo demonstration (0 = initial, 1 = AI moving automatically, 2 = White turn)
-  int _undoStage = 0;
+  // Stage for undo and delayed auto-responses
+  int _autoPlayStage = 0;
+
+  // Page 8 Repetition Autoplay
+  Timer? _repetitionTimer;
+  int _repetitionMoveIndex = 0;
+  KitaGameEngine? _repetitionEngine;
+
+  // Pulse animation for "Tap to continue"
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     TutorialScreen.isTutorialOpen = true;
-    _lessons = TutorialLessonsData.getLessons();
-    _initStepState();
+    _pages = TutorialLessonsData.getPages();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _initPageState();
   }
 
   @override
   void dispose() {
     TutorialScreen.isTutorialOpen = false;
+    _repetitionTimer?.cancel();
+    _pulseController.dispose();
     super.dispose();
   }
 
-  void _initStepState() {
-    final step = _currentStep;
-    _currentSubBoardIndex = 0;
-    _interactiveFeedback = null;
-    _undoStage = 0;
+  TutorialPage get _currentPage => _pages[_currentPageIndex];
 
-    if (step.interactiveType == InteractiveStepType.undoDemonstration) {
-      // Keep the board from Lesson 2 Step 2 (or default WP1 A4 -> C4)
-      final prevMove = _lesson2Step2Move ??
+  TutorialCard get _currentCard {
+    final page = _currentPage;
+    if (_currentCardIndex < page.cards.length) {
+      return page.cards[_currentCardIndex];
+    }
+    return page.cards.last;
+  }
+
+  bool get _isLastPageOverall => _currentPageIndex == _pages.length - 1;
+
+  void _initPageState() {
+    _repetitionTimer?.cancel();
+    final page = _currentPage;
+    _interactiveFeedback = null;
+    _autoPlayStage = 0;
+
+    // Check if player has already completed this page earlier
+    if (_completedPages[_currentPageIndex] == true &&
+        _completedEngines[_currentPageIndex] != null) {
+      if (page.pageNumber == 3 && _currentCardIndex == 0) {
+        _page3Tour = 1;
+        _interactiveEngine = page.initialEngine ?? KitaGameEngine();
+        _interactiveCompleted = false;
+        _interactiveSelectedPos = null;
+        _interactiveValidMoves = {};
+        return;
+      }
+      if (page.pageNumber == 6 && _currentCardIndex == 0) {
+        final card0 = page.cards[0];
+        _interactiveEngine = card0.engine ?? page.initialEngine!;
+        _interactiveCompleted = false;
+        _interactiveSelectedPos = card0.selectedPos;
+        return;
+      }
+      _interactiveEngine = _completedEngines[_currentPageIndex];
+      _interactiveCompleted = true;
+      _interactiveSelectedPos = null;
+      _interactiveValidMoves = {};
+      return;
+    }
+
+    _interactiveCompleted = false;
+
+    // Handle Page 3
+    if (page.pageNumber == 3) {
+      _page3Tour = 1;
+      final initial = page.initialEngine ?? KitaGameEngine();
+      _interactiveEngine = initial;
+      _interactiveSelectedPos = null;
+      _interactiveValidMoves = {};
+      return;
+    }
+
+    // Handle Page 4 (No Undo Rule)
+    if (page.pageNumber == 4) {
+      // Start with board from Page 3 (which already includes Black's response)
+      final prevEngine = _completedEngines[2] ??
+          KitaGameEngine().applyMove(
+            const KitaMove(
+              pieceId: 'WP1',
+              fromPos: KitaPos(3, 3), // A4
+              toPos: KitaPos(3, 1),   // C4
+            ),
+          ).applyMove(
+            const KitaMove(
+              pieceId: 'BK',
+              fromPos: KitaPos(0, 0), // D1
+              toPos: KitaPos(2, 0),   // D3
+            ),
+          ).applyMove(
+            const KitaMove(
+              pieceId: 'BP2',
+              fromPos: KitaPos(1, 1), // C1
+              toPos: KitaPos(2, 1),   // D2
+            ),
+          );
+
+      // Explicitly ensure turn is White so the player can move immediately
+      final readyWhiteEng = KitaGameEngine.custom(
+        positions: prevEngine.positions,
+        turn: PieceTeam.white,
+        lastMoveWhite: prevEngine.lastMoveWhite,
+        lastMoveBlack: prevEngine.lastMoveBlack,
+        executedMoveWhite: prevEngine.executedMoveWhite,
+        executedMoveBlack: prevEngine.executedMoveBlack,
+        kingEatenBy: prevEngine.kingEatenBy,
+        stateHistory: prevEngine.stateHistory,
+        moveCount: prevEngine.moveCount >= 2 ? prevEngine.moveCount : 2,
+      );
+
+      _interactiveEngine = readyWhiteEng;
+      _autoPlayStage = 0; // Immediately active for White
+      _interactiveCompleted = false;
+
+      // Autoselect White's last moved piece from Page 3 Tour 2
+      _playerPage3Move ??= readyWhiteEng.lastMoveWhite ??
           const KitaMove(
             pieceId: 'WP1',
-            fromPos: KitaPos(3, 3), // A4
-            toPos: KitaPos(3, 1),   // C4
+            fromPos: KitaPos(3, 3),
+            toPos: KitaPos(3, 1),
           );
-      final whiteEngine = _lesson2Step2Engine ??
-          KitaGameEngine().applyMove(prevMove);
 
-      _interactiveEngine = whiteEngine;
-      _interactivePieces = Map<String, KitaPos>.from(whiteEngine.activePositions);
-      _interactiveSelectedPos = null;
-      _interactiveSelectedPieceId = null;
-      _interactiveValidMoves = {};
+      final lastMovedPos = _playerPage3Move!.toPos;
+      _interactiveSelectedPos = lastMovedPos;
+      final pid = readyWhiteEng.activePositions.entries
+          .firstWhere(
+            (e) => e.value == lastMovedPos,
+            orElse: () => const MapEntry('', KitaPos(-1, -1)),
+          )
+          .key;
+
+      if (pid.isNotEmpty) {
+        _interactiveValidMoves = readyWhiteEng
+            .getLegalMovesForTeam(PieceTeam.white)
+            .where((m) => m.pieceId == pid)
+            .map((m) => m.toPos)
+            .toSet();
+      } else {
+        _interactiveValidMoves = {};
+      }
+      return;
+    }
+
+    // Handle Page 6 (Victory Conditions: Card 1 vs Card 2)
+    if (page.pageNumber == 6) {
+      final card = _currentCard;
+      final engine = card.engine ?? page.initialEngine!;
+      _interactiveEngine = engine;
+      _interactiveSelectedPos = card.selectedPos ?? page.initialSelectedPos;
+      if (_interactiveSelectedPos != null) {
+        final pid = _interactiveEngine!.activePositions.entries
+            .firstWhere(
+              (e) => e.value == _interactiveSelectedPos,
+              orElse: () => const MapEntry('', KitaPos(-1, -1)),
+            )
+            .key;
+        _interactiveValidMoves = pid.isNotEmpty
+            ? _interactiveEngine!.getLegalMovesForPiece(pid)
+            : {};
+      } else {
+        _interactiveValidMoves = {};
+      }
       _interactiveCompleted = false;
-      _undoStage = 1;
+      return;
+    }
 
-      // When step 3 is opened, automatically make Black's move D4 -> D2
-      // and automatically select White's last played piece
-      Timer(const Duration(milliseconds: 350), () {
-        if (!mounted || _undoStage != 1) return;
-        // If white played king (A7A5), step count is 1, so Black plays D4 -> D3.
-        // Otherwise step count is 2, so Black plays D4 -> D2.
-        final KitaMove blackMove = (prevMove.pieceId == 'WK')
-            ? const KitaMove(
-                pieceId: 'BP1',
-                fromPos: KitaPos(3, 0), // D4
-                toPos: KitaPos(2, 0),   // D3
-              )
-            : const KitaMove(
-                pieceId: 'BP1',
-                fromPos: KitaPos(3, 0), // D4
-                toPos: KitaPos(1, 0),   // D2
-              );
-        final aiEngine = _interactiveEngine!.applyMove(blackMove);
-        final lastPid = prevMove.pieceId;
-        final lastPos = prevMove.toPos;
-        final legalMoves = aiEngine.getLegalMovesForPiece(lastPid);
+    // Handle Page 8 (Repetition loop)
+    if (page.pageNumber == 8) {
+      _startPage8RepetitionLoop();
+      return;
+    }
 
-        setState(() {
-          _interactiveEngine = aiEngine;
-          _interactivePieces = Map<String, KitaPos>.from(aiEngine.activePositions);
-          _interactiveSelectedPieceId = lastPid;
-          _interactiveSelectedPos = lastPos;
-          _interactiveValidMoves = legalMoves;
-          _undoStage = 2;
-        });
-        SoundService.instance.playMove();
-        HapticService.instance.light();
+    // Standard Interactive Pages (Page 5, Page 7, etc.)
+    if (page.isInteractive) {
+      _interactiveEngine = page.initialEngine;
+      _interactiveSelectedPos = page.initialSelectedPos;
+      if (_interactiveSelectedPos != null && _interactiveEngine != null) {
+        final pid = _interactiveEngine!.activePositions.entries
+            .firstWhere(
+              (e) => e.value == _interactiveSelectedPos,
+              orElse: () => const MapEntry('', KitaPos(-1, -1)),
+            )
+            .key;
+        _interactiveValidMoves = pid.isNotEmpty
+            ? _interactiveEngine!.getLegalMovesForPiece(pid)
+            : {};
+      } else {
+        _interactiveValidMoves = {};
+      }
+    } else {
+      _interactiveEngine = null;
+      _interactiveSelectedPos = null;
+      _interactiveValidMoves = {};
+    }
+  }
+
+  void _startPage8RepetitionLoop() {
+    final page = _currentPage;
+    final baseEngine = page.initialEngine!;
+    _repetitionEngine = baseEngine;
+    _repetitionMoveIndex = 0;
+
+    // Autoplay moves in loop: A4D4, A1A4, D4D1, A4D4, D1A1, D4D1, A1A4, D1A1
+    final moveStrings = [
+      ('WP2', 'A4', 'D4'),
+      ('BP2', 'A1', 'A4'),
+      ('WP2', 'D4', 'D1'),
+      ('BP2', 'A4', 'D4'),
+      ('WP2', 'D1', 'A1'),
+      ('BP2', 'D4', 'D1'),
+      ('WP2', 'A1', 'A4'),
+      ('BP2', 'D1', 'A1'),
+    ];
+
+    _repetitionTimer?.cancel();
+    _repetitionTimer = Timer.periodic(const Duration(milliseconds: 950), (timer) {
+      if (!mounted || _currentPageIndex != 7) {
+        timer.cancel();
+        return;
+      }
+
+      final (pid, fromStr, toStr) = moveStrings[_repetitionMoveIndex % moveStrings.length];
+      final m = KitaMove(
+        pieceId: pid,
+        fromPos: TutorialLessonsData.parsePos(fromStr),
+        toPos: TutorialLessonsData.parsePos(toStr),
+      );
+
+      final isWhite = pid.startsWith('W');
+      final movingEng = KitaGameEngine.custom(
+        positions: _repetitionEngine!.positions,
+        turn: isWhite ? PieceTeam.white : PieceTeam.black,
+        lastMoveWhite: _repetitionEngine!.lastMoveWhite,
+        lastMoveBlack: _repetitionEngine!.lastMoveBlack,
+        executedMoveWhite: _repetitionEngine!.executedMoveWhite,
+        executedMoveBlack: _repetitionEngine!.executedMoveBlack,
+        kingEatenBy: _repetitionEngine!.kingEatenBy,
+        stateHistory: _repetitionEngine!.stateHistory,
+        moveCount: _repetitionEngine!.moveCount + 1,
+      );
+
+      final next = movingEng.applyMove(m);
+      setState(() {
+        _repetitionEngine = next;
+        _repetitionMoveIndex++;
+      });
+      SoundService.instance.playMove();
+    });
+  }
+
+  void _onScreenTap() {
+    final page = _currentPage;
+
+    // If an unintended move was made and retry feedback is showing, screen tap resets the step
+    if (_interactiveFeedback != null) {
+      _onResetStep();
+      return;
+    }
+
+    // In Page 3, Card 0 is informational (highlights opponent King on D1).
+    // Tapping advances to Card 1 ("Make a move!").
+    if (page.pageNumber == 3 && _currentCardIndex == 0) {
+      setState(() {
+        _currentCardIndex = 1;
+        _initPageState();
       });
       return;
     }
 
-    if (step.isInteractive) {
-      _interactiveEngine = KitaGameEngine.custom(
-        positions: Map<String, KitaPos?>.from(step.engine.positions),
-        turn: step.engine.turn,
-        lastMoveWhite: step.engine.lastMoveWhite,
-        lastMoveBlack: step.engine.lastMoveBlack,
-      );
-      _interactivePieces = Map<String, KitaPos>.from(_interactiveEngine!.activePositions);
-      _interactiveSelectedPos = step.selectedPos;
-      if (step.selectedPos != null) {
-        _interactiveSelectedPieceId = _interactivePieces!.entries
-            .firstWhere(
-              (e) => e.value == step.selectedPos,
-              orElse: () => const MapEntry('', KitaPos(-1, -1)),
-            )
-            .key;
-        if (_interactiveSelectedPieceId!.isNotEmpty) {
-          _interactiveValidMoves = _interactiveEngine!.getLegalMovesForPiece(_interactiveSelectedPieceId!);
-        } else {
-          _interactiveValidMoves = Set<KitaPos>.from(step.validMoves);
-        }
-      } else {
-        _interactiveSelectedPieceId = null;
-        _interactiveValidMoves = Set<KitaPos>.from(step.validMoves);
-      }
-      _interactiveCompleted = false;
+    // If page is interactive and player has not completed it yet, ignore screen taps
+    if (page.isInteractive && !_interactiveCompleted) {
+      return;
+    }
+
+    // In Page 6, if first victory condition card was completed, advance to second card
+    if (page.pageNumber == 6 && _currentCardIndex == 0) {
+      setState(() {
+        _currentCardIndex = 1;
+        _interactiveCompleted = false;
+        _initPageState();
+      });
+      return;
+    }
+
+    // If there are more cards to reveal on this page, advance to next card
+    if (_currentCardIndex < page.cards.length - 1) {
+      setState(() {
+        _currentCardIndex++;
+        _initPageState();
+      });
+      return;
+    }
+
+    // Otherwise, advance to next page
+    _onNextPage();
+  }
+
+  void _onPrevious() {
+    if (_currentPageIndex == 5 && _currentCardIndex == 1) {
+      setState(() {
+        _currentCardIndex = 0;
+        _completedPages.remove(5);
+        _completedEngines.remove(5);
+        _interactiveCompleted = false;
+        _initPageState();
+      });
+      return;
+    }
+
+    if (_currentCardIndex > 0) {
+      setState(() {
+        _currentCardIndex--;
+        _initPageState();
+      });
+      return;
+    }
+
+    if (_currentPageIndex > 0) {
+      setState(() {
+        _currentPageIndex--;
+        _currentCardIndex = 0;
+        _initPageState();
+      });
     } else {
-      _interactiveEngine = null;
-      _interactivePieces = null;
-      _interactiveSelectedPos = null;
-      _interactiveSelectedPieceId = null;
-      _interactiveValidMoves = {};
-      _interactiveCompleted = false;
+      Navigator.of(context).pop();
     }
   }
 
-  TutorialLesson get _currentLesson => _lessons[_currentLessonIndex];
-  TutorialStep get _currentStep => _currentLesson.steps[_currentStepIndex];
+  void _onNextPage() async {
+    if (_isLastPageOverall) {
+      _launchPracticeBotMatch();
+      return;
+    }
 
-  bool get _isFirstStepOverall =>
-      _currentLessonIndex == 0 && _currentStepIndex == 0;
-
-  bool get _isLastStepOverall =>
-      _currentLessonIndex == _lessons.length - 1 &&
-      _currentStepIndex == _currentLesson.steps.length - 1;
+    setState(() {
+      _currentPageIndex++;
+      _currentCardIndex = 0;
+      _initPageState();
+    });
+  }
 
   Future<void> _markTutorialCompleted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_seen_tutorial', true);
   }
 
-  void _onSkip() async {
-    await _markTutorialCompleted();
-    if (mounted) {
-      Navigator.of(context).pop();
-    }
+  void _onResetStep() {
+    setState(() {
+      if (_currentPageIndex == 2) {
+        _page3Tour = 1;
+        _playerPage3Move = null;
+      }
+      _completedPages.remove(_currentPageIndex);
+      _completedEngines.remove(_currentPageIndex);
+      _interactiveFeedback = null;
+      _initPageState();
+    });
   }
 
-  void _onPrevious() {
-    if (_currentStepIndex > 0) {
-      setState(() {
-        _currentStepIndex--;
-        _initStepState();
-      });
-    } else if (_currentLessonIndex > 0) {
-      setState(() {
-        _currentLessonIndex--;
-        _currentStepIndex = _currentLesson.steps.length - 1;
-        _initStepState();
-      });
-    } else {
-      Navigator.of(context).pop();
-    }
-  }
+  void _handleInteractiveMove(KitaMove move) {
+    final page = _currentPage;
 
-  void _onNext() async {
-    if (_currentStep.isInteractive && !_interactiveCompleted) {
-      return;
-    }
-
-    if (_isLastStepOverall) {
-      await _markTutorialCompleted();
-      if (mounted) {
-        Navigator.of(context).pop();
+    if (page.pageNumber == 6) {
+      if (_currentCardIndex == 0) {
+        _handlePage6CaptureMove(move);
+      } else {
+        _handlePage6TrapMove(move);
       }
       return;
     }
 
-    if (_currentStepIndex < _currentLesson.steps.length - 1) {
-      setState(() {
-        _currentStepIndex++;
-        _initStepState();
-      });
-    } else if (_currentLessonIndex < _lessons.length - 1) {
-      setState(() {
-        _currentLessonIndex++;
-        _currentStepIndex = 0;
-        _initStepState();
-      });
-    }
-  }
-
-  void _onTileTap(KitaPos pos) {
-    final step = _currentStep;
-    if (!step.isInteractive || _interactiveCompleted || _interactiveEngine == null) return;
-    if (_undoStage == 1) return; // Opponent is currently playing automatically
-
-    // Check if user tapped one of their White pieces
-    final pieceAtPos = _interactivePieces!.entries.cast<MapEntry<String, KitaPos>?>().firstWhere(
-          (e) => e!.value == pos && e.key.startsWith('W'),
-          orElse: () => null,
-        );
-
-    if (pieceAtPos != null) {
-      // User tapped their own White piece: select it and display its legal moves
-      final pid = pieceAtPos.key;
-      final legalMoves = _interactiveEngine!.getLegalMovesForPiece(pid);
-      setState(() {
-        _interactiveSelectedPos = pos;
-        _interactiveSelectedPieceId = pid;
-        _interactiveValidMoves = legalMoves;
-        _interactiveFeedback = null;
-      });
-      return;
-    }
-
-    // Check if user tapped a destination for currently selected piece
-    if (_interactiveSelectedPos != null &&
-        _interactiveSelectedPieceId != null &&
-        _interactiveValidMoves.contains(pos)) {
-      final fromPos = _interactiveSelectedPos!;
-      final pieceId = _interactiveSelectedPieceId!;
-      final move = KitaMove(pieceId: pieceId, fromPos: fromPos, toPos: pos);
-
-      _handleInteractiveMove(step, move);
-    }
-  }
-
-  void _handleInteractiveMove(TutorialStep step, KitaMove move) {
-    switch (step.interactiveType) {
+    switch (page.interactiveType) {
       case InteractiveStepType.freeMove:
-        _executeFreeMove(move);
+        _handlePage3Move(move);
         break;
       case InteractiveStepType.undoDemonstration:
-        _executeUndoDemonstrationMove(move);
+        _handlePage4Move(move);
+        break;
+      case InteractiveStepType.forcedException:
+        _handlePage5Move(move);
         break;
       case InteractiveStepType.captureKing:
-        _executeCaptureKingMove(move);
+        _handlePage6CaptureMove(move);
         break;
       case InteractiveStepType.trapNoLegalMoves:
-        _executeTrapMove(move);
+        _handlePage6TrapMove(move);
         break;
       case InteractiveStepType.retaliationDraw:
-        _executeRetaliationMove(move);
+        _handlePage7RetaliationMove(move);
         break;
-      case InteractiveStepType.none:
+      default:
         break;
     }
   }
 
-  void _executeFreeMove(KitaMove move) {
-    final nextEngine = _interactiveEngine!.applyMove(move);
-    _lesson2Step2Engine = nextEngine;
-    _lesson2Step2Move = move;
-    setState(() {
-      _interactiveEngine = nextEngine;
-      _interactivePieces = Map<String, KitaPos>.from(nextEngine.activePositions);
-      _interactiveSelectedPos = move.toPos;
-      _interactiveValidMoves = {};
-      _interactiveCompleted = true;
-      _interactiveFeedback = null;
-    });
-    SoundService.instance.playMove();
-    HapticService.instance.light();
-  }
+  void _handlePage3Move(KitaMove move) {
+    if (_page3Tour == 1) {
+      final afterWhite = _interactiveEngine!.applyMove(move);
 
-  void _executeUndoDemonstrationMove(KitaMove move) {
-    final nextEngine = _interactiveEngine!.applyMove(move);
-    setState(() {
-      _interactiveEngine = nextEngine;
-      _interactivePieces = Map<String, KitaPos>.from(nextEngine.activePositions);
-      _interactiveSelectedPos = move.toPos;
-      _interactiveValidMoves = {};
-      _interactiveCompleted = true;
-      _interactiveFeedback = null;
-    });
-    SoundService.instance.playMove();
-    HapticService.instance.light();
-  }
-
-  void _executeCaptureKingMove(KitaMove move) {
-    final bkPos = _interactivePieces!['BK'];
-    if (move.toPos == bkPos) {
-      // Captured Black King!
-      final nextEngine = _interactiveEngine!.applyMove(move);
       setState(() {
-        _interactiveEngine = nextEngine;
-        _interactivePieces = Map<String, KitaPos>.from(nextEngine.activePositions);
-        _interactiveSelectedPos = move.toPos;
-        _interactiveValidMoves = {};
-        _interactiveCompleted = true;
+        _interactiveEngine = afterWhite;
+        _autoPlayStage = 1;
         _interactiveFeedback = null;
       });
-      SoundService.instance.playCapture();
-      HapticService.instance.medium();
+      SoundService.instance.playMove();
+      HapticService.instance.light();
+
+      // After player plays:
+      // "If player played A7A5, play D1D2. In other cases, play D1D3."
+      Timer(const Duration(milliseconds: 450), () {
+        if (!mounted || _currentPageIndex != 2) return;
+
+        final isA7A5 = move.fromPos == TutorialLessonsData.parsePos('A7') &&
+            move.toPos == TutorialLessonsData.parsePos('A5');
+
+        final blackMove = isA7A5
+            ? KitaMove(
+                pieceId: 'BK',
+                fromPos: TutorialLessonsData.parsePos('D1'),
+                toPos: TutorialLessonsData.parsePos('D2'),
+              )
+            : KitaMove(
+                pieceId: 'BK',
+                fromPos: TutorialLessonsData.parsePos('D1'),
+                toPos: TutorialLessonsData.parsePos('D3'),
+              );
+
+        final blackTurnEng = KitaGameEngine.custom(
+          positions: _interactiveEngine!.positions,
+          turn: PieceTeam.black,
+          lastMoveWhite: _interactiveEngine!.lastMoveWhite,
+          lastMoveBlack: _interactiveEngine!.lastMoveBlack,
+          executedMoveWhite: _interactiveEngine!.executedMoveWhite,
+          executedMoveBlack: _interactiveEngine!.executedMoveBlack,
+          kingEatenBy: _interactiveEngine!.kingEatenBy,
+          stateHistory: _interactiveEngine!.stateHistory,
+          moveCount: _interactiveEngine!.moveCount,
+        );
+
+        final afterBlack = blackTurnEng.applyMove(blackMove);
+
+        final readyWhiteEng = KitaGameEngine.custom(
+          positions: afterBlack.positions,
+          turn: PieceTeam.white,
+          lastMoveWhite: afterBlack.lastMoveWhite,
+          lastMoveBlack: afterBlack.lastMoveBlack,
+          executedMoveWhite: afterBlack.executedMoveWhite,
+          executedMoveBlack: afterBlack.executedMoveBlack,
+          kingEatenBy: afterBlack.kingEatenBy,
+          stateHistory: afterBlack.stateHistory,
+          moveCount: afterBlack.moveCount,
+        );
+
+        setState(() {
+          _interactiveEngine = readyWhiteEng;
+          _page3Tour = 2; // Transition to Tour 2: White makes another move!
+          _autoPlayStage = 0; // Board becomes active for White's 2nd move
+          _interactiveCompleted = false;
+        });
+        SoundService.instance.playMove();
+        HapticService.instance.light();
+      });
     } else {
-      // Made a legal move, but not the king capture
+      // Tour 2: White plays second move
+      _playerPage3Move = move;
+      final afterWhite2 = _interactiveEngine!.applyMove(move);
+
       setState(() {
-        _interactiveFeedback = 'tutorial.tryAgain'.tr();
+        _interactiveEngine = afterWhite2;
+        _autoPlayStage = 1; // Temporarily inactive while Black moves
+        _interactiveCompleted = false;
+        _interactiveFeedback = null;
+      });
+      SoundService.instance.playMove();
+      HapticService.instance.light();
+
+      // Black opponent now plays at the end of Page 3:
+      Timer(const Duration(milliseconds: 450), () {
+        if (!mounted || _currentPageIndex != 2) return;
+
+        final blackTurnEng = KitaGameEngine.custom(
+          positions: _interactiveEngine!.positions,
+          turn: PieceTeam.black,
+          lastMoveWhite: _interactiveEngine!.lastMoveWhite,
+          lastMoveBlack: _interactiveEngine!.lastMoveBlack,
+          executedMoveWhite: _interactiveEngine!.executedMoveWhite,
+          executedMoveBlack: _interactiveEngine!.executedMoveBlack,
+          kingEatenBy: _interactiveEngine!.kingEatenBy,
+          stateHistory: _interactiveEngine!.stateHistory,
+          moveCount: _interactiveEngine!.moveCount,
+        );
+
+        final candidates = [
+          KitaMove(pieceId: 'BP2', fromPos: TutorialLessonsData.parsePos('C1'), toPos: TutorialLessonsData.parsePos('D2')),
+          KitaMove(pieceId: 'BP2', fromPos: TutorialLessonsData.parsePos('C1'), toPos: TutorialLessonsData.parsePos('D1')),
+          KitaMove(pieceId: 'BP2', fromPos: TutorialLessonsData.parsePos('C1'), toPos: TutorialLessonsData.parsePos('A2')),
+          KitaMove(pieceId: 'BP1', fromPos: TutorialLessonsData.parsePos('D4'), toPos: TutorialLessonsData.parsePos('D7')),
+        ];
+
+        KitaMove? chosenMove;
+        final legalOpponentMoves = blackTurnEng.getLegalMovesForTeam(PieceTeam.black);
+        for (final cand in candidates) {
+          if (legalOpponentMoves.any((m) => m.pieceId == cand.pieceId && m.toPos == cand.toPos)) {
+            chosenMove = cand;
+            break;
+          }
+        }
+
+        chosenMove ??= legalOpponentMoves.isNotEmpty ? legalOpponentMoves.first : candidates.first;
+        final nextEng = blackTurnEng.applyMove(chosenMove);
+
+        // Turn skips back to White
+        final readyWhiteEng = KitaGameEngine.custom(
+          positions: nextEng.positions,
+          turn: PieceTeam.white,
+          lastMoveWhite: nextEng.lastMoveWhite,
+          lastMoveBlack: nextEng.lastMoveBlack,
+          executedMoveWhite: nextEng.executedMoveWhite,
+          executedMoveBlack: nextEng.executedMoveBlack,
+          kingEatenBy: nextEng.kingEatenBy,
+          stateHistory: nextEng.stateHistory,
+          moveCount: nextEng.moveCount >= 2 ? nextEng.moveCount : 2,
+        );
+
+        setState(() {
+          _interactiveEngine = readyWhiteEng;
+          _interactiveCompleted = true;
+          _autoPlayStage = 2; // Auto-play complete
+          _completedEngines[2] = readyWhiteEng;
+          _completedPages[2] = true;
+        });
+        SoundService.instance.playMove();
+        HapticService.instance.light();
       });
     }
   }
 
-  void _executeTrapMove(KitaMove move) {
-    // Expected winning move: A7C7 (WK from (6, 3) to (6, 1))
-    if (move.pieceId == 'WK' &&
-        move.fromPos == const KitaPos(6, 3) &&
-        move.toPos == const KitaPos(6, 1)) {
-      final nextEngine = _interactiveEngine!.applyMove(move);
+  void _handlePage4Move(KitaMove move) {
+    final nextEng = _interactiveEngine!.applyMove(move);
+
+    setState(() {
+      _interactiveEngine = nextEng;
+      _interactiveCompleted = true;
+      _interactiveSelectedPos = null;
+      _interactiveValidMoves = {};
+      _completedEngines[3] = nextEng;
+      _completedPages[3] = true;
+      _interactiveFeedback = null;
+    });
+    SoundService.instance.playMove();
+    HapticService.instance.light();
+  }
+
+  void _handlePage5Move(KitaMove move) {
+    // Only legal move: D3 -> C4
+    final targetTo = TutorialLessonsData.parsePos('C4');
+    final nextEng = _interactiveEngine!.applyMove(move);
+
+    if (move.toPos == targetTo) {
       setState(() {
-        _interactiveEngine = nextEngine;
-        _interactivePieces = Map<String, KitaPos>.from(nextEngine.activePositions);
-        _interactiveSelectedPos = move.toPos;
-        _interactiveValidMoves = {};
+        _interactiveEngine = nextEng;
         _interactiveCompleted = true;
+        _completedEngines[4] = nextEng;
+        _completedPages[4] = true;
         _interactiveFeedback = null;
       });
       SoundService.instance.playMove();
       HapticService.instance.light();
     } else {
       setState(() {
+        _interactiveEngine = nextEng;
+        _interactiveCompleted = false;
         _interactiveFeedback = 'tutorial.tryAgain'.tr();
       });
+      SoundService.instance.playMove();
+      HapticService.instance.light();
     }
   }
 
-  void _executeRetaliationMove(KitaMove move) {
-    final bkPos = _interactivePieces!['BK'];
+  void _handlePage6CaptureMove(KitaMove move) {
+    // WP1 at D3 captures BK at D1
+    final bkPos = _interactiveEngine!.positions['BK'];
+    final nextEng = _interactiveEngine!.applyMove(move);
+
     if (move.toPos == bkPos) {
-      // User captured Black King
-      final afterWhiteMove = _interactiveEngine!.applyMove(move);
       setState(() {
-        _interactiveEngine = afterWhiteMove;
-        _interactivePieces = Map<String, KitaPos>.from(afterWhiteMove.activePositions);
-        _interactiveSelectedPos = move.toPos;
-        _interactiveValidMoves = {};
-        _undoStage = 1;
+        _interactiveEngine = nextEng;
+        _interactiveCompleted = true;
+        // Do NOT set _completedPages[5] = true yet! Card 2 (Trap) must still be played!
+        _interactiveFeedback = null;
+      });
+      SoundService.instance.playCapture();
+      HapticService.instance.medium();
+    } else {
+      setState(() {
+        _interactiveEngine = nextEng;
+        _interactiveCompleted = false;
+        _interactiveFeedback = 'tutorial.tryAgain'.tr();
+      });
+      SoundService.instance.playMove();
+      HapticService.instance.light();
+    }
+  }
+
+  void _handlePage6TrapMove(KitaMove move) {
+    // Expected winning move: A7 -> C7
+    final targetTo = TutorialLessonsData.parsePos('C7');
+    final nextEng = _interactiveEngine!.applyMove(move);
+
+    if (move.pieceId == 'WK' && move.toPos == targetTo) {
+      setState(() {
+        _interactiveEngine = nextEng;
+        _interactiveCompleted = true;
+        _completedEngines[5] = nextEng;
+        _completedPages[5] = true;
+        _interactiveFeedback = null;
+      });
+      SoundService.instance.playMove();
+      HapticService.instance.light();
+    } else {
+      setState(() {
+        _interactiveEngine = nextEng;
+        _interactiveCompleted = false;
+        _interactiveFeedback = 'tutorial.tryAgain'.tr();
+      });
+      SoundService.instance.playMove();
+      HapticService.instance.light();
+    }
+  }
+
+  void _handlePage7RetaliationMove(KitaMove move) {
+    // Player captures Black King on D1
+    final bkPos = _interactiveEngine!.positions['BK'];
+    final afterWhite = _interactiveEngine!.applyMove(move);
+
+    if (move.toPos == bkPos) {
+      setState(() {
+        _interactiveEngine = afterWhite;
+        _autoPlayStage = 1;
         _interactiveFeedback = null;
       });
       SoundService.instance.playCapture();
       HapticService.instance.medium();
 
-      // Automatic retaliation: Black BP1 at (6, 1) captures White King at (6, 3)
+      // Opponent BP2 at C7 retaliates to WK at A7
       Timer(const Duration(milliseconds: 650), () {
-        if (!mounted) return;
-        const retaliationMove = KitaMove(
-          pieceId: 'BP1',
-          fromPos: KitaPos(6, 1),
-          toPos: KitaPos(6, 3),
+        if (!mounted || _currentPageIndex != 6) return;
+        final retaliationMove = KitaMove(
+          pieceId: 'BP2',
+          fromPos: TutorialLessonsData.parsePos('C7'),
+          toPos: TutorialLessonsData.parsePos('A7'),
         );
         final afterRetaliation = _interactiveEngine!.applyMove(retaliationMove);
         setState(() {
           _interactiveEngine = afterRetaliation;
-          _interactivePieces = Map<String, KitaPos>.from(afterRetaliation.activePositions);
-          _interactiveSelectedPos = null;
-          _interactiveValidMoves = {};
           _interactiveCompleted = true;
-          _undoStage = 0;
+          _autoPlayStage = 2;
+          _completedEngines[6] = afterRetaliation;
+          _completedPages[6] = true;
         });
         SoundService.instance.playCapture();
         HapticService.instance.medium();
       });
     } else {
       setState(() {
+        _interactiveEngine = afterWhite;
+        _interactiveCompleted = false;
         _interactiveFeedback = 'tutorial.tryAgain'.tr();
       });
+      SoundService.instance.playMove();
+      HapticService.instance.light();
     }
   }
 
-  void _resetInteractiveStep() {
-    setState(() {
-      _initStepState();
-    });
-  }
+  void _launchPracticeBotMatch() async {
+    await _markTutorialCompleted();
 
-  void _showLessonListSheet() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (!mounted) return;
+    final authProv = context.read<AuthProvider>();
+    final offlineProv = context.read<OfflineGameProvider>();
+    final isGuest = authProv.isGuest || authProv.currentUser == null;
+    final playerId = authProv.currentUser?.id;
+    final playerName = authProv.currentUser?.username ??
+        authProv.guestProfile?.nickname ??
+        'Guest';
+    final playerRating = authProv.currentUser?.rating ?? 1200;
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 10, bottom: 12),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : Colors.black12,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.menu_book_rounded,
-                        color: AppColors.accentGold,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'tutorial.lessonList'.tr(),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: _lessons.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
-                    itemBuilder: (context, idx) {
-                      final lesson = _lessons[idx];
-                      final isCurrent = idx == _currentLessonIndex;
+    offlineProv.startOfflineMatch(
+      mode: PlayMode.vsAi,
+      playerTeam: PieceTeam.white,
+      botDifficulty: 1, // Beginner AI
+      playerId: playerId,
+      playerName: playerName,
+      playerRating: playerRating,
+      isGuest: isGuest,
+    );
 
-                      return ListTile(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: isCurrent
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        tileColor: isCurrent
-                            ? AppColors.primary.withValues(alpha: 0.12)
-                            : (isDark ? AppColors.darkCard : AppColors.lightCard),
-                        leading: CircleAvatar(
-                          backgroundColor: isCurrent
-                              ? AppColors.primary
-                              : (isDark
-                                  ? AppColors.darkSurfaceElevated
-                                  : AppColors.lightSurfaceElevated),
-                          child: Icon(
-                            lesson.icon,
-                            color: isCurrent ? Colors.white : AppColors.accentGold,
-                            size: 20,
-                          ),
-                        ),
-                        title: Text(
-                          '${lesson.lessonNumber}. ${lesson.titleKey.tr()}',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.lightTextPrimary,
-                          ),
-                        ),
-                        trailing: isCurrent
-                            ? const Icon(
-                                Icons.check_circle_rounded,
-                                color: AppColors.winGreen,
-                                size: 20,
-                              )
-                            : null,
-                        onTap: () {
-                          Navigator.of(ctx).pop();
-                          setState(() {
-                            _currentLessonIndex = idx;
-                            _currentStepIndex = 0;
-                            _initStepState();
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const OfflineMatchScreen(),
+        settings: const RouteSettings(name: '/offline_match'),
+      ),
     );
   }
 
-  Widget _buildCardText(String text, bool isDark) {
-    final regex = RegExp(r'<mint>(.*?)</mint>');
-    final matches = regex.allMatches(text);
-    if (matches.isEmpty) {
-      return Text(
-        text,
-        style: TextStyle(
-          fontSize: 14.5,
-          height: 1.45,
-          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-        ),
-      );
-    }
-
+  Widget _buildRichText(String text, bool isDark) {
     final spans = <InlineSpan>[];
-    int currentIndex = 0;
-    for (final match in matches) {
-      if (match.start > currentIndex) {
+    final defaultColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+    final colorStack = <Color>[];
+
+    final tagRegex = RegExp(
+      r'</?(mint|red|yellow)>|<king_icon/>|<pawn_icon/>',
+      caseSensitive: false,
+    );
+
+    int lastIndex = 0;
+    for (final match in tagRegex.allMatches(text)) {
+      if (match.start > lastIndex) {
+        final textChunk = text.substring(lastIndex, match.start);
         spans.add(
           TextSpan(
-            text: text.substring(currentIndex, match.start),
+            text: textChunk,
             style: TextStyle(
-              fontSize: 14.5,
+              fontSize: 15.0,
               height: 1.45,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+              fontWeight: colorStack.isNotEmpty ? FontWeight.w700 : FontWeight.w500,
+              color: colorStack.isNotEmpty ? colorStack.last : defaultColor,
             ),
           ),
         );
       }
-      spans.add(
-        TextSpan(
-          text: match.group(1),
-          style: const TextStyle(
-            fontSize: 14.5,
-            height: 1.45,
-            fontWeight: FontWeight.w700,
-            color: AppColors.accent, // Soft Mint
+
+      final matched = match.group(0)!;
+      if (matched == '<king_icon/>') {
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: CrownPieceWidget(
+                size: 20,
+                bodyColor: isDark ? const Color(0xFFF1F5F9) : const Color(0xFFE2E8F0),
+                accentColor: AppColors.accentGold,
+              ),
+            ),
           ),
-        ),
-      );
-      currentIndex = match.end;
+        );
+      } else if (matched == '<pawn_icon/>') {
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: ShieldPieceWidget(
+                size: 19,
+                bodyColor: isDark ? const Color(0xFFF1F5F9) : const Color(0xFFE2E8F0),
+                accentColor: const Color(0xFF94A3B8),
+              ),
+            ),
+          ),
+        );
+      } else if (matched == '<mint>') {
+        colorStack.add(AppColors.accent);
+      } else if (matched == '<red>') {
+        colorStack.add(AppColors.lossRed);
+      } else if (matched == '<yellow>') {
+        colorStack.add(AppColors.accentGold);
+      } else if (matched == '</mint>') {
+        colorStack.remove(AppColors.accent);
+      } else if (matched == '</red>') {
+        colorStack.remove(AppColors.lossRed);
+      } else if (matched == '</yellow>') {
+        colorStack.remove(AppColors.accentGold);
+      }
+
+      lastIndex = match.end;
     }
-    if (currentIndex < text.length) {
+
+    if (lastIndex < text.length) {
       spans.add(
         TextSpan(
-          text: text.substring(currentIndex),
+          text: text.substring(lastIndex),
           style: TextStyle(
-            fontSize: 14.5,
+            fontSize: 15.0,
             height: 1.45,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            fontWeight: colorStack.isNotEmpty ? FontWeight.w700 : FontWeight.w500,
+            color: colorStack.isNotEmpty ? colorStack.last : defaultColor,
           ),
         ),
       );
     }
 
-    return RichText(
-      text: TextSpan(children: spans),
-    );
+    return RichText(text: TextSpan(children: spans));
+  }
+
+  String _formatMoveNotation(KitaMove? m) {
+    if (m == null) return 'A7A5';
+    return m.posNotation;
+  }
+
+  String _formatReversedNotation(KitaMove? m) {
+    if (m == null) return 'A5A7';
+    return '${KitaMove.formatPos(m.toPos)}${KitaMove.formatPos(m.fromPos)}';
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final step = _currentStep;
-    final lesson = _currentLesson;
+    final page = _currentPage;
+    final card = _currentCard;
 
     final gameSettings = context.watch<GameSettingsProvider?>();
     final theme = (gameSettings != null)
         ? gameSettings.currentBoardTheme(isDark)
         : KitaBoardTheme.amberSunset();
 
-    // Determine current sub-board if active
-    final hasSubBoards = step.subBoards != null && step.subBoards!.isNotEmpty;
-    final currentSub = hasSubBoards ? step.subBoards![_currentSubBoardIndex] : null;
+    // Determine current display engine
+    final KitaGameEngine displayEngine = _repetitionEngine ??
+        _interactiveEngine ??
+        (card.engine ?? page.initialEngine ?? KitaGameEngine());
 
-    final Map<String, KitaPos> displayPieces = _interactivePieces ??
-        (currentSub != null
-            ? Map<String, KitaPos>.from(currentSub.engine.activePositions)
-            : Map<String, KitaPos>.from(step.engine.activePositions));
+    final bool isBoardInteractive = page.isInteractive &&
+        !(page.pageNumber == 3 && _currentCardIndex == 0) &&
+        !_interactiveCompleted &&
+        _interactiveFeedback == null &&
+        _autoPlayStage != 1;
 
-    final KitaPos? displaySelectedPos = _interactivePieces != null
+    final KitaPos? displaySelectedPos = _interactiveEngine != null
         ? _interactiveSelectedPos
-        : (currentSub != null ? currentSub.selectedPos : step.selectedPos);
+        : (card.selectedPos ?? page.initialSelectedPos);
 
-    final Set<KitaPos> displayValidMoves = _interactivePieces != null
+    final Set<KitaPos> displayValidMoves = _interactiveEngine != null
         ? _interactiveValidMoves
-        : (currentSub != null ? currentSub.validMoves : step.validMoves);
+        : (card.validMoves ?? page.initialValidMoves ?? const {});
 
-    final bool nextDisabled = step.isInteractive && !_interactiveCompleted;
+    final Set<KitaPos> displayTintedTiles =
+        card.tintedTiles ?? page.initialTintedTiles ?? const {};
+
+    // Compute dynamic text for Page 3 and Page 4
+    String cardRawText = card.textKey.tr(namedArgs: card.namedArgs);
+
+    if (page.pageNumber == 3) {
+      if (_currentCardIndex == 0) {
+        cardRawText = card.textKey.tr(namedArgs: card.namedArgs);
+      } else if (_page3Tour == 1) {
+        cardRawText = card.textKey.tr(namedArgs: card.namedArgs);
+      } else {
+        final bkPos = _interactiveEngine?.positions['BK'];
+        final val = bkPos != null ? KitaBoardConfig.tileValue(bkPos) : 2;
+        cardRawText = 'tutorial.page3OpponentMoved'.tr(namedArgs: {'val': '$val'});
+      }
+    } else if (page.pageNumber == 4) {
+      final lastMoveStr = _formatMoveNotation(_playerPage3Move);
+      final reversedMoveStr = _formatReversedNotation(_playerPage3Move);
+      cardRawText = 'tutorial.page4Card1'.tr(namedArgs: {
+        'lastMove': lastMoveStr,
+        'reversedMove': reversedMoveStr,
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),
       body: SafeArea(
-        child: ResponsiveLayout(
-          maxWidth: 580,
-          child: Column(
-            children: [
-              // Top Navigation Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_rounded,
-                        color: AppColors.getTextPrimary(isDark),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _onScreenTap,
+          child: ResponsiveLayout(
+            maxWidth: 520,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Column(
+              children: [
+                // Top Navigation Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back_rounded,
+                          color: AppColors.getTextPrimary(isDark),
+                        ),
+                        tooltip: 'common.back'.tr(),
+                        onPressed: _onPrevious,
                       ),
-                      tooltip: 'common.back'.tr(),
-                      onPressed: _onPrevious,
-                    ),
-                    const SizedBox(width: 4),
-                    // Lesson selector pill
-                    InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: _showLessonListSheet,
-                      child: Container(
+                      const SizedBox(width: 6),
+
+                      // Page Pill Indicator
+                      Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 14,
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
@@ -678,489 +986,456 @@ class _TutorialScreenState extends State<TutorialScreen> {
                                 : AppColors.lightBorder,
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              lesson.icon,
-                              color: AppColors.accentGold,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'tutorial.lessonOf'.tr(namedArgs: {
-                                'current': '${lesson.lessonNumber}',
-                                'total': '${_lessons.length}',
-                              }),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.getTextPrimary(isDark),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              size: 16,
-                              color: AppColors.getTextMuted(isDark),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    if (widget.isFirstLaunch)
-                      TextButton(
-                        onPressed: _onSkip,
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.getTextSecondary(isDark),
-                        ),
                         child: Text(
-                          'tutorial.skip'.tr(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                          'tutorial.pageOf'.tr(namedArgs: {
+                            'current': '${page.pageNumber}',
+                            'total': '${_pages.length}',
+                          }),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.getTextPrimary(isDark),
                           ),
                         ),
-                      )
-                    else
-                      IconButton(
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: AppColors.getTextSecondary(isDark),
-                        ),
-                        tooltip: 'common.close'.tr(),
-                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                  ],
-                ),
-              ),
+                      const Spacer(),
 
-              // Scrollable Content: Board + Explanation Cards
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Board Frame Card
-                      KitaCard(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          children: [
-                            // Interactive mode status banner & reset
-                            if (step.isInteractive)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _interactiveCompleted
-                                            ? AppColors.winGreen.withValues(alpha: 0.16)
-                                            : AppColors.accent.withValues(alpha: 0.16),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            _interactiveCompleted
-                                                ? Icons.check_circle_rounded
-                                                : Icons.touch_app_rounded,
-                                            size: 15,
-                                            color: _interactiveCompleted
-                                                ? AppColors.winGreen
-                                                : AppColors.accentSecondary,
-                                          ),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            _interactiveCompleted
-                                                ? 'common.success'.tr()
-                                                : (step.tryItKey?.tr() ?? 'tutorial.tryIt'.tr()),
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
+                      // Close / Skip Button
+                      if (widget.isFirstLaunch)
+                        TextButton(
+                          onPressed: () async {
+                            await _markTutorialCompleted();
+                            if (context.mounted) Navigator.of(context).pop();
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.getTextSecondary(isDark),
+                          ),
+                          child: Text(
+                            'tutorial.skip'.tr(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        )
+                      else
+                        IconButton(
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: AppColors.getTextSecondary(isDark),
+                          ),
+                          tooltip: 'common.close'.tr(),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Board & Cards Area
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Board Frame Card
+                        KitaCard(
+                          padding: const EdgeInsets.all(6),
+                          child: Column(
+                            children: [
+                              // Optional Interactive status banner & reset
+                              if (page.isInteractive &&
+                                  !(page.pageNumber == 3 && _currentCardIndex == 0))
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 4,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _interactiveCompleted
+                                              ? AppColors.winGreen.withValues(alpha: 0.16)
+                                              : AppColors.accent.withValues(alpha: 0.16),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              _interactiveCompleted
+                                                  ? Icons.check_circle_rounded
+                                                  : Icons.touch_app_rounded,
+                                              size: 15,
                                               color: _interactiveCompleted
                                                   ? AppColors.winGreen
                                                   : AppColors.accentSecondary,
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    TextButton.icon(
-                                      onPressed: _resetInteractiveStep,
-                                      icon: const Icon(Icons.refresh_rounded, size: 14),
-                                      label: Text(
-                                        'tutorial.reset'.tr(),
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: AppColors.getTextMuted(isDark),
-                                        visualDensity: VisualDensity.compact,
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            // Sub-board selector tabs (for tile values & dynamic steps)
-                            if (hasSubBoards)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: List.generate(
-                                      step.subBoards!.length,
-                                      (idx) {
-                                        final isSelected = idx == _currentSubBoardIndex;
-                                        final sub = step.subBoards![idx];
-                                        return Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                                          child: InkWell(
-                                            borderRadius: BorderRadius.circular(16),
-                                            onTap: () {
-                                              setState(() {
-                                                _currentSubBoardIndex = idx;
-                                              });
-                                            },
-                                            child: AnimatedContainer(
-                                              duration: const Duration(milliseconds: 200),
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 6,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? AppColors.primary
-                                                    : (isDark
-                                                        ? AppColors.darkSurfaceElevated
-                                                        : AppColors.lightSurfaceElevated),
-                                                borderRadius: BorderRadius.circular(16),
-                                                border: Border.all(
-                                                  color: isSelected
-                                                      ? AppColors.primary
-                                                      : (isDark
-                                                          ? AppColors.darkBorder
-                                                          : AppColors.lightBorder),
-                                                ),
-                                              ),
-                                              child: Text(
-                                                sub.labelKey.tr(),
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: isSelected
-                                                      ? FontWeight.w700
-                                                      : FontWeight.w500,
-                                                  color: isSelected
-                                                      ? Colors.white
-                                                      : AppColors.getTextSecondary(isDark),
-                                                ),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              _interactiveCompleted
+                                                  ? 'common.success'.tr()
+                                                  : (page.tryItKey?.tr() ?? 'tutorial.tryIt'.tr()),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: _interactiveCompleted
+                                                    ? AppColors.winGreen
+                                                    : AppColors.accentSecondary,
                                               ),
                                             ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                            // Kita Board with smooth transition fade
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 700),
-                              switchInCurve: Curves.easeInOut,
-                              switchOutCurve: Curves.easeInOut,
-                              transitionBuilder: (child, animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: child,
-                                );
-                              },
-                              child: KeyedSubtree(
-                                key: ValueKey(
-                                  'board-$_currentLessonIndex-$_currentStepIndex-$_currentSubBoardIndex',
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: KitaBoardWidget(
-                                    pieces: displayPieces,
-                                    selectedPos: displaySelectedPos,
-                                    validMoves: displayValidMoves,
-                                    onTileTap: step.isInteractive ? _onTileTap : null,
-                                    isHorizontal: true,
-                                    flipBoard: false,
-                                    theme: theme,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Animated Instruction Explanation Cards (Without titles)
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 250),
-                        switchInCurve: Curves.easeOut,
-                        switchOutCurve: Curves.easeIn,
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.05),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: KeyedSubtree(
-                          key: ValueKey('cards-$_currentLessonIndex-$_currentStepIndex'),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              for (int i = 0; i < step.textKeys.length; i++) ...[
-                                KitaCard(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  child: _buildCardText(step.textKeys[i].tr(), isDark),
-                                ),
-                                if (i < step.textKeys.length - 1)
-                                  const SizedBox(height: 8),
-                              ],
-
-                              // Undo prompt guidance during stage 2
-                              if (step.interactiveType == InteractiveStepType.undoDemonstration &&
-                                  _undoStage == 2 &&
-                                  !_interactiveCompleted) ...[
-                                const SizedBox(height: 10),
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.accentGold.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: AppColors.accentGold.withValues(alpha: 0.35),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.info_outline_rounded,
-                                        color: AppColors.accentGold,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'tutorial.lesson2Step3SubPrompt'.tr(),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark
-                                                ? AppColors.darkTextPrimary
-                                                : AppColors.lightTextPrimary,
-                                          ),
+                                          ],
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-
-                              // Retry feedback if wrong move was made
-                              if (_interactiveFeedback != null && !_interactiveCompleted) ...[
-                                const SizedBox(height: 10),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.lossRed.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: AppColors.lossRed.withValues(alpha: 0.35),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.replay_rounded,
-                                        color: AppColors.lossRed,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _interactiveFeedback!,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark
-                                                ? AppColors.darkTextPrimary
-                                                : AppColors.lightTextPrimary,
-                                          ),
+                                      const Spacer(),
+                                      TextButton.icon(
+                                        onPressed: _onResetStep,
+                                        icon: const Icon(Icons.refresh_rounded, size: 14),
+                                        label: Text(
+                                          'tutorial.reset'.tr(),
+                                          style: const TextStyle(fontSize: 12),
                                         ),
-                                      ),
-                                      TextButton(
-                                        onPressed: _resetInteractiveStep,
                                         style: TextButton.styleFrom(
-                                          foregroundColor: AppColors.lossRed,
+                                          foregroundColor: AppColors.getTextMuted(isDark),
                                           visualDensity: VisualDensity.compact,
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
                                         ),
-                                        child: Text('tutorial.reset'.tr()),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ],
 
-                              // Interactive Success Banner
-                              if (step.isInteractive && _interactiveCompleted && step.successDescKey != null) ...[
-                                const SizedBox(height: 10),
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.winGreen.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: AppColors.winGreen.withValues(alpha: 0.35),
+                              // Unified Game Board
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 500),
+                                switchInCurve: Curves.easeInOut,
+                                switchOutCurve: Curves.easeInOut,
+                                child: KeyedSubtree(
+                                  key: ValueKey(
+                                    'board-$_currentPageIndex-$_currentCardIndex',
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: KitaGameBoard(
+                                      displayEngine: displayEngine,
+                                      myTeam: 'white',
+                                      isMyTurn: true,
+                                      isInteractive: isBoardInteractive,
+                                      customSelectedPos: displaySelectedPos,
+                                      customValidMoves: displayValidMoves,
+                                      tintedTiles: displayTintedTiles,
+                                      lastMoves: displayEngine.lastTwoMoves.isNotEmpty
+                                          ? displayEngine.lastTwoMoves
+                                          : [
+                                              if (displayEngine.lastMoveWhite != null)
+                                                displayEngine.lastMoveWhite!,
+                                              if (displayEngine.lastMoveBlack != null)
+                                                displayEngine.lastMoveBlack!,
+                                            ],
+                                      lastMove: displayEngine.mostRecentMove ??
+                                          displayEngine.lastMoveBlack ??
+                                          displayEngine.lastMoveWhite,
+                                      isHorizontal: true,
+                                      flipBoard: false,
+                                      theme: theme,
+                                      onMakeMove: _handleInteractiveMove,
                                     ),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.check_circle_rounded,
-                                        color: AppColors.winGreen,
-                                        size: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Text Explanation Card
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          child: KeyedSubtree(
+                            key: ValueKey(
+                              'card-$_currentPageIndex-$_currentCardIndex-${_interactiveCompleted ? 'done' : 'active'}',
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Optional Badge Header (e.g. "1-Value Tiles" in yellow)
+                                if (card.badgeKey != null) ...[
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accentGold.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      card.badgeKey!.tr(),
+                                      style: const TextStyle(
+                                        color: AppColors.accentGold,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          step.successDescKey!.tr(),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark
-                                                ? AppColors.darkTextPrimary
-                                                : AppColors.lightTextPrimary,
+                                    ),
+                                  ),
+                                ],
+
+                                // Main Text Card
+                                KitaCard(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  child: _buildRichText(cardRawText, isDark),
+                                ),
+
+                                // Interactive Retry Feedback
+                                if (_interactiveFeedback != null && !_interactiveCompleted) ...[
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.lossRed.withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: AppColors.lossRed.withValues(alpha: 0.35),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.replay_rounded,
+                                          color: AppColors.lossRed,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            _interactiveFeedback!,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.lossRed,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ] else if (step.isInteractive && !_interactiveCompleted && _interactiveFeedback == null) ...[
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.lightbulb_outline_rounded,
-                                      size: 16,
-                                      color: AppColors.accentGold,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        'tutorial.interactiveHint'.tr(),
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontStyle: FontStyle.italic,
-                                          color: AppColors.getTextMuted(isDark),
+                                        TextButton(
+                                          onPressed: _onResetStep,
+                                          child: Text(
+                                            'tutorial.reset'.tr(),
+                                            style: const TextStyle(color: AppColors.lossRed),
+                                          ),
                                         ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+
+                                // Interactive Success Card Banner
+                                if (page.isInteractive &&
+                                    _interactiveCompleted &&
+                                    page.successKey != null) ...[
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.winGreen.withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: AppColors.winGreen.withValues(alpha: 0.35),
                                       ),
                                     ),
-                                  ],
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle_rounded,
+                                          color: AppColors.winGreen,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            (page.pageNumber == 6)
+                                                ? (_currentCardIndex == 0
+                                                    ? 'tutorial.page6SuccessKing'.tr()
+                                                    : 'tutorial.page6SuccessTrap'.tr())
+                                                : page.successKey!.tr(),
+                                            style: TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : AppColors.lightTextPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+
+                                // Page 8 Completion / Practice Bot Card
+                                if (page.pageNumber == 8) ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accentGold.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: AppColors.accentGold.withValues(alpha: 0.35),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.emoji_events_rounded,
+                                              color: AppColors.accentGold,
+                                              size: 24,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              'tutorial.practiceTitle'.tr(),
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : AppColors.lightTextPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'tutorial.practiceDesc'.tr(),
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            color: isDark
+                                                ? Colors.white70
+                                                : AppColors.lightTextSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.accentGold.withValues(alpha: 0.16),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.touch_app_rounded,
+                                                color: AppColors.accentGold,
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  'tutorial.practiceTapPrompt'.tr(),
+                                                  style: const TextStyle(
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppColors.accentGold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Bottom Pulse Indicator
+                Builder(
+                  builder: (context) {
+                    final String? indicatorText = isBoardInteractive
+                        ? 'tutorial.makeYourMove'.tr()
+                        : (_interactiveFeedback != null
+                            ? 'tutorial.reset'.tr()
+                            : null);
+
+                    final IconData indicatorIcon = isBoardInteractive
+                        ? Icons.touch_app_rounded
+                        : (_interactiveFeedback != null
+                            ? Icons.replay_rounded
+                            : Icons.touch_app_rounded);
+
+                    final Color indicatorColor = isBoardInteractive
+                        ? AppColors.accentGold
+                        : (_interactiveFeedback != null
+                            ? AppColors.lossRed
+                            : AppColors.accent);
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: ScaleTransition(
+                        scale: _pulseAnimation,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: indicatorText != null ? 14 : 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: indicatorColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                indicatorIcon,
+                                size: 16,
+                                color: indicatorColor,
+                              ),
+                              if (indicatorText != null) ...[
+                                const SizedBox(width: 6),
+                                Text(
+                                  indicatorText,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: indicatorColor,
+                                  ),
                                 ),
                               ],
                             ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              ),
-
-              // Bottom Navigation Dock
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                  border: Border(
-                    top: BorderSide(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Back button
-                    if (!_isFirstStepOverall)
-                      KitaButton(
-                        text: 'common.back'.tr(),
-                        icon: Icons.chevron_left_rounded,
-                        variant: KitaButtonVariant.secondary,
-                        width: 105,
-                        height: 44,
-                        onPressed: _onPrevious,
-                      )
-                    else
-                      const SizedBox(width: 105),
-
-                    const Spacer(),
-
-                    // Step Dots Indicator
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(
-                        _currentLesson.steps.length,
-                        (index) {
-                          final isActive = index == _currentStepIndex;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width: isActive ? 20 : 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? AppColors.primary
-                                  : (isDark ? Colors.white24 : Colors.black12),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    // Next / Finish Button
-                    KitaButton(
-                      text: _isLastStepOverall
-                          ? 'tutorial.finish'.tr()
-                          : 'tutorial.next'.tr(),
-                      icon: _isLastStepOverall
-                          ? Icons.check_rounded
-                          : Icons.chevron_right_rounded,
-                      variant: KitaButtonVariant.primary,
-                      width: 105,
-                      height: 44,
-                      onPressed: nextDisabled ? null : _onNext,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -54,6 +54,18 @@ class KitaGameBoard extends StatefulWidget {
   /// The last executed move to display, if any. If null, falls back to [displayEngine.mostRecentMove].
   final KitaMove? lastMove;
 
+  /// Optional forced/custom tile selection (used in tutorial/demonstrations)
+  final KitaPos? customSelectedPos;
+
+  /// Optional forced/custom valid moves or tile highlights (used in tutorial/demonstrations)
+  final Set<KitaPos>? customValidMoves;
+
+  /// Set of tile positions to tint (used for tutorial highlights)
+  final Set<KitaPos> tintedTiles;
+
+  /// Custom tint color (defaults to mint)
+  final Color? tintColor;
+
   /// Callback when a valid move is made by the player
   final void Function(KitaMove move)? onMakeMove;
 
@@ -71,6 +83,10 @@ class KitaGameBoard extends StatefulWidget {
     this.theme,
     this.lastMoves,
     this.lastMove,
+    this.customSelectedPos,
+    this.customValidMoves,
+    this.tintedTiles = const {},
+    this.tintColor,
     this.onMakeMove,
   });
 
@@ -83,14 +99,33 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
   Set<KitaPos> _validMoves = {};
 
   @override
+  void initState() {
+    super.initState();
+    _selectedPos = widget.customSelectedPos;
+    _validMoves = widget.customValidMoves ?? {};
+  }
+
+  @override
   void didUpdateWidget(covariant KitaGameBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.customSelectedPos != widget.customSelectedPos ||
+        oldWidget.customValidMoves != widget.customValidMoves) {
+      setState(() {
+        _selectedPos = widget.customSelectedPos;
+        _validMoves = widget.customValidMoves ?? {};
+      });
+      return;
+    }
+
     if (!widget.isInteractive) {
-      if (_selectedPos != null) {
-        setState(() {
-          _selectedPos = null;
-          _validMoves = {};
-        });
+      if (widget.customSelectedPos == null && widget.customValidMoves == null) {
+        if (_selectedPos != null || _validMoves.isNotEmpty) {
+          setState(() {
+            _selectedPos = null;
+            _validMoves = {};
+          });
+        }
       }
       return;
     }
@@ -157,10 +192,13 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
 
   bool get _isCurrentTurnSelection {
     if (!widget.isMyTurn) return false;
-    if (_selectedPos == null) return true;
+    final sel = widget.isInteractive
+        ? _selectedPos
+        : (widget.customSelectedPos ?? _selectedPos);
+    if (sel == null) return true;
     final activePositions = widget.displayEngine.activePositions;
     for (final entry in activePositions.entries) {
-      if (entry.value == _selectedPos) {
+      if (entry.value == sel) {
         final piece = KitaPiece.allPieces[entry.key];
         return piece?.team == widget.displayEngine.turn;
       }
@@ -336,9 +374,13 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
 
   @override
   Widget build(BuildContext context) {
-    final gameSettings = context.watch<GameSettingsProvider>();
+    final gameSettings = context.watch<GameSettingsProvider?>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final boardTheme = widget.theme ?? gameSettings.currentBoardTheme(isDark);
+    final boardTheme = widget.theme ??
+        (gameSettings != null
+            ? gameSettings.currentBoardTheme(isDark)
+            : KitaBoardTheme.amberSunset());
+    final lastMoveIndicator = gameSettings?.lastMoveIndicator ?? 'line';
 
     final double effectiveRotation;
     if (widget.pieceRotation != null) {
@@ -346,8 +388,8 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
     } else if (widget.isLocalCoop) {
       final isBlackTurn = widget.displayEngine.turn == PieceTeam.black;
       final activePlayerIsAtTop = widget.flipBoard ? !isBlackTurn : isBlackTurn;
-      final double baseRotation = gameSettings.isLocalCoopHorizontal ? -0.25 : 0.0;
-      effectiveRotation = gameSettings.localCoopAutoRotate
+      final double baseRotation = (gameSettings?.isLocalCoopHorizontal ?? true) ? -0.25 : 0.0;
+      effectiveRotation = (gameSettings?.localCoopAutoRotate ?? true)
           ? (baseRotation + (activePlayerIsAtTop ? 0.5 : 0.0))
           : baseRotation;
     } else {
@@ -359,13 +401,22 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
     final effectiveLastMove =
         widget.lastMove ?? widget.displayEngine.mostRecentMove;
 
+    final effectiveSelectedPos = widget.isInteractive
+        ? _selectedPos
+        : (widget.customSelectedPos ?? _selectedPos);
+    final effectiveValidMoves = widget.isInteractive
+        ? _validMoves
+        : (widget.customValidMoves ?? _validMoves);
+
     return KitaBoardWidget(
       pieces: widget.displayEngine.activePositions,
-      selectedPos: _selectedPos,
-      validMoves: _validMoves,
+      selectedPos: effectiveSelectedPos,
+      validMoves: effectiveValidMoves,
+      tintedTiles: widget.tintedTiles,
+      tintColor: widget.tintColor,
       lastMoves: effectiveLastMoves,
       lastMove: effectiveLastMove,
-      lastMoveIndicator: gameSettings.lastMoveIndicator,
+      lastMoveIndicator: lastMoveIndicator,
       flipBoard: widget.flipBoard,
       isHorizontal: widget.isHorizontal,
       pieceRotation: effectiveRotation,

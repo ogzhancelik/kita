@@ -78,6 +78,12 @@ class KitaBoardWidget extends StatelessWidget {
   /// Customizable board theme/styling with heatmap colors
   final KitaBoardTheme? theme;
 
+  /// Set of tile positions to highlight with a soft tint overlay (used in tutorial spotlights)
+  final Set<KitaPos> tintedTiles;
+
+  /// Custom tint color for [tintedTiles] (defaults to soft mint #2DD4BF)
+  final Color? tintColor;
+
   /// Optional custom widget builder for pieces
   final Widget Function(BuildContext context, KitaPiece piece, double size)?
   pieceBuilder;
@@ -87,6 +93,8 @@ class KitaBoardWidget extends StatelessWidget {
     required this.pieces,
     this.selectedPos,
     this.validMoves = const {},
+    this.tintedTiles = const {},
+    this.tintColor,
     this.lastMoves,
     this.lastMoveWhite,
     this.lastMoveBlack,
@@ -374,6 +382,9 @@ class KitaBoardWidget extends StatelessWidget {
         ? theme.validMoveHighlightColor
         : _desaturate(theme.validMoveHighlightColor, 0.40).withValues(alpha: 0.65);
 
+    final bool isTinted = tintedTiles.contains(canonicalPos);
+    final Color effectiveTintColor = tintColor ?? const Color(0xFF2DD4BF);
+
     return Padding(
       padding: EdgeInsets.all(effectiveTileSpacing),
       child: SizedBox.expand(
@@ -395,7 +406,9 @@ class KitaBoardWidget extends StatelessWidget {
                             ? (isLatest
                                 ? (isLastMoveDest ? 2.2 : 1.8)
                                 : (isLastMoveDest ? 1.8 : 1.4))
-                            : 0.8;
+                            : isTinted
+                                ? 2.5
+                                : 0.8;
 
             return Material(
               color: Colors.transparent,
@@ -420,7 +433,12 @@ class KitaBoardWidget extends StatelessWidget {
                                     ),
                                     cellBaseColor,
                                   )
-                                : cellBaseColor,
+                                : isTinted
+                                    ? Color.alphaBlend(
+                                        effectiveTintColor.withValues(alpha: 0.40),
+                                        cellBaseColor,
+                                      )
+                                    : cellBaseColor,
                     borderRadius: BorderRadius.circular(effectiveBorderRadius),
                     border: Border.all(
                       color: isSelected
@@ -435,10 +453,19 @@ class KitaBoardWidget extends StatelessWidget {
                                               ? (isLastMoveDest ? 0.85 : 0.60)
                                               : (isLastMoveDest ? 0.55 : 0.38),
                                         )
-                                      : Colors.white.withValues(alpha: 0.15),
+                                      : isTinted
+                                          ? effectiveTintColor.withValues(alpha: 0.95)
+                                          : Colors.white.withValues(alpha: 0.15),
                       width: effectiveBorderWidth,
                     ),
                     boxShadow: [
+                      if (isTinted)
+                        BoxShadow(
+                          color: effectiveTintColor.withValues(alpha: 0.45),
+                          offset: Offset.zero,
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
                       if (effectiveTileSpacing > 0 || isHoveredValidMove || isLastMove || isSelected)
                         BoxShadow(
                           color: isHoveredValidMove
