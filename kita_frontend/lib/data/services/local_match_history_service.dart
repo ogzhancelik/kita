@@ -190,6 +190,7 @@ class ActiveOfflineGameData {
   final String? playerId;
   final String? playerName;
   final int? playerRating;
+  final int? playerAvatarIndex;
   final bool isGuest;
   final int elapsedSeconds;
   final List<Map<String, dynamic>> moveHistory;
@@ -203,6 +204,7 @@ class ActiveOfflineGameData {
     this.playerId,
     this.playerName,
     this.playerRating,
+    this.playerAvatarIndex,
     required this.isGuest,
     required this.elapsedSeconds,
     required this.moveHistory,
@@ -217,6 +219,7 @@ class ActiveOfflineGameData {
     'playerId': playerId,
     'playerName': playerName,
     'playerRating': playerRating,
+    'playerAvatarIndex': playerAvatarIndex,
     'isGuest': isGuest,
     'elapsedSeconds': elapsedSeconds,
     'moveHistory': moveHistory,
@@ -232,6 +235,7 @@ class ActiveOfflineGameData {
         playerId: json['playerId'] as String?,
         playerName: json['playerName'] as String?,
         playerRating: (json['playerRating'] as num?)?.toInt(),
+        playerAvatarIndex: (json['playerAvatarIndex'] as num?)?.toInt(),
         isGuest: json['isGuest'] as bool? ?? false,
         elapsedSeconds: (json['elapsedSeconds'] as num?)?.toInt() ?? 0,
         moveHistory: (json['moveHistory'] as List<dynamic>?)

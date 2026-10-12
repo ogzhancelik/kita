@@ -12,6 +12,7 @@ import '../../providers/online_game_provider.dart';
 import '../../screens/friends/friends_screen.dart';
 import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
+import '../friends/add_friend_dialog.dart';
 import 'user_profile_dialog.dart';
 
 import '../matchmaking/friend_challenge_dialog.dart';
@@ -79,54 +80,97 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const FriendsScreen()),
-            ),
-            borderRadius: BorderRadius.circular(8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.people_alt_rounded,
-                  color: AppColors.accentGold,
-                  size: 20,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              InkWell(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const FriendsScreen()),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'dashboard.friendsQuick'.tr(),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                  ),
-                ),
-                if (totalBadgeCount > 0) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryVibrant,
-                      borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.people_alt_rounded,
+                      color: AppColors.accentGold,
+                      size: 20,
                     ),
-                    child: Text(
-                      totalBadgeCount > 99 ? '99+' : '$totalBadgeCount',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    const SizedBox(width: 8),
+                    Text(
+                      'dashboard.friendsQuick'.tr(),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 12,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    if (totalBadgeCount > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryVibrant,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          totalBadgeCount > 99 ? '99+' : '$totalBadgeCount',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 12,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              // Explicit "+ Add Friend" Header Action
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => AddFriendDialog.show(context),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                    decoration: BoxDecoration(
+                      color: AppColors.getBrandPrimary(isDark).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.getBrandPrimary(isDark).withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.person_add_alt_1_rounded,
+                          size: 14,
+                          color: AppColors.getBrandPrimary(isDark),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          'dashboard.addFriend'.tr(),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.getBrandPrimary(isDark),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
 
@@ -143,24 +187,48 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
             )
           else if (sortedFriends.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 14),
               child: Center(
-                child: Text(
-                  'online.noFriendsYet'.tr(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'online.noFriendsYet'.tr(),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      onPressed: () => AddFriendDialog.show(context),
+                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 15),
+                      label: Text(
+                        'dashboard.addFriend'.tr(),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: AppColors.darkTextPrimary,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             )
           else
             SizedBox(
-              height: 124,
+              height: 136,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                itemCount: displayFriends.length + (hasMoreThanTen ? 1 : 0),
+                itemCount: displayFriends.length + (hasMoreThanTen ? 1 : 0) + 1,
                 separatorBuilder: (_, _) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   if (index < displayFriends.length) {
@@ -168,8 +236,10 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                     final convId = dmConversationId(myId, friend.userId);
                     final friendUnread = dmProv?.unreadFor(convId) ?? 0;
                     return _buildFriendCard(friend, isDark, friendUnread);
-                  } else {
+                  } else if (hasMoreThanTen && index == displayFriends.length) {
                     return _buildViewAllCard(isDark);
+                  } else {
+                    return _buildAddFriendCard(isDark);
                   }
                 },
               ),
@@ -319,6 +389,7 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                         ? AppColors.primaryGreen
                         : AppColors.getSurface(isDark),
                     elevation: friend.isOnline ? 1 : 0,
+                    visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -389,6 +460,57 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                 color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
               ),
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddFriendCard(bool isDark) {
+    return InkWell(
+      onTap: () => AddFriendDialog.show(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 96,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkBg : AppColors.lightBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark
+                ? AppColors.primaryLight.withValues(alpha: 0.3)
+                : AppColors.primary.withValues(alpha: 0.25),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.primaryLight.withValues(alpha: 0.15)
+                    : AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.person_add_alt_1_rounded,
+                color: AppColors.getBrandPrimary(isDark),
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'dashboard.addFriend'.tr(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppColors.getBrandPrimary(isDark),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

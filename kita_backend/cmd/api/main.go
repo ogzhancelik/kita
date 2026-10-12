@@ -148,6 +148,7 @@ func main() {
 			matchRoutes.GET("/:id/moves", matchH.GetMatchMoves)
 			matchRoutes.GET("/:id/messages", matchH.GetMatchMessages)
 			matchRoutes.GET("/user/:userId", matchH.GetUserMatches)
+			matchRoutes.POST("/share", matchH.ShareReplay)
 		}
 
 

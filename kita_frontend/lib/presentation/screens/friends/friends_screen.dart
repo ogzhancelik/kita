@@ -12,6 +12,7 @@ import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
+import '../../widgets/friends/add_friend_dialog.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
 import 'dm_chat_screen.dart';
@@ -185,6 +186,11 @@ class _FriendsScreenState extends State<FriendsScreen>
               final myId = context.read<AuthProvider>().currentUser?.id ?? '';
               if (myId.isNotEmpty) {
                 final convId = dmConversationId(myId, friend.userId);
+                final dmProv = context.read<DmProvider?>();
+                if (dmProv != null) {
+                  dmProv.clearUnread(convId, userId: friend.userId);
+                  dmProv.setActiveConversation(convId);
+                }
                 context.read<NotificationProvider>().deleteChatNotifications(
                   convId,
                   actorId: friend.userId,
@@ -380,67 +386,8 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  void _showAddFriendDialog(BuildContext context, FriendsProvider provider) {
-    final controller = TextEditingController();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.getCard(isDark),
-        title: Text(
-          'online.addFriend'.tr(),
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.getTextPrimary(isDark),
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: TextStyle(color: AppColors.getTextPrimary(isDark)),
-          decoration: InputDecoration(
-            hintText: 'Enter username...',
-            hintStyle: TextStyle(color: AppColors.getTextMuted(isDark)),
-            filled: true,
-            fillColor: AppColors.getSurface(isDark),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('common.cancel'.tr()),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final username = controller.text.trim();
-              if (username.isNotEmpty) {
-                Navigator.of(ctx).pop();
-                final ok = await provider.sendRequest(username);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(ok
-                          ? 'Friend request sent!'
-                          : provider.errorMessage ?? 'Failed to send request'),
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: AppColors.darkTextPrimary,
-            ),
-            child: Text('online.addFriend'.tr()),
-          ),
-        ],
-      ),
-    );
+  void _showAddFriendDialog(BuildContext context, [FriendsProvider? provider]) {
+    AddFriendDialog.show(context);
   }
 }
 

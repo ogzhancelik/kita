@@ -3,7 +3,9 @@ package postgres
 import (
 	"context"
 	"errors"
+	"strings"
 
+	"github.com/google/uuid"
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 	"gorm.io/gorm"
@@ -22,8 +24,11 @@ func (r *userRepo) Create(ctx context.Context, user *domain.User) error {
 }
 
 func (r *userRepo) FindByID(ctx context.Context, id string) (*domain.User, error) {
+	if _, err := uuid.Parse(strings.TrimSpace(id)); err != nil {
+		return nil, nil
+	}
 	var user domain.User
-	if err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&user, "id = ?", strings.TrimSpace(id)).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}

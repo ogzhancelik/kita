@@ -93,18 +93,20 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Find info button in top bar
-      final infoButton = find.byIcon(Icons.info_outline_rounded);
-      expect(infoButton, findsOneWidget);
+      // Find share button in top bar
+      final shareButton = find.byIcon(Icons.share_rounded);
+      expect(shareButton, findsOneWidget);
 
-      // Tap info button to open dialog
-      await tester.tap(infoButton);
+      // Tap share button to open dialog
+      await tester.tap(shareButton);
       await tester.pumpAndSettle();
 
-      // Verify AlertDialog is displayed with Download Replay button
+      // Verify AlertDialog is displayed with Download Replay button and copy buttons
       expect(find.byType(AlertDialog), findsOneWidget);
       expect(find.byIcon(Icons.download_rounded), findsOneWidget);
-      expect(find.text('replay.downloadReplay'), findsOneWidget);
+      expect(find.text('replay.downloadFile'), findsOneWidget);
+      expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.share_rounded), findsNWidgets(3));
     });
 
     testWidgets('MatchHistoryScreen app bar contains Load Replay button',
@@ -128,6 +130,16 @@ void main() {
 
       // Verify Load Replay action button in top bar
       expect(find.byIcon(Icons.file_open_rounded), findsOneWidget);
+
+      // Tap to open load replay dialog
+      await tester.tap(find.byIcon(Icons.file_open_rounded));
+      await tester.pumpAndSettle();
+
+      // Verify dialog is shown with TextField, Open Replay button, and Upload File action
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('replay.watchMatch'), findsOneWidget);
+      expect(find.text('replay.uploadFile'), findsOneWidget);
     });
   });
 }

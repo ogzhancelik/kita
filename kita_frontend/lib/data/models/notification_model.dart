@@ -222,13 +222,22 @@ class KitaNotification {
         payloadMap['sender_id']?.toString() ??
         payloadMap['inviter_id']?.toString();
 
-    final String? conversationId = payloadMap['conversation_id']?.toString() ??
-        json['conversation_id']?.toString() ??
-        (rawType == 'chat' && (json['id']?.toString() ?? '').startsWith('chat_')
-            ? ((json['id']?.toString() ?? '').split('_').length > 1
-                ? (json['id']?.toString() ?? '').substring(5)
-                : null)
-            : null);
+    String? conversationId = payloadMap['conversation_id']?.toString() ??
+        json['conversation_id']?.toString();
+    if ((conversationId == null || conversationId.isEmpty) && rawType == 'chat') {
+      final idStr = json['id']?.toString() ?? '';
+      if (idStr.startsWith('chat_')) {
+        final stripped = idStr.substring(5);
+        final parts = stripped.split('_');
+        if (parts.length >= 3) {
+          conversationId = '${parts[0]}_${parts[1]}';
+        } else if (parts.length == 2) {
+          conversationId = '${parts[0]}_${parts[1]}';
+        } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+          conversationId = parts[0];
+        }
+      }
+    }
 
     final createdAtStr = json['created_at']?.toString() ?? '';
     final timestamp = DateTime.tryParse(createdAtStr) ?? DateTime.now();

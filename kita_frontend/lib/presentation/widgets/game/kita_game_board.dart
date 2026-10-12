@@ -382,16 +382,35 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
             : KitaBoardTheme.amberSunset());
     final lastMoveIndicator = gameSettings?.lastMoveIndicator ?? 'line';
 
+    final isHorizontalCoop = widget.isLocalCoop && (gameSettings?.isLocalCoopHorizontal ?? false);
+    final flipColumns = isHorizontalCoop && !widget.isHorizontal;
+
     final double effectiveRotation;
     if (widget.pieceRotation != null) {
       effectiveRotation = widget.pieceRotation!;
     } else if (widget.isLocalCoop) {
       final isBlackTurn = widget.displayEngine.turn == PieceTeam.black;
-      final activePlayerIsAtTop = widget.flipBoard ? !isBlackTurn : isBlackTurn;
-      final double baseRotation = (gameSettings?.isLocalCoopHorizontal ?? true) ? -0.25 : 0.0;
-      effectiveRotation = (gameSettings?.localCoopAutoRotate ?? true)
-          ? (baseRotation + (activePlayerIsAtTop ? 0.5 : 0.0))
-          : baseRotation;
+      if (isHorizontalCoop) {
+        // When piece orientation is 90° (horizontal):
+        // White is on the left (col 0, facing +0.25 / +90°) and Black is on the right (col 3, facing -0.25 / -90°).
+        final whiteRotation = widget.flipBoard ? -0.25 : 0.25;
+        final blackRotation = widget.flipBoard ? 0.25 : -0.25;
+        if (gameSettings?.localCoopAutoRotate ?? true) {
+          effectiveRotation = isBlackTurn ? blackRotation : whiteRotation;
+        } else {
+          effectiveRotation = whiteRotation;
+        }
+      } else {
+        // When piece orientation is 0° (vertical):
+        // White faces 0.0 and Black faces 0.5 (or vice-versa if flipped).
+        final whiteRotation = widget.flipBoard ? 0.5 : 0.0;
+        final blackRotation = widget.flipBoard ? 0.0 : 0.5;
+        if (gameSettings?.localCoopAutoRotate ?? true) {
+          effectiveRotation = isBlackTurn ? blackRotation : whiteRotation;
+        } else {
+          effectiveRotation = whiteRotation;
+        }
+      }
     } else {
       effectiveRotation = 0.0;
     }
@@ -418,6 +437,7 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
       lastMove: effectiveLastMove,
       lastMoveIndicator: lastMoveIndicator,
       flipBoard: widget.flipBoard,
+      flipColumns: flipColumns,
       isHorizontal: widget.isHorizontal,
       pieceRotation: effectiveRotation,
       isCurrentTurn: _isCurrentTurnSelection,

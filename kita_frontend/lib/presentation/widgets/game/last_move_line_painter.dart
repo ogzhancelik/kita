@@ -19,6 +19,7 @@ class LastMoveLinePainter extends CustomPainter {
   final List<LastMovePathData> paths;
   final bool isHorizontal;
   final bool flipBoard;
+  final bool flipColumns;
   final double cellSize;
   final Color lineColor;
 
@@ -26,6 +27,7 @@ class LastMoveLinePainter extends CustomPainter {
     required this.paths,
     required this.isHorizontal,
     required this.flipBoard,
+    this.flipColumns = false,
     required this.cellSize,
     required this.lineColor,
   });
@@ -35,6 +37,7 @@ class LastMoveLinePainter extends CustomPainter {
     required List<KitaPos> path,
     required bool isHorizontal,
     required bool flipBoard,
+    bool flipColumns = false,
     required double cellSize,
     required Color lineColor,
   }) {
@@ -42,6 +45,7 @@ class LastMoveLinePainter extends CustomPainter {
       paths: [LastMovePathData(path: path, isLatest: true)],
       isHorizontal: isHorizontal,
       flipBoard: flipBoard,
+      flipColumns: flipColumns,
       cellSize: cellSize,
       lineColor: lineColor,
     );
@@ -55,7 +59,7 @@ class LastMoveLinePainter extends CustomPainter {
       displayCol = flipBoard ? (6 - pos.col) : pos.col;
       displayRow = flipBoard ? (3 - pos.row) : pos.row;
     } else {
-      displayCol = flipBoard ? (3 - pos.row) : pos.row;
+      displayCol = (flipColumns || flipBoard) ? (3 - pos.row) : pos.row;
       displayRow = flipBoard ? (6 - pos.col) : pos.col;
     }
 
@@ -101,6 +105,7 @@ class LastMoveLinePainter extends CustomPainter {
     if (oldDelegate.paths.length != paths.length ||
         oldDelegate.isHorizontal != isHorizontal ||
         oldDelegate.flipBoard != flipBoard ||
+        oldDelegate.flipColumns != flipColumns ||
         oldDelegate.cellSize != cellSize ||
         oldDelegate.lineColor != lineColor) {
       return true;

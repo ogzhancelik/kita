@@ -136,7 +136,6 @@ class HomePendingGameCard extends StatelessWidget {
   }) {
     final opponentName = onlineProv.opponentInfo?.name ?? 'online.opponent'.tr();
     final badgeLabel = '★ ${onlineProv.opponentInfo?.displayRating ?? "1200"}';
-    final isMyTurn = (onlineProv.currentTurn.value == onlineProv.myTeam);
     final tcStr = _formatTimeControl(onlineProv.timeControl);
 
     return _buildDismissibleContainer(
@@ -209,23 +208,54 @@ class HomePendingGameCard extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF143026),
+                              color: AppColors.turnActiveCardDark,
                               letterSpacing: 0.5,
                             ),
                           ),
                         ),
                         const SizedBox(width: 6),
                         Flexible(
-                          child: Text(
-                            isMyTurn
-                                ? 'dashboard.pendingSection.yourTurn'.tr()
-                                : 'dashboard.pendingSection.opponentTurn'.tr(),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                          child: ValueListenableBuilder<String>(
+                            valueListenable: onlineProv.currentTurn,
+                            builder: (context, currentTurn, _) {
+                              final isMyTurn = currentTurn == onlineProv.myTeam;
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
+                                      boxShadow: isMyTurn
+                                          ? [
+                                              BoxShadow(
+                                                color: AppColors.accentGold.withValues(alpha: 0.6),
+                                                blurRadius: 4,
+                                                spreadRadius: 0.5,
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      isMyTurn
+                                          ? 'dashboard.pendingSection.yourTurn'.tr()
+                                          : 'dashboard.pendingSection.opponentTurn'.tr(),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -356,12 +386,6 @@ class HomePendingGameCard extends StatelessWidget {
 
     final badgeLabel = isBot ? offlineProv.offlineBotDifficultyLabel : '2P';
 
-    final isMyTurn = isLocalCoop
-        ? (offlineProv.currentTurn.value == 'white' ? 'common.white'.tr() : 'common.black'.tr())
-        : (offlineProv.currentTurn.value == offlineProv.myTeam
-            ? 'dashboard.pendingSection.yourTurn'.tr()
-            : 'dashboard.pendingSection.opponentTurn'.tr());
-
     return _buildDismissibleContainer(
       key: ValueKey('active_offline_game_${offlineProv.matchId ?? "current"}'),
       dismissLabel: 'dashboard.pendingSection.resign'.tr(),
@@ -439,18 +463,56 @@ class HomePendingGameCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Flexible(
-                          child: Text(
-                            isMyTurn,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: isLocalCoop
+                          child: ValueListenableBuilder<String>(
+                            valueListenable: offlineProv.currentTurn,
+                            builder: (context, currentTurn, _) {
+                              final isMyTurn = isLocalCoop
+                                  ? (currentTurn == 'white' ? 'common.white'.tr() : 'common.black'.tr())
+                                  : (currentTurn == offlineProv.myTeam
+                                      ? 'dashboard.pendingSection.yourTurn'.tr()
+                                      : 'dashboard.pendingSection.opponentTurn'.tr());
+                              final turnColor = isLocalCoop
                                   ? AppColors.getTextPrimary(isDark)
-                                  : (offlineProv.currentTurn.value == offlineProv.myTeam
+                                  : (currentTurn == offlineProv.myTeam
                                       ? AppColors.accentGold
-                                      : AppColors.getTextMuted(isDark)),
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                                      : AppColors.getTextMuted(isDark));
+                              final isHighlighted = !isLocalCoop && currentTurn == offlineProv.myTeam;
+
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: turnColor,
+                                      boxShadow: isHighlighted
+                                          ? [
+                                              BoxShadow(
+                                                color: AppColors.accentGold.withValues(alpha: 0.6),
+                                                blurRadius: 4,
+                                                spreadRadius: 0.5,
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      isMyTurn,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: turnColor,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ],

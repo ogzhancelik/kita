@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/match_model.dart';
@@ -215,6 +216,262 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     }
   }
 
+  String _extractReplayCode(String input) {
+    var trimmed = input.trim();
+    if (trimmed.isEmpty) return '';
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null) {
+      if (uri.pathSegments.contains('replay')) {
+        final idx = uri.pathSegments.indexOf('replay');
+        if (idx + 1 < uri.pathSegments.length) {
+          return uri.pathSegments[idx + 1].trim();
+        }
+      }
+    }
+
+    if (trimmed.contains('/')) {
+      trimmed = trimmed.split('/').last.trim();
+    }
+    return trimmed;
+  }
+
+  void _showLoadReplayDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textController = TextEditingController();
+    String? localError;
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          Future<void> submitCode() async {
+            final rawText = textController.text.trim();
+            final code = _extractReplayCode(rawText);
+
+            if (code.isEmpty) {
+              setModalState(() {
+                localError = 'replay.enterCodeError'.tr();
+              });
+              return;
+            }
+
+            setModalState(() {
+              isLoading = true;
+              localError = null;
+            });
+
+            try {
+              // 1. Check local match storage first
+              final localMatches = await LocalMatchHistoryService.instance.getMatches();
+              final matchingLocal = localMatches.where((m) =>
+                m.id.toLowerCase() == code.toLowerCase() ||
+                (m.id.contains('-') && m.id.split('-').first.toLowerCase() == code.toLowerCase())
+              ).firstOrNull;
+
+              if (matchingLocal != null) {
+                if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
+                if (mounted) {
+                  await Navigator.of(this.context).push(
+                    MaterialPageRoute(
+                      builder: (_) => MatchReplayScreen(match: matchingLocal),
+                    ),
+                  );
+                  if (mounted) _fetchMatches();
+                }
+                return;
+              }
+
+              // 2. Fetch from backend
+              final loaded = await _matchApiService.getMatchDetails(code);
+              await LocalMatchHistoryService.instance.saveMatch(loaded);
+
+              if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
+              if (mounted) {
+                await Navigator.of(this.context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MatchReplayScreen(match: loaded),
+                  ),
+                );
+                if (mounted) _fetchMatches();
+              }
+            } catch (_) {
+              if (dialogCtx.mounted) {
+                setModalState(() {
+                  isLoading = false;
+                  localError = 'replay.replayNotFound'.tr();
+                });
+              }
+            }
+          }
+
+          return AlertDialog(
+            backgroundColor: AppColors.getCard(isDark),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                const Icon(Icons.smart_display_rounded, color: AppColors.primaryGreen, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'replay.loadReplayTitle'.tr(),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.getTextPrimary(isDark),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: textController,
+                    autofocus: true,
+                    style: TextStyle(
+                      color: AppColors.getTextPrimary(isDark),
+                      fontSize: 14,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'replay.enterCodeOrLink'.tr(),
+                      hintStyle: TextStyle(
+                        color: AppColors.getTextMuted(isDark),
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.tag_rounded,
+                        color: AppColors.primaryGreen,
+                        size: 20,
+                      ),
+                      suffixIcon: textController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              color: AppColors.getTextMuted(isDark),
+                              onPressed: () {
+                                textController.clear();
+                                setModalState(() {});
+                              },
+                            )
+                          : IconButton(
+                              icon: const Icon(Icons.content_paste_rounded, size: 18),
+                              color: AppColors.getTextMuted(isDark),
+                              tooltip: 'Paste',
+                              onPressed: () async {
+                                final data = await Clipboard.getData('text/plain');
+                                if (data?.text != null) {
+                                  textController.text = data!.text!;
+                                  setModalState(() {});
+                                }
+                              },
+                            ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      filled: true,
+                      fillColor: AppColors.getSurface(isDark),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppColors.getBorder(isDark)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppColors.getBorder(isDark)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.primaryGreen, width: 1.5),
+                      ),
+                    ),
+                    onChanged: (_) {
+                      if (localError != null) {
+                        setModalState(() => localError = null);
+                      } else {
+                        setModalState(() {});
+                      }
+                    },
+                    onSubmitted: (_) => submitCode(),
+                  ),
+                  if (localError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      localError!,
+                      style: const TextStyle(
+                        color: AppColors.lossRed,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                      onPressed: isLoading ? null : submitCode,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'replay.watchMatch'.tr(),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.of(dialogCtx).pop();
+                        _loadReplayFromFile();
+                      },
+                      icon: const Icon(Icons.file_open_rounded, size: 16),
+                      label: Text(
+                        'replay.uploadFile'.tr(),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.getTextSecondary(isDark),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogCtx).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: Text(
+                  'common.cancel'.tr(),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +495,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
               color: AppColors.primaryGreen,
               size: 20,
             ),
-            onPressed: _loadReplayFromFile,
+            onPressed: _showLoadReplayDialog,
           ),
         ],
       ),
@@ -323,19 +580,34 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                       ] else if (_visibleMatches.isEmpty) ...[
                         _buildEmptyState(isDark),
                       ] else ...[
-                        ListView.separated(
+                        ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: _visibleMatches.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final match = _visibleMatches[index];
-                            return _buildMatchCard(
-                              context,
-                              match,
-                              authProv.currentUser?.id ?? '',
-                              isDark,
+                            final prevMatch =
+                                index > 0 ? _visibleMatches[index - 1] : null;
+                            final showDateDivider = prevMatch == null ||
+                                !_isSameDay(prevMatch.startedAt, match.startedAt);
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (showDateDivider)
+                                  _buildDateDivider(
+                                    match.startedAt,
+                                    isDark,
+                                    isFirst: index == 0,
+                                  ),
+                                _buildMatchCard(
+                                  context,
+                                  match,
+                                  authProv.currentUser?.id ?? '',
+                                  isDark,
+                                ),
+                                const SizedBox(height: 10),
+                              ],
                             );
                           },
                         ),
@@ -684,6 +956,55 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     );
   }
 
+  bool _isSameDay(DateTime a, DateTime b) {
+    final localA = a.toLocal();
+    final localB = b.toLocal();
+    return localA.year == localB.year &&
+        localA.month == localB.month &&
+        localA.day == localB.day;
+  }
+
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(local.year, local.month, local.day);
+    if (_isSameDay(today, target)) {
+      return 'history.today'.tr();
+    }
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (_isSameDay(yesterday, target)) {
+      return 'history.yesterday'.tr();
+    }
+    return DateFormat('d MMM y').format(local);
+  }
+
+  Widget _buildDateDivider(DateTime date, bool isDark, {bool isFirst = false}) {
+    return Padding(
+      padding: EdgeInsets.only(
+        top: isFirst ? 4 : 10,
+        bottom: 10,
+      ),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: AppColors.getBorder(isDark), height: 1)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              _formatDate(date),
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.getTextMuted(isDark),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: AppColors.getBorder(isDark), height: 1)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMatchCard(BuildContext context, MatchRecordModel match,
       String myUserId, bool isDark) {
     final bool isOffline = match.isOffline || match.id.startsWith('offline');
@@ -692,10 +1013,16 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
     final bool isVsAi = match.isVsAi;
-    final opponentName = (opponent?.id == 'bot' || opponent?.username == 'game.aiBot' || isVsAi)
+    final rawOpponentName = opponent?.username;
+    final bool isNameUuid = rawOpponentName != null &&
+        rawOpponentName.length >= 32 &&
+        RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(rawOpponentName);
+
+    final opponentName = (opponent?.id == 'bot' || rawOpponentName == 'game.aiBot' || isVsAi)
         ? 'game.aiBot'.tr()
-        : (opponent?.username ??
-            (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'common.black'.tr() : 'common.white'.tr())));
+        : ((rawOpponentName != null && rawOpponentName.isNotEmpty && !isNameUuid)
+            ? rawOpponentName
+            : (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'common.black'.tr() : 'common.white'.tr())));
     final opponentRating = opponent?.rating ?? 1200;
 
     final isDraw = match.isDraw || match.isDrawOutcome;
@@ -714,8 +1041,6 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     } else {
       resultColor = AppColors.accentGold;
     }
-
-    final dateStr = DateFormat('dd.MM').format(match.startedAt.toLocal());
 
     return KitaCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -904,7 +1229,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      '${'replay.movesCount'.tr(args: ['${match.totalMoves}'])} • $dateStr',
+                      'replay.movesCount'.tr(args: ['${match.totalMoves}']),
                       style: TextStyle(
                         fontSize: 11,
                         color: isDark

@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/dm_models.dart';
 import '../../../data/models/friend_models.dart';
 import '../../../data/models/notification_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../screens/friends/dm_chat_screen.dart';
@@ -51,13 +54,25 @@ class _NotificationTileState extends State<NotificationTile> {
   }
 
   void _openChat(BuildContext context, NotificationProvider notifProv) {
+    final targetId = widget.notification.actorId ?? '';
+    final rawConvId = widget.notification.conversationId ?? '';
+    final myId = context.read<AuthProvider>().currentUser?.id ?? '';
+    final convId = rawConvId.isNotEmpty
+        ? rawConvId
+        : (myId.isNotEmpty && targetId.isNotEmpty ? dmConversationId(myId, targetId) : '');
+
+    final dmProv = context.read<DmProvider?>();
+    if (dmProv != null && convId.isNotEmpty) {
+      dmProv.clearUnread(convId, userId: targetId);
+      dmProv.setActiveConversation(convId);
+    }
+
     notifProv.deleteChatNotifications(
-      widget.notification.conversationId ?? '',
+      convId,
       notificationId: widget.notification.id,
-      actorId: widget.notification.actorId,
+      actorId: targetId,
     );
     final friendsProv = context.read<FriendsProvider>();
-    final targetId = widget.notification.actorId ?? '';
     final name = (widget.notification.senderName != null && widget.notification.senderName!.isNotEmpty)
         ? widget.notification.senderName!
         : (widget.notification.title.isNotEmpty && !widget.notification.title.startsWith('notifications.'))
@@ -557,6 +572,18 @@ class _NotificationTileState extends State<NotificationTile> {
       ),
       onDismissed: (direction) {
         notifProv.ignoreNotification(notification.id);
+        if (notification.type == KitaNotificationType.chat) {
+          final targetId = notification.actorId ?? '';
+          final rawConvId = notification.conversationId ?? '';
+          final myId = context.read<AuthProvider>().currentUser?.id ?? '';
+          final convId = rawConvId.isNotEmpty
+              ? rawConvId
+              : (myId.isNotEmpty && targetId.isNotEmpty ? dmConversationId(myId, targetId) : '');
+          final dmProv = context.read<DmProvider?>();
+          if (dmProv != null && convId.isNotEmpty) {
+            dmProv.clearUnread(convId, userId: targetId);
+          }
+        }
         onDismissed?.call();
       },
       child: tileContent,

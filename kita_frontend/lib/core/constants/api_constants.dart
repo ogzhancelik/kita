@@ -83,6 +83,7 @@ class ApiConstants {
   static String matchDetails(String matchId) => '/api/matches/$matchId';
   static String matchMoves(String matchId) => '/api/matches/$matchId/moves';
   static String matchMessages(String matchId) => '/api/matches/$matchId/messages';
+  static const String shareMatchReplay = '/api/matches/share';
 
 
   // Friends

@@ -777,6 +777,9 @@ class _TutorialScreenState extends State<TutorialScreen>
       playerId: playerId,
       playerName: playerName,
       playerRating: playerRating,
+      playerAvatarIndex: authProv.currentUser?.avatarIndex ??
+          authProv.guestProfile?.avatarIndex ??
+          0,
       isGuest: isGuest,
     );
 

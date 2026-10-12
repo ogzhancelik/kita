@@ -38,9 +38,11 @@ class DmProvider extends ChangeNotifier {
   final ValueNotifier<DmMessage?> onIncomingDmReceived =
       ValueNotifier<DmMessage?>(null);
 
-  /// Emits conversationId when a message is received for the currently active conversation.
-  final ValueNotifier<String?> onActiveConversationDmReceived =
-      ValueNotifier<String?>(null);
+  int _activeDmSeq = 0;
+
+  /// Emits ({conversationId, senderId, int seq}) when a message is received for the currently active conversation.
+  final ValueNotifier<({String conversationId, String senderId, int seq})?>
+      onActiveConversationDmReceived = ValueNotifier(null);
 
   /// Emits (userId, timestamp) for any DM sent or received to update friend interaction order.
   final ValueNotifier<({String userId, DateTime time})?> onDmInteraction =
@@ -108,7 +110,60 @@ class DmProvider extends ChangeNotifier {
   void setActiveConversation(String? conversationId) {
     _activeConversationId = conversationId;
     if (conversationId != null) {
-      _unread.remove(conversationId);
+      clearUnread(conversationId);
+    }
+  }
+
+  /// Clears unread count for a conversation or user across all matching keys.
+  void clearUnread(String conversationId, {String? userId}) {
+    bool changed = false;
+    if (conversationId.isNotEmpty && _unread.remove(conversationId) != null) {
+      changed = true;
+    }
+    if (userId != null && userId.isNotEmpty && _myUserId != null && _myUserId!.isNotEmpty) {
+      final computed = dmConversationId(_myUserId!, userId);
+      if (_unread.remove(computed) != null) {
+        changed = true;
+      }
+    }
+    // Clean up any remaining matching conversation keys
+    final keysToRemove = _unread.keys.where((k) {
+      if (conversationId.isNotEmpty && (k == conversationId || k.contains(conversationId))) return true;
+      if (userId != null && userId.isNotEmpty && (k.contains(userId) || k == userId)) return true;
+      return false;
+    }).toList();
+    for (final k in keysToRemove) {
+      _unread.remove(k);
+      changed = true;
+    }
+    if (changed) {
+      notifyListeners();
+    }
+  }
+
+  /// Synchronizes unread conversations from pending chat notifications.
+  void syncUnreadFromNotifications(List<({String conversationId, String? actorId})> pendingChats) {
+    bool changed = false;
+    final validConvIds = <String>{};
+
+    for (final item in pendingChats) {
+      String convId = item.conversationId;
+      if (convId.isEmpty && item.actorId != null && item.actorId!.isNotEmpty && _myUserId != null && _myUserId!.isNotEmpty) {
+        convId = dmConversationId(_myUserId!, item.actorId!);
+      }
+      if (convId.isNotEmpty) {
+        validConvIds.add(convId);
+        // Do not mark unread if this conversation is currently open
+        if (_activeConversationId != convId) {
+          if ((_unread[convId] ?? 0) == 0) {
+            _unread[convId] = 1;
+            changed = true;
+          }
+        }
+      }
+    }
+
+    if (changed) {
       notifyListeners();
     }
   }
@@ -322,7 +377,11 @@ class DmProvider extends ChangeNotifier {
             (_unread[dm.conversationId] ?? 0) + 1;
         onIncomingDmReceived.value = dm;
       } else {
-        onActiveConversationDmReceived.value = dm.conversationId;
+        onActiveConversationDmReceived.value = (
+          conversationId: dm.conversationId,
+          senderId: dm.senderId,
+          seq: ++_activeDmSeq,
+        );
       }
     }
 

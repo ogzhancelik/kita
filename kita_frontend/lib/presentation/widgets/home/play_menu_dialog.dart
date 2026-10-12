@@ -184,6 +184,9 @@ class PlayMenuDialog extends StatelessWidget {
                           playerName: authProv.currentUser?.username ??
                               authProv.guestProfile?.nickname ??
                               'Guest',
+                          playerAvatarIndex: authProv.currentUser?.avatarIndex ??
+                              authProv.guestProfile?.avatarIndex ??
+                              0,
                           isGuest: authProv.isGuest || authProv.currentUser == null,
                         );
 

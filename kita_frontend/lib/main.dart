@@ -20,6 +20,7 @@ import 'dart:async';
 
 import 'data/models/dm_models.dart';
 import 'data/models/friend_models.dart';
+import 'data/models/notification_model.dart';
 import 'data/models/ws_message_models.dart';
 import 'core/network/api_client.dart';
 import 'presentation/screens/game/offline_match_screen.dart';
@@ -28,6 +29,7 @@ import 'presentation/screens/splash_gate_screen.dart';
 import 'presentation/screens/tutorial/tutorial_screen.dart';
 import 'presentation/widgets/matchmaking/activity_conflict_dialog.dart';
 import 'presentation/widgets/matchmaking/top_match_invite_banner.dart';
+import 'data/services/deep_link_service.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -72,6 +74,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   OfflineGameProvider? _offlineProv;
   FriendsProvider? _friendsProv;
   DmProvider? _dmProv;
+  NotificationProvider? _notifProv;
   bool _isInviteDialogShowing = false;
   bool _isMatchScreenOpen = false;
   Timer? _friendsPollTimer;
@@ -82,6 +85,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     ApiClient.isOfflineActivityActive = () =>
         OfflineMatchScreen.isMatchScreenOpen || TutorialScreen.isTutorialOpen;
+    DeepLinkService.instance.initialize();
   }
 
   @override
@@ -119,6 +123,15 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
       _dmProv?.onDmInteraction.addListener(_onDmInteraction);
     }
 
+    final notif = context.read<NotificationProvider>();
+    if (_notifProv != notif) {
+      _notifProv?.removeListener(_onNotificationsChanged);
+      _notifProv?.onChatNotificationDismissed.removeListener(_onChatNotificationDismissed);
+      _notifProv = notif;
+      _notifProv?.addListener(_onNotificationsChanged);
+      _notifProv?.onChatNotificationDismissed.addListener(_onChatNotificationDismissed);
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final authProv = context.read<AuthProvider>();
@@ -152,6 +165,9 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     _dmProv?.onIncomingDmReceived.removeListener(_onIncomingDmReceived);
     _dmProv?.onActiveConversationDmReceived.removeListener(_onActiveConversationDmReceived);
     _dmProv?.onDmInteraction.removeListener(_onDmInteraction);
+    _notifProv?.removeListener(_onNotificationsChanged);
+    _notifProv?.onChatNotificationDismissed.removeListener(_onChatNotificationDismissed);
+    DeepLinkService.instance.dispose();
     _friendsPollTimer?.cancel();
     super.dispose();
   }
@@ -230,9 +246,27 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   }
 
   void _onActiveConversationDmReceived() {
-    final convId = _dmProv?.onActiveConversationDmReceived.value;
-    if (convId == null || !mounted) return;
-    context.read<NotificationProvider>().deleteChatNotifications(convId);
+    final event = _dmProv?.onActiveConversationDmReceived.value;
+    if (event == null || !mounted) return;
+    context.read<NotificationProvider>().deleteChatNotifications(
+      event.conversationId,
+      actorId: event.senderId,
+    );
+  }
+
+  void _onChatNotificationDismissed() {
+    final event = _notifProv?.onChatNotificationDismissed.value;
+    if (event == null || !mounted) return;
+    _dmProv?.clearUnread(event.conversationId, userId: event.actorId);
+  }
+
+  void _onNotificationsChanged() {
+    if (!mounted || _dmProv == null || _notifProv == null) return;
+    final pendingChats = _notifProv!.allNotifications
+        .where((n) => n.type == KitaNotificationType.chat && n.isPending)
+        .map((n) => (conversationId: n.conversationId ?? '', actorId: n.actorId))
+        .toList();
+    _dmProv!.syncUnreadFromNotifications(pendingChats);
   }
 
   void _onWsNotificationEvent() {

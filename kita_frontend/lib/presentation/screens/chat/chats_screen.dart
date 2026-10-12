@@ -82,6 +82,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
     final myId = context.read<AuthProvider>().currentUser?.id ?? '';
     if (myId.isNotEmpty) {
       final convId = dmConversationId(myId, targetFriend.userId);
+      final dmProv = context.read<DmProvider>();
+      dmProv.clearUnread(convId, userId: targetFriend.userId);
+      dmProv.setActiveConversation(convId);
       context.read<NotificationProvider>().deleteChatNotifications(
             convId,
             actorId: targetFriend.userId,

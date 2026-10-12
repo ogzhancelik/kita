@@ -19,6 +19,12 @@ class NotificationProvider extends ChangeNotifier {
   NotificationProvider([NotificationApiService? apiService])
       : _apiService = apiService ?? NotificationApiService();
 
+  int _notifDismissSeq = 0;
+
+  /// Emits ({conversationId, actorId, int seq}) when a chat notification is dismissed, ignored, read, or deleted.
+  final ValueNotifier<({String conversationId, String? actorId, int seq})?>
+      onChatNotificationDismissed = ValueNotifier(null);
+
   bool get isDashboardActive => _isDashboardActive;
   bool get isLoading => _isLoading;
 
@@ -139,9 +145,17 @@ class NotificationProvider extends ChangeNotifier {
   void ignoreNotification(String id) {
     final idx = _notifications.indexWhere((n) => n.id == id);
     if (idx >= 0) {
-      _notifications[idx] = _notifications[idx].copyWith(
+      final notif = _notifications[idx];
+      _notifications[idx] = notif.copyWith(
         status: NotificationStatus.ignored,
       );
+      if (notif.type == KitaNotificationType.chat) {
+        onChatNotificationDismissed.value = (
+          conversationId: notif.conversationId ?? '',
+          actorId: notif.actorId,
+          seq: ++_notifDismissSeq,
+        );
+      }
       notifyListeners();
       _apiService.updateStatus(id, NotificationStatus.ignored).catchError((e) {
         debugPrint('[NotificationProvider] Failed to sync ignoreNotification to backend: $e');
@@ -153,9 +167,17 @@ class NotificationProvider extends ChangeNotifier {
   void markNotificationAsRead(String id) {
     final idx = _notifications.indexWhere((n) => n.id == id);
     if (idx >= 0) {
-      _notifications[idx] = _notifications[idx].copyWith(
+      final notif = _notifications[idx];
+      _notifications[idx] = notif.copyWith(
         status: NotificationStatus.read,
       );
+      if (notif.type == KitaNotificationType.chat) {
+        onChatNotificationDismissed.value = (
+          conversationId: notif.conversationId ?? '',
+          actorId: notif.actorId,
+          seq: ++_notifDismissSeq,
+        );
+      }
       notifyListeners();
       _apiService.updateStatus(id, NotificationStatus.read).catchError((e) {
         debugPrint('[NotificationProvider] Failed to sync markNotificationAsRead to backend: $e');
@@ -338,6 +360,12 @@ class NotificationProvider extends ChangeNotifier {
         debugPrint('[NotificationProvider] Failed to sync deleteChatNotification: $e');
       });
     }
+
+    onChatNotificationDismissed.value = (
+      conversationId: conversationId,
+      actorId: actorId,
+      seq: ++_notifDismissSeq,
+    );
   }
 
   /// Mark chat notifications for a conversation as read by deleting them.
@@ -456,6 +484,17 @@ class NotificationProvider extends ChangeNotifier {
 
   /// Remove notification completely.
   void removeNotification(String id) {
+    final idx = _notifications.indexWhere((n) => n.id == id);
+    if (idx >= 0) {
+      final notif = _notifications[idx];
+      if (notif.type == KitaNotificationType.chat) {
+        onChatNotificationDismissed.value = (
+          conversationId: notif.conversationId ?? '',
+          actorId: notif.actorId,
+          seq: ++_notifDismissSeq,
+        );
+      }
+    }
     _notifications.removeWhere((n) => n.id == id);
     notifyListeners();
     _apiService.deleteNotification(id).catchError((e) {
@@ -579,8 +618,14 @@ class NotificationProvider extends ChangeNotifier {
         }
       }
     }
-    if (changed) {
-      notifyListeners();
+      if (changed) {
+        notifyListeners();
+      }
     }
+
+  @override
+  void dispose() {
+    onChatNotificationDismissed.dispose();
+    super.dispose();
   }
 }

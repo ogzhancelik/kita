@@ -1,7 +1,10 @@
 package com.example.kita_frontend
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -10,12 +13,35 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val channelName = "com.example.kita_frontend/haptics"
+    private val hapticsChannelName = "com.example.kita_frontend/haptics"
+    private val contentResolverChannelName = "com.example.kita_frontend/content_resolver"
+
+    private var initialUriString: String? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        captureIntentData(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        captureIntentData(intent)
+    }
+
+    private fun captureIntentData(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_VIEW) {
+            val data = intent.dataString
+            if (data != null) {
+                initialUriString = data
+            }
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, hapticsChannelName).setMethodCallHandler { call, result ->
             val vibrator: Vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
                 vibratorManager?.defaultVibrator ?: @Suppress("DEPRECATION") (getSystemService(Context.VIBRATOR_SERVICE) as Vibrator)
@@ -65,6 +91,36 @@ class MainActivity : FlutterActivity() {
                         vibrator.vibrate(35)
                     }
                     result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // Native content resolver & cold-start intent URI channel for .kita file associations
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, contentResolverChannelName).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "readContentUri" -> {
+                    val uriStr = call.argument<String>("uri")
+                    if (uriStr.isNullOrEmpty()) {
+                        result.error("INVALID_URI", "URI cannot be null or empty", null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val uri = Uri.parse(uriStr)
+                        val content = contentResolver.openInputStream(uri)?.use { inputStream ->
+                            inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
+                                reader.readText()
+                            }
+                        }
+                        result.success(content)
+                    } catch (e: Exception) {
+                        result.error("READ_FAILED", e.localizedMessage, e.toString())
+                    }
+                }
+                "getInitialUri" -> {
+                    val uri = initialUriString
+                    initialUriString = null
+                    result.success(uri)
                 }
                 else -> result.notImplemented()
             }

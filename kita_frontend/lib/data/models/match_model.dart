@@ -102,7 +102,7 @@ class MoveRecordModel {
         'to_col': toCol,
         'to_row': toRow,
         'time_ms': timeMs,
-        'created_at': createdAt?.toIso8601String(),
+        'created_at': createdAt?.toUtc().toIso8601String(),
         if (action != null) 'action': action,
       };
 }
@@ -353,8 +353,8 @@ class MatchRecordModel {
         'result': result,
         'reason': reason,
         'total_moves': totalMoves,
-        'started_at': startedAt.toIso8601String(),
-        'ended_at': endedAt?.toIso8601String(),
+        'started_at': startedAt.toUtc().toIso8601String(),
+        'ended_at': endedAt?.toUtc().toIso8601String(),
         'moves': moves.map((m) => m.toJson()).toList(),
         'is_offline': isOffline,
       };

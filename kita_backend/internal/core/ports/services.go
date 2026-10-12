@@ -20,6 +20,7 @@ type UserService interface {
 
 type MatchService interface {
 	SaveFinishedMatch(ctx context.Context, match *domain.Match) (map[string]interface{}, error)
+	SaveReplay(ctx context.Context, match *domain.Match) (string, error)
 	GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error)
 	GetMatchMoves(ctx context.Context, matchID string) ([]domain.MoveRecord, error)
 	GetUserMatches(ctx context.Context, userID string, limit, offset int) ([]domain.Match, error)

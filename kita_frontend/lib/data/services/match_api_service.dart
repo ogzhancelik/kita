@@ -45,4 +45,15 @@ class MatchApiService {
         .map((item) => MoveRecordModel.fromJson(item as Map<String, dynamic>))
         .toList();
   }
+
+  /// Uploads or resolves a match replay to obtain a shareable code and URL.
+  Future<Map<String, dynamic>> shareReplay(MatchRecordModel match) async {
+    final response = await _client.dio.post(
+      ApiConstants.shareMatchReplay,
+      data: {
+        'match': match.toJson(),
+      },
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }

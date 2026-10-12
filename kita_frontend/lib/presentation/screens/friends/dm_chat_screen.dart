@@ -70,15 +70,23 @@ class _DmChatScreenState extends State<DmChatScreen> {
       _myId = context.read<OnlineGameProvider>().myUserId ?? '';
     }
     _myUsername = auth.currentUser?.username ?? '';
-    _conversationId = dmConversationId(_myId, widget.friend.userId);
+    _conversationId = _myId.isNotEmpty
+        ? dmConversationId(_myId, widget.friend.userId)
+        : widget.friend.userId;
+
+    final dmProv = context.read<DmProvider>();
+    if (_myId.isNotEmpty) {
+      dmProv.setMyUserId(_myId);
+    }
+    dmProv.setActiveConversation(_conversationId);
+    dmProv.clearUnread(_conversationId, userId: widget.friend.userId);
+    context.read<NotificationProvider>().deleteChatNotifications(
+          _conversationId,
+          actorId: widget.friend.userId,
+        );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final dmProv = context.read<DmProvider>();
-      if (_myId.isNotEmpty) {
-        dmProv.setMyUserId(_myId);
-      }
-      dmProv.setActiveConversation(_conversationId);
       dmProv.loadHistory(_conversationId);
       dmProv.loadSharedMatches(
         _conversationId,
@@ -86,11 +94,6 @@ class _DmChatScreenState extends State<DmChatScreen> {
         widget.friend.userId,
         refresh: true,
       );
-
-      context.read<NotificationProvider>().deleteChatNotifications(
-            _conversationId,
-            actorId: widget.friend.userId,
-          );
     });
 
     _focusNode.addListener(() {
@@ -113,12 +116,20 @@ class _DmChatScreenState extends State<DmChatScreen> {
   @override
   void deactivate() {
     _dmProv?.setActiveConversation(null);
+    _dmProv?.clearUnread(_conversationId, userId: widget.friend.userId);
+    try {
+      context.read<NotificationProvider>().deleteChatNotifications(
+            _conversationId,
+            actorId: widget.friend.userId,
+          );
+    } catch (_) {}
     super.deactivate();
   }
 
   @override
   void dispose() {
     _dmProv?.setActiveConversation(null);
+    _dmProv?.clearUnread(_conversationId, userId: widget.friend.userId);
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();

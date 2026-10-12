@@ -26,6 +26,7 @@ class OfflineGameProvider extends ChangeNotifier {
   String? offlinePlayerId;
   String? offlinePlayerName;
   int? offlinePlayerRating;
+  int? offlinePlayerAvatarIndex;
   bool offlineIsGuest = false;
   bool _offlineMatchSaved = false;
   bool? _localCoopIsHorizontal;
@@ -121,6 +122,7 @@ class OfflineGameProvider extends ChangeNotifier {
     String? playerId,
     String? playerName,
     int? playerRating,
+    int? playerAvatarIndex,
     bool isGuest = false,
   }) {
     _stopClockTimer();
@@ -131,6 +133,7 @@ class OfflineGameProvider extends ChangeNotifier {
     offlinePlayerId = playerId ?? offlinePlayerId;
     offlinePlayerName = playerName ?? offlinePlayerName;
     offlinePlayerRating = playerRating ?? offlinePlayerRating;
+    offlinePlayerAvatarIndex = playerAvatarIndex ?? offlinePlayerAvatarIndex;
     offlineIsGuest = isGuest;
     _offlineMatchSaved = false;
     _lastOfflineMatchRecord = null;
@@ -428,6 +431,7 @@ class OfflineGameProvider extends ChangeNotifier {
       playerId: offlinePlayerId,
       playerName: offlinePlayerName,
       playerRating: offlinePlayerRating,
+      playerAvatarIndex: offlinePlayerAvatarIndex,
       isGuest: offlineIsGuest,
     );
   }
@@ -527,11 +531,13 @@ class OfflineGameProvider extends ChangeNotifier {
         id: 'local_white',
         username: 'common.white'.tr(),
         rating: 1200,
+        avatarIndex: 0,
       );
       blackUser = UserProfile(
         id: 'local_black',
         username: 'common.black'.tr(),
         rating: 1200,
+        avatarIndex: 1,
       );
     } else {
       final botRating = AIDifficulty.getRatingForDifficulty(offlineBotDifficulty);
@@ -541,12 +547,14 @@ class OfflineGameProvider extends ChangeNotifier {
         id: offlinePlayerId ?? (offlineIsGuest ? 'guest' : 'local_player'),
         username: offlinePlayerName ?? (offlineIsGuest ? 'Guest' : 'Player'),
         rating: offlinePlayerRating ?? 1200,
+        avatarIndex: offlinePlayerAvatarIndex ?? 0,
       );
 
       final botUser = UserProfile(
         id: 'bot',
         username: botUsername,
         rating: botRating,
+        avatarIndex: 7,
       );
 
       whitePlayerId = isPlayerWhite ? playerUser.id : 'bot';
@@ -635,6 +643,7 @@ class OfflineGameProvider extends ChangeNotifier {
         playerId: offlinePlayerId,
         playerName: offlinePlayerName,
         playerRating: offlinePlayerRating,
+        playerAvatarIndex: offlinePlayerAvatarIndex,
         isGuest: offlineIsGuest,
         elapsedSeconds: elapsedSeconds.value,
         moveHistory: moveHistory.value.map((m) => m.toJson()).toList(),
@@ -666,6 +675,7 @@ class OfflineGameProvider extends ChangeNotifier {
       offlinePlayerId = saved.playerId;
       offlinePlayerName = saved.playerName;
       offlinePlayerRating = saved.playerRating;
+      offlinePlayerAvatarIndex = saved.playerAvatarIndex;
       offlineIsGuest = saved.isGuest;
       _offlineMatchSaved = false;
       _lastOfflineMatchRecord = null;

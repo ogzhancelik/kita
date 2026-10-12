@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 	"gorm.io/gorm"
@@ -35,10 +36,10 @@ func (r *matchRepo) SaveFinishedMatchWithMoves(
 			return err
 		}
 
-		// 2. Beyaz oyuncunun istatistiklerini güncelle (misafir değilse)
-		if !strings.HasPrefix(match.WhitePlayerID, "guest-") {
+		// 2. Beyaz oyuncunun istatistiklerini güncelle (kayıtlı kullanıcıysa)
+		if _, err := uuid.Parse(strings.TrimSpace(match.WhitePlayerID)); err == nil {
 			var whiteUser domain.User
-			if err := tx.First(&whiteUser, "id = ?", match.WhitePlayerID).Error; err == nil {
+			if err := tx.First(&whiteUser, "id = ?", strings.TrimSpace(match.WhitePlayerID)).Error; err == nil {
 				newRating := whiteRating
 				if newRating < 100 {
 					newRating = 100
@@ -60,7 +61,7 @@ func (r *matchRepo) SaveFinishedMatchWithMoves(
 					draws++
 				}
 
-				_ = tx.Model(&domain.User{}).Where("id = ?", match.WhitePlayerID).Updates(map[string]interface{}{
+				_ = tx.Model(&domain.User{}).Where("id = ?", strings.TrimSpace(match.WhitePlayerID)).Updates(map[string]interface{}{
 					"rating":           newRating,
 					"rating_deviation": newRD,
 					"volatility":       newVol,
@@ -71,10 +72,10 @@ func (r *matchRepo) SaveFinishedMatchWithMoves(
 			}
 		}
 
-		// 3. Siyah oyuncunun istatistiklerini güncelle (misafir değilse)
-		if !strings.HasPrefix(match.BlackPlayerID, "guest-") {
+		// 3. Siyah oyuncunun istatistiklerini güncelle (kayıtlı kullanıcıysa)
+		if _, err := uuid.Parse(strings.TrimSpace(match.BlackPlayerID)); err == nil {
 			var blackUser domain.User
-			if err := tx.First(&blackUser, "id = ?", match.BlackPlayerID).Error; err == nil {
+			if err := tx.First(&blackUser, "id = ?", strings.TrimSpace(match.BlackPlayerID)).Error; err == nil {
 				newRating := blackRating
 				if newRating < 100 {
 					newRating = 100
@@ -96,7 +97,7 @@ func (r *matchRepo) SaveFinishedMatchWithMoves(
 					draws++
 				}
 
-				_ = tx.Model(&domain.User{}).Where("id = ?", match.BlackPlayerID).Updates(map[string]interface{}{
+				_ = tx.Model(&domain.User{}).Where("id = ?", strings.TrimSpace(match.BlackPlayerID)).Updates(map[string]interface{}{
 					"rating":           newRating,
 					"rating_deviation": newRD,
 					"volatility":       newVol,
@@ -111,6 +112,15 @@ func (r *matchRepo) SaveFinishedMatchWithMoves(
 	})
 }
 
+// SaveReplay: Saves a match replay record without modifying ratings or competitive stats.
+func (r *matchRepo) SaveReplay(ctx context.Context, match *domain.Match) error {
+	var existing domain.Match
+	if err := r.db.WithContext(ctx).First(&existing, "id = ?", match.ID).Error; err == nil {
+		return nil
+	}
+	return r.db.WithContext(ctx).Create(match).Error
+}
+
 func (r *matchRepo) populatePlayers(ctx context.Context, matches []*domain.Match) {
 	if len(matches) == 0 {
 		return
@@ -118,11 +128,15 @@ func (r *matchRepo) populatePlayers(ctx context.Context, matches []*domain.Match
 
 	userIDsMap := make(map[string]bool)
 	for _, m := range matches {
-		if m.WhitePlayerID != "" && !strings.HasPrefix(m.WhitePlayerID, "guest-") {
-			userIDsMap[m.WhitePlayerID] = true
+		if wID := strings.TrimSpace(m.WhitePlayerID); wID != "" {
+			if parsed, err := uuid.Parse(wID); err == nil {
+				userIDsMap[parsed.String()] = true
+			}
 		}
-		if m.BlackPlayerID != "" && !strings.HasPrefix(m.BlackPlayerID, "guest-") {
-			userIDsMap[m.BlackPlayerID] = true
+		if bID := strings.TrimSpace(m.BlackPlayerID); bID != "" {
+			if parsed, err := uuid.Parse(bID); err == nil {
+				userIDsMap[parsed.String()] = true
+			}
 		}
 	}
 
@@ -141,23 +155,47 @@ func (r *matchRepo) populatePlayers(ctx context.Context, matches []*domain.Match
 	}
 
 	for _, m := range matches {
-		if strings.HasPrefix(m.WhitePlayerID, "guest-") {
-			m.WhitePlayer = &domain.User{ID: m.WhitePlayerID, Username: "Guest", Rating: 1200}
-		} else if u, ok := usersMap[m.WhitePlayerID]; ok {
-			m.WhitePlayer = u
-		}
+		m.WhitePlayer = r.resolvePlayer(m.WhitePlayerID, usersMap)
+		m.BlackPlayer = r.resolvePlayer(m.BlackPlayerID, usersMap)
+	}
+}
 
-		if strings.HasPrefix(m.BlackPlayerID, "guest-") {
-			m.BlackPlayer = &domain.User{ID: m.BlackPlayerID, Username: "Guest", Rating: 1200}
-		} else if u, ok := usersMap[m.BlackPlayerID]; ok {
-			m.BlackPlayer = u
+func (r *matchRepo) resolvePlayer(playerID string, usersMap map[string]*domain.User) *domain.User {
+	trimmedID := strings.TrimSpace(playerID)
+	lowerID := strings.ToLower(trimmedID)
+
+	if strings.HasPrefix(lowerID, "guest-") || lowerID == "guest" {
+		return &domain.User{ID: trimmedID, Username: "Guest", Rating: 1200, AvatarIndex: 0}
+	}
+	if strings.Contains(lowerID, "bot") {
+		return &domain.User{ID: trimmedID, Username: "AI Bot", Rating: 1200, AvatarIndex: 7}
+	}
+	if lowerID == "local_white" {
+		return &domain.User{ID: trimmedID, Username: "White", Rating: 1200, AvatarIndex: 0}
+	}
+	if lowerID == "local_black" {
+		return &domain.User{ID: trimmedID, Username: "Black", Rating: 1200, AvatarIndex: 1}
+	}
+	if lowerID == "local_player" {
+		return &domain.User{ID: trimmedID, Username: "Player", Rating: 1200, AvatarIndex: 1}
+	}
+
+	if parsed, err := uuid.Parse(trimmedID); err == nil {
+		if u, ok := usersMap[parsed.String()]; ok {
+			return u
 		}
 	}
+
+	return &domain.User{ID: trimmedID, Username: trimmedID, Rating: 1200, AvatarIndex: 0}
 }
 
 func (r *matchRepo) FindByID(ctx context.Context, id string) (*domain.Match, error) {
 	var match domain.Match
 	err := r.db.WithContext(ctx).First(&match, "id = ?", id).Error
+
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) && len(id) >= 6 {
+		err = r.db.WithContext(ctx).First(&match, "id ILIKE ?", id+"%").Error
+	}
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -197,6 +235,12 @@ func (r *matchRepo) GetMovesByMatchID(ctx context.Context, matchID string) ([]do
 	err := r.db.WithContext(ctx).
 		Select("id", "moves").
 		First(&match, "id = ?", matchID).Error
+
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) && len(matchID) >= 6 {
+		err = r.db.WithContext(ctx).
+			Select("id", "moves").
+			First(&match, "id ILIKE ?", matchID+"%").Error
+	}
 
 	if err != nil {
 		return nil, err

@@ -3,6 +3,8 @@ package http
 import (
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -134,5 +136,145 @@ func (h *MatchHandler) GetMatchMessages(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"match_id": id, "messages": msgs})
+}
+
+func parseFlexibleTime(val *string) time.Time {
+	if val == nil || *val == "" {
+		return time.Now()
+	}
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02T15:04:05.999999999",
+		"2006-01-02T15:04:05.999999",
+		"2006-01-02T15:04:05.999",
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, *val); err == nil {
+			return t
+		}
+	}
+	return time.Now()
+}
+
+type SharePlayerDTO struct {
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	AvatarIndex int     `json:"avatar_index"`
+	Rating      float64 `json:"rating"`
+}
+
+type ShareMoveDTO struct {
+	PlyIndex  int     `json:"ply"`
+	PlayerID  string  `json:"player_id"`
+	PieceID   string  `json:"piece"`
+	FromCol   int     `json:"from_col"`
+	FromRow   int     `json:"from_row"`
+	ToCol     int     `json:"to_col"`
+	ToRow     int     `json:"to_row"`
+	TimeMs    int     `json:"time_ms,omitempty"`
+	CreatedAt *string `json:"created_at,omitempty"`
+	Action    string  `json:"action,omitempty"`
+}
+
+type ShareMatchDTO struct {
+	ID            string          `json:"id"`
+	WhitePlayerID string          `json:"white_player_id"`
+	BlackPlayerID string          `json:"black_player_id"`
+	WhitePlayer   *SharePlayerDTO `json:"white_player,omitempty"`
+	BlackPlayer   *SharePlayerDTO `json:"black_player,omitempty"`
+	WinnerID      *string         `json:"winner_id"`
+	Result        string          `json:"result"`
+	Reason        string          `json:"reason,omitempty"`
+	TotalMoves    int             `json:"total_moves"`
+	StartedAt     *string         `json:"started_at"`
+	EndedAt       *string         `json:"ended_at"`
+	Moves         []ShareMoveDTO  `json:"moves"`
+	IsOffline     bool            `json:"is_offline,omitempty"`
+}
+
+type ShareReplayRequest struct {
+	Match ShareMatchDTO `json:"match"`
+}
+
+// ShareReplay saves or resolves a match replay and returns a shareable code and URL.
+func (h *MatchHandler) ShareReplay(c *gin.Context) {
+	var req ShareReplayRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		SendError(c, http.StatusBadRequest, errors.ErrInvalidFormat, "Invalid match replay payload: "+err.Error())
+		return
+	}
+
+	moves := make([]domain.MoveRecord, len(req.Match.Moves))
+	for i, m := range req.Match.Moves {
+		createdAt := parseFlexibleTime(m.CreatedAt)
+		moves[i] = domain.MoveRecord{
+			PlyIndex:  m.PlyIndex,
+			PlayerID:  m.PlayerID,
+			PieceID:   m.PieceID,
+			FromCol:   m.FromCol,
+			FromRow:   m.FromRow,
+			ToCol:     m.ToCol,
+			ToRow:     m.ToRow,
+			TimeMs:    m.TimeMs,
+			CreatedAt: createdAt,
+		}
+	}
+
+	startedAt := parseFlexibleTime(req.Match.StartedAt)
+	var endedAt *time.Time
+	if req.Match.EndedAt != nil && *req.Match.EndedAt != "" {
+		t := parseFlexibleTime(req.Match.EndedAt)
+		endedAt = &t
+	}
+
+	matchRecord := domain.Match{
+		ID:            req.Match.ID,
+		WhitePlayerID: req.Match.WhitePlayerID,
+		BlackPlayerID: req.Match.BlackPlayerID,
+		WinnerID:      req.Match.WinnerID,
+		Result:        domain.MatchResult(req.Match.Result),
+		Reason:        req.Match.Reason,
+		TotalMoves:    req.Match.TotalMoves,
+		StartedAt:     startedAt,
+		EndedAt:       endedAt,
+		Moves:         moves,
+	}
+
+	if req.Match.WhitePlayer != nil {
+		matchRecord.WhitePlayer = &domain.User{
+			ID:          req.Match.WhitePlayer.ID,
+			Username:    req.Match.WhitePlayer.Username,
+			AvatarIndex: req.Match.WhitePlayer.AvatarIndex,
+			Rating:      req.Match.WhitePlayer.Rating,
+		}
+	}
+	if req.Match.BlackPlayer != nil {
+		matchRecord.BlackPlayer = &domain.User{
+			ID:          req.Match.BlackPlayer.ID,
+			Username:    req.Match.BlackPlayer.Username,
+			AvatarIndex: req.Match.BlackPlayer.AvatarIndex,
+			Rating:      req.Match.BlackPlayer.Rating,
+		}
+	}
+
+	matchID, err := h.matchService.SaveReplay(c.Request.Context(), &matchRecord)
+	if err != nil {
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
+		return
+	}
+
+	shortCode := matchID
+	if len(matchID) >= 8 && strings.Contains(matchID, "-") && !strings.HasPrefix(matchID, "KITA-") {
+		shortCode = strings.ToUpper(strings.Split(matchID, "-")[0])
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"match_id":  matchID,
+		"code":      shortCode,
+		"share_url": "https://kita.app/replay/" + shortCode,
+	})
 }
 

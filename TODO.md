@@ -28,7 +28,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Global Player Search & Friend Requests**: Replace manual nickname entry box with a dedicated player search view backed by server-side query, showing player tiles with inline "Add Friend" actions.
 - [x] **Direct Player Challenge**: Allow challenging any user directly from their profile card or chat without requiring an accepted friendship first.
 - [x] **Quick "Add Friend" from Match & History**: Add one-tap friend request actions directly inside in-match player cards and post-match history views.
-- [ ] **Add Friend Shortcut on Home Dashboard**: Add an explicit "+ Add Friend" action to the dashboard friends widget or as a tail card at the end of the friends carousel.
+- [x] **Add Friend Shortcut on Home Dashboard**: Add an explicit "+ Add Friend" action to the dashboard friends widget or as a tail card at the end of the friends carousel.
 
 ### 💬 Chat & In-Game Messaging
 - [ ] **Direct Chat Layout Spacing**: Tighten excessive horizontal/vertical padding in direct message conversation views.
@@ -47,14 +47,15 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Scrubbing Live State Restoration**: Clicking the latest move in the notation ribbon should immediately restore interactive live game state with the persistent color.
 - [ ] **Automatic Perspective Mirroring**: Auto-orient board perspective so the local player's pieces always appear on the bottom-right across all non-coop modes.
 - [ ] **Independent Orientation Preferences**: Support independent layout and theme configurations for vertical and horizontal board modes, toggled via hamburger menu.
+- [x] **Local Coop Horizontal Board Flip & Drag Parity**: Auto-flip board in Local Coop mode when default piece orientation is horizontal 90° so the player is positioned at bottom-right, with drag-and-drop feedback offset oriented sideways away from finger in landscape mode.
 - [x] **Provisional Rating Display ('?')**: Display provisional unrated status (`?`) for new accounts until calibration match count is completed.
 
 ### 📜 Match Analysis, Replay & History
 - [x] **Online Post-Match Replay**: Support "Review Match" replay navigation directly from GameOverDialog in online matches.
-- [ ] **Unified Deep Linking, File Association & Replay Sharing**: Comprehensive match replay sharing supporting in-app sharing links/codes (auto-uploading local offline games to server), direct `.kita` file OS association, and deep link universal routing.
+- [x] **Unified Deep Linking, File Association & Replay Sharing**: Comprehensive match replay sharing supporting in-app sharing links/codes (auto-uploading local offline games to server), direct `.kita` file OS association, and deep link universal routing.
 - [ ] **Account-Scoped Local Match Storage**: Isolate locally saved matches per user account ID instead of global shared device storage.
 - [ ] **Match History Lazy Pagination**: Implement infinite scrolling or lazy pagination for the Match History view to optimize performance and prevent bulk fetch lag.
-- [ ] **Match History Date Grouping Dividers**: Remove individual date badges from match cards and group matches by day with slim date divider headers (e.g. "Today", "Yesterday", "2 Sep 2026", same format as Direct Chat.).
+- [x] **Match History Date Grouping Dividers**: Remove individual date badges from match cards and group matches by day with slim date divider headers (e.g. "Today", "Yesterday", "2 Sep 2026", same format as Direct Chat.).
 
 ### 🛡️ Moderation & Support
 - [ ] In-game player reporting system

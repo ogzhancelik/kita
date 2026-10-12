@@ -3,11 +3,14 @@ import 'dart:math';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/feedback/haptic_service.dart';
 import '../../../core/feedback/sound_service.dart';
+import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../../data/models/kita_ai.dart';
@@ -59,6 +62,12 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   MatchRecordModel? _match;
   bool _isLoading = true;
   String? _errorMessage;
+
+  // Replay Sharing
+  String? _shareCode;
+  String? _shareUrl;
+  bool _isUploadingShare = false;
+  String? _shareError;
 
   // Board engine states for each ply: index 0 is initial state, 1..N after each move
   List<KitaGameEngine> _states = [];
@@ -1008,15 +1017,15 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             onPressed: () => setState(() => _isHorizontal = !_isHorizontal),
           ),
 
-          // 3. Match replay info
+          // 3. Match replay share
           IconButton(
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            icon: const Icon(Icons.info_outline_rounded, size: 21),
+            icon: const Icon(Icons.share_rounded, size: 21),
             color: AppColors.getTextPrimary(isDark),
-            tooltip: 'replay.matchInfo'.tr(),
-            onPressed: () => _showMatchDetailsDialog(isDark),
+            tooltip: 'replay.shareReplay'.tr(),
+            onPressed: () => _showShareDialog(isDark),
           ),
 
           // 4. Settings
@@ -1081,18 +1090,24 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
     final rawName = player?.username ??
         (isWhite ? 'common.white'.tr() : 'common.black'.tr());
+    final bool isNameUuid = player?.username != null &&
+        player!.username.length >= 32 &&
+        RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(player.username);
+    final displayName = isNameUuid
+        ? (isWhite ? 'common.white'.tr() : 'common.black'.tr())
+        : rawName;
     final playerRating = player?.rating ?? 1200;
 
     final isBot = player?.id == 'bot' ||
-        rawName.toLowerCase().contains('ai bot') ||
-        rawName.toLowerCase().contains('kita bot') ||
-        rawName.toLowerCase().contains('bot');
+        displayName.toLowerCase().contains('ai bot') ||
+        displayName.toLowerCase().contains('kita bot') ||
+        displayName.toLowerCase().contains('bot');
 
-    final playerName = isBot ? 'game.aiBot'.tr() : rawName;
+    final playerName = isBot ? 'game.aiBot'.tr() : displayName;
     final ratingBadgeText = isBot ? _getAiDifficultyLabel(player) : '$playerRating';
-    final avatarIdx = (player?.avatarIndex != null)
-        ? player!.avatarIndex
-        : (playerName.hashCode.abs() % AvatarPicker.avatars.length);
+    final avatarIdx = isBot
+        ? 7
+        : (player?.avatarIndex ?? (playerName.hashCode.abs() % AvatarPicker.avatars.length));
     final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
 
     final isTerminalStep = _hasTerminalIndicator && _currentStep == _states.length - 1;
@@ -1999,141 +2014,317 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     );
   }
 
-  void _showMatchDetailsDialog(bool isDark) {
+  Future<void> _prepareShareLink([void Function(void Function())? setModalState]) async {
+    if (_match == null || _shareCode != null) return;
+
+    if (setModalState != null) {
+      setModalState(() {
+        _isUploadingShare = true;
+        _shareError = null;
+      });
+    } else {
+      setState(() {
+        _isUploadingShare = true;
+        _shareError = null;
+      });
+    }
+
+    try {
+      final res = await _matchApiService.shareReplay(_match!);
+      final code = (res['code'] ?? res['match_id'])?.toString();
+      final url = res['share_url']?.toString() ?? 'https://kita.app/replay/$code';
+      if (mounted) {
+        if (setModalState != null) {
+          setModalState(() {
+            _shareCode = code;
+            _shareUrl = url;
+            _isUploadingShare = false;
+          });
+        }
+        setState(() {
+          _shareCode = code;
+          _shareUrl = url;
+          _isUploadingShare = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        if (setModalState != null) {
+          setModalState(() {
+            _isUploadingShare = false;
+            _shareError = 'replay.shareError'.tr();
+          });
+        }
+        setState(() {
+          _isUploadingShare = false;
+          _shareError = 'replay.shareError'.tr();
+        });
+      }
+    }
+  }
+
+  Future<void> _copyToClipboard(String text, String successMessage) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: text));
+      if (mounted) {
+        KitaToast.show(
+          message: successMessage,
+          type: ToastType.success,
+        );
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: AppColors.primaryGreen,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[ShareDialog] Clipboard copy error: $e');
+    }
+  }
+
+  void _showShareDialog(bool isDark) {
     if (_match == null) return;
     final match = _match!;
 
-    final isWhiteBot = match.whitePlayer?.id == 'bot' ||
-        (match.whitePlayer?.username.toLowerCase().contains('bot') ?? false);
-    final isBlackBot = match.blackPlayer?.id == 'bot' ||
-        (match.blackPlayer?.username.toLowerCase().contains('bot') ?? false);
-
-    final whiteName = isWhiteBot ? 'game.aiBot'.tr() : (match.whitePlayer?.username ?? 'White');
-    final blackName = isBlackBot ? 'game.aiBot'.tr() : (match.blackPlayer?.username ?? 'Black');
-
-    final whiteLabel = isWhiteBot
-        ? '$whiteName (${_getAiDifficultyLabel(match.whitePlayer)})'
-        : '$whiteName (${match.whitePlayer?.rating ?? 1200})';
-    final blackLabel = isBlackBot
-        ? '$blackName (${_getAiDifficultyLabel(match.blackPlayer)})'
-        : '$blackName (${match.blackPlayer?.rating ?? 1200})';
-
-    String outcomeText;
-    Color outcomeColor;
-    if (match.result == 'white_wins') {
-      outcomeText = 'replay.whiteWon'.tr(args: [whiteName]);
-      outcomeColor = AppColors.ratingGold;
-    } else if (match.result == 'black_wins') {
-      outcomeText = 'replay.blackWon'.tr(args: [blackName]);
-      outcomeColor = AppColors.ratingGold;
-    } else if (match.result == 'draw') {
-      outcomeText = 'replay.draw'.tr();
-      outcomeColor = AppColors.drawYellow;
-    } else {
-      outcomeText = match.result.toUpperCase();
-      outcomeColor = AppColors.primaryGreen;
+    if (_shareCode == null && !match.id.startsWith('offline')) {
+      final cleanId = (match.id.contains('-') && !match.id.startsWith('KITA-'))
+          ? match.id.split('-').first.toUpperCase()
+          : match.id;
+      _shareCode = cleanId;
+      _shareUrl = 'https://kita.app/replay/$cleanId';
     }
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.getCard(isDark),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.analytics_outlined, color: AppColors.primaryGreen),
-            const SizedBox(width: 8),
-            Text(
-              'replay.title'.tr(),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.getTextPrimary(isDark),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (ctx) => StatefulBuilder(
+        builder: (dialogCtx, setModalState) {
+          if (_shareCode == null && !_isUploadingShare && _shareError == null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _prepareShareLink(setModalState);
+            });
+          }
+
+          return AlertDialog(
+            backgroundColor: AppColors.getCard(isDark),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
               children: [
+                const Icon(Icons.share_rounded, color: AppColors.primaryGreen, size: 22),
+                const SizedBox(width: 8),
                 Text(
-                  whiteLabel,
+                  'replay.shareTitle'.tr(),
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.getTextPrimary(isDark),
-                  ),
-                ),
-                Text(
-                  'vs',
-                  style: TextStyle(color: AppColors.getTextMuted(isDark)),
-                ),
-                Text(
-                  blackLabel,
-                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppColors.getTextPrimary(isDark),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: outcomeColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 1. Replay Code Box
+                  Text(
+                    'replay.replayCode'.tr(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.getTextSecondary(isDark),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.getSurface(isDark),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.getBorder(isDark)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _isUploadingShare
+                              ? Row(
+                                  children: [
+                                    const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'replay.uploadingReplay'.tr(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.getTextMuted(isDark),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : SelectableText(
+                                  _shareCode ?? (_shareError ?? '...'),
+                                  style: TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: _shareError != null
+                                        ? AppColors.lossRed
+                                        : AppColors.getTextPrimary(isDark),
+                                  ),
+                                  maxLines: 1,
+                                ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy_rounded, size: 18),
+                          color: AppColors.primaryGreen,
+                          tooltip: 'replay.copyCode'.tr(),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          onPressed: (_shareCode == null || _isUploadingShare)
+                              ? (_shareError != null
+                                  ? () => _prepareShareLink(setModalState)
+                                  : null)
+                              : () => _copyToClipboard(_shareCode!, 'replay.codeCopied'.tr()),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // 2. Replay Link Box
+                  Text(
+                    'replay.replayLink'.tr(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.getTextSecondary(isDark),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.getSurface(isDark),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.getBorder(isDark)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _isUploadingShare
+                              ? Row(
+                                  children: [
+                                    const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'replay.uploadingReplay'.tr(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.getTextMuted(isDark),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : SelectableText(
+                                  _shareUrl ?? (_shareError ?? '...'),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: _shareError != null
+                                        ? AppColors.lossRed
+                                        : AppColors.accent,
+                                  ),
+                                  maxLines: 1,
+                                ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.share_rounded, size: 18),
+                          color: AppColors.primaryGreen,
+                          tooltip: 'replay.shareLink'.tr(),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          onPressed: (_shareUrl == null || _isUploadingShare)
+                              ? (_shareError != null
+                                  ? () => _prepareShareLink(setModalState)
+                                  : null)
+                              : () async {
+                                  try {
+                                    final result = await SharePlus.instance.share(
+                                      ShareParams(
+                                        text: _shareUrl!,
+                                        subject: 'replay.shareReplay'.tr(),
+                                      ),
+                                    );
+                                    if (result.status == ShareResultStatus.unavailable) {
+                                      await _copyToClipboard(_shareUrl!, 'replay.linkCopied'.tr());
+                                    }
+                                  } catch (_) {
+                                    await _copyToClipboard(_shareUrl!, 'replay.linkCopied'.tr());
+                                  }
+                                },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3. Download Replay (.kita)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => _downloadReplay(ctx),
+                      icon: const Icon(Icons.download_rounded, size: 16),
+                      label: Text(
+                        'replay.downloadFile'.tr(),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.getTextSecondary(isDark),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              child: Text(
-                outcomeText,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: outcomeColor,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  visualDensity: VisualDensity.compact,
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'replay.movesCount'.tr(args: ['${match.totalMoves}']),
-              style: TextStyle(color: AppColors.getTextSecondary(isDark)),
-            ),
-            if (match.startedAt.year > 2000) ...[
-              const SizedBox(height: 4),
-              Text(
-                DateFormat.yMMMd().add_jm().format(match.startedAt),
-                style: TextStyle(fontSize: 12, color: AppColors.getTextMuted(isDark)),
+                child: Text(
+                  'common.close'.tr(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
-                icon: const Icon(Icons.download_rounded, size: 18),
-                label: Text(
-                  'replay.downloadReplay'.tr(),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                onPressed: () => _downloadReplay(ctx),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('common.close'.tr()),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

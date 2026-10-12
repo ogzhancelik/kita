@@ -64,6 +64,9 @@ class KitaBoardWidget extends StatelessWidget {
   /// Flips the board viewpoint (e.g. when playing as Black)
   final bool flipBoard;
 
+  /// In vertical layout, mirrors columns horizontally (used in local coop for 90° piece orientation)
+  final bool flipColumns;
+
   /// Rotation in turns applied to the pieces (e.g. 0.5 for 180 degrees).
   /// Used in local coop to orient pieces towards the active player.
   final double pieceRotation;
@@ -107,6 +110,7 @@ class KitaBoardWidget extends StatelessWidget {
     this.isPieceDraggable,
     this.isHorizontal = true,
     this.flipBoard = false,
+    this.flipColumns = false,
     this.pieceRotation = 0.0,
     this.isCurrentTurn = true,
     this.theme,
@@ -214,6 +218,7 @@ class KitaBoardWidget extends StatelessWidget {
                           paths: pathDataList,
                           isHorizontal: isHorizontal,
                           flipBoard: flipBoard,
+                          flipColumns: flipColumns,
                           cellSize: cellSize,
                           lineColor: currentTheme.lastMoveLineColor,
                         ),
@@ -268,7 +273,7 @@ class KitaBoardWidget extends StatelessWidget {
       canonicalRow = flipBoard ? (3 - displayRow) : displayRow;
     } else {
       canonicalCol = flipBoard ? (6 - displayRow) : displayRow;
-      canonicalRow = flipBoard ? (3 - displayCol) : displayCol;
+      canonicalRow = (flipColumns || flipBoard) ? (3 - displayCol) : displayCol;
     }
 
     return KitaPos(canonicalCol, canonicalRow);
@@ -660,8 +665,17 @@ class KitaBoardWidget extends StatelessWidget {
       return tappablePiece;
     }
 
-    // Offset the feedback piece vertically upwards so it is not hidden under the user's finger.
+    // Offset the feedback piece away from the user's finger.
+    // In portrait (pieceRotation = 0), this lifts upwards of the phone.
+    // In landscape / horizontal (pieceRotation = ±0.25), this moves sideways of the phone away from finger.
     final double dragLiftOffset = max(pieceSize * 0.95, 38.0);
+    final double angle = pieceRotation * 2 * pi;
+    final double rawDx = sin(angle);
+    final double rawDy = -cos(angle);
+    final double dx = rawDx.abs() < 1e-6 ? 0.0 : rawDx;
+    final double dy = rawDy.abs() < 1e-6 ? 0.0 : rawDy;
+    final Offset feedbackOffset = Offset(dx * dragLiftOffset, dy * dragLiftOffset);
+    final Offset shadowOffset = Offset(-dx * 12.0, -dy * 12.0);
 
     return Draggable<PieceDragData>(
       data: PieceDragData(pieceId: pieceId, fromPos: canonicalPos),
@@ -678,7 +692,7 @@ class KitaBoardWidget extends StatelessWidget {
           width: pieceSize,
           height: pieceSize,
           child: Transform.translate(
-            offset: Offset(0, -dragLiftOffset),
+            offset: feedbackOffset,
             child: Transform.scale(
               scale: 1.55,
               child: Stack(
@@ -694,7 +708,7 @@ class KitaBoardWidget extends StatelessWidget {
                           color: Colors.black.withValues(alpha: 0.50),
                           blurRadius: 20,
                           spreadRadius: 4,
-                          offset: const Offset(0, 12),
+                          offset: shadowOffset,
                         ),
                       ],
                     ),

@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
@@ -102,6 +103,53 @@ func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Matc
 	}
 
 	return ratingChanges, nil
+}
+
+func generateShortReplayCode() string {
+	const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	b := make([]byte, 8)
+	for i := range b {
+		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+		time.Sleep(time.Nanosecond)
+	}
+	return "KITA-" + string(b)
+}
+
+func (s *matchService) SaveReplay(ctx context.Context, match *domain.Match) (string, error) {
+	if match.ID == "" || strings.HasPrefix(match.ID, "offline") {
+		match.ID = generateShortReplayCode()
+	}
+
+	if s.matchRepo != nil {
+		existing, err := s.matchRepo.FindByID(ctx, match.ID)
+		if err == nil && existing != nil {
+			return existing.ID, nil
+		}
+	}
+
+	if match.StartedAt.IsZero() {
+		match.StartedAt = time.Now()
+	}
+	if match.EndedAt == nil {
+		now := time.Now()
+		match.EndedAt = &now
+	}
+	if match.WhitePlayerID == "" {
+		match.WhitePlayerID = "player_white"
+	}
+	if match.BlackPlayerID == "" {
+		match.BlackPlayerID = "player_black"
+	}
+	if match.TotalMoves == 0 && len(match.Moves) > 0 {
+		match.TotalMoves = len(match.Moves)
+	}
+
+	if s.matchRepo != nil {
+		if err := s.matchRepo.SaveReplay(ctx, match); err != nil {
+			return "", err
+		}
+	}
+	return match.ID, nil
 }
 
 func (s *matchService) GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error) {

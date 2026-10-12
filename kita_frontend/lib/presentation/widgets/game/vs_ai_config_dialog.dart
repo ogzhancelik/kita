@@ -484,6 +484,9 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
         authProv.guestProfile?.nickname ??
         'Guest';
     final playerRating = authProv.currentUser?.rating ?? 1200;
+    final playerAvatarIndex = authProv.currentUser?.avatarIndex ??
+        authProv.guestProfile?.avatarIndex ??
+        0;
 
     PieceTeam team;
     if (_selectedSide == 'random') {
@@ -504,6 +507,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       playerId: playerId,
       playerName: playerName,
       playerRating: playerRating,
+      playerAvatarIndex: playerAvatarIndex,
       isGuest: isGuest,
     );
 

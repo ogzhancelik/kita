@@ -27,6 +27,14 @@ func (m *mockMatchService) SaveFinishedMatch(ctx context.Context, match *domain.
 	return nil, nil
 }
 
+func (m *mockMatchService) SaveReplay(ctx context.Context, match *domain.Match) (string, error) {
+	m.savedMatch = match
+	if match.ID == "" {
+		match.ID = "mock_rep_123"
+	}
+	return match.ID, nil
+}
+
 func (m *mockMatchService) GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error) {
 	return m.savedMatch, nil
 }

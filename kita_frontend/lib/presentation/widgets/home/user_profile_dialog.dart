@@ -468,6 +468,10 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 
                       void openChat() {
                         if (myId.isNotEmpty && friendTargetId.isNotEmpty) {
+                          if (dmProv != null) {
+                            dmProv.clearUnread(convId, userId: friendTargetId);
+                            dmProv.setActiveConversation(convId);
+                          }
                           context.read<NotificationProvider>().deleteChatNotifications(
                             convId,
                             actorId: friendTargetId,
@@ -493,6 +497,16 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             createdAt: DateTime.now(),
                           ),
                         );
+                        if (myId.isNotEmpty && targetId != null && targetId.isNotEmpty) {
+                          if (dmProv != null) {
+                            dmProv.clearUnread(convId, userId: targetId);
+                            dmProv.setActiveConversation(convId);
+                          }
+                          context.read<NotificationProvider>().deleteChatNotifications(
+                            convId,
+                            actorId: targetId,
+                          );
+                        }
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => DmChatScreen(friend: friend),
