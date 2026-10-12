@@ -12,11 +12,12 @@ This document tracks planned features, active backlog items, and completed miles
 
 ### 🎨 UI & Design Systems
 - [ ] **Unified Design System & Spacing Alignment**: Standardize spacing, top bars, typography, and page paddings across all secondary screens (Friends, Chats, Groups) using Main Dashboard, Leaderboard, and Match History as reference layouts.
-- [ ] **Settings Quick Controls Row**: Consolidate Theme, Vibration, and Sound toggles into a single compact horizontal strip of 3 rounded/square action tiles within the Settings modal.
-- [ ] **Custom Piece Icons for Move Notation**: Replace generic King icons in the move history ribbon with custom SVG icon, matching the app's visual identity.
-- [ ] **Recent Matches Count Indicator**: Remove Recent Matches dashboard header's match counter (e.g., "5").
-- [ ] **Settings Menu Cleanup**: Reorder Settings dialog to place "How to Play" immediately above "Logout", and remove the redundant "About Kita" tile.
-- [ ] **Standardize Draw Outcome Color**: Standardize draw match status badges, chips, and result banners to warning yellow in theme colors.
+- [x] **Settings Quick Controls Row**: Consolidate Theme, Vibration, and Sound toggles into a single compact horizontal strip of 3 rounded/square action tiles within the Settings modal.
+- [x] **Custom Piece Icons for Move Notation**: Replace generic King icons in the move history ribbon and match replay moves list with custom SVG icon, matching the app's visual identity.
+- [x] **Recent Matches Count Indicator**: Remove Recent Matches dashboard header's match counter (e.g., "5").
+- [x] **Compact Dashboard Action Symbols**: Convert top-bar notification, chat, and settings circular buttons to sleek clickable icon symbols, saving horizontal space for the user profile card.
+- [x] **Settings Menu Cleanup**: Reorder Settings dialog to place "How to Play" immediately above "Logout", and remove the redundant "About Kita" tile.
+- [x] **Standardize Draw Outcome Color**: Standardize draw match status badges, chips, and result banners to warning yellow in theme colors.
 - [ ] **Text Visibility & Overflow Resilience Audit**: Audit labels, chips, and subtitles across small screens; ensure multi-line reflow (Wrap), tooltips for truncated nicknames/rooms, and fallback ellipsis without losing essential context.
 - [ ] **App Branding & Assets Update**: Update loading screen branding, application launcher icons, and store display name across all platforms.
 - [ ] **Android 12+ Splash Screen Tuning**: Configure native Android splash screen theme to eliminate double-splash flicker on app launch.

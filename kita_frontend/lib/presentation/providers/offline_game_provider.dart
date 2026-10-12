@@ -292,7 +292,7 @@ class OfflineGameProvider extends ChangeNotifier {
 
       final reason = engine.getEndReason() == EndReason.kingCaptured
           ? 'checkmate'
-          : (result == 'draw' ? 'draw_agreement' : 'normal');
+          : 'normal';
 
       if (_matchStartedAt != null) {
         elapsedSeconds.value =

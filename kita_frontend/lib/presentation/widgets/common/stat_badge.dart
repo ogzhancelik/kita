@@ -100,7 +100,7 @@ class RecordChip extends StatelessWidget {
         children: [
           _buildItem('${wins}W', AppColors.winStat),
           _buildDivider(isDark),
-          _buildItem('${draws}D', AppColors.drawGray),
+          _buildItem('${draws}D', AppColors.drawYellow),
           _buildDivider(isDark),
           _buildItem('${losses}L', AppColors.lossRed),
         ],

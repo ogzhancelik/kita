@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/feedback/haptic_service.dart';
@@ -1468,7 +1469,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       label = (move.action == 'draw_offer')
           ? 'replay.drawOffered'.tr()
           : 'replay.drawAgreed'.tr();
-      indicatorColor = AppColors.drawGray;
+      indicatorColor = AppColors.drawYellow;
     }
 
     final Color bgColor = isActive
@@ -1574,10 +1575,22 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             ),
             const SizedBox(width: 6),
 
-            // Piece and Move notation
+            // Piece icon (Custom SVG King icon for kings)
+            if (move.isKing) ...[
+              SvgPicture.asset(
+                isWhite
+                    ? 'assets/icon/piece_king_white.svg'
+                    : 'assets/icon/piece_king_black.svg',
+                width: 14,
+                height: 14,
+              ),
+              const SizedBox(width: 4),
+            ],
+
+            // Move notation
             Expanded(
               child: Text(
-                move.notation,
+                move.posNotation,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
@@ -1719,6 +1732,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 final move = _sandboxMoves[moveIndex];
                 final isActive = _sandboxStep == index;
                 final isWhite = _sandboxStates[index - 1].turn == PieceTeam.white;
+                final isKing = move.pieceId == 'WK' ||
+                    move.pieceId == 'BK' ||
+                    KitaPiece.allPieces[move.pieceId]?.isKing == true;
                 final fromStr = _formatCoord(move.fromPos.col, move.fromPos.row);
                 final toStr = _formatCoord(move.toPos.col, move.toPos.row);
                 final turnNumber = ((_forkStep + moveIndex) ~/ 2) + 1;
@@ -1771,9 +1787,19 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                           ),
                         ),
                         const SizedBox(width: 6),
+                        if (isKing) ...[
+                          SvgPicture.asset(
+                            isWhite
+                                ? 'assets/icon/piece_king_white.svg'
+                                : 'assets/icon/piece_king_black.svg',
+                            width: 14,
+                            height: 14,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
                         Expanded(
                           child: Text(
-                            '${move.pieceId} $fromStr→$toStr',
+                            '$fromStr→$toStr',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
@@ -1999,7 +2025,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       outcomeColor = AppColors.ratingGold;
     } else if (match.result == 'draw') {
       outcomeText = 'replay.draw'.tr();
-      outcomeColor = AppColors.drawGray;
+      outcomeColor = AppColors.drawYellow;
     } else {
       outcomeText = match.result.toUpperCase();
       outcomeColor = AppColors.primaryGreen;

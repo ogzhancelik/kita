@@ -52,3 +52,4 @@ app.*.map.json
 !/test/widget_test.dart
 !/test/replay_file_service_test.dart
 !/test/ai_novice_mode_test.dart
+!/test/settings_dialog_test.dart

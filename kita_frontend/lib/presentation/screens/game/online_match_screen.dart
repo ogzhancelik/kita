@@ -495,7 +495,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
             (provider.myTeam != null && provider.myTeam == data.winner));
 
     final Color statusColor = isDraw
-        ? AppColors.drawGray
+        ? AppColors.drawYellow
         : (isWinner ? AppColors.victory : AppColors.lossRed);
 
     final IconData statusIcon = isDraw

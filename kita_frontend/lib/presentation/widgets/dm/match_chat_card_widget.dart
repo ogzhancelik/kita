@@ -246,7 +246,7 @@ class _MatchChatCardWidgetState extends State<MatchChatCardWidget>
 
   Color _resultColor() {
     final m = widget.match;
-    if (m.winnerId == null || m.result == 'draw') return AppColors.ratingGold;
+    if (m.winnerId == null || m.result == 'draw') return AppColors.drawYellow;
     if (m.winnerId == widget.myUserId) return AppColors.winGreen;
     return AppColors.lossRed;
   }

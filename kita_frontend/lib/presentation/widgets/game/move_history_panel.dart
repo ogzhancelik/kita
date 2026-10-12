@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -176,18 +177,16 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
                                   ),
                                   const SizedBox(width: 3),
                                 ],
-                                // Piece icon (King symbol for kings only)
+                                // Piece icon (Custom SVG King icon matching app visual identity)
                                 if (piece?.isKing == true) ...[
-                                  Text(
-                                    '♚',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isWhiteMove
-                                          ? Colors.white
-                                          : (isDark ? Colors.white70 : Colors.black87),
-                                    ),
+                                  SvgPicture.asset(
+                                    (isWhiteMove || piece?.isWhite == true)
+                                        ? 'assets/icon/piece_king_white.svg'
+                                        : 'assets/icon/piece_king_black.svg',
+                                    width: 14,
+                                    height: 14,
                                   ),
-                                  const SizedBox(width: 2),
+                                  const SizedBox(width: 3),
                                 ],
                                 // Move notation: A2C3 format
                                 Text(

@@ -581,7 +581,7 @@ class _ChatTile extends StatelessWidget {
                       width: 13,
                       height: 13,
                       decoration: BoxDecoration(
-                        color: item.friend.isOnline ? AppColors.online : AppColors.drawGray,
+                        color: item.friend.isOnline ? AppColors.online : AppColors.offline,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -874,7 +874,7 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
                                 decoration: BoxDecoration(
                                   color: friend.isOnline
                                       ? AppColors.online
-                                      : AppColors.drawGray,
+                                      : AppColors.offline,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: widget.isDark

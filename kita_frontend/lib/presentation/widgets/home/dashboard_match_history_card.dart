@@ -232,42 +232,27 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
             },
             borderRadius: BorderRadius.circular(8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.history_rounded,
-                      color: AppColors.accent,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'dashboard.recentMatches'.tr(),
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 12,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                    ),
-                  ],
+                const Icon(
+                  Icons.history_rounded,
+                  color: AppColors.accent,
+                  size: 20,
                 ),
-                if (_matches.isNotEmpty)
-                  Text(
-                    '${_matches.length}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                    ),
+                const SizedBox(width: 8),
+                Text(
+                  'dashboard.recentMatches'.tr(),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                   ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 12,
+                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                ),
               ],
             ),
           ),
@@ -462,7 +447,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     } else if (isDrawOffer) {
       icon = Icons.handshake_outlined;
       tooltip = 'online.reasonDrawAgreement'.tr();
-      badgeColor = AppColors.getTextSecondary(isDark);
+      badgeColor = AppColors.drawYellow;
     } else {
       return const SizedBox.shrink();
     }
@@ -503,19 +488,19 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
             (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'history.blackTeam'.tr() : 'history.whiteTeam'.tr())));
     final opponentRating = opponent?.rating ?? 1200;
 
-    final isDraw = match.isDraw;
+    final isDraw = match.isDraw || match.isDrawOutcome;
     final bool isWinner = match.isUserWinner(currentUserId);
     final bool isLoser = match.isUserLoser(currentUserId);
 
     final Color outcomeColor;
     if (isCoop) {
-      outcomeColor = isDraw ? AppColors.drawGray : AppColors.accent;
+      outcomeColor = isDraw ? AppColors.drawYellow : AppColors.accent;
     } else if (isWinner) {
       outcomeColor = AppColors.victory;
     } else if (isLoser) {
       outcomeColor = AppColors.lossRed;
     } else if (isDraw) {
-      outcomeColor = AppColors.drawGray;
+      outcomeColor = AppColors.drawYellow;
     } else {
       outcomeColor = AppColors.accentGold;
     }
@@ -575,26 +560,48 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: outcomeColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: outcomeColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          match.isDraw
-                              ? 'online.resultDraw'.tr()
-                              : (match.winnerId == match.whitePlayerId
-                                  ? 'game.whiteWins'.tr()
-                                  : 'game.blackWins'.tr()),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: outcomeColor,
+                      if (match.isDraw)
+                        Tooltip(
+                          message: 'online.resultDraw'.tr(),
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: outcomeColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: outcomeColor.withValues(alpha: 0.6),
+                                width: 1,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.handshake_outlined,
+                                size: 11,
+                                color: outcomeColor,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: outcomeColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: outcomeColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            match.winnerId == match.whitePlayerId
+                                ? 'game.whiteWins'.tr()
+                                : 'game.blackWins'.tr(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: outcomeColor,
+                            ),
                           ),
                         ),
-                      ),
                     ] else if (isVsAi) ...[
                       Flexible(
                         child: Text(
@@ -631,7 +638,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                         ),
                       ),
                     ],
-                    if (match.isTimeout || match.isResigned || match.isDrawAgreement) ...[
+                    if ((match.isTimeout || match.isResigned || match.isDrawAgreement) && !(isCoop && match.isDraw)) ...[
                       const SizedBox(width: 6),
                       _buildEndReasonBadge(match, isDark),
                     ],

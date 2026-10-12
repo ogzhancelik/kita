@@ -173,7 +173,7 @@ class _GameOverDialogState extends State<GameOverDialog>
 
     if (isLocalCoop) {
       if (isDraw) {
-        statusColor = AppColors.drawGray;
+        statusColor = AppColors.drawYellow;
         titleKey = 'online.resultDraw';
         statusIcon = Icons.handshake_outlined;
       } else if (widget.gameOverData.winnerTeam == 'white') {
@@ -187,7 +187,7 @@ class _GameOverDialogState extends State<GameOverDialog>
       }
     } else {
       statusColor = isDraw
-          ? AppColors.drawGray
+          ? AppColors.drawYellow
           : (isWinner ? AppColors.victory : AppColors.lossRed);
       titleKey = isDraw
           ? 'online.resultDraw'
@@ -647,7 +647,7 @@ class _GameOverDialogState extends State<GameOverDialog>
     final diffStr = diff >= 0 ? '+$diff' : '$diff';
     final Color diffColor = diff > 0
         ? AppColors.victory
-        : (diff < 0 ? AppColors.lossRed : AppColors.drawGray);
+        : (diff < 0 ? AppColors.lossRed : AppColors.drawYellow);
     final IconData diffIcon = diff > 0
         ? Icons.trending_up_rounded
         : (diff < 0 ? Icons.trending_down_rounded : Icons.trending_flat_rounded);

@@ -655,7 +655,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     } else if (isDrawOffer) {
       icon = Icons.handshake_outlined;
       tooltip = 'online.reasonDrawAgreement'.tr();
-      badgeColor = AppColors.getTextSecondary(isDark);
+      badgeColor = AppColors.drawYellow;
     } else {
       return const SizedBox.shrink();
     }
@@ -698,19 +698,19 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'common.black'.tr() : 'common.white'.tr())));
     final opponentRating = opponent?.rating ?? 1200;
 
-    final isDraw = match.isDraw;
+    final isDraw = match.isDraw || match.isDrawOutcome;
     final bool isWinner = match.isUserWinner(myUserId);
     final bool isLoser = match.isUserLoser(myUserId);
 
     Color resultColor;
     if (isCoop) {
-      resultColor = isDraw ? AppColors.drawGray : AppColors.accent;
+      resultColor = isDraw ? AppColors.drawYellow : AppColors.accent;
     } else if (isWinner) {
       resultColor = AppColors.victory;
     } else if (isLoser) {
       resultColor = AppColors.lossRed;
     } else if (isDraw) {
-      resultColor = AppColors.drawGray;
+      resultColor = AppColors.drawYellow;
     } else {
       resultColor = AppColors.accentGold;
     }
@@ -809,26 +809,48 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: resultColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: resultColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          match.isDraw
-                              ? 'online.resultDraw'.tr()
-                              : (match.winnerId == match.whitePlayerId
-                                  ? 'game.whiteWins'.tr()
-                                  : 'game.blackWins'.tr()),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: resultColor,
+                      if (match.isDraw)
+                        Tooltip(
+                          message: 'online.resultDraw'.tr(),
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: resultColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: resultColor.withValues(alpha: 0.6),
+                                width: 1,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.handshake_outlined,
+                                size: 11,
+                                color: resultColor,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: resultColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: resultColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            match.winnerId == match.whitePlayerId
+                                ? 'game.whiteWins'.tr()
+                                : 'game.blackWins'.tr(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: resultColor,
+                            ),
                           ),
                         ),
-                      ),
                     ] else if (isVsAi) ...[
                       Flexible(
                         child: Text(
@@ -869,7 +891,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                         ),
                       ),
                     ],
-                    if (match.isTimeout || match.isResigned || match.isDrawAgreement) ...[
+                    if ((match.isTimeout || match.isResigned || match.isDrawAgreement) && !(isCoop && match.isDraw)) ...[
                       const SizedBox(width: 6),
                       _buildEndReasonBadge(match, isDark),
                     ],

@@ -48,6 +48,7 @@ dependencies:
   web_socket_channel: ^3.0.1
   file_picker: ^13.1.0
   cross_file: ^0.3.5+5
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -87,6 +88,7 @@ flutter:
     - assets/translations/
     - assets/ai/
     - assets/sounds/
+    - assets/icon/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -104,148 +104,114 @@ class DashboardTopBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
 
-          // Sağ Üst: Bildirimler & Ayarlar Butonları
+          // Sağ Üst: Bildirimler, Sohbet & Ayarlar Sembolleri
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Bildirim Butonu
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: hasUnreadNotifications
-                            ? AppColors.primaryGreen
-                            : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        width: hasUnreadNotifications ? 1.5 : 1,
-                      ),
+              // Bildirim Sembolü
+              _buildActionIcon(
+                icon: hasUnreadNotifications
+                    ? Icons.notifications_active_rounded
+                    : Icons.notifications_none_rounded,
+                color: hasUnreadNotifications
+                    ? AppColors.primaryGreen
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                tooltip: 'notifications.title'.tr(),
+                hasBadge: hasUnreadNotifications,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
                     ),
-                    child: IconButton(
-                      icon: Icon(
-                        hasUnreadNotifications
-                            ? Icons.notifications_active_rounded
-                            : Icons.notifications_none_rounded,
-                        color: hasUnreadNotifications
-                            ? AppColors.primaryGreen
-                            : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                        size: 20,
-                      ),
-                      tooltip: 'notifications.title'.tr(),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const NotificationsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  if (hasUnreadNotifications)
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+                  );
+                },
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
 
-              // Sohbet Butonu
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: hasUnreadChats
-                            ? AppColors.primaryGreen
-                            : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        width: hasUnreadChats ? 1.5 : 1,
-                      ),
+              // Sohbet Sembolü
+              _buildActionIcon(
+                icon: hasUnreadChats
+                    ? Icons.chat_bubble_rounded
+                    : Icons.chat_bubble_outline_rounded,
+                color: hasUnreadChats
+                    ? AppColors.primaryGreen
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                tooltip: 'chats.title'.tr(),
+                hasBadge: hasUnreadChats,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ChatsScreen(),
                     ),
-                    child: IconButton(
-                      icon: Icon(
-                        hasUnreadChats
-                            ? Icons.chat_bubble_rounded
-                            : Icons.chat_bubble_outline_rounded,
-                        color: hasUnreadChats
-                            ? AppColors.primaryGreen
-                            : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                        size: 20,
-                      ),
-                      tooltip: 'chats.title'.tr(),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const ChatsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  if (hasUnreadChats)
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+                  );
+                },
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
 
-              // Ayarlar Butonu
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    width: 1,
-                  ),
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    Icons.settings_outlined,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                    size: 20,
-                  ),
-                  tooltip: 'settings.title'.tr(),
-                  onPressed: () => SettingsDialog.show(context),
-                ),
+              // Ayarlar Sembolü
+              _buildActionIcon(
+                icon: Icons.settings_outlined,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                tooltip: 'settings.title'.tr(),
+                hasBadge: false,
+                isDark: isDark,
+                onTap: () => SettingsDialog.show(context),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionIcon({
+    required IconData icon,
+    required Color color,
+    required String tooltip,
+    required VoidCallback onTap,
+    required bool hasBadge,
+    required bool isDark,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Tooltip(
+          message: tooltip,
+          child: InkResponse(
+            onTap: onTap,
+            radius: 18,
+            child: Padding(
+              padding: const EdgeInsets.all(5),
+              child: Icon(
+                icon,
+                color: color,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+        if (hasBadge)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

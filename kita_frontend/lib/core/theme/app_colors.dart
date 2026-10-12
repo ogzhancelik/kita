@@ -47,6 +47,12 @@ class AppColors {
   static const Color lastMoveHighlight = Color(0xFFF7F769);
   static const Color lastMoveLine = accent;
 
+  // --- Board Piece Colors ---
+  static const Color pieceWhite = Color(0xFFFFFFFF);
+  static const Color pieceBlack = Color(0xFF16191F);
+  static const Color pieceWhiteKingAccent = ratingGold;
+  static const Color pieceBlackKingAccent = Color(0xFFE74C3C);
+
   // --- Rating & Badges ---
   static const Color ratingGold = Color(0xFFFFC83B);
   static const Color accentGold = Color(0xFFFFC83B);
@@ -56,11 +62,14 @@ class AppColors {
   static const Color winGreen = Color(0xFF70EFBF); // Vibrant Emerald Green for wins
   static const Color winBlue = Color(0xFF3498DB);
   static const Color lossRed = Color(0xFFE74C3C);
-  static const Color drawGray = Color(0xFF3D4444);
+  static const Color drawYellow = Color(0xFFFFC83B); // Standard warning yellow for draw outcomes
+  static const Color draw = drawYellow;
+  static const Color drawGray = drawYellow; // Backward-compatibility alias
 
   // --- Positive & Status Indicators (Accents: #A8D8C6 / #75B69C) ---
   static const Color online = accent; // #A8D8C6: Açık mint yeşili (çevrimiçi göstergesi)
   static const Color onlineLight = accent; // #A8D8C6: Mint online glow/badge background
+  static const Color offline = Color(0xFF7E7E7E); // Gri çevrimdışı göstergesi
   static const Color victory = winGreen; // #90F0CC: Vibrant saturated green (Galibiyet rozeti & metni)
   static const Color victoryLight = winGreen; // Victory tint / glow
   static const Color winStat = accent; // #A8D8C6: Saturated win rate/stat color
@@ -68,7 +77,7 @@ class AppColors {
 
   static Color getVictory(bool isDark) => victory;
   static Color getOnline(bool isDark) => isDark ? accent : accentSecondary;
-  static Color getDraw(bool isDark) => isDark ? evalNeutral : drawGray;
+  static Color getDraw(bool isDark) => drawYellow;
 
   // --- Active Turn Profile Panel Colors (Mint theme) ---
   static const Color turnActiveCardDark = Color(0xFF29372F); // Deep tactical mint for dark mode

@@ -508,7 +508,7 @@ class _FriendCard extends StatelessWidget {
                         width: 11,
                         height: 11,
                         decoration: BoxDecoration(
-                          color: friend.isOnline ? AppColors.online : AppColors.drawGray,
+                          color: friend.isOnline ? AppColors.online : AppColors.offline,
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: isDark ? AppColors.darkCard : AppColors.lightCard,

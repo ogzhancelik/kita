@@ -62,6 +62,13 @@ class MoveRecordModel {
     );
   }
 
+  bool get isKing =>
+      piece == 'WK' ||
+      piece == 'BK' ||
+      KitaPiece.allPieces[piece]?.isKing == true;
+
+  String get posNotation => toKitaMove().posNotation;
+
   String get notation {
     if (isResign) return '🏳️ Resigned';
     if (isTimeout) return '⏱️ Timeout';
@@ -209,12 +216,13 @@ class MatchRecordModel {
       result == 'resigned';
 
   bool get isDrawAgreement =>
-      reason == 'draw_agreement' ||
-      reason == 'reason_draw_agreement' ||
-      reason == 'draw_offered' ||
-      reason == 'draw_offer' ||
-      reason == 'draw_accepted' ||
-      reason == 'agreement';
+      reason != null &&
+      (reason!.startsWith('draw_agreement') ||
+          reason!.startsWith('reason_draw_agreement') ||
+          reason!.startsWith('draw_offered') ||
+          reason!.startsWith('draw_offer') ||
+          reason!.startsWith('draw_accepted') ||
+          reason == 'agreement');
 
   bool get isDrawOffered => isDrawAgreement;
 
@@ -233,7 +241,7 @@ class MatchRecordModel {
 
     final hasResign = isResigned;
     final hasTimeout = isTimeout;
-    final hasDraw = isDrawOutcome;
+    final hasDraw = isDrawAgreement;
 
     if (!hasResign && !hasTimeout && !hasDraw) {
       return effective;

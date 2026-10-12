@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <g>
+    <!-- Drop Shadow -->
+    <path d="M 18,83 Q 50,88 82,83 L 86,43 L 68,59 L 50,25 L 32,59 L 14,43 Z" fill="rgba(0,0,0,0.30)"/>
+    <!-- Crown Body -->
+    <path d="M 18,78 Q 50,83 82,78 L 86,38 L 68,54 L 50,20 L 32,54 L 14,38 Z" fill="#FFFFFF" stroke="rgba(0,0,0,0.30)" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- Base Headband -->
+    <path d="M 22,73 Q 50,78 78,73" fill="none" stroke="#FFC83B" stroke-width="6.5" stroke-linecap="round"/>
+    <!-- Peak Jewels -->
+    <circle cx="14" cy="38" r="6.2" fill="#FFC83B"/>
+    <circle cx="86" cy="38" r="6.2" fill="#FFC83B"/>
+    <circle cx="50" cy="20" r="8.4" fill="#FFC83B"/>
+    <!-- Center Jewel Glint -->
+    <circle cx="49" cy="19" r="3.6" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+</svg>

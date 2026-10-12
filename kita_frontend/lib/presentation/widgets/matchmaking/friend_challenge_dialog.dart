@@ -151,7 +151,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                             decoration: BoxDecoration(
                               color: widget.friend.isOnline
                                   ? AppColors.online
-                                  : AppColors.drawGray,
+                                  : AppColors.offline,
                               shape: BoxShape.circle,
                               boxShadow: widget.friend.isOnline
                                   ? [

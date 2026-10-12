@@ -92,49 +92,12 @@ class SettingsDialog extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // --- Theme Setting ---
-                    _buildSettingsTile(
+                    // --- Quick Controls Row (Theme, Sound, Vibration) ---
+                    _buildQuickControlsRow(
+                      context: context,
                       isDark: isDark,
-                      icon: themeProv.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                      iconColor: AppColors.ratingGold,
-                      title: 'settings.theme'.tr(),
-                      subtitle: themeProv.isDarkMode ? 'settings.themeDark'.tr() : 'settings.themeLight'.tr(),
-                      trailing: Switch(
-                        value: themeProv.isDarkMode,
-                        activeThumbImage: null,
-                        activeThumbColor: AppColors.ratingGold,
-                        onChanged: (_) => themeProv.toggleTheme(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // --- Audio Setting (Sound Effects) ---
-                    _buildSettingsTile(
-                      isDark: isDark,
-                      icon: gameSettings.soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                      iconColor: AppColors.accentGold,
-                      title: 'settings.soundEffects'.tr(),
-                      trailing: Switch(
-                        value: gameSettings.soundEnabled,
-                        activeThumbColor: AppColors.accentGold,
-                        activeTrackColor: AppColors.accentGold.withValues(alpha: 0.4),
-                        onChanged: (val) => gameSettings.setSoundEnabled(val),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // --- Haptic Feedback Setting ---
-                    _buildSettingsTile(
-                      isDark: isDark,
-                      icon: gameSettings.hapticsEnabled ? Icons.vibration_rounded : Icons.smartphone_rounded,
-                      iconColor: AppColors.accentSecondary,
-                      title: 'settings.haptics'.tr(),
-                      trailing: Switch(
-                        value: gameSettings.hapticsEnabled,
-                        activeThumbColor: AppColors.accentSecondary,
-                        activeTrackColor: AppColors.accentSecondary.withValues(alpha: 0.4),
-                        onChanged: (val) => gameSettings.setHapticsEnabled(val),
-                      ),
+                      themeProv: themeProv,
+                      gameSettings: gameSettings,
                     ),
                     const SizedBox(height: 10),
 
@@ -191,26 +154,6 @@ class SettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    // --- Game Guide / How to Play ---
-                    _buildSettingsTile(
-                      isDark: isDark,
-                      icon: Icons.menu_book_rounded,
-                      iconColor: AppColors.accentGold,
-                      title: 'settings.rulesGuide'.tr(),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        TutorialScreen.launch(context);
-                      },
-                      trailing: Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
                     // --- Avatar / Profile Quick Action ---
                     _buildSettingsTile(
                       isDark: isDark,
@@ -235,18 +178,28 @@ class SettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    // --- About / Version ---
+                    // --- Game Guide / How to Play ---
                     _buildSettingsTile(
                       isDark: isDark,
-                      icon: Icons.info_outline_rounded,
-                      iconColor: AppColors.winBlue,
-                      title: 'settings.about'.tr(),
-                      subtitle: 'settings.version'.tr(),
+                      icon: Icons.menu_book_rounded,
+                      iconColor: AppColors.accentGold,
+                      title: 'settings.rulesGuide'.tr(),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        TutorialScreen.launch(context);
+                      },
+                      trailing: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
                     ),
-                    const SizedBox(height: 16),
 
                     // --- Logout Action ---
-                    if (authProv.isAuthenticated || authProv.isGuest)
+                    if (authProv.isAuthenticated || authProv.isGuest) ...[
+                      const SizedBox(height: 16),
                       KitaCard(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         child: InkWell(
@@ -281,11 +234,151 @@ class SettingsDialog extends StatelessWidget {
                           ),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickControlsRow({
+    required BuildContext context,
+    required bool isDark,
+    required ThemeProvider themeProv,
+    required GameSettingsProvider gameSettings,
+  }) {
+    return Row(
+      children: [
+        // 1. Theme Setting
+        Expanded(
+          child: _buildQuickActionTile(
+            isDark: isDark,
+            icon: themeProv.isDarkMode
+                ? Icons.dark_mode_rounded
+                : Icons.light_mode_rounded,
+            activeColor: AppColors.ratingGold,
+            title: 'settings.quickTheme'.tr(),
+            isActive: true,
+            tooltip: 'settings.quickTheme'.tr(),
+            onTap: () => themeProv.toggleTheme(),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // 2. Sound Effects Setting
+        Expanded(
+          child: _buildQuickActionTile(
+            isDark: isDark,
+            icon: gameSettings.soundEnabled
+                ? Icons.volume_up_rounded
+                : Icons.volume_off_rounded,
+            activeColor: AppColors.accentGold,
+            title: 'settings.sound'.tr(),
+            isActive: gameSettings.soundEnabled,
+            tooltip: 'settings.sound'.tr(),
+            onTap: () => gameSettings.setSoundEnabled(!gameSettings.soundEnabled),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // 3. Vibration / Haptics Setting
+        Expanded(
+          child: _buildQuickActionTile(
+            isDark: isDark,
+            icon: gameSettings.hapticsEnabled
+                ? Icons.vibration_rounded
+                : Icons.smartphone_rounded,
+            activeColor: AppColors.accentSecondary,
+            title: 'settings.vibration'.tr(),
+            isActive: gameSettings.hapticsEnabled,
+            tooltip: 'settings.vibration'.tr(),
+            onTap: () => gameSettings.setHapticsEnabled(!gameSettings.hapticsEnabled),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionTile({
+    required bool isDark,
+    required IconData icon,
+    required Color activeColor,
+    required String title,
+    required bool isActive,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? (isDark
+                      ? activeColor.withValues(alpha: 0.12)
+                      : activeColor.withValues(alpha: 0.08))
+                  : (isDark ? AppColors.darkBg : AppColors.lightBg),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isActive
+                    ? activeColor.withValues(alpha: 0.45)
+                    : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                width: isActive ? 1.5 : 1,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? activeColor.withValues(alpha: 0.20)
+                        : (isDark
+                            ? AppColors.darkSurfaceElevated
+                            : AppColors.lightSurfaceElevated),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: isActive
+                        ? activeColor
+                        : (isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
