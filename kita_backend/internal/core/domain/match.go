@@ -13,11 +13,15 @@ const (
 	ResultAbandoned MatchResult = "abandoned"
 	ResultTimeout   MatchResult = "timeout"
 
-	ReasonNormal        = "reason_normal"
-	ReasonResigned      = "reason_resigned"
-	ReasonDisconnected  = "reason_disconnected"
-	ReasonTimeout       = "reason_timeout"
-	ReasonDrawAgreement = "draw_agreement"
+	ReasonNormal              = "reason_normal"
+	ReasonKingCaptured        = "king_captured"
+	ReasonNoMovesLeft         = "no_moves_left"
+	ReasonDoubleKingCaptured  = "double_king_captured"
+	ReasonThreefoldRepetition = "threefold_repetition"
+	ReasonResigned            = "reason_resigned"
+	ReasonDisconnected        = "reason_disconnected"
+	ReasonTimeout             = "reason_timeout"
+	ReasonDrawAgreement       = "draw_agreement"
 )
 
 type Match struct {

@@ -372,7 +372,11 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 	status := r.Game.GetStatus()
 	if status != "ongoing" {
 		r.broadcastStateLocked()
-		r.finishGameLocked(status, domain.ReasonNormal)
+		reason := r.Game.GetEndReason()
+		if reason == "" {
+			reason = domain.ReasonNormal
+		}
+		r.finishGameLocked(status, reason)
 		return nil
 	}
 
@@ -451,7 +455,11 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 			retaliationStatus := rm.Game.GetStatus()
 			if retaliationStatus != "ongoing" {
 				rm.broadcastStateLocked()
-				rm.finishGameLocked(retaliationStatus, domain.ReasonNormal)
+				reason := rm.Game.GetEndReason()
+				if reason == "" {
+					reason = domain.ReasonNormal
+				}
+				rm.finishGameLocked(retaliationStatus, reason)
 			} else {
 				rm.startTimeoutTimerLocked()
 				rm.broadcastStateLocked()

@@ -290,9 +290,24 @@ class OfflineGameProvider extends ChangeNotifier {
         result = 'black_wins';
       }
 
-      final reason = engine.getEndReason() == EndReason.kingCaptured
-          ? 'checkmate'
-          : 'normal';
+      final endReason = engine.getEndReason();
+      final String reason;
+      switch (endReason) {
+        case EndReason.kingCaptured:
+          reason = 'king_captured';
+          break;
+        case EndReason.noMovesLeft:
+          reason = 'no_moves_left';
+          break;
+        case EndReason.doubleKingCaptured:
+          reason = 'double_king_captured';
+          break;
+        case EndReason.threefoldRepetition:
+          reason = 'threefold_repetition';
+          break;
+        default:
+          reason = 'normal';
+      }
 
       if (_matchStartedAt != null) {
         elapsedSeconds.value =

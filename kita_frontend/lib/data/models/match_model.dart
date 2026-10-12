@@ -226,6 +226,15 @@ class MatchRecordModel {
 
   bool get isDrawOffered => isDrawAgreement;
 
+  bool get isKingCaptured =>
+      reason == 'king_captured' ||
+      reason == 'reason_king_captured' ||
+      reason == 'checkmate';
+
+  bool get isNoMovesLeft =>
+      reason == 'no_moves_left' ||
+      reason == 'reason_no_moves_left';
+
   bool get isDrawOutcome =>
       isDraw ||
       isDrawAgreement ||

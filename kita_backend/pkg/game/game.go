@@ -132,6 +132,26 @@ func (g *Game) GetStatus() string {
 	return "ongoing"
 }
 
+func (g *Game) GetEndReason() string {
+	if g.GetStatus() == "ongoing" {
+		return ""
+	}
+	if g.KingEatenBy == "both" {
+		return "double_king_captured"
+	}
+	if g.KingEatenBy != "" {
+		return "king_captured"
+	}
+	if g.StateHistory[g.ToGameState()] >= 3 {
+		return "threefold_repetition"
+	}
+	rawMoves := g.getValidMoves()
+	if len(rawMoves) == 0 {
+		return "no_moves_left"
+	}
+	return ""
+}
+
 func (g *Game) GetLegalMoves() []Move {
 	if g.GetStatus() != "ongoing" {
 		return []Move{}

@@ -714,9 +714,18 @@ class _GameOverDialogState extends State<GameOverDialog>
       case 'reason_disconnected':
         return 'online.reasonDisconnected'.tr();
       case 'checkmate':
-        return 'online.reasonCheckmate'.tr();
+      case 'king_captured':
+      case 'reason_king_captured':
+        return 'online.reasonKingCaptured'.tr();
+      case 'no_moves_left':
+      case 'reason_no_moves_left':
+        return 'online.reasonNoMovesLeft'.tr();
+      case 'double_king_captured':
+        return 'online.reasonDoubleKingCaptured'.tr();
+      case 'threefold_repetition':
+        return 'online.reasonThreefoldRepetition'.tr();
       default:
-        return 'online.reasonNormal'.tr();
+        return 'online.reasonKingCaptured'.tr();
     }
   }
 }
