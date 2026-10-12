@@ -53,6 +53,12 @@ class AppColors {
   static const Color pieceWhiteKingAccent = ratingGold;
   static const Color pieceBlackKingAccent = Color(0xFFE74C3C);
 
+  // --- AI Advantage Bar Colors ---
+  static const Color advantageWhite = Color(0xFFF0F2F5); // Premium White marble
+  static const Color advantageBlack = Color(0xFF1E242B); // Deep Obsidian Black
+  static const Color advantageBadgeDark = Color(0xFF15191E);
+  static const Color advantageBadgeTextDark = Color(0xFF1B263B);
+
   // --- Rating & Badges ---
   static const Color ratingGold = Color(0xFFFFC83B);
   static const Color accentGold = Color(0xFFFFC83B);

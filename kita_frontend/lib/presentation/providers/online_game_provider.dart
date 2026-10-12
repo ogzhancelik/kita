@@ -10,6 +10,8 @@ import '../../core/feedback/sound_service.dart';
 import '../../core/feedback/toast_service.dart';
 import '../../data/models/dm_models.dart';
 import '../../data/models/game_models.dart';
+import '../../data/models/match_model.dart';
+import '../../data/models/user_model.dart';
 import '../../data/models/ws_message_models.dart';
 export '../../data/models/ws_message_models.dart' show OnlineMoveRecord, ChatMessage;
 import '../../data/services/local_match_history_service.dart';
@@ -83,6 +85,8 @@ class OnlineGameProvider extends ChangeNotifier {
   int myRating = 1200;
   OpponentInfo? opponentInfo;
   int timeControl = 0;
+  MatchRecordModel? _lastOnlineMatchRecord;
+  MatchRecordModel? get lastOnlineMatchRecord => _lastOnlineMatchRecord;
   final ValueNotifier<String?> roomCode = ValueNotifier(null); // For custom rooms
   String? get currentRoomCode => roomCode.value;
   int roomTimeControl = TimeControlPreset.threeMin;
@@ -615,10 +619,10 @@ class OnlineGameProvider extends ChangeNotifier {
 
   /// View the board state at a specific move index.
   /// Index 0 = initial position, 1 = after first move, etc.
+  /// Viewing the latest move (or beyond) immediately returns to live interactive state.
   void viewMoveAt(int index) {
-    if (index < 0 || index >= _engineSnapshots.length) {
-      viewingMoveIndex.value = -1; // Go live
-      notifyListeners();
+    if (index < 0 || index >= _engineSnapshots.length - 1) {
+      goLive();
       return;
     }
     viewingMoveIndex.value = index;
@@ -666,12 +670,12 @@ class OnlineGameProvider extends ChangeNotifier {
     }
   }
 
-  /// Step forward one move in history (or return to live).
+  /// Step forward one move in history (or return to live immediately if reaching latest move).
   void stepForward() {
     if (!canStepForward) return;
     final current = viewingMoveIndex.value;
     if (current == -1) return;
-    if (current < _engineSnapshots.length - 1) {
+    if (current < _engineSnapshots.length - 2) {
       viewMoveAt(current + 1);
     } else {
       goLive();
@@ -1129,6 +1133,7 @@ class OnlineGameProvider extends ChangeNotifier {
       unreadChatCount.value = 0;
       viewingMoveIndex.value = -1;
       gameOverData.value = null;
+      _lastOnlineMatchRecord = null;
       rematchOffer.value = null;
       elapsedSeconds.value = 0;
       isChatOpen = true;
@@ -1338,6 +1343,7 @@ class OnlineGameProvider extends ChangeNotifier {
     }
 
     gameOverData.value = data;
+    _lastOnlineMatchRecord = buildCurrentOnlineMatchRecord(data);
     matchState.value = OnlineMatchState.gameOver;
     drawOffer.value = null;
     isDrawOfferPending.value = false;
@@ -1346,6 +1352,86 @@ class OnlineGameProvider extends ChangeNotifier {
     HapticService.instance.heavy();
     LocalMatchHistoryService.instance.notifyMatchesChanged();
     notifyListeners();
+  }
+
+  /// Builds a [MatchRecordModel] representing the completed or current online match.
+  MatchRecordModel? buildCurrentOnlineMatchRecord([GameOverPayload? payload]) {
+    final effectivePayload = payload ?? gameOverData.value;
+    final mId = matchId ?? effectivePayload?.matchId;
+    if (mId == null || mId.isEmpty) return null;
+
+    final isPlayerWhite = myTeam == 'white';
+    final pId = myUserId ?? 'player';
+    final pName = (myUsername != null && myUsername!.isNotEmpty) ? myUsername! : 'Player';
+    final oppId = opponentInfo?.id ?? 'opponent';
+    final oppName = opponentInfo?.name ?? 'Opponent';
+    final oppRating = opponentInfo?.rating ?? 1200;
+    final oppAvatar = opponentInfo?.avatarIndex ?? 0;
+
+    final whitePlayerId = isPlayerWhite ? pId : oppId;
+    final blackPlayerId = isPlayerWhite ? oppId : pId;
+
+    final whiteUser = UserProfile(
+      id: whitePlayerId,
+      username: isPlayerWhite ? pName : oppName,
+      rating: isPlayerWhite ? myRating : oppRating,
+      avatarIndex: isPlayerWhite ? 0 : oppAvatar,
+    );
+
+    final blackUser = UserProfile(
+      id: blackPlayerId,
+      username: isPlayerWhite ? oppName : pName,
+      rating: isPlayerWhite ? oppRating : myRating,
+      avatarIndex: isPlayerWhite ? oppAvatar : 0,
+    );
+
+    String? winnerId;
+    if (effectivePayload?.winnerTeam == 'white') {
+      winnerId = whitePlayerId;
+    } else if (effectivePayload?.winnerTeam == 'black') {
+      winnerId = blackPlayerId;
+    } else if (effectivePayload?.winnerId != null && effectivePayload!.winnerId!.isNotEmpty) {
+      winnerId = effectivePayload.winnerId;
+    } else if (effectivePayload?.result == 'white_wins' || effectivePayload?.result == 'white_won') {
+      winnerId = whitePlayerId;
+    } else if (effectivePayload?.result == 'black_wins' || effectivePayload?.result == 'black_won') {
+      winnerId = blackPlayerId;
+    }
+
+    final moveRecords = moveHistory.value.map((m) {
+      final isWhite = m.playerTeam == 'white';
+      final currentMPlayerId = isWhite ? whitePlayerId : blackPlayerId;
+      return MoveRecordModel(
+        ply: m.plyIndex,
+        playerId: currentMPlayerId,
+        piece: m.pieceId,
+        fromCol: m.fromCol,
+        fromRow: m.fromRow,
+        toCol: m.toCol,
+        toRow: m.toRow,
+        timeMs: 0,
+        createdAt: DateTime.now(),
+      );
+    }).toList();
+
+    final record = MatchRecordModel(
+      id: mId,
+      whitePlayerId: whitePlayerId,
+      blackPlayerId: blackPlayerId,
+      whitePlayer: whiteUser,
+      blackPlayer: blackUser,
+      winnerId: winnerId,
+      result: effectivePayload?.result ?? 'in_progress',
+      reason: effectivePayload?.reason,
+      totalMoves: moveRecords.length,
+      startedAt: _matchStartedAt ?? DateTime.now(),
+      endedAt: DateTime.now(),
+      moves: moveRecords,
+      isOffline: false,
+    );
+
+    _lastOnlineMatchRecord = record;
+    return record;
   }
 
   void _handleChatBroadcast(Map<String, dynamic>? payload) {
@@ -1574,6 +1660,7 @@ class OnlineGameProvider extends ChangeNotifier {
     unreadChatCount.value = 0;
     isChatOpen = true;
     gameOverData.value = null;
+    _lastOnlineMatchRecord = null;
     drawOffer.value = null;
     isDrawOfferPending.value = false;
     isGameOverDialogActive.value = false;
@@ -1608,6 +1695,7 @@ class OnlineGameProvider extends ChangeNotifier {
     unreadChatCount.value = 0;
     isChatOpen = true;
     gameOverData.value = null;
+    _lastOnlineMatchRecord = null;
     drawOffer.value = null;
     isDrawOfferPending.value = false;
     rematchOffer.value = null;

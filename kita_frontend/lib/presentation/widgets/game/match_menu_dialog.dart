@@ -164,20 +164,35 @@ class MatchMenuDialog extends StatelessWidget {
                           }
                           Navigator.of(dialogContext).popUntil((route) => route.isFirst);
                         },
-                        onReviewMatch: (isOffline && offlineProv.offlinePlayMode == PlayMode.vsAi)
-                            ? () {
-                                final matchRecord = offlineProv.lastOfflineMatchRecord ??
-                                    offlineProv.buildCurrentOfflineMatchRecord(data);
-                                if (matchRecord != null) {
-                                  Navigator.of(dialogContext, rootNavigator: true).pop();
-                                  Navigator.of(dialogContext).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => MatchReplayScreen(match: matchRecord),
-                                    ),
-                                  );
-                                }
-                              }
-                            : null,
+                        onReviewMatch: () {
+                          if (isOffline) {
+                            final matchRecord = offlineProv.lastOfflineMatchRecord ??
+                                offlineProv.buildCurrentOfflineMatchRecord(data);
+                            if (matchRecord != null) {
+                              Navigator.of(dialogContext, rootNavigator: true).pop();
+                              Navigator.of(dialogContext).push(
+                                MaterialPageRoute(
+                                  builder: (_) => MatchReplayScreen(match: matchRecord),
+                                ),
+                              );
+                            }
+                          } else {
+                            final matchRecord = onlineProv.lastOnlineMatchRecord ??
+                                onlineProv.buildCurrentOnlineMatchRecord(data);
+                            final matchId = onlineProv.matchId ?? data.matchId;
+                            if (matchRecord != null || matchId.isNotEmpty) {
+                              Navigator.of(dialogContext, rootNavigator: true).pop();
+                              Navigator.of(dialogContext).push(
+                                MaterialPageRoute(
+                                  builder: (_) => MatchReplayScreen(
+                                    match: matchRecord,
+                                    matchId: matchId.isNotEmpty ? matchId : null,
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
                       );
                     }
                   },

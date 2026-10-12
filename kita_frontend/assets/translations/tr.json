@@ -1,6 +1,5 @@
 {
   "appTitle": "Kita Online",
-  "appTagline": "4x7 taktiksel mücadeleye hükmet",
   "errValidationFailed": "Doğrulama başarısız.",
   "errMissingField": "Gerekli bir alan eksik.",
   "errInvalidFormat": "Geçersiz format.",
@@ -545,4 +544,4 @@
     "you": "Sen: ",
     "noMessages": "Henüz mesaj yok"
   }
-}
+}

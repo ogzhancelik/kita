@@ -13,6 +13,7 @@ import '../../providers/game_settings_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/game/chat_panel.dart';
 import '../../widgets/game/game_over_dialog.dart';
+import 'match_replay_screen.dart';
 import '../../widgets/game/kita_game_board.dart';
 import '../../widgets/game/match_bottom_bar.dart';
 import '../../widgets/game/move_history_panel.dart';
@@ -132,7 +133,22 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
         context.read<AuthProvider>().refreshProfile();
         Navigator.of(context).popUntil((route) => route.isFirst);
       },
-      onReviewMatch: null,
+      onReviewMatch: () {
+        final matchRecord = provider.lastOnlineMatchRecord ??
+            provider.buildCurrentOnlineMatchRecord(data);
+        final matchId = provider.matchId ?? data.matchId;
+        if (matchRecord != null || matchId.isNotEmpty) {
+          Navigator.of(context, rootNavigator: true).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => MatchReplayScreen(
+                match: matchRecord,
+                matchId: matchId.isNotEmpty ? matchId : null,
+              ),
+            ),
+          );
+        }
+      },
     ).then((_) {
       _isGameOverDialogShowing = false;
     });
@@ -824,9 +840,9 @@ class _BoardSection extends StatelessWidget {
                 final KitaMove? effectiveLastMove;
                 if (isLive) {
                   effectiveLastMove = liveLastMove;
-                } else if (viewIdx >= 0 &&
-                    viewIdx < provider.moveHistory.value.length) {
-                  final rec = provider.moveHistory.value[viewIdx];
+                } else if (viewIdx > 0 &&
+                    viewIdx - 1 < provider.moveHistory.value.length) {
+                  final rec = provider.moveHistory.value[viewIdx - 1];
                   effectiveLastMove = KitaMove(
                     pieceId: rec.pieceId,
                     fromPos: KitaPos(rec.fromCol, rec.fromRow),

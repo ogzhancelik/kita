@@ -9,7 +9,8 @@ This document tracks identified bugs, UX glitches, and quick changes across the 
 - [ ] **Form Focus & Tab Navigation**: `Tab` key in Login and Sign-In forms cycles to prefix/suffix icons and password toggle buttons instead of jumping strictly between text inputs.
 - [ ] **Mobile Keyboard Action & Layout Overflow**: Mobile keyboard shows enter button instead of `next`/`done` actions, and fixed-height form layout on login clips the bottom action/play button when keyboard is visible.
 - [ ] **Top Players Podium Layout Distortion**: Long nicknames in the top players leaderboard cause text truncation and distort podium alignment.
-- [ ] **Replay Navigation Double-Click Glitch**: When scrubbing back to the latest move in the move ribbon using arrows, two clicks are required to regain interactive move control.
+- [x] **Replay Navigation Double-Click Glitch**: When scrubbing back to the latest move in the move ribbon using arrows, two clicks are required to regain interactive move control.
+- [x] **Match Replay Move List Scroll Offset Mismatch**: Fixed cumulative drift in replay move list auto-scrolling on long games caused by missing fixed item extent matching rowHeight calculation.
 - [x] **Settings Tutorial Dialog Padding**: Excessive outer padding when opening the Tutorial modal directly from the in-game / main Settings menu.
 - [ ] **Notification Read State Synchronization**: When an in-app message notification is dismissed or ignored, or when a message is read directly, the unread badge is not reliably cleared across the top bar and chat tiles.
 - [ ] **Active Match Turn Indicator Refresh**: The turn indicator on the Home Dashboard active/ongoing match card does not update in real time when the opponent makes a move.
@@ -26,3 +27,4 @@ This document tracks identified bugs, UX glitches, and quick changes across the 
 - [ ] Rearrange settings menu
 - [x] Remove names of time modes (bullet, blitz, rapid)
 - [x] Nickname convention (min 2, max 15, allowed chars [a-zA-Z0-9_-], no whitespace, case-insensitive uniqueness, reserved names list)
+- [x] In online matches, replace "Review Board" with "Review Match" to navigate directly to Match Replay (just like offline games)

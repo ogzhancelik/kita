@@ -58,16 +58,7 @@ class WelcomeScreen extends StatelessWidget {
                     color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'appTagline'.tr(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                  ),
-                ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 48),
 
                 // Option 1: Continue as Guest (Gartic Phone style onboarding)
                 KitaButton(

@@ -340,17 +340,34 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
           const Spacer(),
 
           // 3. Move Navigation: Back (<) and Forward (>)
-          IconButton(
-            icon: const Icon(Icons.chevron_left_rounded),
-            color: AppColors.getTextPrimary(isDark),
-            tooltip: 'common.prevMove'.tr(),
-            onPressed: provider.stepBackward,
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right_rounded),
-            color: AppColors.getTextPrimary(isDark),
-            tooltip: 'common.nextMove'.tr(),
-            onPressed: provider.stepForward,
+          ValueListenableBuilder<int>(
+            valueListenable: provider.viewingMoveIndex,
+            builder: (ctx, viewIdx, _) {
+              final canBack = provider.canStepBackward;
+              final canForward = provider.canStepForward;
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left_rounded),
+                    color: canBack
+                        ? AppColors.getTextPrimary(isDark)
+                        : AppColors.getTextMuted(isDark),
+                    tooltip: 'common.prevMove'.tr(),
+                    onPressed: canBack ? provider.stepBackward : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right_rounded),
+                    color: canForward
+                        ? AppColors.getTextPrimary(isDark)
+                        : AppColors.getTextMuted(isDark),
+                    tooltip: 'common.nextMove'.tr(),
+                    onPressed: canForward ? provider.stepForward : null,
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

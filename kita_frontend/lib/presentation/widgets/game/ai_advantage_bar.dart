@@ -141,59 +141,80 @@ class AiAdvantageBar extends StatelessWidget {
     bool isWhiteAdv,
     bool isBlackAdv,
   ) {
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final whiteFlex = (fraction * 1000).toInt().clamp(0, 1000);
+    final blackFlex = 1000 - whiteFlex;
+
     return Container(
       height: thickness,
       decoration: BoxDecoration(
-        color: Colors.black87,
         borderRadius: BorderRadius.circular(thickness / 2),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.black26,
-          width: 1.2,
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 4,
             offset: const Offset(0, 1.5),
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Proportional fill: Left is White, Right is Black
-          Row(
-            children: [
-              Expanded(
-                flex: (fraction * 1000).toInt(),
-                child: Container(
-                  color: const Color(0xFFF0F2F5), // Premium White marble
-                ),
+          // 1. Proportional fill: Left is White, Right is Black, clipped smoothly into a capsule
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(thickness / 2),
+              clipBehavior: Clip.antiAlias,
+              child: Row(
+                children: [
+                  if (whiteFlex > 0)
+                    Expanded(
+                      flex: whiteFlex,
+                      child: Container(
+                        color: AppColors.advantageWhite,
+                      ),
+                    ),
+                  if (blackFlex > 0)
+                    Expanded(
+                      flex: blackFlex,
+                      child: Container(
+                        color: AppColors.advantageBlack,
+                      ),
+                    ),
+                ],
               ),
-              Expanded(
-                flex: ((1.0 - fraction) * 1000).toInt(),
-                child: Container(
-                  color: const Color(0xFF1E242B), // Deep Obsidian Black
-                ),
-              ),
-            ],
+            ),
           ),
 
-          // Evaluation Numeric Indicator Badge
+          // 2. Crisp outer border overlay matching the pill radius without inset padding
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(thickness / 2),
+                  border: Border.all(
+                    color: borderColor,
+                    width: 1.2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 3. Evaluation Numeric Indicator Badge
           Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1.5),
               decoration: BoxDecoration(
                 color: isWhiteAdv
-                    ? Colors.white.withValues(alpha: 0.92)
+                    ? AppColors.pieceWhite.withValues(alpha: 0.92)
                     : (isBlackAdv
-                        ? const Color(0xFF15191E).withValues(alpha: 0.92)
-                        : Colors.grey.shade800.withValues(alpha: 0.85)),
+                        ? AppColors.advantageBadgeDark.withValues(alpha: 0.92)
+                        : AppColors.darkSurfaceElevated.withValues(alpha: 0.88)),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isWhiteAdv
-                      ? Colors.grey.shade300
-                      : (isBlackAdv ? Colors.grey.shade700 : Colors.transparent),
+                      ? AppColors.lightBorder
+                      : (isBlackAdv ? AppColors.darkBorder : Colors.transparent),
                   width: 0.8,
                 ),
                 boxShadow: [
@@ -210,8 +231,8 @@ class AiAdvantageBar extends StatelessWidget {
                     Icons.balance_rounded,
                     size: 11,
                     color: isWhiteAdv
-                        ? const Color(0xFF1B263B)
-                        : (isBlackAdv ? Colors.white70 : Colors.amberAccent),
+                        ? AppColors.advantageBadgeTextDark
+                        : (isBlackAdv ? AppColors.darkTextSecondary : AppColors.ratingGold),
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -221,8 +242,8 @@ class AiAdvantageBar extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0.2,
                       color: isWhiteAdv
-                          ? const Color(0xFF1B263B)
-                          : (isBlackAdv ? Colors.white : Colors.white),
+                          ? AppColors.advantageBadgeTextDark
+                          : AppColors.darkTextPrimary,
                     ),
                   ),
                 ],
@@ -242,46 +263,67 @@ class AiAdvantageBar extends StatelessWidget {
     bool isWhiteAdv,
     bool isBlackAdv,
   ) {
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final whiteFlex = (fraction * 1000).toInt().clamp(0, 1000);
+    final blackFlex = 1000 - whiteFlex;
+
     return Container(
       width: thickness,
       decoration: BoxDecoration(
-        color: Colors.black87,
         borderRadius: BorderRadius.circular(thickness / 2),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.black26,
-          width: 1.2,
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Vertical split: White at bottom, Black at top (standard chess style)
-          Column(
-            children: [
-              Expanded(
-                flex: ((1.0 - fraction) * 1000).toInt(),
-                child: Container(
-                  color: const Color(0xFF1E242B), // Black side
-                ),
+          // 1. Vertical split: Black at top, White at bottom (standard chess eval bar)
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(thickness / 2),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  if (blackFlex > 0)
+                    Expanded(
+                      flex: blackFlex,
+                      child: Container(
+                        color: AppColors.advantageBlack,
+                      ),
+                    ),
+                  if (whiteFlex > 0)
+                    Expanded(
+                      flex: whiteFlex,
+                      child: Container(
+                        color: AppColors.advantageWhite,
+                      ),
+                    ),
+                ],
               ),
-              Expanded(
-                flex: (fraction * 1000).toInt(),
-                child: Container(
-                  color: const Color(0xFFF0F2F5), // White side
-                ),
-              ),
-            ],
+            ),
           ),
 
-          // Small centered label pill
+          // 2. Crisp outer border overlay
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(thickness / 2),
+                  border: Border.all(
+                    color: borderColor,
+                    width: 1.2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 3. Small centered label pill
           Positioned(
             bottom: fraction > 0.5 ? 8 : null,
             top: fraction <= 0.5 ? 8 : null,
@@ -289,8 +331,8 @@ class AiAdvantageBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: BoxDecoration(
                 color: fraction > 0.5
-                    ? Colors.black.withValues(alpha: 0.75)
-                    : Colors.white.withValues(alpha: 0.9),
+                    ? AppColors.darkSurface.withValues(alpha: 0.8)
+                    : AppColors.lightCard.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -298,7 +340,7 @@ class AiAdvantageBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
-                  color: fraction > 0.5 ? Colors.white : Colors.black87,
+                  color: fraction > 0.5 ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                 ),
               ),
             ),

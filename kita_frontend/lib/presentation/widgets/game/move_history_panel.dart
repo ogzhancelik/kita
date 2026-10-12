@@ -101,10 +101,6 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
 
               return Row(
                 children: [
-                  // Live button (when viewing history)
-                  if (viewIdx >= 0 && onLiveTap != null)
-                    _LiveButton(onTap: onLiveTap),
-
                   // Move chips
                   Expanded(
                     child: ListView.builder(
@@ -114,7 +110,9 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
                       itemCount: moves.length,
                       itemBuilder: (_, index) {
                         final move = moves[index];
-                        final isViewingThis = viewIdx == index + 1; // +1 because index 0 is initial state
+                        final isLatestMove = index == moves.length - 1;
+                        final isViewingThis =
+                            (viewIdx == index + 1) || (viewIdx == -1 && isLatestMove);
                         final isWhiteMove = move.playerTeam == 'white';
                         final piece = KitaPiece.allPieces[move.pieceId];
 
@@ -124,7 +122,13 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
 
                         return GestureDetector(
                           onTap: () {
-                            if (isViewingThis) {
+                            if (isLatestMove) {
+                              if (widget.onLive != null) {
+                                widget.onLive!();
+                              } else if (onlineProv != null) {
+                                onlineProv.goLive();
+                              }
+                            } else if (isViewingThis) {
                               if (widget.onLive != null) {
                                 widget.onLive!();
                               } else if (onlineProv != null) {
@@ -206,6 +210,10 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
                       },
                     ),
                   ),
+
+                  // Live button (when viewing history, anchored on the right)
+                  if (viewIdx >= 0 && onLiveTap != null)
+                    _LiveButton(onTap: onLiveTap),
                 ],
               );
             },
@@ -227,7 +235,7 @@ class _LiveButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(left: 6),
+        margin: const EdgeInsets.only(right: 6, left: 4),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: AppColors.primaryGreen,

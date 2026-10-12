@@ -420,7 +420,7 @@ class OfflineGameProvider extends ChangeNotifier {
   // ─── Move History Scrubbing ───────────────────────────────────────
 
   void viewMoveAt(int index) {
-    if (index < 0 || index >= _engineSnapshots.length) {
+    if (index < 0 || index >= _engineSnapshots.length - 1) {
       goLive();
       return;
     }
@@ -460,8 +460,19 @@ class OfflineGameProvider extends ChangeNotifier {
 
   void viewLive() => goLive();
 
+  bool get canStepBackward {
+    if (_engineSnapshots.length <= 1) return false;
+    if (viewingMoveIndex.value == -1) return true;
+    return viewingMoveIndex.value > 0;
+  }
+
+  bool get canStepForward {
+    if (_engineSnapshots.length <= 1) return false;
+    return viewingMoveIndex.value >= 0;
+  }
+
   void stepBackward() {
-    if (_engineSnapshots.length <= 1) return;
+    if (!canStepBackward) return;
     final current = viewingMoveIndex.value;
     if (current == -1) {
       if (_engineSnapshots.length > 1) {
@@ -473,10 +484,10 @@ class OfflineGameProvider extends ChangeNotifier {
   }
 
   void stepForward() {
-    if (_engineSnapshots.length <= 1) return;
+    if (!canStepForward) return;
     final current = viewingMoveIndex.value;
     if (current == -1) return;
-    if (current < _engineSnapshots.length - 1) {
+    if (current < _engineSnapshots.length - 2) {
       viewMoveAt(current + 1);
     } else {
       goLive();

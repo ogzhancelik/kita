@@ -51,6 +51,8 @@ class MatchReplayScreen extends StatefulWidget {
 }
 
 class _MatchReplayScreenState extends State<MatchReplayScreen> {
+  static const double _moveRowHeight = 44.0;
+
   final MatchApiService _matchApiService = MatchApiService();
   final ScrollController _movesScrollController = ScrollController();
 
@@ -713,11 +715,11 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       );
       return;
     }
-    const rowHeight = 44.0;
     final rowIndex = (_currentStep - 1) ~/ 2;
-    final targetOffset = rowIndex * rowHeight;
+    final targetOffset = (rowIndex * _moveRowHeight)
+        .clamp(0.0, _movesScrollController.position.maxScrollExtent);
     _movesScrollController.animateTo(
-      targetOffset.clamp(0.0, _movesScrollController.position.maxScrollExtent),
+      targetOffset,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
@@ -1346,6 +1348,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       ),
       child: ListView.builder(
         controller: _movesScrollController,
+        itemExtent: _moveRowHeight,
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         itemCount: turnPairsCount,
         itemBuilder: (context, turnIndex) {
@@ -1487,7 +1490,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       onTap: () => _jumpToStep(plyIndex),
       borderRadius: BorderRadius.circular(6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6.5),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5.0),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(6),
@@ -1546,7 +1549,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       onTap: () => _jumpToStep(plyIndex),
       borderRadius: BorderRadius.circular(6),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6.5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5.0),
         decoration: BoxDecoration(
           color: isActive
               ? AppColors.primaryGreen

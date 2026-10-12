@@ -1,6 +1,5 @@
 {
   "appTitle": "Kita Online",
-  "appTagline": "Master the 4x7 tactical battle",
   "errValidationFailed": "Validation failed.",
   "errMissingField": "A required field is missing.",
   "errInvalidFormat": "Invalid format.",
