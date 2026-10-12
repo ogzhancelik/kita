@@ -47,6 +47,12 @@ class AppColors {
   static const Color lastMoveHighlight = Color(0xFFF7F769);
   static const Color lastMoveLine = accent;
 
+  // --- Board Dimmed / Gray Tile Colors ---
+  static const Color boardTileGray = Color(0xFF2C2F33);
+  static const Color boardTileGrayLight = Color(0xFFD4D8DD);
+  static Color getBoardTileGray(bool isDark) =>
+      isDark ? boardTileGray : boardTileGrayLight;
+
   // --- Board Piece Colors ---
   static const Color pieceWhite = Color(0xFFFFFFFF);
   static const Color pieceBlack = Color(0xFF16191F);

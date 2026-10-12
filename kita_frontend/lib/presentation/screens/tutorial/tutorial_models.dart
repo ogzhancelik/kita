@@ -21,6 +21,7 @@ class TutorialCard {
   final KitaPos? selectedPos;
   final Set<KitaPos>? validMoves;
   final Set<KitaPos>? tintedTiles;
+  final Set<KitaPos>? grayTiles;
   final List<KitaMove>? lastMoves;
 
   const TutorialCard({
@@ -31,6 +32,7 @@ class TutorialCard {
     this.selectedPos,
     this.validMoves,
     this.tintedTiles,
+    this.grayTiles,
     this.lastMoves,
   });
 }
@@ -38,23 +40,27 @@ class TutorialCard {
 /// Represents a single full tutorial page (Pages 1 to 8).
 class TutorialPage {
   final int pageNumber;
+  final String titleKey;
   final List<TutorialCard> cards;
   final InteractiveStepType interactiveType;
   final KitaGameEngine? initialEngine;
   final KitaPos? initialSelectedPos;
   final Set<KitaPos>? initialValidMoves;
   final Set<KitaPos>? initialTintedTiles;
+  final Set<KitaPos>? initialGrayTiles;
   final String? successKey;
   final String? tryItKey;
 
   const TutorialPage({
     required this.pageNumber,
+    required this.titleKey,
     required this.cards,
     this.interactiveType = InteractiveStepType.none,
     this.initialEngine,
     this.initialSelectedPos,
     this.initialValidMoves,
     this.initialTintedTiles,
+    this.initialGrayTiles,
     this.successKey,
     this.tryItKey,
   });
