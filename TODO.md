@@ -54,7 +54,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Online Post-Match Replay**: Support "Review Match" replay navigation directly from GameOverDialog in online matches.
 - [x] **Unified Deep Linking, File Association & Replay Sharing**: Comprehensive match replay sharing supporting in-app sharing links/codes (auto-uploading local offline games to server), direct `.kita` file OS association, and deep link universal routing.
 - [ ] **Account-Scoped Local Match Storage**: Isolate locally saved matches per user account ID instead of global shared device storage.
-- [ ] **Match History Lazy Pagination**: Implement infinite scrolling or lazy pagination for the Match History view to optimize performance and prevent bulk fetch lag.
+- [x] **Match History Lazy Pagination**: Implement infinite scrolling or lazy pagination for the Match History view to optimize performance and prevent bulk fetch lag.
 - [x] **Match History Date Grouping Dividers**: Remove individual date badges from match cards and group matches by day with slim date divider headers (e.g. "Today", "Yesterday", "2 Sep 2026", same format as Direct Chat.).
 
 ### 🛡️ Moderation & Support

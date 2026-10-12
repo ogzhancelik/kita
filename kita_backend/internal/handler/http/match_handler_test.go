@@ -37,6 +37,10 @@ func (m *mockMatchServiceForHandler) GetUserMatches(ctx context.Context, userID 
 	return nil, nil
 }
 
+func (m *mockMatchServiceForHandler) CountUserMatches(ctx context.Context, userID string) (int64, error) {
+	return 0, nil
+}
+
 func TestShareReplayHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	mockSvc := &mockMatchServiceForHandler{}

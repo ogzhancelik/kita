@@ -11,7 +11,7 @@ class LocalMatchHistoryService {
 
   static const String _keyMatches = 'kita_offline_matches_v1';
   static const String _keyShowOffline = 'kita_show_offline_matches';
-  static const int _maxStoredMatches = 50;
+  static const int _maxStoredMatches = 5000;
 
   /// ValueNotifier that increments on any match changes (saving, clearing, visibility toggle, or game over).
   final ValueNotifier<int> matchHistoryRevision = ValueNotifier<int>(0);
@@ -73,6 +73,8 @@ class LocalMatchHistoryService {
   Future<List<MatchRecordModel>> getMatches({
     String? userId,
     bool? isGuest,
+    int? limit,
+    int? offset,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -96,7 +98,18 @@ class LocalMatchHistoryService {
         }
       }
 
-      return results;
+      var filtered = results;
+      if (offset != null && offset > 0) {
+        if (offset >= filtered.length) {
+          return [];
+        }
+        filtered = filtered.sublist(offset);
+      }
+      if (limit != null && limit > 0 && filtered.length > limit) {
+        filtered = filtered.sublist(0, limit);
+      }
+
+      return filtered;
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error getting matches: $e');
       return [];

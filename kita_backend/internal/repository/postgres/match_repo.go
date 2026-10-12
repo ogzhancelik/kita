@@ -230,6 +230,15 @@ func (r *matchRepo) FindUserMatches(ctx context.Context, userID string, limit, o
 	return matches, nil
 }
 
+func (r *matchRepo) CountUserMatches(ctx context.Context, userID string) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&domain.Match{}).
+		Where("(white_player_id = ? OR black_player_id = ?) AND total_moves > 1", userID, userID).
+		Count(&count).Error
+	return count, err
+}
+
 func (r *matchRepo) GetMovesByMatchID(ctx context.Context, matchID string) ([]domain.MoveRecord, error) {
 	var match domain.Match
 	err := r.db.WithContext(ctx).

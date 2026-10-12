@@ -80,6 +80,7 @@ func (h *MatchHandler) GetUserMatches(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"user_id": userID,
 			"count":   0,
+			"total":   0,
 			"matches": []domain.Match{},
 		})
 		return
@@ -103,9 +104,15 @@ func (h *MatchHandler) GetUserMatches(c *gin.Context) {
 		return
 	}
 
+	total, err := h.matchService.CountUserMatches(c.Request.Context(), userID)
+	if err != nil {
+		total = int64(len(matches))
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"user_id": userID,
 		"count":   len(matches),
+		"total":   total,
 		"matches": matches,
 	})
 }

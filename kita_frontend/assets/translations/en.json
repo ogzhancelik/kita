@@ -306,7 +306,9 @@
     "showOfflineMatches": "Show Offline Matches",
     "blackTeam": "Black Player",
     "whiteTeam": "White Player",
-    "guestOfflineNotice": "Showing offline games on this device. These will be deleted when you log off."
+    "guestOfflineNotice": "Showing offline games on this device. These will be deleted when you log off.",
+    "loadMoreError": "Failed to load older matches",
+    "allMatchesLoaded": "All matches loaded"
   },
   "replay": {
     "title": "Match Replay",

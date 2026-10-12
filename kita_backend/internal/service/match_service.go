@@ -170,6 +170,10 @@ func (s *matchService) GetUserMatches(ctx context.Context, userID string, limit,
 	return s.matchRepo.FindUserMatches(ctx, userID, limit, offset)
 }
 
+func (s *matchService) CountUserMatches(ctx context.Context, userID string) (int64, error) {
+	return s.matchRepo.CountUserMatches(ctx, userID)
+}
+
 const (
 	glickoTau   = 0.5
 	glickoScale = 173.7178

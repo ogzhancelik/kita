@@ -26,18 +26,71 @@ class MatchHistoryScreen extends StatefulWidget {
 class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
   final MatchApiService _matchApiService = MatchApiService();
 
+  static const int _pageSize = 20;
+
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   String? _errorMessage;
+  String? _loadMoreError;
   bool _showOfflineMatches = true;
+
+  final ScrollController _scrollController = ScrollController();
 
   List<MatchRecordModel> _onlineMatches = [];
   List<MatchRecordModel> _offlineMatches = [];
   List<MatchRecordModel> _visibleMatches = [];
 
+  int _onlineOffset = 0;
+  bool _hasMoreOnline = true;
+  int _displayLimit = _pageSize;
+  bool _hasMore = false;
+  int _totalOnlineMatches = 0;
+
+  int get _totalMatchCount {
+    final authProv = context.read<AuthProvider>();
+    final isGuest = authProv.isGuest || authProv.currentUser == null;
+    final onlineCount = isGuest
+        ? 0
+        : (_totalOnlineMatches > _onlineMatches.length
+            ? _totalOnlineMatches
+            : _onlineMatches.length);
+    final offlineCount = _showOfflineMatches ? _offlineMatches.length : 0;
+    return onlineCount + offlineCount;
+  }
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
+    LocalMatchHistoryService.instance.matchHistoryRevision
+        .addListener(_onRevisionChanged);
     _fetchMatches();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    LocalMatchHistoryService.instance.matchHistoryRevision
+        .removeListener(_onRevisionChanged);
+    super.dispose();
+  }
+
+  void _onRevisionChanged() {
+    if (mounted) {
+      _fetchMatches();
+    }
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 300) {
+      if (_hasMore && !_isLoading && !_isLoadingMore) {
+        _loadMoreMatches();
+      }
+    }
   }
 
   Future<void> _fetchMatches() async {
@@ -48,6 +101,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _loadMoreError = null;
+      _onlineOffset = 0;
+      _hasMoreOnline = true;
+      _displayLimit = _pageSize;
     });
 
     try {
@@ -63,17 +120,30 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       if (!isGuest) {
         try {
           context.read<AuthProvider>().refreshProfile();
-          final list = await _matchApiService
-              .getUserMatches(user.id)
+          final result = await _matchApiService
+              .getUserMatchesWithTotal(
+                user.id,
+                limit: _pageSize,
+                offset: 0,
+              )
               .timeout(const Duration(seconds: 6));
-          _onlineMatches = list;
+          _onlineMatches = result.matches;
+          _onlineOffset = result.matches.length;
+          _hasMoreOnline = result.matches.length == _pageSize;
+          _totalOnlineMatches = result.totalCount > 0
+              ? result.totalCount
+              : (user.totalGames > 0 ? user.totalGames : result.matches.length);
         } catch (e) {
           if (_offlineMatches.isEmpty) {
             _errorMessage = e.toString();
           }
+          _totalOnlineMatches = user.totalGames > 0 ? user.totalGames : 0;
         }
       } else {
         _onlineMatches = [];
+        _hasMoreOnline = false;
+        _onlineOffset = 0;
+        _totalOnlineMatches = 0;
       }
 
       _recomputeVisibleMatches();
@@ -94,6 +164,61 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     }
   }
 
+  Future<void> _loadMoreMatches() async {
+    if (_isLoading || _isLoadingMore || !_hasMore) return;
+
+    final authProv = context.read<AuthProvider>();
+    final user = authProv.currentUser;
+    final isGuest = authProv.isGuest || user == null;
+
+    setState(() {
+      _isLoadingMore = true;
+      _loadMoreError = null;
+    });
+
+    try {
+      if (!isGuest && _hasMoreOnline) {
+        final result = await _matchApiService
+            .getUserMatchesWithTotal(
+              user.id,
+              limit: _pageSize,
+              offset: _onlineOffset,
+            )
+            .timeout(const Duration(seconds: 6));
+
+        if (result.matches.isNotEmpty) {
+          _onlineMatches.addAll(result.matches);
+          _onlineOffset += result.matches.length;
+        }
+        if (result.totalCount > 0) {
+          _totalOnlineMatches = result.totalCount;
+        }
+        if (result.matches.length < _pageSize) {
+          _hasMoreOnline = false;
+        }
+      }
+
+      _displayLimit += _pageSize;
+
+      if (mounted) {
+        setState(() {
+          _recomputeVisibleMatches();
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[MatchHistoryScreen] Error loading more matches: $e');
+      if (mounted) {
+        setState(() {
+          _displayLimit += _pageSize;
+          _recomputeVisibleMatches();
+          _isLoadingMore = false;
+          _loadMoreError = 'history.loadMoreError'.tr();
+        });
+      }
+    }
+  }
+
   void _recomputeVisibleMatches() {
     final List<MatchRecordModel> combined = [];
 
@@ -108,7 +233,17 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     // Sort chronologically (most recent first)
     combined.sort((a, b) => b.startedAt.compareTo(a.startedAt));
 
-    _visibleMatches = combined;
+    // Deduplicate in case matches exist both online and locally
+    final seenIds = <String>{};
+    final deduplicated = <MatchRecordModel>[];
+    for (final m in combined) {
+      if (seenIds.add(m.id)) {
+        deduplicated.add(m);
+      }
+    }
+
+    _visibleMatches = deduplicated.take(_displayLimit).toList();
+    _hasMore = _hasMoreOnline || deduplicated.length > _visibleMatches.length;
   }
 
   Future<void> _toggleOfflineFilter(bool value) async {
@@ -505,6 +640,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             : RefreshIndicator(
                 onRefresh: _fetchMatches,
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10.0, vertical: 12.0),
@@ -529,9 +665,9 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                                   : AppColors.lightTextPrimary,
                             ),
                           ),
-                          if (_visibleMatches.isNotEmpty)
+                          if (_totalMatchCount > 0)
                             Text(
-                              '${_visibleMatches.length}',
+                              '$_totalMatchCount',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -611,6 +747,43 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                             );
                           },
                         ),
+                        if (_isLoadingMore) ...[
+                          const SizedBox(height: 12),
+                          const Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ] else if (_loadMoreError != null) ...[
+                          const SizedBox(height: 12),
+                          Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _loadMoreError!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? AppColors.darkTextMuted
+                                        : AppColors.lightTextMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                KitaButton(
+                                  text: 'common.retry'.tr(),
+                                  height: 32,
+                                  fontSize: 12,
+                                  onPressed: _loadMoreMatches,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                       ],
                       const SizedBox(height: 24),
                     ],

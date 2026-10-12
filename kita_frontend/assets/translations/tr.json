@@ -306,7 +306,9 @@
     "showOfflineMatches": "Çevrimdışı Maçları Göster",
     "blackTeam": "Siyah Oyuncu",
     "whiteTeam": "Beyaz Oyuncu",
-    "guestOfflineNotice": "Bu cihazdaki çevrimdışı maçlar gösteriliyor. Çıkış yaptığınızda silinecektir."
+    "guestOfflineNotice": "Bu cihazdaki çevrimdışı maçlar gösteriliyor. Çıkış yaptığınızda silinecektir.",
+    "loadMoreError": "Eski maçlar yüklenemedi",
+    "allMatchesLoaded": "Tüm maçlar yüklendi"
   },
   "replay": {
     "title": "Maç Tekrarı",

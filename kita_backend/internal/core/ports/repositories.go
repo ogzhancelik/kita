@@ -21,6 +21,7 @@ type MatchRepository interface {
 	SaveReplay(ctx context.Context, match *domain.Match) error
 	FindByID(ctx context.Context, id string) (*domain.Match, error)
 	FindUserMatches(ctx context.Context, userID string, limit, offset int) ([]domain.Match, error)
+	CountUserMatches(ctx context.Context, userID string) (int64, error)
 	GetMovesByMatchID(ctx context.Context, matchID string) ([]domain.MoveRecord, error)
 }
 

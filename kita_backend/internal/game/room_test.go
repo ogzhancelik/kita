@@ -50,6 +50,10 @@ func (m *mockMatchService) GetUserMatches(ctx context.Context, userID string, li
 	return nil, nil
 }
 
+func (m *mockMatchService) CountUserMatches(ctx context.Context, userID string) (int64, error) {
+	return 0, nil
+}
+
 func setupTestWS(t *testing.T) (*websocket.Conn, *websocket.Conn) {
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	var serverConn *websocket.Conn

@@ -24,6 +24,7 @@ type MatchService interface {
 	GetMatchDetails(ctx context.Context, matchID string) (*domain.Match, error)
 	GetMatchMoves(ctx context.Context, matchID string) ([]domain.MoveRecord, error)
 	GetUserMatches(ctx context.Context, userID string, limit, offset int) ([]domain.Match, error)
+	CountUserMatches(ctx context.Context, userID string) (int64, error)
 }
 
 type MessageService interface {
