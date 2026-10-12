@@ -137,4 +137,8 @@ class AppTheme {
       ),
     );
   }
+
+  static Color getBoardTileGray(bool isDark) =>
+      AppColors.getBoardTileGray(isDark);
 }
+

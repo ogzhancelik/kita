@@ -49,6 +49,7 @@ class _TutorialScreenState extends State<TutorialScreen>
   late final List<TutorialPage> _pages;
   int _currentPageIndex = 0;
   int _currentCardIndex = 0;
+  bool _showPracticePrompt = false;
 
   // Interactive page state
   KitaGameEngine? _interactiveEngine;
@@ -380,7 +381,35 @@ class _TutorialScreenState extends State<TutorialScreen>
     _onNextPage();
   }
 
+  bool get _canGoPrevious =>
+      _showPracticePrompt || _currentPageIndex > 0 || _currentCardIndex > 0;
+
+  void _onTapLeft() {
+    if (_interactiveFeedback != null) {
+      _onResetStep();
+      return;
+    }
+    if (_canGoPrevious) {
+      HapticService.instance.selection();
+      _onPrevious();
+    }
+  }
+
+  void _onTapRight() {
+    if (_showPracticePrompt) return;
+    HapticService.instance.selection();
+    _onScreenTap();
+  }
+
   void _onPrevious() {
+    if (_showPracticePrompt) {
+      setState(() {
+        _showPracticePrompt = false;
+        _initPageState();
+      });
+      return;
+    }
+
     if (_currentPageIndex == 5 && _currentCardIndex == 1) {
       setState(() {
         _currentCardIndex = 0;
@@ -413,7 +442,9 @@ class _TutorialScreenState extends State<TutorialScreen>
 
   void _onNextPage() async {
     if (_isLastPageOverall) {
-      _launchPracticeBotMatch();
+      setState(() {
+        _showPracticePrompt = true;
+      });
       return;
     }
 
@@ -791,6 +822,189 @@ class _TutorialScreenState extends State<TutorialScreen>
     );
   }
 
+  Widget _buildPracticePromptPage(bool isDark) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: KitaCard(
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Celebratory Trophy Badge
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentGold.withValues(alpha: 0.16),
+                  border: Border.all(
+                    color: AppColors.accentGold.withValues(alpha: 0.45),
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: AppColors.accentGold,
+                  size: 38,
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Title
+              Text(
+                'tutorial.practiceTitle'.tr(),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.getTextPrimary(isDark),
+                  letterSpacing: -0.3,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+
+              // Description
+              Text(
+                'tutorial.practiceDesc'.tr(),
+                style: TextStyle(
+                  fontSize: 14.5,
+                  height: 1.45,
+                  color: AppColors.getTextSecondary(isDark),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 22),
+
+              // Match details preview card
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.darkSurfaceElevated
+                      : AppColors.lightSurfaceElevated,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.smart_toy_rounded,
+                        color: AppColors.primaryLight,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'game.aiBot'.tr(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.getTextPrimary(isDark),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'game.easy'.tr(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.getTextMuted(isDark),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentGold.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Lv. 1',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.accentGold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons: Play (Primary) and Cancel
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: _launchPracticeBotMatch,
+                  icon: const Icon(Icons.play_arrow_rounded, size: 24),
+                  label: Text(
+                    'tutorial.playPracticeBot'.tr(),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.getBrandPrimary(isDark),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await _markTutorialCompleted();
+                    if (mounted) Navigator.of(context).pop();
+                  },
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: Text(
+                    'common.cancel'.tr(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.getTextSecondary(isDark),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRichText(String text, bool isDark) {
     final spans = <InlineSpan>[];
     final defaultColor = isDark ? Colors.white : AppColors.lightTextPrimary;
@@ -891,6 +1105,35 @@ class _TutorialScreenState extends State<TutorialScreen>
     return '${KitaMove.formatPos(m.toPos)}${KitaMove.formatPos(m.fromPos)}';
   }
 
+  Color _getLessonColor(KitaBoardTheme theme, int stepIndex, int totalSteps) {
+    if (totalSteps <= 1) return theme.getColorForValue(1);
+    final double t = stepIndex / (totalSteps - 1);
+
+    final Color c1 = theme.getColorForValue(1);
+    final Color c2 = theme.getColorForValue(2);
+    final Color c3 = theme.getColorForValue(3);
+
+    // Board themes range from light (Value 3) to dark (Value 1).
+    // Ensure cStart is lighter and cEnd is darker so the progress bar darkens as lessons advance.
+    final Color cStart;
+    final Color cMid = c2;
+    final Color cEnd;
+
+    if (c3.computeLuminance() >= c1.computeLuminance()) {
+      cStart = c3;
+      cEnd = c1;
+    } else {
+      cStart = c1;
+      cEnd = c3;
+    }
+
+    if (t <= 0.5) {
+      return Color.lerp(cStart, cMid, t / 0.5) ?? cStart;
+    } else {
+      return Color.lerp(cMid, cEnd, (t - 0.5) / 0.5) ?? cEnd;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -924,6 +1167,9 @@ class _TutorialScreenState extends State<TutorialScreen>
     final Set<KitaPos> displayTintedTiles =
         card.tintedTiles ?? page.initialTintedTiles ?? const {};
 
+    final Set<KitaPos> displayGrayTiles =
+        card.grayTiles ?? page.initialGrayTiles ?? const {};
+
     // Compute dynamic text for Page 3 and Page 4
     String cardRawText = card.textKey.tr(namedArgs: card.namedArgs);
 
@@ -951,10 +1197,64 @@ class _TutorialScreenState extends State<TutorialScreen>
       body: SafeArea(
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
-          onTap: _onScreenTap,
-          child: ResponsiveLayout(
-            maxWidth: 520,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          onTapUp: (details) {
+            final screenWidth = MediaQuery.of(context).size.width;
+            if (details.globalPosition.dx < screenWidth * 0.4) {
+              _onTapLeft();
+            } else {
+              _onTapRight();
+            }
+          },
+          child: Stack(
+            children: [
+              // Subtle Left Edge Gradient Background
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 28,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.04 : 0.03),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Subtle Right Edge Gradient Background
+              if (!_showPracticePrompt)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 28,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerRight,
+                          end: Alignment.centerLeft,
+                          colors: [
+                            AppColors.getBrandPrimary(isDark).withValues(alpha: isDark ? 0.08 : 0.05),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              ResponsiveLayout(
+                maxWidth: 520,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Column(
               children: [
                 // Top Navigation Bar
@@ -970,41 +1270,56 @@ class _TutorialScreenState extends State<TutorialScreen>
                         tooltip: 'common.back'.tr(),
                         onPressed: _onPrevious,
                       ),
-                      const SizedBox(width: 6),
-
-                      // Page Pill Indicator
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkSurface
-                              : AppColors.lightSurface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder,
-                          ),
-                        ),
-                        child: Text(
-                          'tutorial.pageOf'.tr(namedArgs: {
-                            'current': '${page.pageNumber}',
-                            'total': '${_pages.length}',
-                          }),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.getTextPrimary(isDark),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Container(
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.darkSurfaceElevated
+                                  : AppColors.lightSurfaceElevated,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.darkBorder
+                                    : AppColors.lightBorder,
+                                width: 0.8,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Row(
+                              children: [
+                                for (int i = 0; i < _pages.length; i++) ...[
+                                  if (i > 0)
+                                    Container(
+                                      width: 1.5,
+                                      color: isDark
+                                          ? AppColors.darkBg
+                                          : AppColors.lightBg,
+                                    ),
+                                  Expanded(
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeOutCubic,
+                                      color: (_showPracticePrompt || i <= _currentPageIndex)
+                                          ? _getLessonColor(
+                                              theme,
+                                              i,
+                                              _pages.length,
+                                            )
+                                          : Colors.transparent,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                      const Spacer(),
 
                       // Close / Skip Button
-                      if (widget.isFirstLaunch)
+                      if (widget.isFirstLaunch && !_showPracticePrompt)
                         TextButton(
                           onPressed: () async {
                             await _markTutorialCompleted();
@@ -1028,19 +1343,48 @@ class _TutorialScreenState extends State<TutorialScreen>
                             color: AppColors.getTextSecondary(isDark),
                           ),
                           tooltip: 'common.close'.tr(),
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () async {
+                            if (_showPracticePrompt) {
+                              await _markTutorialCompleted();
+                            }
+                            if (context.mounted) Navigator.of(context).pop();
+                          },
                         ),
                     ],
                   ),
                 ),
 
-                // Board & Cards Area
-                Expanded(
-                  child: SingleChildScrollView(
+                if (_showPracticePrompt)
+                  Expanded(
+                    child: _buildPracticePromptPage(isDark),
+                  )
+                else ...[
+                  // Board & Cards Area
+                  Expanded(
+                    child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Page Title Header inside page content
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 8, left: 6, right: 6),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: Text(
+                              page.titleKey.tr(),
+                              key: ValueKey<String>(page.titleKey),
+                              style: TextStyle(
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                                color: AppColors.getTextPrimary(isDark),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+
                         // Board Frame Card
                         KitaCard(
                           padding: const EdgeInsets.all(6),
@@ -1132,6 +1476,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                                       customSelectedPos: displaySelectedPos,
                                       customValidMoves: displayValidMoves,
                                       tintedTiles: displayTintedTiles,
+                                      grayTiles: displayGrayTiles,
                                       lastMoves: displayEngine.lastTwoMoves.isNotEmpty
                                           ? displayEngine.lastTwoMoves
                                           : [
@@ -1287,87 +1632,6 @@ class _TutorialScreenState extends State<TutorialScreen>
                                     ),
                                   ),
                                 ],
-
-                                // Page 8 Completion / Practice Bot Card
-                                if (page.pageNumber == 8) ...[
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.accentGold.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: AppColors.accentGold.withValues(alpha: 0.35),
-                                      ),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.emoji_events_rounded,
-                                              color: AppColors.accentGold,
-                                              size: 24,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Text(
-                                              'tutorial.practiceTitle'.tr(),
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w800,
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : AppColors.lightTextPrimary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'tutorial.practiceDesc'.tr(),
-                                          style: TextStyle(
-                                            fontSize: 13.5,
-                                            color: isDark
-                                                ? Colors.white70
-                                                : AppColors.lightTextSecondary,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.accentGold.withValues(alpha: 0.16),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.touch_app_rounded,
-                                                color: AppColors.accentGold,
-                                                size: 20,
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: Text(
-                                                  'tutorial.practiceTapPrompt'.tr(),
-                                                  style: const TextStyle(
-                                                    fontSize: 13.5,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: AppColors.accentGold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
                           ),
@@ -1377,71 +1641,176 @@ class _TutorialScreenState extends State<TutorialScreen>
                   ),
                 ),
 
-                // Bottom Pulse Indicator
+                // Bottom Navigation Indicator
                 Builder(
                   builder: (context) {
-                    final String? indicatorText = isBoardInteractive
-                        ? 'tutorial.makeYourMove'.tr()
-                        : (_interactiveFeedback != null
-                            ? 'tutorial.reset'.tr()
-                            : null);
-
-                    final IconData indicatorIcon = isBoardInteractive
-                        ? Icons.touch_app_rounded
-                        : (_interactiveFeedback != null
-                            ? Icons.replay_rounded
-                            : Icons.touch_app_rounded);
-
-                    final Color indicatorColor = isBoardInteractive
-                        ? AppColors.accentGold
-                        : (_interactiveFeedback != null
-                            ? AppColors.lossRed
-                            : AppColors.accent);
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: ScaleTransition(
-                        scale: _pulseAnimation,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: indicatorText != null ? 14 : 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: indicatorColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                indicatorIcon,
-                                size: 16,
-                                color: indicatorColor,
+                    if (isBoardInteractive && !_interactiveCompleted) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: ScaleTransition(
+                          scale: _pulseAnimation,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentGold.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.accentGold.withValues(alpha: 0.35),
+                                width: 0.8,
                               ),
-                              if (indicatorText != null) ...[
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.touch_app_rounded,
+                                  size: 16,
+                                  color: AppColors.accentGold,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  indicatorText,
-                                  style: TextStyle(
+                                  'tutorial.makeYourMove'.tr(),
+                                  style: const TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w700,
-                                    color: indicatorColor,
+                                    color: AppColors.accentGold,
                                   ),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
+                        ),
+                      );
+                    }
+
+                    if (_interactiveFeedback != null && !_interactiveCompleted) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: ScaleTransition(
+                          scale: _pulseAnimation,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: AppColors.lossRed.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.lossRed.withValues(alpha: 0.35),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.replay_rounded,
+                                  size: 16,
+                                  color: AppColors.lossRed,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'tutorial.reset'.tr(),
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.lossRed,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Default dual-zone indicator: Left = Geri (Back), Right = İleri (Next)
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppColors.darkSurfaceElevated
+                              : AppColors.lightSurfaceElevated,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Left Zone: Geri (Back)
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _onTapLeft,
+                              child: Opacity(
+                                opacity: _canGoPrevious ? 0.9 : 0.35,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.arrow_back_ios_new_rounded,
+                                      size: 13,
+                                      color: AppColors.getTextSecondary(isDark),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      'common.back'.tr(),
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.getTextSecondary(isDark),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Container(
+                              height: 14,
+                              width: 1,
+                              margin: const EdgeInsets.symmetric(horizontal: 14),
+                              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            ),
+                            // Right Zone: İleri (Next)
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _onTapRight,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'tutorial.next'.tr(),
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.getBrandPrimary(isDark),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 13,
+                                    color: AppColors.getBrandPrimary(isDark),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
                   },
                 ),
               ],
+              ],
             ),
           ),
-        ),
+        ],
       ),
-    );
+    ),
+  ),
+);
   }
 }

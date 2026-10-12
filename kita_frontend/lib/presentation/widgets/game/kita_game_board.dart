@@ -66,6 +66,9 @@ class KitaGameBoard extends StatefulWidget {
   /// Custom tint color (defaults to mint)
   final Color? tintColor;
 
+  /// Set of tile positions to render in gray (used for tutorial highlights)
+  final Set<KitaPos> grayTiles;
+
   /// Callback when a valid move is made by the player
   final void Function(KitaMove move)? onMakeMove;
 
@@ -87,6 +90,7 @@ class KitaGameBoard extends StatefulWidget {
     this.customValidMoves,
     this.tintedTiles = const {},
     this.tintColor,
+    this.grayTiles = const {},
     this.onMakeMove,
   });
 
@@ -433,6 +437,7 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
       validMoves: effectiveValidMoves,
       tintedTiles: widget.tintedTiles,
       tintColor: widget.tintColor,
+      grayTiles: widget.grayTiles,
       lastMoves: effectiveLastMoves,
       lastMove: effectiveLastMove,
       lastMoveIndicator: lastMoveIndicator,

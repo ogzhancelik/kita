@@ -37,6 +37,7 @@ class TutorialLessonsData {
 
     return TutorialPage(
       pageNumber: 1,
+      titleKey: 'tutorial.page1Title',
       cards: [
         TutorialCard(
           textKey: 'tutorial.page1Card1',
@@ -73,9 +74,10 @@ class TutorialLessonsData {
     );
   }
 
-  /// Page 2: Tile values 1, 2, 3 highlighted one by one with yellow number in text
+  /// Page 2: Tile values 1, 2, 3 shown in their natural colors while other tiles are grayed out
   static TutorialPage _buildPage2() {
     final standardEngine = KitaGameEngine();
+    final allTiles = KitaBoardConfig.tiles.keys.toSet();
     final val1 = KitaBoardConfig.tiles.entries
         .where((e) => e.value == 1)
         .map((e) => e.key)
@@ -91,21 +93,22 @@ class TutorialLessonsData {
 
     return TutorialPage(
       pageNumber: 2,
+      titleKey: 'tutorial.page2Title',
       cards: [
         TutorialCard(
           textKey: 'tutorial.page2Card1',
           engine: standardEngine,
-          tintedTiles: val1,
+          grayTiles: allTiles.difference(val1),
         ),
         TutorialCard(
           textKey: 'tutorial.page2Card2',
           engine: standardEngine,
-          tintedTiles: val2,
+          grayTiles: allTiles.difference(val2),
         ),
         TutorialCard(
           textKey: 'tutorial.page2Card3',
           engine: standardEngine,
-          tintedTiles: val3,
+          grayTiles: allTiles.difference(val3),
         ),
       ],
     );
@@ -119,6 +122,7 @@ class TutorialLessonsData {
 
     return TutorialPage(
       pageNumber: 3,
+      titleKey: 'tutorial.page3Title',
       interactiveType: InteractiveStepType.freeMove,
       initialEngine: standardEngine,
       tryItKey: 'tutorial.tryIt',
@@ -143,6 +147,7 @@ class TutorialLessonsData {
 
     return TutorialPage(
       pageNumber: 4,
+      titleKey: 'tutorial.page4Title',
       interactiveType: InteractiveStepType.undoDemonstration,
       initialEngine: standardEngine,
       tryItKey: 'tutorial.tryIt',
@@ -183,6 +188,7 @@ class TutorialLessonsData {
 
     return TutorialPage(
       pageNumber: 5,
+      titleKey: 'tutorial.page5Title',
       interactiveType: InteractiveStepType.forcedException,
       initialEngine: forcedEngine,
       tryItKey: 'tutorial.tryIt',
@@ -246,6 +252,7 @@ class TutorialLessonsData {
 
     return TutorialPage(
       pageNumber: 6,
+      titleKey: 'tutorial.page6Title',
       interactiveType: InteractiveStepType.captureKing,
       initialEngine: captureEngine,
       tryItKey: 'tutorial.tryItWin',
@@ -291,6 +298,7 @@ class TutorialLessonsData {
 
     return TutorialPage(
       pageNumber: 7,
+      titleKey: 'tutorial.page7Title',
       interactiveType: InteractiveStepType.retaliationDraw,
       initialEngine: retaliationEngine,
       tryItKey: 'tutorial.tryIt',
@@ -331,6 +339,7 @@ class TutorialLessonsData {
 
     return TutorialPage(
       pageNumber: 8,
+      titleKey: 'tutorial.page8Title',
       interactiveType: InteractiveStepType.repetitionLoop,
       initialEngine: repetitionEngine,
       cards: [

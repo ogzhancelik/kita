@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import 'kita_board_theme.dart';
 import 'last_move_line_painter.dart';
@@ -87,6 +88,9 @@ class KitaBoardWidget extends StatelessWidget {
   /// Custom tint color for [tintedTiles] (defaults to soft mint #2DD4BF)
   final Color? tintColor;
 
+  /// Set of tile positions to render in gray (used in tutorial to isolate specific tile values)
+  final Set<KitaPos> grayTiles;
+
   /// Optional custom widget builder for pieces
   final Widget Function(BuildContext context, KitaPiece piece, double size)?
   pieceBuilder;
@@ -98,6 +102,7 @@ class KitaBoardWidget extends StatelessWidget {
     this.validMoves = const {},
     this.tintedTiles = const {},
     this.tintColor,
+    this.grayTiles = const {},
     this.lastMoves,
     this.lastMoveWhite,
     this.lastMoveBlack,
@@ -332,8 +337,14 @@ class KitaBoardWidget extends StatelessWidget {
     final pieceId = posToPiece[canonicalPos];
     final piece = pieceId != null ? KitaPiece.allPieces[pieceId] : null;
 
-    // Heatmap background color strictly derived from tile value (1, 2, or 3)
-    final cellBaseColor = theme.getColorForValue(tileValue);
+    final bool isGray = grayTiles.contains(canonicalPos);
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Heatmap background color strictly derived from tile value (1, 2, or 3),
+    // or dimmed gray if marked as grayTile (used in tutorial tile value isolation)
+    final cellBaseColor = isGray
+        ? AppColors.getBoardTileGray(isDark)
+        : theme.getColorForValue(tileValue);
 
     // Coordinates:
     // First column: row labels (A, B, C, D)
@@ -460,7 +471,11 @@ class KitaBoardWidget extends StatelessWidget {
                                         )
                                       : isTinted
                                           ? effectiveTintColor.withValues(alpha: 0.95)
-                                          : Colors.white.withValues(alpha: 0.15),
+                                          : isGray
+                                              ? (isDark
+                                                  ? AppColors.darkBorder.withValues(alpha: 0.5)
+                                                  : AppColors.lightBorder)
+                                              : Colors.white.withValues(alpha: 0.15),
                       width: effectiveBorderWidth,
                     ),
                     boxShadow: [
@@ -511,7 +526,9 @@ class KitaBoardWidget extends StatelessWidget {
                                   ? (isCurrentTurn
                                       ? Colors.black87
                                       : theme.tileValueColor)
-                                  : theme.tileValueColor,
+                                  : isGray
+                                      ? theme.tileValueColor.withValues(alpha: 0.35)
+                                      : theme.tileValueColor,
                             ),
                           ),
                         ),
@@ -530,7 +547,9 @@ class KitaBoardWidget extends StatelessWidget {
                                   ? (isCurrentTurn
                                       ? Colors.black54
                                       : theme.coordinateLabelColor)
-                                  : theme.coordinateLabelColor,
+                                  : isGray
+                                      ? theme.coordinateLabelColor.withValues(alpha: 0.35)
+                                      : theme.coordinateLabelColor,
                             ),
                           ),
                         ),
@@ -549,7 +568,9 @@ class KitaBoardWidget extends StatelessWidget {
                                   ? (isCurrentTurn
                                       ? Colors.black54
                                       : theme.coordinateLabelColor)
-                                  : theme.coordinateLabelColor,
+                                  : isGray
+                                      ? theme.coordinateLabelColor.withValues(alpha: 0.35)
+                                      : theme.coordinateLabelColor,
                             ),
                           ),
                         ),
