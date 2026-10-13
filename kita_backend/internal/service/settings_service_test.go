@@ -46,6 +46,10 @@ func (m *mockUserRepo) Delete(ctx context.Context, id string) error             
 func (m *mockUserRepo) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepo) Search(ctx context.Context, query string, excludeUserID string, limit int) ([]domain.User, error) {
+	return nil, nil
+}
+
 
 func TestSettingsService_GetSettings_DefaultFallback(t *testing.T) {
 	repo := newMockSettingsRepo()

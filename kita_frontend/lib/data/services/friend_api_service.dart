@@ -36,6 +36,23 @@ class FriendApiService {
         .toList();
   }
 
+  /// Searches players globally by query string
+  Future<List<PlayerSearchResultModel>> searchPlayers(String query, [int limit = 20]) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return [];
+
+    final response = await _client.dio.get(
+      ApiConstants.searchUsers(trimmed, limit),
+      options: Options(extra: {'silent': true}),
+    );
+    final data = response.data as Map<String, dynamic>;
+    final list = data['users'] as List<dynamic>? ?? [];
+
+    return list
+        .map((item) => PlayerSearchResultModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Sends a friend request to a target username
   Future<void> sendFriendRequest(String username) async {
     await _client.dio.post(

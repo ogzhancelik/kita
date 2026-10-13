@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type mockUserRepoForUserService struct {
@@ -69,6 +70,21 @@ func (m *mockUserRepoForUserService) GetLeaderboard(ctx context.Context, limit i
 	}
 	return filtered, nil
 }
+
+func (m *mockUserRepoForUserService) Search(ctx context.Context, query string, excludeUserID string, limit int) ([]domain.User, error) {
+	var res []domain.User
+	q := strings.ToLower(query)
+	for _, u := range m.users {
+		if excludeUserID != "" && u.ID == excludeUserID {
+			continue
+		}
+		if strings.Contains(strings.ToLower(u.Username), q) {
+			res = append(res, u)
+		}
+	}
+	return res, nil
+}
+
 
 type mockFriendRepoForUserService struct {
 	friends []domain.Friendship
@@ -276,17 +292,30 @@ func TestUserService_UpdateUsername(t *testing.T) {
 }
 
 func TestUserService_DeleteAccount(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
 	userRepo := &mockUserRepoForUserService{
 		users: []domain.User{
-			{ID: "u1", Username: "playerOne", Rating: 1200},
+			{ID: "u1", Username: "playerOne", PasswordHash: string(hash), Rating: 1200},
 		},
 	}
 	friendRepo := &mockFriendRepoForUserService{}
 	svc := NewUserService(userRepo, friendRepo)
 	ctx := context.Background()
 
-	// 1. Delete existing account
-	err := svc.DeleteAccount(ctx, "u1")
+	// 1. Delete with wrong password
+	err := svc.DeleteAccount(ctx, "u1", "wrongpass")
+	if err != ErrWrongPassword {
+		t.Fatalf("expected ErrWrongPassword, got %v", err)
+	}
+
+	// 2. Delete non-existent account
+	err = svc.DeleteAccount(ctx, "nonexistent", "secret123")
+	if err == nil {
+		t.Fatalf("expected error for non-existent user, got nil")
+	}
+
+	// 3. Delete existing account with correct password
+	err = svc.DeleteAccount(ctx, "u1", "secret123")
 	if err != nil {
 		t.Fatalf("expected delete to succeed, got %v", err)
 	}
@@ -296,13 +325,58 @@ func TestUserService_DeleteAccount(t *testing.T) {
 	if u != nil {
 		t.Fatalf("expected user to be nil after deletion")
 	}
+}
 
-	// 2. Delete non-existent account
-	err = svc.DeleteAccount(ctx, "nonexistent")
-	if err == nil {
-		t.Fatalf("expected error for non-existent user, got nil")
+func TestUserService_SearchUsers(t *testing.T) {
+	userRepo := &mockUserRepoForUserService{
+		users: []domain.User{
+			{ID: "u1", Username: "Alice", Rating: 1500, Wins: 10, Losses: 5},
+			{ID: "u2", Username: "Bob", Rating: 1600, Wins: 20, Losses: 10},
+			{ID: "u3", Username: "Charlie", Rating: 1400, Wins: 5, Losses: 2},
+		},
+	}
+	friendRepo := &mockFriendRepoForUserService{
+		friends: []domain.Friendship{
+			{ID: "f1", RequesterID: "u1", AddresseeID: "u2", Status: domain.FriendshipStatusAccepted},
+		},
+	}
+	svc := NewUserService(userRepo, friendRepo)
+	ctx := context.Background()
+
+	// 1. Search with empty query -> returns empty
+	emptyResults, err := svc.SearchUsers(ctx, "", "u1", 10)
+	if err != nil || len(emptyResults) != 0 {
+		t.Fatalf("expected empty results for empty query, got %d, err: %v", len(emptyResults), err)
+	}
+
+	// 2. Search excluding self ("u1") with query "li" -> finds Alice ("u1", excluded) and Charlie ("u3")
+	results, err := svc.SearchUsers(ctx, "li", "u1", 10)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result (Charlie), got %d", len(results))
+	}
+	if results[0].Username != "Charlie" {
+		t.Errorf("expected Charlie, got %s", results[0].Username)
+	}
+	if results[0].FriendshipStatus != "none" {
+		t.Errorf("expected friendship status none, got %s", results[0].FriendshipStatus)
+	}
+
+	// 3. Search query "ob" as u1 -> Bob is found, should have status "friend"
+	bobResults, err := svc.SearchUsers(ctx, "ob", "u1", 10)
+	if err != nil || len(bobResults) != 1 {
+		t.Fatalf("expected Bob to be found, got %d results, err: %v", len(bobResults), err)
+	}
+	if bobResults[0].FriendshipStatus != "friend" {
+		t.Errorf("expected Bob to have status 'friend', got %s", bobResults[0].FriendshipStatus)
+	}
+	if bobResults[0].FriendshipID != "f1" {
+		t.Errorf("expected Bob to have friendship_id 'f1', got %s", bobResults[0].FriendshipID)
 	}
 }
+
 
 
 

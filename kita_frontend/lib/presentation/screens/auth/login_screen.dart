@@ -54,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProv = context.watch<AuthProvider>();
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: KitaAppBar(
         showAuthActions: false,
         showBack: true,
@@ -61,6 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       body: ResponsiveLayout(
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
             child: Form(
@@ -108,6 +110,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: 'auth.usernameOrEmail'.tr(),
                     hint: 'auth.usernameOrEmailHint'.tr(),
                     prefixIcon: Icons.account_circle_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
                         return 'errMissingField'.tr();
@@ -124,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     hint: 'auth.passwordHint'.tr(),
                     prefixIcon: Icons.key_outlined,
                     isPassword: true,
+                    textInputAction: TextInputAction.done,
                     validator: (val) {
                       if (val == null || val.isEmpty) {
                         return 'errMissingField'.tr();
@@ -175,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),

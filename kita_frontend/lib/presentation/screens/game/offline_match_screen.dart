@@ -164,6 +164,15 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
     final effectiveFlip = settings.shouldFlipBoard(provider.myTeam);
     final flipBoard = isLocalCoop ? false : effectiveFlip;
 
+    final opponentTeam = isBlack ? 'white' : 'black';
+    final opponentRemainingMs = provider.timeControl > 0
+        ? (opponentTeam == 'white' ? provider.whiteRemainingMs : provider.blackRemainingMs)
+        : provider.elapsedSeconds;
+
+    final myRemainingMs = provider.timeControl > 0
+        ? (provider.myTeam == 'white' ? provider.whiteRemainingMs : provider.blackRemainingMs)
+        : provider.elapsedSeconds;
+
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),
       body: SafeArea(
@@ -187,10 +196,10 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
                   name: opponentName,
                   rating: isVsAi ? (provider.opponentInfo?.rating ?? 1200) : 1200,
                   ratingLabel: opponentRatingLabel,
-                  team: isBlack ? 'white' : 'black',
-                  remainingMs: provider.elapsedSeconds,
+                  team: opponentTeam,
+                  remainingMs: opponentRemainingMs,
                   isActiveTurn: provider.currentTurn,
-                  timeControl: 0,
+                  timeControl: provider.timeControl,
                   avatarIndex: isVsAi ? 7 : 1,
                   isGameOver: provider.isGameOver,
                   isBot: isVsAi,
@@ -255,9 +264,9 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
               name: myDisplayName,
               rating: myRating,
               team: provider.myTeam,
-              remainingMs: provider.elapsedSeconds,
+              remainingMs: myRemainingMs,
               isActiveTurn: provider.currentTurn,
-              timeControl: 0,
+              timeControl: provider.timeControl,
               avatarIndex: authProv.avatarIndex,
               isGameOver: provider.isGameOver,
               isGuest: authProv.isGuest,

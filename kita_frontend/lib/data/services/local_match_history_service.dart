@@ -75,6 +75,20 @@ class LocalMatchHistoryService {
         return '$_keyMatchesPrefix${user.id}';
       }
     } catch (_) {}
+
+    // If neither explicit userId nor guest was specified and no user in storage, check prefs
+    if (userId == null && isGuest == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (!prefs.containsKey(_guestKeyMatches)) {
+          final accountKeys = prefs.getKeys().where((k) => k.startsWith(_keyMatchesPrefix)).toList();
+          if (accountKeys.length == 1) {
+            return accountKeys.first;
+          }
+        }
+      } catch (_) {}
+    }
+
     return _guestKeyMatches;
   }
 
@@ -283,26 +297,46 @@ class LocalMatchHistoryService {
       final prefs = await SharedPreferences.getInstance();
       await _checkAndMigrateLegacyData(prefs);
 
-      final key = await _resolveMatchesKey(userId: userId, isGuest: isGuest);
-      final raw = prefs.getString(key);
-      if (raw == null || raw.isEmpty) return [];
-
-      final list = jsonDecode(raw) as List<dynamic>;
-      final results = <MatchRecordModel>[];
-
-      for (final item in list) {
-        if (item is! Map<String, dynamic>) continue;
-        final matchMap = (item['match'] as Map<String, dynamic>?) ?? item;
-        try {
-          final parsed = MatchRecordModel.fromJson(matchMap);
-          final count = parsed.totalMoves > 0 ? parsed.totalMoves : parsed.moves.length;
-          if (count > 1) {
-            results.add(parsed);
-          }
-        } catch (e) {
-          debugPrint('[LocalMatchHistoryService] Error parsing match: $e');
-        }
+      final List<String> targetKeys = [];
+      if (userId == null && isGuest == null) {
+        final allKeys = prefs.getKeys().where((k) =>
+            k.startsWith(_keyMatchesPrefix) ||
+            k == _guestKeyMatches ||
+            k == _legacyKeyMatches).toList();
+        targetKeys.addAll(allKeys);
+      } else {
+        final key = await _resolveMatchesKey(userId: userId, isGuest: isGuest);
+        targetKeys.add(key);
       }
+
+      final results = <MatchRecordModel>[];
+      final seenIds = <String>{};
+
+      for (final key in targetKeys) {
+        final raw = prefs.getString(key);
+        if (raw == null || raw.isEmpty) continue;
+
+        try {
+          final list = jsonDecode(raw) as List<dynamic>;
+          for (final item in list) {
+            if (item is! Map<String, dynamic>) continue;
+            final matchMap = (item['match'] as Map<String, dynamic>?) ?? item;
+            try {
+              final parsed = MatchRecordModel.fromJson(matchMap);
+              if (seenIds.add(parsed.id)) {
+                final count = parsed.totalMoves > 0 ? parsed.totalMoves : parsed.moves.length;
+                if (count > 1) {
+                  results.add(parsed);
+                }
+              }
+            } catch (e) {
+              debugPrint('[LocalMatchHistoryService] Error parsing match: $e');
+            }
+          }
+        } catch (_) {}
+      }
+
+      results.sort((a, b) => b.startedAt.compareTo(a.startedAt));
 
       var filtered = results;
       if (offset != null && offset > 0) {
@@ -329,6 +363,10 @@ class LocalMatchHistoryService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (userId == null && isGuest == null) {
+        await clearAllAccounts();
+        return;
+      }
       final key = await _resolveMatchesKey(userId: userId, isGuest: isGuest);
       await prefs.remove(key);
       notifyMatchesChanged();
@@ -488,6 +526,10 @@ class ActiveOfflineGameData {
   final List<Map<String, dynamic>> moveHistory;
   final DateTime startedAt;
 
+  final int timeControl;
+  final int whiteRemainingMs;
+  final int blackRemainingMs;
+
   const ActiveOfflineGameData({
     required this.matchId,
     required this.playMode,
@@ -501,6 +543,9 @@ class ActiveOfflineGameData {
     required this.elapsedSeconds,
     required this.moveHistory,
     required this.startedAt,
+    this.timeControl = 0,
+    this.whiteRemainingMs = 0,
+    this.blackRemainingMs = 0,
   });
 
   Map<String, dynamic> toJson() => {
@@ -516,6 +561,9 @@ class ActiveOfflineGameData {
     'elapsedSeconds': elapsedSeconds,
     'moveHistory': moveHistory,
     'startedAt': startedAt.toIso8601String(),
+    'timeControl': timeControl,
+    'whiteRemainingMs': whiteRemainingMs,
+    'blackRemainingMs': blackRemainingMs,
   };
 
   factory ActiveOfflineGameData.fromJson(Map<String, dynamic> json) =>
@@ -537,5 +585,8 @@ class ActiveOfflineGameData {
         startedAt: json['startedAt'] != null
             ? DateTime.tryParse(json['startedAt'] as String) ?? DateTime.now()
             : DateTime.now(),
+        timeControl: (json['timeControl'] as num?)?.toInt() ?? 0,
+        whiteRemainingMs: (json['whiteRemainingMs'] as num?)?.toInt() ?? 0,
+        blackRemainingMs: (json['blackRemainingMs'] as num?)?.toInt() ?? 0,
       );
 }

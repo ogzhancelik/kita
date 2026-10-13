@@ -8,6 +8,7 @@ import (
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type userService struct {
@@ -146,7 +147,7 @@ func (s *userService) UpdateUsername(ctx context.Context, userID string, usernam
 	return &profile, nil
 }
 
-func (s *userService) DeleteAccount(ctx context.Context, userID string) error {
+func (s *userService) DeleteAccount(ctx context.Context, userID string, password string) error {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return err
@@ -155,8 +156,92 @@ func (s *userService) DeleteAccount(ctx context.Context, userID string) error {
 		return errors.New("user not found")
 	}
 
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		return ErrWrongPassword
+	}
+
 	return s.userRepo.Delete(ctx, userID)
 }
+
+func (s *userService) SearchUsers(ctx context.Context, query string, currentUserID string, limit int) ([]domain.UserSearchResult, error) {
+	trimmed := strings.TrimSpace(query)
+	if trimmed == "" {
+		return []domain.UserSearchResult{}, nil
+	}
+
+	users, err := s.userRepo.Search(ctx, trimmed, currentUserID, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(users) == 0 {
+		return []domain.UserSearchResult{}, nil
+	}
+
+	// If current user is authenticated, check friendship status
+	statusMap := make(map[string]string)       // targetUserID -> status ("friend", "incoming", "outgoing")
+	friendshipIDMap := make(map[string]string) // targetUserID -> friendshipID
+
+	if currentUserID != "" && s.friendRepo != nil {
+		// 1. Get accepted friends
+		friends, err := s.friendRepo.ListFriends(ctx, currentUserID)
+		if err == nil {
+			for _, f := range friends {
+				otherID := f.RequesterID
+				if otherID == currentUserID {
+					otherID = f.AddresseeID
+				}
+				statusMap[otherID] = "friend"
+				friendshipIDMap[otherID] = f.ID
+			}
+		}
+
+		// 2. Get pending requests
+		requests, err := s.friendRepo.ListPendingRequests(ctx, currentUserID)
+		if err == nil {
+			for _, r := range requests {
+				if r.Status == domain.FriendshipStatusPending {
+					if r.RequesterID == currentUserID {
+						statusMap[r.AddresseeID] = "outgoing"
+						friendshipIDMap[r.AddresseeID] = r.ID
+					} else if r.AddresseeID == currentUserID {
+						statusMap[r.RequesterID] = "incoming"
+						friendshipIDMap[r.RequesterID] = r.ID
+					}
+				}
+			}
+		}
+	}
+
+	results := make([]domain.UserSearchResult, len(users))
+	for i, u := range users {
+		prof := u.ToProfile()
+		status := "none"
+		fID := ""
+
+		if st, ok := statusMap[u.ID]; ok {
+			status = st
+			fID = friendshipIDMap[u.ID]
+		}
+
+		results[i] = domain.UserSearchResult{
+			ID:               prof.ID,
+			Username:         prof.Username,
+			AvatarIndex:      prof.AvatarIndex,
+			Rating:           prof.Rating,
+			IsProvisional:    prof.IsProvisional,
+			Wins:             prof.Wins,
+			Losses:           prof.Losses,
+			Draws:            prof.Draws,
+			WinRate:          prof.WinRate,
+			FriendshipStatus: status,
+			FriendshipID:     fID,
+		}
+	}
+
+	return results, nil
+}
+
 
 
 

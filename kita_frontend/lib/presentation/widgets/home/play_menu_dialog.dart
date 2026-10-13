@@ -4,12 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/models/game_models.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/offline_game_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/friends/friends_screen.dart';
-import '../../screens/game/offline_match_screen.dart';
+import '../game/local_coop_config_dialog.dart';
 import '../game/vs_ai_config_dialog.dart';
 import '../matchmaking/activity_conflict_dialog.dart';
 import '../matchmaking/matchmaking_sheet.dart';
@@ -31,7 +29,6 @@ class PlayMenuDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final onlineProv = context.watch<OnlineGameProvider>();
-    final offlineProv = context.watch<OfflineGameProvider>();
     final authProv = context.watch<AuthProvider>();
 
     return Container(
@@ -134,71 +131,9 @@ class PlayMenuDialog extends StatelessWidget {
                       badge: 'dashboard.badgeOffline'.tr(),
                       badgeColor: AppColors.accent,
                       isDark: isDark,
-                      onTap: () async {
-                        if (offlineProv.hasActiveMatch) {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (dialogCtx) => AlertDialog(
-                              backgroundColor: AppColors.getCard(isDark),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              title: Text(
-                                'online.conflictDialogTitle'.tr(),
-                                style: TextStyle(
-                                  color: AppColors.getTextPrimary(isDark),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              content: Text(
-                                'online.conflictAbandonOfflineDesc'.tr(),
-                                style: TextStyle(
-                                  color: AppColors.getTextSecondary(isDark),
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(dialogCtx).pop(false),
-                                  child: Text(
-                                    'common.cancel'.tr(),
-                                    style: TextStyle(color: AppColors.getTextSecondary(isDark)),
-                                  ),
-                                ),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primaryGreen,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                  onPressed: () => Navigator.of(dialogCtx).pop(true),
-                                  child: Text('online.abandonAndProceed'.tr()),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirmed != true) return;
-                          offlineProv.resignAndClear();
-                        }
-
-                        offlineProv.startOfflineMatch(
-                          mode: PlayMode.localCoop,
-                          playerId: authProv.currentUser?.id,
-                          playerName: authProv.currentUser?.username ??
-                              authProv.guestProfile?.nickname ??
-                              'Guest',
-                          playerAvatarIndex: authProv.currentUser?.avatarIndex ??
-                              authProv.guestProfile?.avatarIndex ??
-                              0,
-                          isGuest: authProv.isGuest || authProv.currentUser == null,
-                        );
-
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const OfflineMatchScreen(),
-                              settings: const RouteSettings(name: '/offline_match'),
-                            ),
-                          );
-                        }
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        LocalCoopConfigDialog.show(context);
                       },
                     ),
                     const SizedBox(height: 12),

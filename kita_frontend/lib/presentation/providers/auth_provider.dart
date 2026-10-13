@@ -291,11 +291,11 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<bool> deleteAccount() async {
+  Future<bool> deleteAccount({required String password}) async {
     if (!isAuthenticated) return false;
     _setLoading(true);
     try {
-      await _userApiService.deleteAccount();
+      await _userApiService.deleteAccount(password: password);
       await logout();
       return true;
     } catch (e) {

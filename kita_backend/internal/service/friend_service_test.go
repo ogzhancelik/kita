@@ -38,6 +38,10 @@ func (m *mockUserRepoForFriendService) Delete(ctx context.Context, id string) er
 func (m *mockUserRepoForFriendService) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepoForFriendService) Search(ctx context.Context, query string, excludeUserID string, limit int) ([]domain.User, error) {
+	return nil, nil
+}
+
 
 type mockFriendRepoForFriendService struct {
 	friendships  []*domain.Friendship

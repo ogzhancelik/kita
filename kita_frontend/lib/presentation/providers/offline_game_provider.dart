@@ -45,6 +45,14 @@ class OfflineGameProvider extends ChangeNotifier {
   final ValueNotifier<int> viewingMoveIndex = ValueNotifier(-1);
   final List<KitaGameEngine> _engineSnapshots = [];
 
+  // ─── Time Control & Clocks ───────────────────────────────────────
+  int timeControl = 0; // 0 = unlimited, otherwise duration in ms
+  final ValueNotifier<int> whiteRemainingMs = ValueNotifier(0);
+  final ValueNotifier<int> blackRemainingMs = ValueNotifier(0);
+  DateTime? _turnStartedAt;
+  int _turnBaseRemainingMs = 0;
+  bool _lowTimeAlertPlayed = false;
+
   final ValueNotifier<String> currentTurn = ValueNotifier('white');
   final ValueNotifier<int> elapsedSeconds = ValueNotifier(0);
   final ValueNotifier<bool> isAiThinking = ValueNotifier(false);
@@ -124,6 +132,7 @@ class OfflineGameProvider extends ChangeNotifier {
     int? playerRating,
     int? playerAvatarIndex,
     bool isGuest = false,
+    int timeControl = 0,
   }) {
     _stopClockTimer();
     _hasActiveMatch = true;
@@ -135,6 +144,7 @@ class OfflineGameProvider extends ChangeNotifier {
     offlinePlayerRating = playerRating ?? offlinePlayerRating;
     offlinePlayerAvatarIndex = playerAvatarIndex ?? offlinePlayerAvatarIndex;
     offlineIsGuest = isGuest;
+    this.timeControl = timeControl;
     _offlineMatchSaved = false;
     _lastOfflineMatchRecord = null;
 
@@ -171,6 +181,20 @@ class OfflineGameProvider extends ChangeNotifier {
     currentTurn.value = 'white';
     elapsedSeconds.value = 0;
     _matchStartedAt = DateTime.now();
+
+    if (timeControl > 0) {
+      whiteRemainingMs.value = timeControl;
+      blackRemainingMs.value = timeControl;
+      _turnStartedAt = DateTime.now();
+      _turnBaseRemainingMs = timeControl;
+      _lowTimeAlertPlayed = false;
+    } else {
+      whiteRemainingMs.value = 0;
+      blackRemainingMs.value = 0;
+      _turnStartedAt = null;
+      _turnBaseRemainingMs = 0;
+      _lowTimeAlertPlayed = false;
+    }
 
     _startClockTimer();
     matchState.value = OnlineMatchState.inMatch;
@@ -233,6 +257,14 @@ class OfflineGameProvider extends ChangeNotifier {
     gameEngine.value = nextEngine;
     currentTurn.value = nextEngine.turn.name;
 
+    if (timeControl > 0) {
+      _turnStartedAt = DateTime.now();
+      _turnBaseRemainingMs = nextEngine.turn.name == 'white'
+          ? whiteRemainingMs.value
+          : blackRemainingMs.value;
+      _lowTimeAlertPlayed = false;
+    }
+
     if (nextEngine.hasKingRetaliation) {
       _handleOfflineKingRetaliation(nextEngine);
       return;
@@ -276,6 +308,14 @@ class OfflineGameProvider extends ChangeNotifier {
     _engineSnapshots.add(retaliatedEngine.clone());
     gameEngine.value = retaliatedEngine;
     currentTurn.value = retaliatedEngine.turn.name;
+
+    if (timeControl > 0) {
+      _turnStartedAt = DateTime.now();
+      _turnBaseRemainingMs = retaliatedEngine.turn.name == 'white'
+          ? whiteRemainingMs.value
+          : blackRemainingMs.value;
+      _lowTimeAlertPlayed = false;
+    }
 
     _checkOfflineGameOver(retaliatedEngine);
   }
@@ -433,6 +473,7 @@ class OfflineGameProvider extends ChangeNotifier {
       playerRating: offlinePlayerRating,
       playerAvatarIndex: offlinePlayerAvatarIndex,
       isGuest: offlineIsGuest,
+      timeControl: timeControl,
     );
   }
 
@@ -652,6 +693,9 @@ class OfflineGameProvider extends ChangeNotifier {
         elapsedSeconds: elapsedSeconds.value,
         moveHistory: moveHistory.value.map((m) => m.toJson()).toList(),
         startedAt: _matchStartedAt ?? DateTime.now(),
+        timeControl: timeControl,
+        whiteRemainingMs: whiteRemainingMs.value,
+        blackRemainingMs: blackRemainingMs.value,
       );
       await LocalMatchHistoryService.instance.saveActiveOfflineGame(
         data,
@@ -741,6 +785,13 @@ class OfflineGameProvider extends ChangeNotifier {
       currentTurn.value = engine.turn.name;
       elapsedSeconds.value = saved.elapsedSeconds;
       _matchStartedAt = saved.startedAt;
+      timeControl = saved.timeControl;
+      whiteRemainingMs.value = saved.whiteRemainingMs;
+      blackRemainingMs.value = saved.blackRemainingMs;
+      _turnStartedAt = DateTime.now();
+      _turnBaseRemainingMs = engine.turn.name == 'white'
+          ? saved.whiteRemainingMs
+          : saved.blackRemainingMs;
 
       if (engine.isGameOver) {
         await LocalMatchHistoryService.instance.clearActiveOfflineGame();
@@ -768,34 +819,96 @@ class OfflineGameProvider extends ChangeNotifier {
   }
 
   void _startClockTimer() {
-    _clockTimer?.cancel();
-    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _stopClockTimer();
+    _clockTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (!hasActiveMatch) return;
-      if (_matchStartedAt != null) {
-        elapsedSeconds.value =
-            DateTime.now().difference(_matchStartedAt!).inSeconds;
-      } else {
-        elapsedSeconds.value++;
-      }
+      _tickClock();
     });
+  }
+
+  void _tickClock() {
+    if (!hasActiveMatch) return;
+
+    if (timeControl > 0 && _turnStartedAt != null) {
+      final elapsedMs =
+          DateTime.now().difference(_turnStartedAt!).inMilliseconds;
+      final remaining = _turnBaseRemainingMs - elapsedMs;
+      final clampedRemaining = remaining > 0 ? remaining : 0;
+
+      if (currentTurn.value == 'white') {
+        whiteRemainingMs.value = clampedRemaining;
+      } else {
+        blackRemainingMs.value = clampedRemaining;
+      }
+
+      // Low-time alert sound & haptic played once when active player has <= 10 seconds
+      if (clampedRemaining > 0 && clampedRemaining <= 10000) {
+        if (!_lowTimeAlertPlayed) {
+          _lowTimeAlertPlayed = true;
+          SoundService.instance.playLowTime();
+          HapticService.instance.medium();
+        }
+      } else if (clampedRemaining > 10000) {
+        _lowTimeAlertPlayed = false;
+      }
+
+      // Timeout detection
+      if (clampedRemaining <= 0) {
+        _handleOfflineTimeout(currentTurn.value);
+        return;
+      }
+    }
+
+    if (_matchStartedAt != null) {
+      elapsedSeconds.value =
+          DateTime.now().difference(_matchStartedAt!).inSeconds;
+    } else {
+      elapsedSeconds.value++;
+    }
+  }
+
+  void _handleOfflineTimeout(String losingTeam) {
+    if (!hasActiveMatch) return;
+    _stopClockTimer();
+
+    final winnerTeam = losingTeam == 'white' ? 'black' : 'white';
+    final payload = GameOverPayload(
+      matchId: matchId ?? 'offline',
+      winnerTeam: winnerTeam,
+      result: winnerTeam == 'white' ? 'white_wins' : 'black_wins',
+      reason: 'timeout',
+      ratingChanges: {},
+    );
+
+    gameOverData.value = payload;
+    matchState.value = OnlineMatchState.gameOver;
+    SoundService.instance.playGameOver();
+    HapticService.instance.heavy();
+    _saveOfflineGameRecord(payload);
+    _clearPersistedActiveOfflineMatch();
+    notifyListeners();
   }
 
   /// Call when app resumes from background.
   void syncClocks() {
-    if (hasActiveMatch && _matchStartedAt != null) {
-      elapsedSeconds.value =
-          DateTime.now().difference(_matchStartedAt!).inSeconds;
+    if (hasActiveMatch) {
+      _tickClock();
     }
   }
 
   void _stopClockTimer() {
     _clockTimer?.cancel();
     _clockTimer = null;
+    _turnStartedAt = null;
+    _turnBaseRemainingMs = 0;
+    _lowTimeAlertPlayed = false;
   }
 
   @override
   void dispose() {
     _stopClockTimer();
+    whiteRemainingMs.dispose();
+    blackRemainingMs.dispose();
     gameEngine.dispose();
     legalMoves.dispose();
     lastMove.dispose();

@@ -356,7 +356,7 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
 
                 // Friend Username
                 Text(
@@ -389,9 +389,8 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                         ? AppColors.primaryGreen
                         : AppColors.getSurface(isDark),
                     elevation: friend.isOnline ? 1 : 0,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    minimumSize: const Size(0, 38),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
@@ -404,12 +403,17 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                   child: Text(
                     'dashboard.quickChallenge'.tr(),
                     style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: friend.isOnline ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
                       color: friend.isOnline
                           ? AppColors.darkTextPrimary
-                          : AppColors.getTextSecondary(isDark),
+                          : (isDark
+                              ? AppColors.darkTextPrimary.withValues(alpha: 0.9)
+                              : AppColors.lightTextPrimary),
                     ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

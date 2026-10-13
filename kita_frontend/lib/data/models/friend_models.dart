@@ -75,3 +75,79 @@ class FriendItemModel {
     );
   }
 }
+
+/// Model for user search results in global player search.
+class PlayerSearchResultModel {
+  final String id;
+  final String username;
+  final int avatarIndex;
+  final int rating;
+  final bool isProvisional;
+  final int wins;
+  final int losses;
+  final int draws;
+  final double winRate;
+  final String friendshipStatus; // 'none', 'friend', 'incoming', 'outgoing'
+  final String? friendshipId;
+
+  const PlayerSearchResultModel({
+    required this.id,
+    required this.username,
+    this.avatarIndex = 0,
+    required this.rating,
+    this.isProvisional = false,
+    this.wins = 0,
+    this.losses = 0,
+    this.draws = 0,
+    this.winRate = 0.0,
+    this.friendshipStatus = 'none',
+    this.friendshipId,
+  });
+
+  String get displayRating => isProvisional ? '$rating?' : '$rating';
+
+  factory PlayerSearchResultModel.fromJson(Map<String, dynamic> json) {
+    return PlayerSearchResultModel(
+      id: json['id'] as String? ?? '',
+      username: json['username'] as String? ?? '',
+      avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
+      rating: (json['rating'] as num?)?.toInt() ?? 1200,
+      isProvisional: json['is_provisional'] as bool? ?? false,
+      wins: (json['wins'] as num?)?.toInt() ?? 0,
+      losses: (json['losses'] as num?)?.toInt() ?? 0,
+      draws: (json['draws'] as num?)?.toInt() ?? 0,
+      winRate: (json['win_rate'] as num?)?.toDouble() ?? 0.0,
+      friendshipStatus: json['friendship_status'] as String? ?? 'none',
+      friendshipId: json['friendship_id'] as String?,
+    );
+  }
+
+  PlayerSearchResultModel copyWith({
+    String? id,
+    String? username,
+    int? avatarIndex,
+    int? rating,
+    bool? isProvisional,
+    int? wins,
+    int? losses,
+    int? draws,
+    double? winRate,
+    String? friendshipStatus,
+    String? friendshipId,
+  }) {
+    return PlayerSearchResultModel(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      avatarIndex: avatarIndex ?? this.avatarIndex,
+      rating: rating ?? this.rating,
+      isProvisional: isProvisional ?? this.isProvisional,
+      wins: wins ?? this.wins,
+      losses: losses ?? this.losses,
+      draws: draws ?? this.draws,
+      winRate: winRate ?? this.winRate,
+      friendshipStatus: friendshipStatus ?? this.friendshipStatus,
+      friendshipId: friendshipId ?? this.friendshipId,
+    );
+  }
+}
+

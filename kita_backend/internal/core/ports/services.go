@@ -18,7 +18,8 @@ type UserService interface {
 	GetLeaderboard(ctx context.Context, limit int, filter string, currentUserID string) ([]domain.UserProfile, error)
 	UpdateAvatar(ctx context.Context, userID string, avatarIndex int) (*domain.UserProfile, error)
 	UpdateUsername(ctx context.Context, userID string, username string) (*domain.UserProfile, error)
-	DeleteAccount(ctx context.Context, userID string) error
+	DeleteAccount(ctx context.Context, userID string, password string) error
+	SearchUsers(ctx context.Context, query string, currentUserID string, limit int) ([]domain.UserSearchResult, error)
 }
 
 type MatchService interface {

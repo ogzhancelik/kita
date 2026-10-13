@@ -86,3 +86,30 @@ func (r *userRepo) GetLeaderboard(ctx context.Context, limit int, userIDs []stri
 	}
 	return users, nil
 }
+
+func (r *userRepo) Search(ctx context.Context, query string, excludeUserID string, limit int) ([]domain.User, error) {
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
+	trimmed := strings.TrimSpace(query)
+	if trimmed == "" {
+		return []domain.User{}, nil
+	}
+
+	searchPattern := "%" + strings.ToLower(trimmed) + "%"
+	var users []domain.User
+	q := r.db.WithContext(ctx).Where("LOWER(username) LIKE ?", searchPattern)
+	if excludeUserID != "" {
+		q = q.Where("id != ?", excludeUserID)
+	}
+
+	exactMatch := strings.ToLower(trimmed)
+	prefixMatch := exactMatch + "%"
+
+	orderClause := "CASE WHEN LOWER(username) = ? THEN 1 WHEN LOWER(username) LIKE ? THEN 2 ELSE 3 END, rating DESC, wins DESC"
+	if err := q.Order(gorm.Expr(orderClause, exactMatch, prefixMatch)).Limit(limit).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+

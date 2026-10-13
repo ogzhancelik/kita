@@ -93,6 +93,8 @@ class ApiConstants {
   static const String friends = '/api/friends';
   static const String friendRequests = '/api/friends/requests';
   static const String sendFriendRequest = '/api/friends/request';
+  static String searchUsers(String query, [int limit = 20]) =>
+      '/api/users/search?q=${Uri.encodeQueryComponent(query)}&limit=$limit';
   static String acceptFriendRequest(String id) => '/api/friends/$id/accept';
   static String declineFriendRequest(String id) => '/api/friends/$id/decline';
   static String removeFriend(String id) => '/api/friends/$id';

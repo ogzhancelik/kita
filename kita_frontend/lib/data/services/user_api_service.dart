@@ -76,11 +76,12 @@ class UserApiService {
   }
 
   /// Permanently deletes authenticated user's account
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount({required String password}) async {
     final token = ApiClient.currentToken;
 
     await _client.dio.delete(
       ApiConstants.deleteAccount,
+      data: {'password': password},
       options: (token != null && token.isNotEmpty)
           ? Options(headers: {'Authorization': 'Bearer $token'})
           : null,

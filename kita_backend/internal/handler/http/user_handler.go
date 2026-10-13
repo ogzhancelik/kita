@@ -135,6 +135,10 @@ func (h *UserHandler) UpdateUsername(c *gin.Context) {
 	c.JSON(http.StatusOK, profile)
 }
 
+type deleteAccountRequest struct {
+	Password string `json:"password" binding:"required"`
+}
+
 func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -142,7 +146,17 @@ func (h *UserHandler) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.DeleteAccount(c.Request.Context(), userID.(string)); err != nil {
+	var req deleteAccountRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, "Password is required")
+		return
+	}
+
+	if err := h.userService.DeleteAccount(c.Request.Context(), userID.(string), req.Password); err != nil {
+		if err == service.ErrWrongPassword {
+			SendError(c, http.StatusBadRequest, errors.ErrWrongPassword, err.Error())
+			return
+		}
 		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return
 	}
@@ -151,6 +165,31 @@ func (h *UserHandler) DeleteAccount(c *gin.Context) {
 		"message": "account deleted successfully",
 	})
 }
+
+func (h *UserHandler) SearchUsers(c *gin.Context) {
+	query := c.Query("q")
+	limitStr := c.DefaultQuery("limit", "20")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 20
+	}
+
+	var currentUserID string
+	if val, exists := c.Get("userID"); exists {
+		if id, ok := val.(string); ok {
+			currentUserID = id
+		}
+	}
+
+	results, err := h.userService.SearchUsers(c.Request.Context(), query, currentUserID, limit)
+	if err != nil {
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"users": results})
+}
+
 
 
 

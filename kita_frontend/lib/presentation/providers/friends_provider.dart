@@ -66,6 +66,16 @@ class FriendsProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<PlayerSearchResultModel>> searchPlayers(String query, [int limit = 20]) async {
+    try {
+      return await _apiService.searchPlayers(query, limit);
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
   Future<bool> sendRequest(String username) async {
     try {
       await _apiService.sendFriendRequest(username);

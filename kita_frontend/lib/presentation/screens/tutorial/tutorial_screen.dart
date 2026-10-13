@@ -1210,7 +1210,7 @@ class _TutorialScreenState extends State<TutorialScreen>
           behavior: HitTestBehavior.translucent,
           onTapUp: (details) {
             final screenWidth = MediaQuery.of(context).size.width;
-            if (details.globalPosition.dx < screenWidth * 0.4) {
+            if (details.globalPosition.dx < screenWidth * 0.2) {
               _onTapLeft();
             } else {
               _onTapRight();

@@ -959,151 +959,196 @@ class AccountSettingsDialog extends StatelessWidget {
 
   void _showDeleteAccountConfirmation(BuildContext context, AuthProvider authProv, bool isDark) {
     bool isDeleting = false;
-    bool isConfirmed = false;
+    final passwordController = TextEditingController();
+    bool obscurePassword = true;
+    String? errorMessage;
+
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (ctx) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
-          return AlertDialog(
-            backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Row(
-              children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  color: AppColors.lossRed,
-                  size: 26,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'account.deleteAccountConfirmTitle'.tr(),
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+          return PopScope(
+            canPop: !isDeleting,
+            child: AlertDialog(
+              backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppColors.lossRed,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'account.deleteAccountConfirmTitle'.tr(),
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'account.deleteAccountConfirmDesc'.tr(),
-                  style: TextStyle(
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                InkWell(
-                  onTap: isDeleting
-                      ? null
-                      : () => setDialogState(() => isConfirmed = !isConfirmed),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Checkbox(
-                            value: isConfirmed,
-                            activeColor: AppColors.lossRed,
-                            checkColor: Colors.white,
-                            side: BorderSide(
-                              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            onChanged: isDeleting
-                                ? null
-                                : (val) => setDialogState(() => isConfirmed = val ?? false),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'account.deleteAccountCheckbox'.tr(),
-                            style: TextStyle(
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              height: 1.3,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: isDeleting ? null : () => Navigator.of(ctx).pop(),
-                child: Text(
-                  'common.cancel'.tr(),
-                  style: TextStyle(
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                  ),
-                ),
+                ],
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.lossRed,
-                  disabledBackgroundColor: AppColors.lossRed.withValues(alpha: 0.35),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: (isDeleting || !isConfirmed)
-                    ? null
-                    : () async {
-                        setDialogState(() => isDeleting = true);
-                        try {
-                          final success = await authProv.deleteAccount();
-                          if (ctx.mounted) {
-                            Navigator.of(ctx).pop();
-                          }
-                          if (context.mounted) {
-                            Navigator.of(context).pop();
-                          }
-                          if (success) {
-                            KitaToast.show(
-                              message: 'account.accountDeleted'.tr(),
-                              type: ToastType.success,
-                            );
-                          }
-                        } catch (e) {
-                          if (ctx.mounted) {
-                            setDialogState(() => isDeleting = false);
-                          }
-                          KitaToast.show(
-                            message: 'errValidationFailed'.tr(),
-                            type: ToastType.error,
-                          );
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'account.deleteAccountConfirmDesc'.tr(),
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'account.enterPasswordToDelete'.tr(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      enabled: !isDeleting,
+                      onChanged: (_) {
+                        if (errorMessage != null) {
+                          setDialogState(() => errorMessage = null);
+                        } else {
+                          setDialogState(() {});
                         }
                       },
-                child: isDeleting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : Text(
-                        'account.deleteAccount'.tr(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
+                      decoration: InputDecoration(
+                        hintText: 'account.deleteAccountPasswordHint'.tr(),
+                        hintStyle: TextStyle(
+                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          fontSize: 13,
+                        ),
+                        filled: true,
+                        fillColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.lossRed, width: 2),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            size: 18,
+                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          ),
+                          onPressed: isDeleting
+                              ? null
+                              : () => setDialogState(() => obscurePassword = !obscurePassword),
+                        ),
+                      ),
+                    ),
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        errorMessage!,
+                        style: const TextStyle(
+                          color: AppColors.lossRed,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ],
+              actions: [
+                TextButton(
+                  onPressed: isDeleting ? null : () => Navigator.of(ctx).pop(),
+                  child: Text(
+                    'common.cancel'.tr(),
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.lossRed,
+                    disabledBackgroundColor: AppColors.lossRed.withValues(alpha: 0.35),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: (isDeleting || passwordController.text.isEmpty)
+                      ? null
+                      : () async {
+                          final password = passwordController.text;
+                          setDialogState(() {
+                            isDeleting = true;
+                            errorMessage = null;
+                          });
+                          try {
+                            final success = await authProv.deleteAccount(password: password);
+                            if (ctx.mounted) {
+                              Navigator.of(ctx).pop();
+                            }
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
+                            if (success) {
+                              KitaToast.show(
+                                message: 'account.accountDeleted'.tr(),
+                                type: ToastType.success,
+                              );
+                            }
+                          } catch (e) {
+                            if (ctx.mounted) {
+                              setDialogState(() {
+                                isDeleting = false;
+                                if (e is DioException && e.response != null) {
+                                  final data = e.response?.data;
+                                  if (data is Map && data['error'] != null) {
+                                    final errCode = data['error']['code']?.toString() ?? '';
+                                    if (errCode == 'ERR_WRONG_PASSWORD') {
+                                      errorMessage = 'errWrongPassword'.tr();
+                                      return;
+                                    }
+                                  }
+                                }
+                                errorMessage = 'errValidationFailed'.tr();
+                              });
+                            }
+                          }
+                        },
+                  child: isDeleting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          'account.deleteAccount'.tr(),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ],
+            ),
           );
         },
       ),

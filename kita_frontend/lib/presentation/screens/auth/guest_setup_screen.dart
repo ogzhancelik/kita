@@ -57,11 +57,51 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
     super.dispose();
   }
 
+  Future<void> _continueAsGuest() async {
+    final raw = _nameController.text.trim();
+    String name = raw;
+    if (raw.isNotEmpty) {
+      const reserved = {'admin', 'guest', 'system', 'kita', 'bot', 'moderator', 'support'};
+      if (raw.length < 2) {
+        KitaToast.error('auth.usernameTooShort'.tr());
+        return;
+      }
+      if (raw.length > 15) {
+        KitaToast.error('auth.usernameTooLong'.tr());
+        return;
+      }
+      if (!RegExp(r'^[a-zA-Z0-9_-]{2,15}$').hasMatch(raw)) {
+        KitaToast.error('auth.usernameInvalid'.tr());
+        return;
+      }
+      if (reserved.contains(raw.toLowerCase())) {
+        KitaToast.error('auth.usernameReserved'.tr());
+        return;
+      }
+    } else {
+      name = 'Guest';
+    }
+
+    if (mounted) {
+      context.read<FriendsProvider>().clear();
+      context.read<NotificationProvider>().clear();
+    }
+    if (!mounted) return;
+    await context.read<AuthProvider>().continueAsGuest(
+          name,
+          _selectedAvatarIndex,
+        );
+    if (mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: KitaAppBar(
         showAuthActions: false,
         showBack: true,
@@ -69,6 +109,7 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
       ),
       body: ResponsiveLayout(
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
             child: Column(
@@ -130,7 +171,7 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 AvatarPicker(
                   selectedIndex: _selectedAvatarIndex,
                   onSelected: (idx) => setState(() => _selectedAvatarIndex = idx),
@@ -144,6 +185,8 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
                   hint: 'guest.nicknameHint'.tr(),
                   prefixIcon: Icons.badge_rounded,
                   maxLength: 15,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _continueAsGuest(),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
                     LengthLimitingTextInputFormatter(15),
@@ -156,45 +199,9 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
                   text: 'guest.startPlaying'.tr(),
                   icon: Icons.play_arrow_rounded,
                   variant: KitaButtonVariant.primary,
-                  onPressed: () async {
-                    final raw = _nameController.text.trim();
-                    String name = raw;
-                    if (raw.isNotEmpty) {
-                      const reserved = {'admin', 'guest', 'system', 'kita', 'bot', 'moderator', 'support'};
-                      if (raw.length < 2) {
-                        KitaToast.error('auth.usernameTooShort'.tr());
-                        return;
-                      }
-                      if (raw.length > 15) {
-                        KitaToast.error('auth.usernameTooLong'.tr());
-                        return;
-                      }
-                      if (!RegExp(r'^[a-zA-Z0-9_-]{2,15}$').hasMatch(raw)) {
-                        KitaToast.error('auth.usernameInvalid'.tr());
-                        return;
-                      }
-                      if (reserved.contains(raw.toLowerCase())) {
-                        KitaToast.error('auth.usernameReserved'.tr());
-                        return;
-                      }
-                    } else {
-                      name = 'Guest';
-                    }
-
-                    if (context.mounted) {
-                      context.read<FriendsProvider>().clear();
-                      context.read<NotificationProvider>().clear();
-                    }
-                    await context.read<AuthProvider>().continueAsGuest(
-                          name,
-                          _selectedAvatarIndex,
-                        );
-                    if (context.mounted) {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    }
-                  },
+                  onPressed: _continueAsGuest,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 36),
               ],
             ),
           ),

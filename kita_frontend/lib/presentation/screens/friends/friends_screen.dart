@@ -12,7 +12,7 @@ import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
-import '../../widgets/friends/add_friend_dialog.dart';
+import '../../widgets/friends/player_search_view.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
 import 'dm_chat_screen.dart';
@@ -100,13 +100,14 @@ class _FriendsScreenState extends State<FriendsScreen>
                 ],
               ),
             ),
+            Tab(text: 'online.searchPlayers'.tr()),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add_alt_1_rounded),
-            tooltip: 'online.addFriend'.tr(),
-            onPressed: () => _showAddFriendDialog(context, friendsProv),
+            tooltip: 'online.searchPlayers'.tr(),
+            onPressed: () => _tabController.animateTo(2),
           ),
         ],
       ),
@@ -122,6 +123,9 @@ class _FriendsScreenState extends State<FriendsScreen>
 
                 // 2. Friend requests
                 _buildRequestsTab(context, friendsProv, isDark),
+
+                // 3. Global player search
+                const PlayerSearchView(isModal: false),
               ],
             ),
     );
@@ -155,9 +159,9 @@ class _FriendsScreenState extends State<FriendsScreen>
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: () => _showAddFriendDialog(context, friendsProv),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text('online.addFriend'.tr()),
+              onPressed: () => _tabController.animateTo(2),
+              icon: const Icon(Icons.person_search_rounded, size: 18),
+              label: Text('online.searchPlayers'.tr()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryGreen,
                 foregroundColor: AppColors.darkTextPrimary,
@@ -385,11 +389,8 @@ class _FriendsScreenState extends State<FriendsScreen>
       ),
     );
   }
-
-  void _showAddFriendDialog(BuildContext context, [FriendsProvider? provider]) {
-    AddFriendDialog.show(context);
-  }
 }
+
 
 class _FriendCard extends StatelessWidget {
   final FriendItemModel friend;

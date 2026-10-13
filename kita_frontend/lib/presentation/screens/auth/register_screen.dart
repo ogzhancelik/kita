@@ -60,6 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final authProv = context.watch<AuthProvider>();
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: KitaAppBar(
         showAuthActions: false,
         showBack: true,
@@ -67,6 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       body: ResponsiveLayout(
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
             child: Form(
@@ -115,6 +117,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'auth.usernameHint'.tr(),
                     prefixIcon: Icons.badge_outlined,
                     maxLength: 15,
+                    textInputAction: TextInputAction.next,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
                       LengthLimitingTextInputFormatter(15),
@@ -148,6 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label: 'auth.email'.tr(),
                     hint: 'auth.emailHint'.tr(),
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                     prefixIcon: Icons.email_outlined,
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
@@ -168,6 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'auth.passwordHint'.tr(),
                     prefixIcon: Icons.lock_outline_rounded,
                     isPassword: true,
+                    textInputAction: TextInputAction.next,
                     validator: (val) {
                       if (val == null || val.isEmpty) {
                         return 'errMissingField'.tr();
@@ -187,6 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'auth.passwordHint'.tr(),
                     prefixIcon: Icons.lock_reset_rounded,
                     isPassword: true,
+                    textInputAction: TextInputAction.done,
                     validator: (val) {
                       if (val != _passwordController.text) {
                         return 'auth.passwordsDoNotMatch'.tr();
@@ -235,7 +241,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),

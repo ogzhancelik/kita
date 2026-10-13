@@ -73,3 +73,18 @@ func (u *User) ToProfile() UserProfile {
 	}
 }
 
+type UserSearchResult struct {
+	ID               string  `json:"id"`
+	Username         string  `json:"username"`
+	AvatarIndex      int     `json:"avatar_index"`
+	Rating           int     `json:"rating"`
+	IsProvisional    bool    `json:"is_provisional"`
+	Wins             int     `json:"wins"`
+	Losses           int     `json:"losses"`
+	Draws            int     `json:"draws"`
+	WinRate          float64 `json:"win_rate"`
+	FriendshipStatus string  `json:"friendship_status"` // "none", "friend", "outgoing", "incoming"
+	FriendshipID     string  `json:"friendship_id,omitempty"`
+}
+
+

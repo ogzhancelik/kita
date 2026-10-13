@@ -9,6 +9,7 @@ This document tracks planned features, active backlog items, and completed miles
 ### 🔐 Auth, Forms & Account Management
 - [x] **Strict Username Validation**: Disallow whitespace and invalid special characters in username/nickname registration (min 2, max 15, alphanumeric/underscore/hyphen, case-insensitive uniqueness, reserved keywords).
 - [x] **Dedicated Account Settings Tab**: Extract avatar and user profile options into a dedicated Account Settings view, supporting password change and account deletion.
+- [x] **Password Confirmation for Account Deletion**: Require entering current account password instead of a simple confirmation checkbox before permanently deleting user account.
 
 ### 🎨 UI & Design Systems
 - [ ] **Unified Design System & Spacing Alignment**: Standardize spacing, top bars, typography, and page paddings across all secondary screens (Friends, Chats, Groups) using Main Dashboard, Leaderboard, and Match History as reference layouts.
@@ -25,7 +26,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] In-match hamburger menu and settings recoloring.
 
 ### 👥 Friends & Social
-- [ ] **Global Player Search & Friend Requests**: Replace manual nickname entry box with a dedicated player search view backed by server-side query, showing player tiles with inline "Add Friend" actions.
+- [x] **Global Player Search & Friend Requests**: Replace manual nickname entry box with a dedicated player search view backed by server-side query, showing player tiles with inline "Add Friend" actions.
 - [x] **Direct Player Challenge**: Allow challenging any user directly from their profile card or chat without requiring an accepted friendship first.
 - [x] **Quick "Add Friend" from Match & History**: Add one-tap friend request actions directly inside in-match player cards and post-match history views.
 - [x] **Add Friend Shortcut on Home Dashboard**: Add an explicit "+ Add Friend" action to the dashboard friends widget or as a tail card at the end of the friends carousel.

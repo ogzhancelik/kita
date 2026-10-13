@@ -122,6 +122,7 @@ func main() {
 
 		userRoutes := api.Group("/users")
 		{
+			userRoutes.GET("/search", middleware.OptionalAuthMiddleware(authService), userH.SearchUsers)
 			userRoutes.GET("/profile/:id", userH.GetProfile)
 			userRoutes.GET("/leaderboard", middleware.OptionalAuthMiddleware(authService), userH.GetLeaderboard)
 			userRoutes.PUT("/me/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
@@ -160,6 +161,7 @@ func main() {
 		friendRoutes := api.Group("/friends", middleware.AuthMiddleware(authService))
 		{
 			friendRoutes.GET("", friendH.GetFriends)
+			friendRoutes.GET("/search", userH.SearchUsers)
 			friendRoutes.GET("/requests", friendH.GetPendingRequests)
 			friendRoutes.POST("/request", friendH.SendRequest)
 			friendRoutes.POST("/:id/accept", friendH.AcceptRequest)
