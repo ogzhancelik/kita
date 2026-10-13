@@ -16,7 +16,7 @@ type AuthService interface {
 type UserService interface {
 	GetProfile(ctx context.Context, userID string) (*domain.UserProfile, error)
 	GetLeaderboard(ctx context.Context, limit int, filter string, currentUserID string) ([]domain.UserProfile, error)
-	UpdateAvatar(ctx context.Context, userID string, avatarIndex int) (*domain.UserProfile, error)
+	UpdateAvatar(ctx context.Context, userID string, avatarIndex int, avatarCustom ...string) (*domain.UserProfile, error)
 	UpdateUsername(ctx context.Context, userID string, username string) (*domain.UserProfile, error)
 	DeleteAccount(ctx context.Context, userID string, password string) error
 	SearchUsers(ctx context.Context, query string, currentUserID string, limit int) ([]domain.UserSearchResult, error)

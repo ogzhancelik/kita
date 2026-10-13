@@ -4,6 +4,7 @@ class FriendItemModel {
   final String userId;
   final String username;
   final int avatarIndex;
+  final String? avatarCustom;
   final int rating;
   final bool isProvisional;
   final String status;
@@ -17,6 +18,7 @@ class FriendItemModel {
     required this.userId,
     required this.username,
     this.avatarIndex = 0,
+    this.avatarCustom,
     required this.rating,
     this.isProvisional = false,
     required this.status,
@@ -37,6 +39,7 @@ class FriendItemModel {
       userId: json['user_id'] as String? ?? '',
       username: json['username'] as String? ?? '',
       avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
+      avatarCustom: (json['avatar_custom'] as String?) ?? (json['avatarCustom'] as String?),
       rating: (json['rating'] as num?)?.toInt() ?? 1200,
       isProvisional: json['is_provisional'] as bool? ?? false,
       status: json['status'] as String? ?? 'pending',
@@ -52,6 +55,7 @@ class FriendItemModel {
     String? userId,
     String? username,
     int? avatarIndex,
+    String? avatarCustom,
     int? rating,
     bool? isProvisional,
     String? status,
@@ -65,6 +69,7 @@ class FriendItemModel {
       userId: userId ?? this.userId,
       username: username ?? this.username,
       avatarIndex: avatarIndex ?? this.avatarIndex,
+      avatarCustom: avatarCustom ?? this.avatarCustom,
       rating: rating ?? this.rating,
       isProvisional: isProvisional ?? this.isProvisional,
       status: status ?? this.status,
@@ -81,6 +86,7 @@ class PlayerSearchResultModel {
   final String id;
   final String username;
   final int avatarIndex;
+  final String? avatarCustom;
   final int rating;
   final bool isProvisional;
   final int wins;
@@ -94,6 +100,7 @@ class PlayerSearchResultModel {
     required this.id,
     required this.username,
     this.avatarIndex = 0,
+    this.avatarCustom,
     required this.rating,
     this.isProvisional = false,
     this.wins = 0,
@@ -111,6 +118,7 @@ class PlayerSearchResultModel {
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? '',
       avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
+      avatarCustom: (json['avatar_custom'] as String?) ?? (json['avatarCustom'] as String?),
       rating: (json['rating'] as num?)?.toInt() ?? 1200,
       isProvisional: json['is_provisional'] as bool? ?? false,
       wins: (json['wins'] as num?)?.toInt() ?? 0,
@@ -126,6 +134,7 @@ class PlayerSearchResultModel {
     String? id,
     String? username,
     int? avatarIndex,
+    String? avatarCustom,
     int? rating,
     bool? isProvisional,
     int? wins,
@@ -139,6 +148,7 @@ class PlayerSearchResultModel {
       id: id ?? this.id,
       username: username ?? this.username,
       avatarIndex: avatarIndex ?? this.avatarIndex,
+      avatarCustom: avatarCustom ?? this.avatarCustom,
       rating: rating ?? this.rating,
       isProvisional: isProvisional ?? this.isProvisional,
       wins: wins ?? this.wins,

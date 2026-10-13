@@ -218,25 +218,43 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     return 0;
   }
 
-  Future<void> setAvatarIndex(int index) async {
+  String? get avatarCustom {
+    if (isGuest && _guestProfile != null) {
+      return _guestProfile!.avatarCustom;
+    }
+    if (_currentUser != null) {
+      return _currentUser!.avatarCustom;
+    }
+    return null;
+  }
+
+  Future<void> setAvatarIndex(int index, {String? custom, bool clearCustom = false}) async {
     if (isGuest && _guestProfile != null) {
       _guestProfile = GuestProfile(
         nickname: _guestProfile!.nickname,
         avatarIndex: index,
+        avatarCustom: clearCustom ? null : (custom ?? _guestProfile!.avatarCustom),
       );
       try {
         await _storage.saveGuestProfile(_guestProfile!.nickname, index);
       } catch (_) {}
       notifyListeners();
     } else if (isAuthenticated && _currentUser != null) {
-      _currentUser = _currentUser!.copyWith(avatarIndex: index);
+      _currentUser = _currentUser!.copyWith(
+        avatarIndex: index,
+        avatarCustom: custom,
+        clearAvatarCustom: clearCustom,
+      );
       notifyListeners();
       try {
         await _storage.saveUser(_currentUser!);
       } catch (_) {}
 
       try {
-        final updated = await _userApiService.updateAvatar(index);
+        final updated = await _userApiService.updateAvatar(
+          index,
+          avatarCustom: clearCustom ? '' : (custom ?? _currentUser!.avatarCustom),
+        );
         _currentUser = updated;
         await _storage.saveUser(updated);
         notifyListeners();

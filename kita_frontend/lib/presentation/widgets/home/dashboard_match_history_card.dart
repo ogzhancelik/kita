@@ -433,11 +433,16 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
         ),
       ),
       child: Center(
-        child: Icon(
-          avatarItem.icon,
-          size: 16,
-          color: avatarItem.accentColor,
-        ),
+        child: (player?.avatarCustom != null && player!.avatarCustom!.trim().isNotEmpty)
+            ? Text(
+                player.avatarCustom!.trim(),
+                style: const TextStyle(fontSize: 14, height: 1.0),
+              )
+            : Icon(
+                avatarItem.icon,
+                size: 16,
+                color: avatarItem.accentColor,
+              ),
       ),
     );
   }

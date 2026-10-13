@@ -58,6 +58,7 @@ type Client struct {
 	IsProvisional  bool
 	CurrentMatchID string
 	AvatarIndex    int
+	AvatarCustom   string
 	Activity       PlayerActivity // Explicit state machine — set via Hub.enterActivityLocked
 
 	// Rematch and invite tracking

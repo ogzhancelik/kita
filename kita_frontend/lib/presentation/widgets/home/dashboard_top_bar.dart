@@ -8,7 +8,7 @@ import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../screens/home/notifications_screen.dart';
-import '../common/avatar_picker.dart';
+import '../common/kita_avatar.dart';
 import '../../screens/chat/chats_screen.dart';
 import 'settings_dialog.dart';
 import 'user_profile_dialog.dart';
@@ -26,7 +26,6 @@ class DashboardTopBar extends StatelessWidget {
     final user = authProv.currentUser;
     final isGuest = authProv.isGuest;
 
-    final avatarItem = AvatarPicker.avatars[authProv.avatarIndex % AvatarPicker.avatars.length];
     final hasUnreadChats = (dmProv?.totalUnread ?? 0) > 0;
     final hasUnreadNotifications = notifProv.hasUnread ||
         friendsProv.pendingIncomingCount > 0;
@@ -47,22 +46,11 @@ class DashboardTopBar extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Avatar
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: avatarItem.accentColor.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: avatarItem.accentColor,
-                          width: 2,
-                        ),
-                      ),
-                      child: Icon(
-                        avatarItem.icon,
-                        color: avatarItem.accentColor,
-                        size: 22,
-                      ),
+                    KitaAvatar(
+                      size: 42,
+                      avatarIndex: authProv.avatarIndex,
+                      avatarCustom: authProv.avatarCustom,
+                      isGuest: authProv.isGuest,
                     ),
                     const SizedBox(width: 10),
                     // İsim & ELO

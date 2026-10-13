@@ -44,6 +44,7 @@ class WebSocketService {
   String? _token;
   String? _nickname;
   int? _avatarIndex;
+  String? _avatarCustom;
   int _reconnectAttempt = 0;
   static const int _maxReconnectAttempts = 5;
   bool _intentionalDisconnect = false;
@@ -53,7 +54,7 @@ class WebSocketService {
   /// If [token] is provided, it's sent as a query parameter for authentication.
   /// If [nickname] is provided (e.g. for guests), it's sent for display name resolution.
   /// If [avatarIndex] is provided, it's sent for initial avatar synchronization.
-  void connect({String? token, String? nickname, int? avatarIndex}) {
+  void connect({String? token, String? nickname, int? avatarIndex, String? avatarCustom}) {
     final isAlreadyActive =
         connectionState.value == WsConnectionState.connected ||
         connectionState.value == WsConnectionState.connecting;
@@ -61,7 +62,8 @@ class WebSocketService {
     if (isAlreadyActive &&
         _token == token &&
         _nickname == nickname &&
-        _avatarIndex == avatarIndex) {
+        _avatarIndex == avatarIndex &&
+        _avatarCustom == avatarCustom) {
       return;
     }
 
@@ -72,6 +74,7 @@ class WebSocketService {
     _token = token;
     _nickname = nickname;
     _avatarIndex = avatarIndex;
+    _avatarCustom = avatarCustom;
     _intentionalDisconnect = false;
     _reconnectAttempt = 0;
     _doConnect();
@@ -111,6 +114,9 @@ class WebSocketService {
     }
     if (_avatarIndex != null) {
       params.add('avatar_index=$_avatarIndex');
+    }
+    if (_avatarCustom != null && _avatarCustom!.isNotEmpty) {
+      params.add('avatar_custom=${Uri.encodeComponent(_avatarCustom!)}');
     }
     if (params.isNotEmpty) {
       url += '?${params.join('&')}';
@@ -224,7 +230,7 @@ class WebSocketService {
       debugPrint('[WS] Connection pending — queued message: $type');
       _pendingMessages.add(encoded);
       if (connectionState.value == WsConnectionState.disconnected) {
-        connect(token: _token, nickname: _nickname, avatarIndex: _avatarIndex);
+        connect(token: _token, nickname: _nickname, avatarIndex: _avatarIndex, avatarCustom: _avatarCustom);
       }
       return;
     }

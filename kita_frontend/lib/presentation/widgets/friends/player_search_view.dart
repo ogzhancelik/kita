@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/friend_models.dart';
 import '../../providers/friends_provider.dart';
-import '../common/avatar_picker.dart';
+import '../common/kita_avatar.dart';
 import '../home/user_profile_dialog.dart';
 
 /// Dedicated player search view backed by server-side query,
@@ -386,7 +386,15 @@ class _PlayerSearchViewState extends State<PlayerSearchView> {
           onAddFriend: () => _sendFriendRequest(player),
           onAcceptRequest: () => _acceptFriendRequest(player),
           onTap: () {
-            UserProfileDialog.show(context, userId: player.id);
+            UserProfileDialog.show(
+              context,
+              userId: player.id,
+              fallbackName: player.username,
+              fallbackAvatarIndex: player.avatarIndex,
+              fallbackAvatarCustom: player.avatarCustom,
+              fallbackRating: player.rating,
+              fallbackIsProvisional: player.isProvisional,
+            );
           },
         );
       },
@@ -413,8 +421,6 @@ class _PlayerSearchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarItem = AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
-
     return Material(
       color: AppColors.getSurface(isDark),
       borderRadius: BorderRadius.circular(14),
@@ -433,22 +439,11 @@ class _PlayerSearchTile extends StatelessWidget {
           child: Row(
             children: [
               // Avatar
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: avatarItem.accentColor.withValues(alpha: 0.18),
-                  border: Border.all(
-                    color: avatarItem.accentColor.withValues(alpha: 0.5),
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(
-                  avatarItem.icon,
-                  color: avatarItem.accentColor,
-                  size: 22,
-                ),
+              KitaAvatar(
+                size: 44,
+                avatarIndex: player.avatarIndex,
+                avatarCustom: player.avatarCustom,
+                borderWidth: 1.5,
               ),
               const SizedBox(width: 12),
 

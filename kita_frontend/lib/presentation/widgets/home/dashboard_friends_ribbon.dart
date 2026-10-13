@@ -10,7 +10,7 @@ import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/friends/friends_screen.dart';
-import '../common/avatar_picker.dart';
+import '../common/kita_avatar.dart';
 import '../common/kita_card.dart';
 import '../friends/add_friend_dialog.dart';
 import 'user_profile_dialog.dart';
@@ -250,8 +250,6 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
   }
 
   Widget _buildFriendCard(FriendItemModel friend, bool isDark, int unreadCount) {
-    final avatar = AvatarPicker.avatars[friend.avatarIndex % AvatarPicker.avatars.length];
-
     return Container(
       width: 108,
       decoration: BoxDecoration(
@@ -272,6 +270,7 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
               userId: friend.userId,
               fallbackName: friend.username,
               fallbackAvatarIndex: friend.avatarIndex,
+              fallbackAvatarCustom: friend.avatarCustom,
               fallbackRating: friend.rating,
               onInvite: () => _quickInvite(friend),
             );
@@ -289,22 +288,11 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                         Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: avatar.accentColor.withValues(alpha: 0.18),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: avatar.accentColor,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Icon(
-                                avatar.icon,
-                                color: avatar.accentColor,
-                                size: 20,
-                              ),
+                            KitaAvatar(
+                              size: 38,
+                              avatarIndex: friend.avatarIndex,
+                              avatarCustom: friend.avatarCustom,
+                              borderWidth: 1.5,
                             ),
                             Positioned(
                               bottom: 0,

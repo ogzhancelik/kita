@@ -954,6 +954,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           profile: player,
           fallbackName: player.username,
           fallbackAvatarIndex: player.avatarIndex,
+          fallbackAvatarCustom: player.avatarCustom,
           fallbackRating: player.rating,
         );
       },
@@ -986,11 +987,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ],
                   ),
                   child: Center(
-                    child: Icon(
-                      avatarItem.icon,
-                      color: avatarItem.accentColor,
-                      size: avatarSize * 0.55,
-                    ),
+                    child: (player.avatarCustom != null && player.avatarCustom!.trim().isNotEmpty)
+                        ? Text(
+                            player.avatarCustom!.trim(),
+                            style: TextStyle(
+                              fontSize: avatarSize * 0.52,
+                              height: 1.0,
+                            ),
+                          )
+                        : Icon(
+                            avatarItem.icon,
+                            color: avatarItem.accentColor,
+                            size: avatarSize * 0.55,
+                          ),
                   ),
                 ),
                 Positioned(
@@ -1089,6 +1098,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           profile: player,
           fallbackName: player.username,
           fallbackAvatarIndex: player.avatarIndex,
+          fallbackAvatarCustom: player.avatarCustom,
           fallbackRating: player.rating,
         );
       },
@@ -1125,11 +1135,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               ),
             ),
             child: Center(
-              child: Icon(
-                avatarItem.icon,
-                color: avatarItem.accentColor,
-                size: 18,
-              ),
+              child: (player.avatarCustom != null && player.avatarCustom!.trim().isNotEmpty)
+                  ? Text(
+                      player.avatarCustom!.trim(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        height: 1.0,
+                      ),
+                    )
+                  : Icon(
+                      avatarItem.icon,
+                      color: avatarItem.accentColor,
+                      size: 18,
+                    ),
             ),
           ),
           const SizedBox(width: 10),
@@ -1321,11 +1339,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   ),
                 ),
                 child: Center(
-                  child: Icon(
-                    avatarItem.icon,
-                    color: avatarItem.accentColor,
-                    size: 16,
-                  ),
+                  child: (userProfile.avatarCustom != null && userProfile.avatarCustom!.trim().isNotEmpty)
+                      ? Text(
+                          userProfile.avatarCustom!.trim(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.0,
+                          ),
+                        )
+                      : Icon(
+                          avatarItem.icon,
+                          color: avatarItem.accentColor,
+                          size: 16,
+                        ),
                 ),
               ),
               const SizedBox(width: 10),

@@ -46,12 +46,17 @@ class UserApiService {
   }
 
   /// Updates authenticated user's avatar
-  Future<UserProfile> updateAvatar(int avatarIndex) async {
+  Future<UserProfile> updateAvatar(int avatarIndex, {String? avatarCustom}) async {
     final token = ApiClient.currentToken;
+
+    final data = <String, dynamic>{
+      'avatar_index': avatarIndex,
+      'avatar_custom': ?avatarCustom,
+    };
 
     final response = await _client.dio.put(
       ApiConstants.updateAvatar,
-      data: {'avatar_index': avatarIndex},
+      data: data,
       options: (token != null && token.isNotEmpty)
           ? Options(headers: {'Authorization': 'Bearer $token'})
           : null,

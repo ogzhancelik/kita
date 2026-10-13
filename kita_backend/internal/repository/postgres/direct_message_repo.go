@@ -26,8 +26,10 @@ func (r *directMessageRepo) Save(ctx context.Context, msg *domain.DirectMessage)
 	r.populateUserMetadata(ctx, slice)
 	msg.SenderUsername = slice[0].SenderUsername
 	msg.SenderAvatarIndex = slice[0].SenderAvatarIndex
+	msg.SenderAvatarCustom = slice[0].SenderAvatarCustom
 	msg.RecipientUsername = slice[0].RecipientUsername
 	msg.RecipientAvatarIndex = slice[0].RecipientAvatarIndex
+	msg.RecipientAvatarCustom = slice[0].RecipientAvatarCustom
 	return nil
 }
 
@@ -100,16 +102,20 @@ func (r *directMessageRepo) populateUserMetadata(ctx context.Context, msgs []dom
 		if su, ok := userMap[msgs[i].SenderID]; ok {
 			msgs[i].SenderUsername = su.Username
 			msgs[i].SenderAvatarIndex = su.AvatarIndex
+			msgs[i].SenderAvatarCustom = su.AvatarCustom
 		} else {
 			msgs[i].SenderUsername = "[Deleted]"
 			msgs[i].SenderAvatarIndex = 0
+			msgs[i].SenderAvatarCustom = ""
 		}
 		if ru, ok := userMap[msgs[i].RecipientID]; ok {
 			msgs[i].RecipientUsername = ru.Username
 			msgs[i].RecipientAvatarIndex = ru.AvatarIndex
+			msgs[i].RecipientAvatarCustom = ru.AvatarCustom
 		} else {
 			msgs[i].RecipientUsername = "[Deleted]"
 			msgs[i].RecipientAvatarIndex = 0
+			msgs[i].RecipientAvatarCustom = ""
 		}
 	}
 }

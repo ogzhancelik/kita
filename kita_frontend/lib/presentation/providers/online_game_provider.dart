@@ -33,6 +33,7 @@ class OpponentInfo {
   final String _name;
   final int rating;
   final int avatarIndex;
+  final String? avatarCustom;
   final bool isProvisional;
 
   const OpponentInfo({
@@ -40,6 +41,7 @@ class OpponentInfo {
     required String name,
     required this.rating,
     this.avatarIndex = 0,
+    this.avatarCustom,
     this.isProvisional = false,
   // ignore: prefer_initializing_formals
   }) : _name = name;
@@ -270,16 +272,20 @@ class OnlineGameProvider extends ChangeNotifier {
   }
 
   /// Connect to WebSocket and start listening.
-  void connectAndListen({String? token, String? nickname, int? avatarIndex}) {
+  void connectAndListen({String? token, String? nickname, int? avatarIndex, String? avatarCustom}) {
     myUserId = null;
     myUsername = null;
     myRating = 1200;
-    _ws.connect(token: token, nickname: nickname, avatarIndex: avatarIndex);
+    _ws.connect(token: token, nickname: nickname, avatarIndex: avatarIndex, avatarCustom: avatarCustom);
   }
 
   /// Update the player's avatar on the server via WebSocket.
-  void updateAvatar(int avatarIndex) {
-    _ws.send(WsClientType.updateAvatar, {'avatar_index': avatarIndex});
+  void updateAvatar(int avatarIndex, {String? avatarCustom}) {
+    final payload = <String, dynamic>{
+      'avatar_index': avatarIndex,
+      'avatar_custom': ?avatarCustom,
+    };
+    _ws.send(WsClientType.updateAvatar, payload);
   }
 
   // ─── Matchmaking ──────────────────────────────────────────────────
@@ -1065,6 +1071,7 @@ class OnlineGameProvider extends ChangeNotifier {
       name: data.opponentName,
       rating: data.opponentRating,
       avatarIndex: data.opponentAvatarIndex,
+      avatarCustom: data.opponentAvatarCustom,
       isProvisional: data.opponentIsProvisional,
     );
 

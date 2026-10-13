@@ -64,6 +64,7 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 	rating := 1200
 	isProvisional := true
 	avatarIndex := 0
+	avatarCustom := strings.TrimSpace(c.Query("avatar_custom"))
 
 	hasQueryAvatar := false
 	if avStr := c.Query("avatar_index"); avStr != "" {
@@ -83,6 +84,9 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 				if !hasQueryAvatar {
 					avatarIndex = profile.AvatarIndex
 				}
+				if avatarCustom == "" {
+					avatarCustom = profile.AvatarCustom
+				}
 			}
 		}
 	}
@@ -101,6 +105,7 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 	}
 
 	client := game.NewClient(h.hub, conn, userID, username, rating, avatarIndex)
+	client.AvatarCustom = avatarCustom
 	client.IsProvisional = isProvisional
 	h.hub.Register <- client
 

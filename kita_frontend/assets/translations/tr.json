@@ -397,6 +397,7 @@
     "chat": "Sohbet",
     "noMessagesYet": "Henüz mesaj yok. Merhaba de!",
     "typeMessage": "Bir mesaj yazın...",
+    "emoji": "Emoji",
     "resign": "Terk Et",
     "resignTitle": "Oyunu Terk Et",
     "resignConfirm": "Bu oyunu terk etmek istediğinize emin misiniz?",
@@ -582,6 +583,7 @@
     "chatTooltip": "Mesaj Gönder",
     "startConversation": "Merhaba de! Sohbeti başlat.",
     "messageHint": "Bir mesaj yaz...",
+    "emojiTooltip": "Emoji",
     "today": "Bugün",
     "yesterday": "Dün",
     "matchVs": "vs {}",
@@ -629,5 +631,18 @@
     "enterPasswordToDelete": "Onaylamak için şifrenizi girin:",
     "deleteAccountPasswordHint": "Şifre",
     "accountDeleted": "Hesabınız başarıyla silindi."
+  },
+  "avatar": {
+    "title": "Avatarı Özelleştir",
+    "preview": "Avatar Önizlemesi",
+    "customEmoji": "Emoji Avatar",
+    "enterEmoji": "Emoji yaz veya aşağıdan seç",
+    "quickEmojis": "Popüler Emojiler",
+    "classicIcons": "Klasik İkonlar",
+    "colorTheme": "Renk Teması",
+    "useClassic": "Klasik İkona Dön",
+    "chooseEmoji": "Emoji Seç",
+    "save": "Avatarı Kaydet",
+    "saved": "Avatar başarıyla güncellendi!"
   }
 }

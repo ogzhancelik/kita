@@ -7,9 +7,11 @@ class DmMessage {
   final String senderId;
   final String senderUsername;
   final int senderAvatarIndex;
+  final String? senderAvatarCustom;
   final String recipientId;
   final String recipientUsername;
   final int recipientAvatarIndex;
+  final String? recipientAvatarCustom;
   final String content;
   final DateTime createdAt;
 
@@ -19,9 +21,11 @@ class DmMessage {
     required this.senderId,
     required this.senderUsername,
     this.senderAvatarIndex = 0,
+    this.senderAvatarCustom,
     required this.recipientId,
     this.recipientUsername = '',
     this.recipientAvatarIndex = 0,
+    this.recipientAvatarCustom,
     required this.content,
     required this.createdAt,
   });
@@ -33,9 +37,11 @@ class DmMessage {
       senderId: json['sender_id'] as String? ?? '',
       senderUsername: json['sender_username'] as String? ?? '',
       senderAvatarIndex: (json['sender_avatar_index'] as num?)?.toInt() ?? 0,
+      senderAvatarCustom: (json['sender_avatar_custom'] as String?) ?? (json['senderAvatarCustom'] as String?),
       recipientId: json['recipient_id'] as String? ?? '',
       recipientUsername: json['recipient_username'] as String? ?? '',
       recipientAvatarIndex: (json['recipient_avatar_index'] as num?)?.toInt() ?? 0,
+      recipientAvatarCustom: (json['recipient_avatar_custom'] as String?) ?? (json['recipientAvatarCustom'] as String?),
       content: json['content'] as String? ?? '',
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
@@ -48,9 +54,11 @@ class DmMessage {
         'sender_id': senderId,
         'sender_username': senderUsername,
         'sender_avatar_index': senderAvatarIndex,
+        if (senderAvatarCustom != null) 'sender_avatar_custom': senderAvatarCustom,
         'recipient_id': recipientId,
         'recipient_username': recipientUsername,
         'recipient_avatar_index': recipientAvatarIndex,
+        if (recipientAvatarCustom != null) 'recipient_avatar_custom': recipientAvatarCustom,
         'content': content,
         'created_at': createdAt.toIso8601String(),
       };

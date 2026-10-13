@@ -11,7 +11,8 @@ import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
-import '../../widgets/common/avatar_picker.dart';
+import '../../widgets/common/kita_avatar.dart';
+import '../../widgets/common/kita_emoji_picker.dart';
 import '../../widgets/dm/match_chat_card_widget.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
@@ -45,6 +46,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
   late String _myUsername;
   late FriendItemModel _friend;
   int _lastTimelineCount = 0;
+  bool _showEmojiPicker = false;
 
   @override
   void initState() {
@@ -98,6 +100,11 @@ class _DmChatScreenState extends State<DmChatScreen> {
 
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
+        if (_showEmojiPicker) {
+          setState(() {
+            _showEmojiPicker = false;
+          });
+        }
         Future.delayed(const Duration(milliseconds: 300), () {
           if (mounted) _scrollToBottom();
         });
@@ -152,6 +159,49 @@ class _DmChatScreenState extends State<DmChatScreen> {
     });
   }
 
+  void _insertEmoji(String emoji) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    if (selection.isValid && selection.start >= 0 && selection.end >= 0) {
+      final start = selection.start;
+      final end = selection.end;
+      final newText = text.replaceRange(start, end, emoji);
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start + emoji.length),
+      );
+    } else {
+      final newText = text + emoji;
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
+    }
+  }
+
+  void _toggleEmojiPicker() async {
+    if (_showEmojiPicker) {
+      setState(() {
+        _showEmojiPicker = false;
+      });
+      _focusNode.requestFocus();
+    } else {
+      final isKeyboardOpen = FocusScope.of(context).hasFocus;
+      if (isKeyboardOpen) {
+        FocusScope.of(context).unfocus();
+        await Future.delayed(const Duration(milliseconds: 150));
+      }
+      if (mounted) {
+        setState(() {
+          _showEmojiPicker = true;
+        });
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) _scrollToBottom();
+        });
+      }
+    }
+  }
+
   void _send() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
@@ -182,17 +232,42 @@ class _DmChatScreenState extends State<DmChatScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor: AppColors.getBackground(isDark),
-      appBar: _buildAppBar(isDark),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Column(
-          children: [
-            Expanded(child: _buildTimeline2(isDark)),
-            _buildInputBar(isDark),
-          ],
+    return PopScope(
+      canPop: !_showEmojiPicker,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _showEmojiPicker) {
+          setState(() {
+            _showEmojiPicker = false;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.getBackground(isDark),
+        appBar: _buildAppBar(isDark),
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            if (_showEmojiPicker) {
+              setState(() {
+                _showEmojiPicker = false;
+              });
+            }
+          },
+          child: Column(
+            children: [
+              Expanded(child: _buildTimeline2(isDark)),
+              _buildInputBar(isDark),
+              if (_showEmojiPicker)
+                SizedBox(
+                  height: 250,
+                  child: KitaEmojiPicker(
+                    height: 250,
+                    onEmojiSelected: _insertEmoji,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -226,8 +301,6 @@ class _DmChatScreenState extends State<DmChatScreen> {
       (f) => f.userId == _friend.userId,
       orElse: () => _friend,
     );
-    final avatarItem = AvatarPicker
-        .avatars[friend.avatarIndex % AvatarPicker.avatars.length];
     return AppBar(
       backgroundColor: AppColors.getCard(isDark),
       elevation: 0,
@@ -247,16 +320,11 @@ class _DmChatScreenState extends State<DmChatScreen> {
             children: [
               Stack(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: avatarItem.accentColor.withAlpha(46),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: avatarItem.accentColor, width: 1.5),
-                    ),
-                    child: Icon(avatarItem.icon,
-                        color: avatarItem.accentColor, size: 20),
+                  KitaAvatar(
+                    size: 36,
+                    avatarIndex: friend.avatarIndex,
+                    avatarCustom: friend.avatarCustom,
+                    borderWidth: 1.5,
                   ),
                   if (friend.isOnline)
                     Positioned(
@@ -384,6 +452,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
                     isMe: item.dm!.senderId == _myId,
                     isDark: isDark,
                     friendAvatarIndex: widget.friend.avatarIndex,
+                    friendAvatarCustom: widget.friend.avatarCustom,
                   ),
               ],
             );
@@ -469,25 +538,48 @@ class _DmChatScreenState extends State<DmChatScreen> {
                     color: AppColors.getSurface(isDark),
                     borderRadius: BorderRadius.circular(22),
                   ),
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    minLines: 1,
-                    maxLines: 4,
-                    maxLength: 500,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _send(),
-                    style: TextStyle(
-                        color: AppColors.getTextPrimary(isDark), fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'dm.messageHint'.tr(),
-                      hintStyle: TextStyle(
-                          color: AppColors.getTextMuted(isDark), fontSize: 14),
-                      counterText: '',
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                    ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          _showEmojiPicker
+                              ? Icons.keyboard_rounded
+                              : Icons.emoji_emotions_outlined,
+                          color: _showEmojiPicker
+                              ? AppColors.primaryGreen
+                              : AppColors.getTextMuted(isDark),
+                          size: 20,
+                        ),
+                        onPressed: _toggleEmojiPicker,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        constraints: const BoxConstraints(),
+                        tooltip: 'dm.emojiTooltip'.tr(),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          minLines: 1,
+                          maxLines: 4,
+                          maxLength: 500,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _send(),
+                          style: TextStyle(
+                              color: AppColors.getTextPrimary(isDark),
+                              fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'dm.messageHint'.tr(),
+                            hintStyle: TextStyle(
+                                color: AppColors.getTextMuted(isDark),
+                                fontSize: 14),
+                            counterText: '',
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -530,18 +622,18 @@ class _MessageBubble extends StatelessWidget {
   final bool isMe;
   final bool isDark;
   final int friendAvatarIndex;
+  final String? friendAvatarCustom;
 
   const _MessageBubble({
     required this.message,
     required this.isMe,
     required this.isDark,
     required this.friendAvatarIndex,
+    this.friendAvatarCustom,
   });
 
   @override
   Widget build(BuildContext context) {
-    final avatarItem = AvatarPicker
-        .avatars[friendAvatarIndex % AvatarPicker.avatars.length];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -550,16 +642,11 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: avatarItem.accentColor.withAlpha(46),
-                shape: BoxShape.circle,
-                border: Border.all(color: avatarItem.accentColor, width: 1.5),
-              ),
-              child: Icon(avatarItem.icon,
-                  color: avatarItem.accentColor, size: 16),
+            KitaAvatar(
+              size: 28,
+              avatarIndex: friendAvatarIndex,
+              avatarCustom: message.senderAvatarCustom ?? friendAvatarCustom,
+              borderWidth: 1.5,
             ),
             const SizedBox(width: 6),
           ],

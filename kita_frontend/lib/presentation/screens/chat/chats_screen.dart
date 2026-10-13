@@ -11,7 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
-import '../../widgets/common/avatar_picker.dart';
+import '../../widgets/common/kita_avatar.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../friends/dm_chat_screen.dart';
 
@@ -533,8 +533,6 @@ class _ChatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = AvatarPicker.avatars[
-        item.friend.avatarIndex.clamp(0, AvatarPicker.avatars.length - 1)];
     final hasUnread = item.unreadCount > 0;
 
     return Material(
@@ -560,22 +558,11 @@ class _ChatTile extends StatelessWidget {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: avatar.accentColor.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: avatar.accentColor,
-                        width: 2,
-                      ),
-                    ),
-                    child: Icon(
-                      avatar.icon,
-                      color: avatar.accentColor,
-                      size: 26,
-                    ),
+                  KitaAvatar(
+                    size: 48,
+                    avatarIndex: item.friend.avatarIndex,
+                    avatarCustom: item.friend.avatarCustom,
+                    borderWidth: 2,
                   ),
                   Positioned(
                     bottom: 0,
@@ -838,8 +825,6 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
                     separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (ctx, index) {
                       final friend = filtered[index];
-                      final avatar = AvatarPicker.avatars[friend.avatarIndex
-                          .clamp(0, AvatarPicker.avatars.length - 1)];
                       return ListTile(
                         onTap: () => widget.onSelectFriend(friend),
                         shape: RoundedRectangleBorder(
@@ -851,22 +836,11 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
                         leading: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: avatar.accentColor.withValues(alpha: 0.16),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: avatar.accentColor,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Icon(
-                                avatar.icon,
-                                color: avatar.accentColor,
-                                size: 22,
-                              ),
+                            KitaAvatar(
+                              size: 40,
+                              avatarIndex: friend.avatarIndex,
+                              avatarCustom: friend.avatarCustom,
+                              borderWidth: 1.5,
                             ),
                             Positioned(
                               bottom: 0,

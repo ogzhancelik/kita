@@ -25,6 +25,7 @@ class PlayerInfoBar extends StatelessWidget {
   final ValueNotifier<String> isActiveTurn;
   final int timeControl;
   final int? avatarIndex;
+  final String? avatarCustom;
   final VoidCallback? onTap;
   final bool isGameOver;
   final bool isBot;
@@ -44,6 +45,7 @@ class PlayerInfoBar extends StatelessWidget {
     required this.isActiveTurn,
     required this.timeControl,
     this.avatarIndex,
+    this.avatarCustom,
     this.onTap,
     this.isGameOver = false,
     this.isBot = false,
@@ -78,6 +80,9 @@ class PlayerInfoBar extends StatelessWidget {
             ? AppColors.guestOrange
             : avatarItem.accentColor);
 
+    final String? effectiveAvatarCustom = avatarCustom ??
+        (!isOpponent ? authProv.avatarCustom : null);
+
     final avatarWidget = Container(
       width: 34,
       height: 34,
@@ -97,11 +102,18 @@ class PlayerInfoBar extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: Icon(
-          effectiveIcon,
-          size: 18,
-          color: effectiveAccentColor,
-        ),
+        child: (effectiveAvatarCustom != null &&
+                effectiveAvatarCustom.trim().isNotEmpty &&
+                !showBotAvatar)
+            ? Text(
+                effectiveAvatarCustom.trim(),
+                style: const TextStyle(fontSize: 16, height: 1.0),
+              )
+            : Icon(
+                effectiveIcon,
+                size: 18,
+                color: effectiveAccentColor,
+              ),
       ),
     );
 

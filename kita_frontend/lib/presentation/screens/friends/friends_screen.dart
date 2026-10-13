@@ -11,7 +11,7 @@ import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
-import '../../widgets/common/avatar_picker.dart';
+import '../../widgets/common/kita_avatar.dart';
 import '../../widgets/friends/player_search_view.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
@@ -411,8 +411,6 @@ class _FriendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarItem = AvatarPicker.avatars[friend.avatarIndex % AvatarPicker.avatars.length];
-
     return Container(
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
@@ -432,22 +430,11 @@ class _FriendCard extends StatelessWidget {
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: avatarItem.accentColor.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: avatarItem.accentColor,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Icon(
-                        avatarItem.icon,
-                        color: avatarItem.accentColor,
-                        size: 22,
-                      ),
+                    KitaAvatar(
+                      size: 40,
+                      avatarIndex: friend.avatarIndex,
+                      avatarCustom: friend.avatarCustom,
+                      borderWidth: 1.5,
                     ),
                     Positioned(
                       bottom: 0,
@@ -641,8 +628,6 @@ class _IncomingRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarItem = AvatarPicker.avatars[request.avatarIndex % AvatarPicker.avatars.length];
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
@@ -660,22 +645,11 @@ class _IncomingRequestCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: avatarItem.accentColor.withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: avatarItem.accentColor,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Icon(
-                    avatarItem.icon,
-                    color: avatarItem.accentColor,
-                    size: 18,
-                  ),
+                KitaAvatar(
+                  size: 36,
+                  avatarIndex: request.avatarIndex,
+                  avatarCustom: request.avatarCustom,
+                  borderWidth: 1.5,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -732,8 +706,6 @@ class _OutgoingRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarItem = AvatarPicker.avatars[request.avatarIndex % AvatarPicker.avatars.length];
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
@@ -751,22 +723,11 @@ class _OutgoingRequestCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: avatarItem.accentColor.withValues(alpha: 0.18),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: avatarItem.accentColor,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Icon(
-                    avatarItem.icon,
-                    color: avatarItem.accentColor,
-                    size: 18,
-                  ),
+                KitaAvatar(
+                  size: 36,
+                  avatarIndex: request.avatarIndex,
+                  avatarCustom: request.avatarCustom,
+                  borderWidth: 1.5,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

@@ -13,6 +13,7 @@ import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../screens/friends/dm_chat_screen.dart';
 import '../common/avatar_picker.dart';
+import '../common/kita_avatar.dart';
 import '../common/stat_badge.dart';
 import 'account_settings_dialog.dart';
 
@@ -21,6 +22,7 @@ class UserProfileDialog extends StatefulWidget {
   final UserProfile? profile;
   final String? fallbackName;
   final int? fallbackAvatarIndex;
+  final String? fallbackAvatarCustom;
   final int? fallbackRating;
   final bool? fallbackIsProvisional;
   final bool? isGuest;
@@ -34,6 +36,7 @@ class UserProfileDialog extends StatefulWidget {
     this.profile,
     this.fallbackName,
     this.fallbackAvatarIndex,
+    this.fallbackAvatarCustom,
     this.fallbackRating,
     this.fallbackIsProvisional,
     this.isGuest,
@@ -48,6 +51,7 @@ class UserProfileDialog extends StatefulWidget {
     UserProfile? profile,
     String? fallbackName,
     int? fallbackAvatarIndex,
+    String? fallbackAvatarCustom,
     int? fallbackRating,
     bool? fallbackIsProvisional,
     bool? isGuest,
@@ -65,6 +69,7 @@ class UserProfileDialog extends StatefulWidget {
         profile: profile,
         fallbackName: fallbackName,
         fallbackAvatarIndex: fallbackAvatarIndex,
+        fallbackAvatarCustom: fallbackAvatarCustom,
         fallbackRating: fallbackRating,
         fallbackIsProvisional: fallbackIsProvisional,
         isGuest: isGuest,
@@ -162,8 +167,6 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
         ? authProv.avatarIndex
         : (user?.avatarIndex ?? widget.fallbackAvatarIndex ?? (isBot ? 7 : 0));
 
-    final avatarItem = AvatarPicker.avatars[rawAvatarIndex % AvatarPicker.avatars.length];
-
     final int rating = isCurrent
         ? (user?.rating ?? 1200)
         : (user?.rating ?? widget.fallbackRating ?? 1200);
@@ -255,47 +258,16 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     Center(
                       child: Stack(
                         children: [
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              color: (isBot
-                                      ? AppColors.primaryGreen
-                                      : (isDeleted
-                                          ? AppColors.getDeletedUser(isDark)
-                                          : (isGuest && rawAvatarIndex == 0
-                                              ? AppColors.guestOrange
-                                              : avatarItem.accentColor)))
-                                  .withValues(alpha: 0.18),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isBot
-                                    ? AppColors.primaryGreen
-                                    : (isDeleted
-                                        ? AppColors.getDeletedUser(isDark)
-                                        : (isGuest && rawAvatarIndex == 0
-                                            ? AppColors.guestOrange
-                                            : avatarItem.accentColor)),
-                                width: 3,
-                              ),
-                            ),
-                            child: Icon(
-                              isBot
-                                  ? Icons.smart_toy_rounded
-                                  : (isDeleted
-                                      ? Icons.face_rounded
-                                      : (isGuest && rawAvatarIndex == 0
-                                          ? Icons.face_rounded
-                                          : avatarItem.icon)),
-                              color: isBot
-                                  ? AppColors.primaryGreen
-                                  : (isDeleted
-                                      ? AppColors.getDeletedUser(isDark)
-                                      : (isGuest && rawAvatarIndex == 0
-                                          ? AppColors.guestOrange
-                                          : avatarItem.accentColor)),
-                              size: 46,
-                            ),
+                          KitaAvatar(
+                            size: 88,
+                            avatarIndex: rawAvatarIndex,
+                            avatarCustom: isCurrent
+                                ? authProv.avatarCustom
+                                : (user?.avatarCustom ?? widget.fallbackAvatarCustom),
+                            borderWidth: 3,
+                            isBot: isBot,
+                            isGuest: isGuest,
+                            isDeleted: isDeleted,
                           ),
                           if (isCurrent)
                             Positioned(

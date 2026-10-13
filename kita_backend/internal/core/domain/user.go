@@ -16,6 +16,7 @@ type User struct {
 	Email           string        `json:"email" gorm:"uniqueIndex;not null"`
 	PasswordHash    string        `json:"-" gorm:"not null"`
 	AvatarIndex     int           `json:"avatar_index" gorm:"default:0"`
+	AvatarCustom    string        `json:"avatar_custom" gorm:"default:''"`
 	Rating          float64       `json:"rating" gorm:"default:1500;index"`
 	RatingDeviation float64       `json:"rating_deviation" gorm:"default:350"`
 	Volatility      float64       `json:"volatility" gorm:"default:0.06"`
@@ -42,6 +43,7 @@ type UserProfile struct {
 	ID            string    `json:"id"`
 	Username      string    `json:"username"`
 	AvatarIndex   int       `json:"avatar_index"`
+	AvatarCustom  string    `json:"avatar_custom"`
 	Rating        int       `json:"rating"`
 	IsProvisional bool      `json:"is_provisional"`
 	Wins          int       `json:"wins"`
@@ -62,6 +64,7 @@ func (u *User) ToProfile() UserProfile {
 		ID:            u.ID,
 		Username:      u.Username,
 		AvatarIndex:   u.AvatarIndex,
+		AvatarCustom:  u.AvatarCustom,
 		Rating:        int(math.Round(u.Rating)),
 		IsProvisional: u.IsProvisional(),
 		Wins:          u.Wins,
@@ -77,6 +80,7 @@ type UserSearchResult struct {
 	ID               string  `json:"id"`
 	Username         string  `json:"username"`
 	AvatarIndex      int     `json:"avatar_index"`
+	AvatarCustom     string  `json:"avatar_custom"`
 	Rating           int     `json:"rating"`
 	IsProvisional    bool    `json:"is_provisional"`
 	Wins             int     `json:"wins"`

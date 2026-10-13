@@ -158,6 +158,7 @@ type MatchFoundDTO struct {
 	OpponentRating         int                `json:"opponent_rating"`
 	OpponentIsProvisional  bool               `json:"opponent_is_provisional"`
 	OpponentAvatarIndex    int                `json:"opponent_avatar_index"`
+	OpponentAvatarCustom   string             `json:"opponent_avatar_custom,omitempty"`
 	TimeControl         int64              `json:"time_control"`
 	IsReconnect         bool               `json:"is_reconnect,omitempty"`
 	StartedAt           *time.Time         `json:"started_at,omitempty"`
@@ -232,6 +233,7 @@ type RoomInfoDTO struct {
 	HostRating        int    `json:"host_rating"`
 	HostIsProvisional bool   `json:"host_is_provisional"`
 	HostAvatarIndex   int    `json:"host_avatar_index"`
+	HostAvatarCustom  string `json:"host_avatar_custom,omitempty"`
 	TimeControl     int64  `json:"time_control"`
 	IsPrivate       bool   `json:"is_private"`
 }
@@ -254,6 +256,7 @@ type RematchOfferedDTO struct {
 	RequesterID          string `json:"requester_id"`
 	RequesterName        string `json:"requester_name"`
 	RequesterAvatarIndex int    `json:"requester_avatar_index"`
+	RequesterAvatarCustom string `json:"requester_avatar_custom,omitempty"`
 	TimeControl          int64  `json:"time_control"`
 	ColorPreference      string `json:"color_preference,omitempty"`
 }
@@ -273,6 +276,7 @@ type MatchInvitationDTO struct {
 	InviterRating        int    `json:"inviter_rating"`
 	InviterIsProvisional bool   `json:"inviter_is_provisional"`
 	InviterAvatarIndex   int    `json:"inviter_avatar_index"`
+	InviterAvatarCustom  string `json:"inviter_avatar_custom,omitempty"`
 	TimeControl        int64  `json:"time_control"`
 	ColorPreference    string `json:"color_preference,omitempty"`
 	ExpiresAt          int64  `json:"expires_at,omitempty"`
@@ -331,9 +335,11 @@ type DmBroadcastDTO struct {
 	SenderID             string    `json:"sender_id"`
 	SenderUsername       string    `json:"sender_username"`
 	SenderAvatarIndex    int       `json:"sender_avatar_index"`
+	SenderAvatarCustom   string    `json:"sender_avatar_custom,omitempty"`
 	RecipientID          string    `json:"recipient_id"`
 	RecipientUsername    string    `json:"recipient_username,omitempty"`
 	RecipientAvatarIndex int       `json:"recipient_avatar_index,omitempty"`
+	RecipientAvatarCustom string   `json:"recipient_avatar_custom,omitempty"`
 	Content              string    `json:"content"`
 	CreatedAt            time.Time `json:"created_at"`
 }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/online_game_provider.dart';
+import '../common/kita_emoji_picker.dart';
 import 'match_elapsed_timer.dart';
 
 /// Inline chat panel for in-game communications.
@@ -55,6 +56,16 @@ class _ChatPanelState extends State<ChatPanel> {
     provider.sendChat(text);
     _controller.clear();
     _scrollToBottom();
+  }
+
+  void _openEmojiPicker(BuildContext context, OnlineGameProvider provider) {
+    _focusNode.unfocus();
+    FocusScope.of(context).unfocus();
+    KitaEmojiPicker.showModal(
+      context,
+      controller: _controller,
+      onSend: () => _sendMessage(provider),
+    );
   }
 
   @override
@@ -199,28 +210,47 @@ class _ChatPanelState extends State<ChatPanel> {
                         width: 0.8,
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Center(
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        autofocus: false,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.getTextPrimary(isDark),
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'online.typeMessage'.tr(),
-                          hintStyle: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.getTextMuted(isDark),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      children: [
+                        InkWell(
+                          onTap: () => _openEmojiPicker(context, provider),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.emoji_emotions_outlined,
+                              size: 18,
+                              color: AppColors.getTextMuted(isDark),
+                            ),
                           ),
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          border: InputBorder.none,
                         ),
-                        onSubmitted: (_) => _sendMessage(provider),
-                      ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Center(
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              autofocus: false,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.getTextPrimary(isDark),
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'online.typeMessage'.tr(),
+                                hintStyle: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.getTextMuted(isDark),
+                                ),
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _sendMessage(provider),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

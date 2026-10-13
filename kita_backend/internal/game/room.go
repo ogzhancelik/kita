@@ -182,6 +182,7 @@ func (r *Room) startLocked() {
 		OpponentRating:        r.BlackPlayer.Rating,
 		OpponentIsProvisional: r.BlackPlayer.IsProvisional,
 		OpponentAvatarIndex:   r.BlackPlayer.AvatarIndex,
+		OpponentAvatarCustom:  r.BlackPlayer.AvatarCustom,
 		TimeControl:           r.TimeControl,
 		StartedAt:             &r.StartedAt,
 		ElapsedSeconds:        0,
@@ -195,6 +196,7 @@ func (r *Room) startLocked() {
 		OpponentRating:        r.WhitePlayer.Rating,
 		OpponentIsProvisional: r.WhitePlayer.IsProvisional,
 		OpponentAvatarIndex:   r.WhitePlayer.AvatarIndex,
+		OpponentAvatarCustom:  r.WhitePlayer.AvatarCustom,
 		TimeControl:           r.TimeControl,
 		StartedAt:             &r.StartedAt,
 		ElapsedSeconds:        0,
@@ -740,12 +742,14 @@ func (r *Room) HandleReconnect(client *Client) bool {
 	oppRating := 1200
 	oppIsProvisional := false
 	oppAvatar := 0
+	oppAvatarCustom := ""
 	if opp != nil {
 		oppID = opp.UserID
 		oppName = opp.Username
 		oppRating = opp.Rating
 		oppIsProvisional = opp.IsProvisional
 		oppAvatar = opp.AvatarIndex
+		oppAvatarCustom = opp.AvatarCustom
 	}
 
 	elapsedSec := 0
@@ -781,6 +785,7 @@ func (r *Room) HandleReconnect(client *Client) bool {
 		OpponentRating:        oppRating,
 		OpponentIsProvisional: oppIsProvisional,
 		OpponentAvatarIndex:   oppAvatar,
+		OpponentAvatarCustom:  oppAvatarCustom,
 		TimeControl:         r.TimeControl,
 		IsReconnect:         true,
 		StartedAt:           &r.StartedAt,

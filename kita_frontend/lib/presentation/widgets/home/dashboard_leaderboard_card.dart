@@ -249,11 +249,21 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
                   width: rank == 1 ? 2.5 : 1.8,
                 ),
               ),
-              child: Icon(
-                avatarItem.icon,
-                color: avatarItem.accentColor,
-                size: avatarSize * 0.55,
-              ),
+              child: (player.avatarCustom != null && player.avatarCustom!.trim().isNotEmpty)
+                  ? Center(
+                      child: Text(
+                        player.avatarCustom!.trim(),
+                        style: TextStyle(
+                          fontSize: avatarSize * 0.52,
+                          height: 1.0,
+                        ),
+                      ),
+                    )
+                  : Icon(
+                      avatarItem.icon,
+                      color: avatarItem.accentColor,
+                      size: avatarSize * 0.55,
+                    ),
             ),
             Positioned(
               bottom: -6,

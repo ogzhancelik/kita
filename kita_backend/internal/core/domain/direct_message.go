@@ -15,6 +15,8 @@ type DirectMessage struct {
 
 	SenderUsername       string    `json:"sender_username,omitempty"       gorm:"-"`
 	SenderAvatarIndex    int       `json:"sender_avatar_index,omitempty"   gorm:"-"`
+	SenderAvatarCustom   string    `json:"sender_avatar_custom,omitempty"  gorm:"-"`
 	RecipientUsername    string    `json:"recipient_username,omitempty"   gorm:"-"`
 	RecipientAvatarIndex int       `json:"recipient_avatar_index,omitempty" gorm:"-"`
+	RecipientAvatarCustom string   `json:"recipient_avatar_custom,omitempty" gorm:"-"`
 }

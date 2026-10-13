@@ -133,6 +133,7 @@ class ConnectedPayload {
   final String username;
   final int rating;
   final int avatarIndex;
+  final String? avatarCustom;
   final String? activeMatchId;
   final String? activeRoomCode;
 
@@ -141,6 +142,7 @@ class ConnectedPayload {
     required this.username,
     required this.rating,
     this.avatarIndex = 0,
+    this.avatarCustom,
     this.activeMatchId,
     this.activeRoomCode,
   });
@@ -151,6 +153,7 @@ class ConnectedPayload {
       username: json['username'] as String? ?? '',
       rating: (json['rating'] as num?)?.toInt() ?? 1200,
       avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
+      avatarCustom: (json['avatar_custom'] as String?) ?? (json['avatarCustom'] as String?),
       activeMatchId: json['active_match_id'] as String?,
       activeRoomCode: json['active_room_code'] as String?,
     );
@@ -249,6 +252,7 @@ class MatchFoundPayload {
   final int opponentRating;
   final bool opponentIsProvisional;
   final int opponentAvatarIndex;
+  final String? opponentAvatarCustom;
   final int timeControl;
   final bool isReconnect;
   final DateTime? startedAt;
@@ -264,6 +268,7 @@ class MatchFoundPayload {
     required this.opponentRating,
     this.opponentIsProvisional = false,
     this.opponentAvatarIndex = 0,
+    this.opponentAvatarCustom,
     required this.timeControl,
     this.isReconnect = false,
     this.startedAt,
@@ -311,6 +316,7 @@ class MatchFoundPayload {
       opponentRating: (json['opponent_rating'] as num?)?.toInt() ?? 1200,
       opponentIsProvisional: json['opponent_is_provisional'] as bool? ?? false,
       opponentAvatarIndex: (json['opponent_avatar_index'] as num?)?.toInt() ?? 0,
+      opponentAvatarCustom: (json['opponent_avatar_custom'] as String?) ?? (json['opponentAvatarCustom'] as String?),
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       isReconnect: json['is_reconnect'] as bool? ?? false,
       startedAt: started,
@@ -648,6 +654,7 @@ class RoomInfoPayload {
   final int hostRating;
   final bool hostIsProvisional;
   final int hostAvatarIndex;
+  final String? hostAvatarCustom;
   final int timeControl;
   final bool isPrivate;
 
@@ -658,6 +665,7 @@ class RoomInfoPayload {
     required this.hostRating,
     this.hostIsProvisional = false,
     this.hostAvatarIndex = 0,
+    this.hostAvatarCustom,
     required this.timeControl,
     required this.isPrivate,
   });
@@ -673,6 +681,7 @@ class RoomInfoPayload {
       hostRating: (json['host_rating'] as num?)?.toInt() ?? 1200,
       hostIsProvisional: json['host_is_provisional'] as bool? ?? false,
       hostAvatarIndex: (json['host_avatar_index'] as num?)?.toInt() ?? 0,
+      hostAvatarCustom: (json['host_avatar_custom'] as String?) ?? (json['hostAvatarCustom'] as String?),
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       isPrivate: json['is_private'] as bool? ?? false,
     );
@@ -712,6 +721,7 @@ class RematchOfferedPayload {
   final String requesterId;
   final String requesterName;
   final int requesterAvatarIndex;
+  final String? requesterAvatarCustom;
   final int timeControl;
   final String? colorPreference;
 
@@ -720,6 +730,7 @@ class RematchOfferedPayload {
     required this.requesterId,
     required this.requesterName,
     this.requesterAvatarIndex = 0,
+    this.requesterAvatarCustom,
     required this.timeControl,
     this.colorPreference,
   });
@@ -730,6 +741,7 @@ class RematchOfferedPayload {
       requesterId: json['requester_id'] as String? ?? '',
       requesterName: json['requester_name'] as String? ?? '',
       requesterAvatarIndex: (json['requester_avatar_index'] as num?)?.toInt() ?? 0,
+      requesterAvatarCustom: (json['requester_avatar_custom'] as String?) ?? (json['requesterAvatarCustom'] as String?),
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       colorPreference: json['color_preference'] as String?,
     );
@@ -745,6 +757,7 @@ class MatchInvitationPayload {
   final int inviterRating;
   final bool inviterIsProvisional;
   final int inviterAvatarIndex;
+  final String? inviterAvatarCustom;
   final int timeControl;
   final String colorPreference;
   final DateTime? expiresAt;
@@ -756,6 +769,7 @@ class MatchInvitationPayload {
     required this.inviterRating,
     this.inviterIsProvisional = false,
     this.inviterAvatarIndex = 0,
+    this.inviterAvatarCustom,
     required this.timeControl,
     this.colorPreference = 'random',
     this.expiresAt,
@@ -777,6 +791,7 @@ class MatchInvitationPayload {
       inviterRating: (json['inviter_rating'] as num?)?.toInt() ?? 1200,
       inviterIsProvisional: json['inviter_is_provisional'] as bool? ?? false,
       inviterAvatarIndex: (json['inviter_avatar_index'] as num?)?.toInt() ?? 0,
+      inviterAvatarCustom: (json['inviter_avatar_custom'] as String?) ?? (json['inviterAvatarCustom'] as String?),
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       colorPreference: json['color_preference'] as String? ?? 'random',
       expiresAt: expiresAt,

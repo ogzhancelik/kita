@@ -19,6 +19,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Compact Dashboard Action Symbols**: Convert top-bar notification, chat, and settings circular buttons to sleek clickable icon symbols, saving horizontal space for the user profile card.
 - [x] **Settings Menu Cleanup**: Reorder Settings dialog to place "How to Play" immediately above "Logout", and remove the redundant "About Kita" tile.
 - [x] **Standardize Draw Outcome Color**: Standardize draw match status badges, chips, and result banners to warning yellow in theme colors.
+- [x] **Custom Emoji Profile Avatars & Accent Color Palette**: Allow players to select custom emojis (free text input or quick popular emoji grid) and customize their avatar's background & border accent color from 8 theme tones, or retain classic icon avatars with real-time preview and cross-platform synchronization (matches, chats, leaderboards, profile dialogs).
 - [ ] **Text Visibility & Overflow Resilience Audit**: Audit labels, chips, and subtitles across small screens; ensure multi-line reflow (Wrap), tooltips for truncated nicknames/rooms, and fallback ellipsis without losing essential context.
 - [ ] **App Branding & Assets Update**: Update loading screen branding, application launcher icons, and store display name across all platforms.
 - [ ] **Android 12+ Splash Screen Tuning**: Configure native Android splash screen theme to eliminate double-splash flicker on app launch.
@@ -35,7 +36,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Direct Chat Layout Spacing**: Tighten excessive horizontal/vertical padding in direct message conversation views.
 - [ ] **Localized Message Timestamps**: Format direct and in-match message timestamps using the client's local device timezone.
 - [ ] **Desktop In-Match Chat Focus**: Auto-focus the match chat input upon typing on desktop/web without requiring an initial mouse click.
-- [ ] **Chat Emoji Picker & In-Match Reaction Emotes**: Add an emoji selector to chat input and a quick-tap in-game reaction emotes sheet during live matches.
+- [x] **Chat Emoji Picker & In-Match Reaction Emotes**: Add an emoji selector to chat input and a quick-tap in-game reaction emotes sheet during live matches.
 
 ### 🚪 Lobby, Rooms & Matchmaking
 - [ ] **Room Waiting State Animation**: Add dynamic loading/searching visual indicator while waiting for opponent in rooms.

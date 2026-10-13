@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/online_match_screen.dart';
-import '../common/avatar_picker.dart';
+import '../common/kita_avatar.dart';
 import 'activity_conflict_dialog.dart';
 
 /// Modal dialog presented when a friend challenges the user to a match.
@@ -28,8 +28,6 @@ class MatchInvitationDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<OnlineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inviterAvatar = AvatarPicker.avatars[
-        invitation.inviterAvatarIndex % AvatarPicker.avatars.length];
 
     // Auto-navigate to match screen when match starts
     if (provider.matchState.value == OnlineMatchState.inMatch) {
@@ -76,21 +74,11 @@ class MatchInvitationDialog extends StatelessWidget {
       actionsPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       title: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: inviterAvatar.accentColor.withValues(alpha: 0.18),
-              border: Border.all(
-                color: inviterAvatar.accentColor,
-                width: 2.0,
-              ),
-            ),
-            child: Icon(
-              inviterAvatar.icon,
-              size: 40,
-              color: inviterAvatar.accentColor,
-            ),
+          KitaAvatar(
+            size: 64,
+            avatarIndex: invitation.inviterAvatarIndex,
+            avatarCustom: invitation.inviterAvatarCustom,
+            borderWidth: 2.0,
           ),
           const SizedBox(height: 12),
           Text(

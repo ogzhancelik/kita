@@ -301,20 +301,29 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 
 func (h *Hub) handleUpdateAvatar(client *Client, rawPayload json.RawMessage) {
 	var dto struct {
-		AvatarIndex int `json:"avatar_index"`
+		AvatarIndex  *int    `json:"avatar_index"`
+		AvatarCustom *string `json:"avatar_custom"`
 	}
 	if err := json.Unmarshal(rawPayload, &dto); err == nil {
-		client.AvatarIndex = dto.AvatarIndex
-		log.Printf("[Hub] User %s (%s) updated avatar index to %d", client.Username, client.UserID, client.AvatarIndex)
+		if dto.AvatarIndex != nil {
+			client.AvatarIndex = *dto.AvatarIndex
+		}
+		if dto.AvatarCustom != nil {
+			client.AvatarCustom = *dto.AvatarCustom
+		}
+		log.Printf("[Hub] User %s (%s) updated avatar index to %d, custom to '%s'", client.Username, client.UserID, client.AvatarIndex, client.AvatarCustom)
 	}
 }
 
-func (h *Hub) UpdateClientAvatar(userID string, avatarIndex int) {
+func (h *Hub) UpdateClientAvatar(userID string, avatarIndex int, avatarCustom ...string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if client, ok := h.clients[userID]; ok {
 		client.AvatarIndex = avatarIndex
-		log.Printf("[Hub] Updated client %s avatar index to %d", userID, avatarIndex)
+		if len(avatarCustom) > 0 {
+			client.AvatarCustom = avatarCustom[0]
+		}
+		log.Printf("[Hub] Updated client %s avatar index to %d, custom to '%s'", userID, avatarIndex, client.AvatarCustom)
 	}
 }
 
@@ -851,12 +860,14 @@ func (h *Hub) getPublicRoomsDTOLocked(page, limit int) RoomsListDTO {
 			hostRating := 1200
 			hostIsProvisional := false
 			hostAvatarIndex := 0
+			hostAvatarCustom := ""
 			if room.Host != nil {
 				hostID = room.Host.UserID
 				hostName = room.Host.Username
 				hostRating = room.Host.Rating
 				hostIsProvisional = room.Host.IsProvisional
 				hostAvatarIndex = room.Host.AvatarIndex
+				hostAvatarCustom = room.Host.AvatarCustom
 			}
 			items = append(items, roomItem{
 				dto: RoomInfoDTO{
@@ -866,6 +877,7 @@ func (h *Hub) getPublicRoomsDTOLocked(page, limit int) RoomsListDTO {
 					HostRating:        hostRating,
 					HostIsProvisional: hostIsProvisional,
 					HostAvatarIndex:   hostAvatarIndex,
+					HostAvatarCustom:  hostAvatarCustom,
 					TimeControl:       room.TimeControl,
 					IsPrivate:         room.IsPrivate,
 				},
@@ -1057,6 +1069,7 @@ func (h *Hub) handleRematchRequest(client *Client, rawPayload json.RawMessage) {
 		RequesterID:          client.UserID,
 		RequesterName:        client.Username,
 		RequesterAvatarIndex: client.AvatarIndex,
+		RequesterAvatarCustom: client.AvatarCustom,
 		TimeControl:          tc,
 		ColorPreference:      requesterColor,
 	})
@@ -1349,6 +1362,7 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 		InviterRating:        client.Rating,
 		InviterIsProvisional: client.IsProvisional,
 		InviterAvatarIndex:   client.AvatarIndex,
+		InviterAvatarCustom:  client.AvatarCustom,
 		TimeControl:          timeControl,
 		ColorPreference:      colorPref,
 		ExpiresAt:            expiresAt.Unix(),
@@ -1859,26 +1873,30 @@ func (h *Hub) handleDmSend(client *Client, rawPayload json.RawMessage) {
 
 	recipientUsername := saved.RecipientUsername
 	recipientAvatarIndex := saved.RecipientAvatarIndex
+	recipientAvatarCustom := saved.RecipientAvatarCustom
 	if recipientUsername == "" {
 		h.mu.RLock()
 		if rc, ok := h.clients[dto.RecipientID]; ok {
 			recipientUsername = rc.Username
 			recipientAvatarIndex = rc.AvatarIndex
+			recipientAvatarCustom = rc.AvatarCustom
 		}
 		h.mu.RUnlock()
 	}
 
 	broadcast := DmBroadcastDTO{
-		ID:                   saved.ID,
-		ConversationID:       saved.ConversationID,
-		SenderID:             client.UserID,
-		SenderUsername:       client.Username,
-		SenderAvatarIndex:    client.AvatarIndex,
-		RecipientID:          dto.RecipientID,
-		RecipientUsername:    recipientUsername,
-		RecipientAvatarIndex: recipientAvatarIndex,
-		Content:              saved.Content,
-		CreatedAt:            saved.CreatedAt,
+		ID:                    saved.ID,
+		ConversationID:        saved.ConversationID,
+		SenderID:              client.UserID,
+		SenderUsername:        client.Username,
+		SenderAvatarIndex:     client.AvatarIndex,
+		SenderAvatarCustom:    client.AvatarCustom,
+		RecipientID:           dto.RecipientID,
+		RecipientUsername:     recipientUsername,
+		RecipientAvatarIndex:  recipientAvatarIndex,
+		RecipientAvatarCustom: recipientAvatarCustom,
+		Content:               saved.Content,
+		CreatedAt:             saved.CreatedAt,
 	}
 
 	// Deliver to sender (echo) and recipient

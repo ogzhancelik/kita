@@ -90,7 +90,7 @@ func (s *userService) GetLeaderboard(ctx context.Context, limit int, filter stri
 	return profiles, nil
 }
 
-func (s *userService) UpdateAvatar(ctx context.Context, userID string, avatarIndex int) (*domain.UserProfile, error) {
+func (s *userService) UpdateAvatar(ctx context.Context, userID string, avatarIndex int, avatarCustom ...string) (*domain.UserProfile, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -100,6 +100,9 @@ func (s *userService) UpdateAvatar(ctx context.Context, userID string, avatarInd
 	}
 
 	user.AvatarIndex = avatarIndex
+	if len(avatarCustom) > 0 {
+		user.AvatarCustom = avatarCustom[0]
+	}
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
 	}
@@ -228,6 +231,7 @@ func (s *userService) SearchUsers(ctx context.Context, query string, currentUser
 			ID:               prof.ID,
 			Username:         prof.Username,
 			AvatarIndex:      prof.AvatarIndex,
+			AvatarCustom:     prof.AvatarCustom,
 			Rating:           prof.Rating,
 			IsProvisional:    prof.IsProvisional,
 			Wins:             prof.Wins,

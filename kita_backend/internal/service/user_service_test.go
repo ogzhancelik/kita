@@ -227,6 +227,36 @@ func TestUserService_UpdateAvatar(t *testing.T) {
 	}
 }
 
+func TestUserService_UpdateAvatar_WithCustomEmoji(t *testing.T) {
+	userRepo := &mockUserRepoForUserService{
+		users: []domain.User{
+			{ID: "u1", Username: "Alice", AvatarIndex: 0, AvatarCustom: ""},
+		},
+	}
+	friendRepo := &mockFriendRepoForUserService{}
+	svc := NewUserService(userRepo, friendRepo)
+
+	profile, err := svc.UpdateAvatar(context.Background(), "u1", 3, "🦊")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if profile.AvatarIndex != 3 {
+		t.Errorf("expected avatar_index 3, got %d", profile.AvatarIndex)
+	}
+	if profile.AvatarCustom != "🦊" {
+		t.Errorf("expected avatar_custom '🦊', got '%s'", profile.AvatarCustom)
+	}
+
+	user, err := userRepo.FindByID(context.Background(), "u1")
+	if err != nil || user == nil {
+		t.Fatalf("failed to find user: %v", err)
+	}
+	if user.AvatarCustom != "🦊" {
+		t.Errorf("expected repo user avatar_custom '🦊', got '%s'", user.AvatarCustom)
+	}
+}
+
 func TestUserService_UpdateAvatar_UserNotFound(t *testing.T) {
 	userRepo := &mockUserRepoForUserService{
 		users: []domain.User{},

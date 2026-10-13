@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
 	"github.com/oguzhancelik/kita/internal/service"
@@ -59,8 +60,10 @@ func (h *UserHandler) GetLeaderboard(c *gin.Context) {
 }
 
 type UpdateAvatarRequest struct {
-	AvatarIndex    *int `json:"avatar_index"`
-	AltAvatarIndex *int `json:"avatarIndex"`
+	AvatarIndex     *int    `json:"avatar_index"`
+	AltAvatarIndex  *int    `json:"avatarIndex"`
+	AvatarCustom    *string `json:"avatar_custom"`
+	AltAvatarCustom *string `json:"avatarCustom"`
 }
 
 func (h *UserHandler) UpdateAvatar(c *gin.Context) {
@@ -83,12 +86,34 @@ func (h *UserHandler) UpdateAvatar(c *gin.Context) {
 		targetIndex = *req.AltAvatarIndex
 	}
 
-	if targetIndex < 0 || targetIndex > 64 {
+	var targetCustom string
+	hasCustom := false
+	if req.AvatarCustom != nil {
+		targetCustom = *req.AvatarCustom
+		hasCustom = true
+	} else if req.AltAvatarCustom != nil {
+		targetCustom = *req.AltAvatarCustom
+		hasCustom = true
+	}
+
+	if targetIndex < 0 || targetIndex > 256 {
 		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, "avatar index out of range")
 		return
 	}
 
-	profile, err := h.userService.UpdateAvatar(c.Request.Context(), userID.(string), targetIndex)
+	if len(targetCustom) > 32 {
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, "avatar custom too long")
+		return
+	}
+
+	var profile *domain.UserProfile
+	var err error
+	if hasCustom {
+		profile, err = h.userService.UpdateAvatar(c.Request.Context(), userID.(string), targetIndex, targetCustom)
+	} else {
+		profile, err = h.userService.UpdateAvatar(c.Request.Context(), userID.(string), targetIndex)
+	}
+
 	if err != nil {
 		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
 		return

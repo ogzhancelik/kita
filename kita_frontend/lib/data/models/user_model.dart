@@ -2,6 +2,7 @@ class UserProfile {
   final String id;
   final String username;
   final int avatarIndex;
+  final String? avatarCustom;
   final int rating;
   final bool isProvisional;
   final int wins;
@@ -15,6 +16,7 @@ class UserProfile {
     required this.id,
     required this.username,
     this.avatarIndex = 0,
+    this.avatarCustom,
     this.rating = 1200,
     this.isProvisional = false,
     this.wins = 0,
@@ -31,6 +33,8 @@ class UserProfile {
     String? id,
     String? username,
     int? avatarIndex,
+    String? avatarCustom,
+    bool clearAvatarCustom = false,
     int? rating,
     bool? isProvisional,
     int? wins,
@@ -44,6 +48,7 @@ class UserProfile {
       id: id ?? this.id,
       username: username ?? this.username,
       avatarIndex: avatarIndex ?? this.avatarIndex,
+      avatarCustom: clearAvatarCustom ? null : (avatarCustom ?? this.avatarCustom),
       rating: rating ?? this.rating,
       isProvisional: isProvisional ?? this.isProvisional,
       wins: wins ?? this.wins,
@@ -62,6 +67,7 @@ class UserProfile {
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? 'Player',
       avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
+      avatarCustom: (json['avatar_custom'] as String?) ?? (json['avatarCustom'] as String?),
       rating: (json['rating'] as num?)?.toInt() ?? 1200,
       isProvisional: isProv,
       wins: (json['wins'] as num?)?.toInt() ?? 0,
@@ -80,6 +86,7 @@ class UserProfile {
       'id': id,
       'username': username,
       'avatar_index': avatarIndex,
+      if (avatarCustom != null) 'avatar_custom': avatarCustom,
       'rating': rating,
       'is_provisional': isProvisional,
       'wins': wins,
@@ -95,19 +102,23 @@ class UserProfile {
 class GuestProfile {
   final String nickname;
   final int avatarIndex;
+  final String? avatarCustom;
 
   const GuestProfile({
     required this.nickname,
     required this.avatarIndex,
+    this.avatarCustom,
   });
 
   Map<String, dynamic> toJson() => {
         'nickname': nickname,
         'avatar_index': avatarIndex,
+        if (avatarCustom != null) 'avatar_custom': avatarCustom,
       };
 
   factory GuestProfile.fromJson(Map<String, dynamic> json) => GuestProfile(
         nickname: json['nickname'] as String? ?? 'Guest',
         avatarIndex: (json['avatar_index'] as num?)?.toInt() ?? 0,
+        avatarCustom: (json['avatar_custom'] as String?) ?? (json['avatarCustom'] as String?),
       );
 }

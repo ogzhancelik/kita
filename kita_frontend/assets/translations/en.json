@@ -397,6 +397,7 @@
     "chat": "Chat",
     "noMessagesYet": "No messages yet. Say hi!",
     "typeMessage": "Type a message...",
+    "emoji": "Emoji",
     "resign": "Resign",
     "resignTitle": "Resign Match",
     "resignConfirm": "Are you sure you want to resign this game?",
@@ -582,6 +583,7 @@
     "chatTooltip": "Message",
     "startConversation": "Say hello! Start the conversation.",
     "messageHint": "Type a message...",
+    "emojiTooltip": "Emoji",
     "today": "Today",
     "yesterday": "Yesterday",
     "matchVs": "vs {}",
@@ -629,5 +631,18 @@
     "enterPasswordToDelete": "Enter your password to confirm:",
     "deleteAccountPasswordHint": "Password",
     "accountDeleted": "Account deleted successfully."
+  },
+  "avatar": {
+    "title": "Customize Avatar",
+    "preview": "Avatar Preview",
+    "customEmoji": "Emoji Avatar",
+    "enterEmoji": "Type an emoji or pick below",
+    "quickEmojis": "Popular Emojis",
+    "classicIcons": "Classic Icons",
+    "colorTheme": "Glow Color",
+    "useClassic": "Reset to Classic Icon",
+    "chooseEmoji": "Choose Emoji",
+    "save": "Save Avatar",
+    "saved": "Avatar updated successfully!"
   }
 }
