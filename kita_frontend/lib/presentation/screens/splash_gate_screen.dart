@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/common/kita_button.dart';
+import '../widgets/common/kita_logo.dart';
 import '../widgets/common/responsive_layout.dart';
 import 'auth/welcome_screen.dart';
 import 'home/dashboard_screen.dart';
@@ -46,23 +47,8 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: AppColors.primaryGreenDark,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.grid_4x4_rounded,
-                      color: Colors.white,
-                      size: 48,
-                    ),
+                  const KitaLogo(
+                    size: 80,
                   ),
                   const SizedBox(height: 24),
                   Text(

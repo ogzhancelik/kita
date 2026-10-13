@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
+import 'kita_logo.dart';
 
 class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -13,6 +14,7 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? extraActions;
   final bool showLanguageToggle;
   final bool showThemeToggle;
+  final bool showLogoAndTitle;
 
   const KitaAppBar({
     super.key,
@@ -23,6 +25,7 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.extraActions,
     this.showLanguageToggle = true,
     this.showThemeToggle = true,
+    this.showLogoAndTitle = true,
   });
 
   @override
@@ -54,43 +57,42 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: onBack ?? () => Navigator.of(context).maybePop(),
             )
           : null,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.primaryVibrant : AppColors.primary,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: const [
-                BoxShadow(
-                  color: AppColors.primaryShadow,
-                  offset: Offset(0, 2),
+      title: showLogoAndTitle
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const KitaLogo(
+                  size: 26,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    title ?? 'appTitle'.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    ),
+                  ),
                 ),
               ],
-            ),
-            child: const Icon(
-              Icons.grid_4x4_rounded,
-              color: AppColors.accent,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              title ?? 'appTitle'.tr(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.3,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
+            )
+          : (title != null
+              ? Text(
+                  title!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  ),
+                )
+              : null),
       actions: [
         ...?extraActions,
         // Language Toggle (TR / EN)

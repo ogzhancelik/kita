@@ -9,7 +9,6 @@ import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../screens/home/notifications_screen.dart';
 import '../common/avatar_picker.dart';
-import '../common/stat_badge.dart';
 import '../../screens/chat/chats_screen.dart';
 import 'settings_dialog.dart';
 import 'user_profile_dialog.dart';
@@ -37,21 +36,13 @@ class DashboardTopBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Sol Üst: Profil Fotoğrafı, İsim, ELO Container'ı
+          // Sol Üst: Profil Fotoğrafı, İsim, ELO
           Expanded(
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               onTap: () => UserProfileDialog.show(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    width: 1,
-                  ),
-                ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -83,18 +74,34 @@ class DashboardTopBar extends StatelessWidget {
                           Text(
                             authProv.displayName,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: FontWeight.w800,
                               color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 3),
-                          StatBadge(
-                            rating: user?.rating ?? 1200,
-                            isGuest: isGuest,
-                            isProvisional: user?.isProvisional ?? true,
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isGuest ? Icons.person_outline_rounded : Icons.emoji_events_rounded,
+                                size: 13,
+                                color: isGuest ? AppColors.guestOrange : AppColors.ratingGold,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isGuest
+                                    ? 'guest.badge'.tr()
+                                    : '${user?.displayRating ?? "1200"} ELO',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: isGuest ? AppColors.guestOrange : AppColors.ratingGold,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

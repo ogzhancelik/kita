@@ -109,11 +109,12 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
     try {
       // 1. Fetch saved toggle preference
-      _showOfflineMatches =
-          await LocalMatchHistoryService.instance.getShowOfflineMatches();
+      _showOfflineMatches = await LocalMatchHistoryService.instance
+          .getShowOfflineMatches(userId: user?.id, isGuest: isGuest);
 
       // 2. Fetch offline matches from local device storage
-      _offlineMatches = await LocalMatchHistoryService.instance.getMatches();
+      _offlineMatches = await LocalMatchHistoryService.instance
+          .getMatches(userId: user?.id, isGuest: isGuest);
 
       // 3. Fetch online matches from backend API if not guest
       if (!mounted) return;
@@ -251,7 +252,14 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       _showOfflineMatches = value;
       _recomputeVisibleMatches();
     });
-    await LocalMatchHistoryService.instance.setShowOfflineMatches(value);
+    final authProv = context.read<AuthProvider>();
+    final user = authProv.currentUser;
+    final isGuest = authProv.isGuest || user == null;
+    await LocalMatchHistoryService.instance.setShowOfflineMatches(
+      value,
+      userId: user?.id,
+      isGuest: isGuest,
+    );
   }
 
   void _openReplay(MatchRecordModel match) {
@@ -273,8 +281,16 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       );
 
       if (loadedMatch == null) return;
+      if (!mounted) return;
 
-      await LocalMatchHistoryService.instance.saveMatch(loadedMatch);
+      final authProv = context.read<AuthProvider>();
+      final user = authProv.currentUser;
+      final isGuest = authProv.isGuest || user == null;
+      await LocalMatchHistoryService.instance.saveMatch(
+        loadedMatch,
+        userId: user?.id,
+        isGuest: isGuest,
+      );
 
       if (!mounted) return;
 
@@ -398,8 +414,13 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             });
 
             try {
+              final authProv = this.context.read<AuthProvider>();
+              final user = authProv.currentUser;
+              final isGuest = authProv.isGuest || user == null;
+
               // 1. Check local match storage first
-              final localMatches = await LocalMatchHistoryService.instance.getMatches();
+              final localMatches = await LocalMatchHistoryService.instance
+                  .getMatches(userId: user?.id, isGuest: isGuest);
               final matchingLocal = localMatches.where((m) =>
                 m.id.toLowerCase() == code.toLowerCase() ||
                 (m.id.contains('-') && m.id.split('-').first.toLowerCase() == code.toLowerCase())
@@ -420,7 +441,11 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
               // 2. Fetch from backend
               final loaded = await _matchApiService.getMatchDetails(code);
-              await LocalMatchHistoryService.instance.saveMatch(loaded);
+              await LocalMatchHistoryService.instance.saveMatch(
+                loaded,
+                userId: user?.id,
+                isGuest: isGuest,
+              );
 
               if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
               if (mounted) {

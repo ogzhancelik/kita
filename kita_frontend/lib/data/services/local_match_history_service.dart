@@ -1,16 +1,27 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/storage/secure_storage_service.dart';
 import '../models/match_model.dart';
 
 /// Local service responsible for persisting and managing offline games
-/// (such as "Play vs Computer") in device storage.
+/// (such as "Play vs Computer") in account-scoped device storage.
 class LocalMatchHistoryService {
   LocalMatchHistoryService._();
   static final LocalMatchHistoryService instance = LocalMatchHistoryService._();
 
-  static const String _keyMatches = 'kita_offline_matches_v1';
-  static const String _keyShowOffline = 'kita_show_offline_matches';
+  static const String _legacyKeyMatches = 'kita_offline_matches_v1';
+  static const String _keyMatchesPrefix = 'kita_offline_matches_v1_user_';
+  static const String _guestKeyMatches = 'kita_offline_matches_v1_guest';
+
+  static const String _legacyKeyShowOffline = 'kita_show_offline_matches';
+  static const String _keyShowOfflinePrefix = 'kita_show_offline_matches_user_';
+  static const String _guestKeyShowOffline = 'kita_show_offline_matches_guest';
+
+  static const String _legacyKeyActiveOfflineGame = 'kita_active_offline_game_v1';
+  static const String _keyActiveOfflineGamePrefix = 'kita_active_offline_game_v1_user_';
+  static const String _guestKeyActiveOfflineGame = 'kita_active_offline_game_v1_guest';
+
   static const int _maxStoredMatches = 5000;
 
   /// ValueNotifier that increments on any match changes (saving, clearing, visibility toggle, or game over).
@@ -21,8 +32,185 @@ class LocalMatchHistoryService {
     matchHistoryRevision.value++;
   }
 
-  /// Saves an offline match to local device storage.
-  /// Offline matches are device-based, persisting on the local device.
+  /// Resolves the SharedPreferences key for offline match list scoped to account or guest.
+  Future<String> _resolveMatchesKey({
+    String? userId,
+    bool? isGuest,
+    MatchRecordModel? match,
+  }) async {
+    if (isGuest == true) {
+      return _guestKeyMatches;
+    }
+    if (userId != null &&
+        userId.isNotEmpty &&
+        userId != 'guest' &&
+        userId != 'local_player') {
+      return '$_keyMatchesPrefix$userId';
+    }
+    // Check match for explicit player ID
+    if (match != null) {
+      final w = match.whitePlayerId;
+      final b = match.blackPlayerId;
+      if (w.isNotEmpty &&
+          w != 'bot' &&
+          w != 'guest' &&
+          w != 'local_player' &&
+          w != 'local_white' &&
+          w != 'local_black') {
+        return '$_keyMatchesPrefix$w';
+      }
+      if (b.isNotEmpty &&
+          b != 'bot' &&
+          b != 'guest' &&
+          b != 'local_player' &&
+          b != 'local_white' &&
+          b != 'local_black') {
+        return '$_keyMatchesPrefix$b';
+      }
+    }
+    // Fallback to checking SecureStorageService cached user
+    try {
+      final user = await SecureStorageService().getUser();
+      if (user != null && user.id.isNotEmpty && user.id != 'guest') {
+        return '$_keyMatchesPrefix${user.id}';
+      }
+    } catch (_) {}
+    return _guestKeyMatches;
+  }
+
+  /// Resolves the SharedPreferences key for the show-offline preference scoped to account.
+  Future<String> _resolveShowOfflineKey({
+    String? userId,
+    bool? isGuest,
+  }) async {
+    if (isGuest == true) {
+      return _guestKeyShowOffline;
+    }
+    if (userId != null &&
+        userId.isNotEmpty &&
+        userId != 'guest' &&
+        userId != 'local_player') {
+      return '$_keyShowOfflinePrefix$userId';
+    }
+    try {
+      final user = await SecureStorageService().getUser();
+      if (user != null && user.id.isNotEmpty && user.id != 'guest') {
+        return '$_keyShowOfflinePrefix${user.id}';
+      }
+    } catch (_) {}
+    return _guestKeyShowOffline;
+  }
+
+  /// Resolves the SharedPreferences key for active in-progress match scoped to account.
+  Future<String> _resolveActiveGameKey({
+    String? userId,
+    bool? isGuest,
+  }) async {
+    if (isGuest == true) {
+      return _guestKeyActiveOfflineGame;
+    }
+    if (userId != null &&
+        userId.isNotEmpty &&
+        userId != 'guest' &&
+        userId != 'local_player') {
+      return '$_keyActiveOfflineGamePrefix$userId';
+    }
+    try {
+      final user = await SecureStorageService().getUser();
+      if (user != null && user.id.isNotEmpty && user.id != 'guest') {
+        return '$_keyActiveOfflineGamePrefix${user.id}';
+      }
+    } catch (_) {}
+    return _guestKeyActiveOfflineGame;
+  }
+
+  /// Migrates any legacy global offline matches into account-scoped keys.
+  Future<void> _checkAndMigrateLegacyData(SharedPreferences prefs) async {
+    final rawLegacy = prefs.getString(_legacyKeyMatches);
+    if (rawLegacy == null || rawLegacy.isEmpty) return;
+
+    try {
+      final list = jsonDecode(rawLegacy) as List<dynamic>;
+      if (list.isEmpty) {
+        await prefs.remove(_legacyKeyMatches);
+        return;
+      }
+
+      final Map<String, List<dynamic>> grouped = {};
+
+      for (final item in list) {
+        if (item is! Map<String, dynamic>) continue;
+        final matchMap = (item['match'] as Map<String, dynamic>?) ?? item;
+        final whiteId = matchMap['white_player_id'] as String? ?? matchMap['whitePlayerId'] as String?;
+        final blackId = matchMap['black_player_id'] as String? ?? matchMap['blackPlayerId'] as String?;
+
+        String? inferredUser;
+        if (whiteId != null &&
+            whiteId.isNotEmpty &&
+            whiteId != 'bot' &&
+            whiteId != 'guest' &&
+            whiteId != 'local_player' &&
+            whiteId != 'local_white' &&
+            whiteId != 'local_black') {
+          inferredUser = whiteId;
+        } else if (blackId != null &&
+            blackId.isNotEmpty &&
+            blackId != 'bot' &&
+            blackId != 'guest' &&
+            blackId != 'local_player' &&
+            blackId != 'local_white' &&
+            blackId != 'local_black') {
+          inferredUser = blackId;
+        }
+
+        final targetKey = inferredUser != null
+            ? '$_keyMatchesPrefix$inferredUser'
+            : _guestKeyMatches;
+
+        grouped.putIfAbsent(targetKey, () => []).add(item);
+      }
+
+      for (final entry in grouped.entries) {
+        final targetKey = entry.key;
+        final legacyItems = entry.value;
+
+        final existingRaw = prefs.getString(targetKey);
+        List<dynamic> existingList = [];
+        if (existingRaw != null && existingRaw.isNotEmpty) {
+          try {
+            existingList = jsonDecode(existingRaw) as List<dynamic>;
+          } catch (_) {}
+        }
+
+        final existingIds = existingList
+            .whereType<Map<String, dynamic>>()
+            .map((e) => e['id'])
+            .whereType<String>()
+            .toSet();
+
+        for (final item in legacyItems) {
+          final id = item['id'];
+          if (id is String && !existingIds.contains(id)) {
+            existingList.add(item);
+            existingIds.add(id);
+          }
+        }
+
+        if (existingList.length > _maxStoredMatches) {
+          existingList = existingList.sublist(0, _maxStoredMatches);
+        }
+
+        await prefs.setString(targetKey, jsonEncode(existingList));
+      }
+
+      await prefs.remove(_legacyKeyMatches);
+      debugPrint('[LocalMatchHistoryService] Migrated legacy offline matches into account-scoped storage.');
+    } catch (e) {
+      debugPrint('[LocalMatchHistoryService] Migration error: $e');
+    }
+  }
+
+  /// Saves an offline match to local device storage, scoped by account ID.
   Future<void> saveMatch(
     MatchRecordModel match, {
     bool? isGuest,
@@ -36,7 +224,15 @@ class LocalMatchHistoryService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_keyMatches);
+      await _checkAndMigrateLegacyData(prefs);
+
+      final key = await _resolveMatchesKey(
+        userId: userId,
+        isGuest: isGuest,
+        match: match,
+      );
+
+      final raw = prefs.getString(key);
 
       List<dynamic> list = [];
       if (raw != null && raw.isNotEmpty) {
@@ -53,23 +249,30 @@ class LocalMatchHistoryService {
         'match': match.toJson(),
       };
 
-      // Insert at the front (most recent first)
-      list.insert(0, entry);
+      // If a match with this ID already exists, update it in place instead of duplicating
+      final existingIndex = list.indexWhere((item) =>
+          item is Map && item['id'] == match.id);
+
+      if (existingIndex >= 0) {
+        list[existingIndex] = entry;
+      } else {
+        // Insert at the front (most recent first)
+        list.insert(0, entry);
+      }
 
       // Limit storage size
       if (list.length > _maxStoredMatches) {
         list = list.sublist(0, _maxStoredMatches);
       }
 
-      await prefs.setString(_keyMatches, jsonEncode(list));
+      await prefs.setString(key, jsonEncode(list));
       notifyMatchesChanged();
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error saving match: $e');
     }
   }
 
-  /// Retrieves offline matches from local storage.
-  /// Offline matches are device-based rather than account-based.
+  /// Retrieves offline matches from local storage scoped by account ID.
   Future<List<MatchRecordModel>> getMatches({
     String? userId,
     bool? isGuest,
@@ -78,7 +281,10 @@ class LocalMatchHistoryService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_keyMatches);
+      await _checkAndMigrateLegacyData(prefs);
+
+      final key = await _resolveMatchesKey(userId: userId, isGuest: isGuest);
+      final raw = prefs.getString(key);
       if (raw == null || raw.isEmpty) return [];
 
       final list = jsonDecode(raw) as List<dynamic>;
@@ -116,40 +322,79 @@ class LocalMatchHistoryService {
     }
   }
 
-  /// Deletes offline match records from the device.
-  /// Can be invoked if a user manually chooses to wipe local match history.
-  Future<void> clearOfflineMatches() async {
+  /// Deletes offline match records from the device for the specified account or guest.
+  Future<void> clearOfflineMatches({
+    String? userId,
+    bool? isGuest,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyMatches);
+      final key = await _resolveMatchesKey(userId: userId, isGuest: isGuest);
+      await prefs.remove(key);
       notifyMatchesChanged();
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error clearing offline matches: $e');
     }
   }
 
-  /// Alias for [clearOfflineMatches] for backward compatibility.
-  Future<void> clearGuestMatches() => clearOfflineMatches();
+  /// Clears offline matches for all accounts stored on this device.
+  Future<void> clearAllAccounts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys().where((k) =>
+        k.startsWith(_keyMatchesPrefix) ||
+        k == _guestKeyMatches ||
+        k == _legacyKeyMatches
+      ).toList();
+      for (final key in keys) {
+        await prefs.remove(key);
+      }
+      notifyMatchesChanged();
+    } catch (e) {
+      debugPrint('[LocalMatchHistoryService] Error clearing all offline matches: $e');
+    }
+  }
 
-  /// Clears all offline matches stored on the device.
-  Future<void> clearAll() => clearOfflineMatches();
+  /// Alias for [clearOfflineMatches] for guest matches.
+  Future<void> clearGuestMatches() => clearOfflineMatches(isGuest: true);
+
+  /// Clears matches for the specified or current account.
+  Future<void> clearAll({String? userId, bool? isGuest}) =>
+      clearOfflineMatches(userId: userId, isGuest: isGuest);
 
   /// Gets the user's toggle setting for showing/hiding offline games in match history.
   /// Defaults to true.
-  Future<bool> getShowOfflineMatches() async {
+  Future<bool> getShowOfflineMatches({
+    String? userId,
+    bool? isGuest,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(_keyShowOffline) ?? true;
+      final key = await _resolveShowOfflineKey(userId: userId, isGuest: isGuest);
+      if (prefs.containsKey(key)) {
+        return prefs.getBool(key) ?? true;
+      }
+      if (prefs.containsKey(_legacyKeyShowOffline)) {
+        final legacyVal = prefs.getBool(_legacyKeyShowOffline) ?? true;
+        await prefs.setBool(key, legacyVal);
+        return legacyVal;
+      }
+      return true;
     } catch (_) {
       return true;
     }
   }
 
   /// Persists the user's toggle setting for showing/hiding offline games in match history.
-  Future<void> setShowOfflineMatches(bool show) async {
+  Future<void> setShowOfflineMatches(
+    bool show, {
+    String? userId,
+    bool? isGuest,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_keyShowOffline, show);
+      final key = await _resolveShowOfflineKey(userId: userId, isGuest: isGuest);
+      await prefs.setBool(key, show);
       notifyMatchesChanged();
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error saving showOfflineMatches preference: $e');
@@ -157,26 +402,53 @@ class LocalMatchHistoryService {
   }
 
   // ─── Active Offline Match Persistence ──────────────────────────────
-  static const String _keyActiveOfflineGame = 'kita_active_offline_game_v1';
 
-  /// Saves an active, in-progress offline game to SharedPreferences.
-  Future<void> saveActiveOfflineGame(ActiveOfflineGameData data) async {
+  /// Saves an active, in-progress offline game to SharedPreferences, scoped to account.
+  Future<void> saveActiveOfflineGame(
+    ActiveOfflineGameData data, {
+    String? userId,
+    bool? isGuest,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyActiveOfflineGame, jsonEncode(data.toJson()));
+      final key = await _resolveActiveGameKey(
+        userId: userId ?? data.playerId,
+        isGuest: isGuest ?? data.isGuest,
+      );
+      await prefs.setString(key, jsonEncode(data.toJson()));
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error saving active offline game: $e');
     }
   }
 
-  /// Retrieves the active in-progress offline game from SharedPreferences, if any.
-  Future<ActiveOfflineGameData?> getActiveOfflineGame() async {
+  /// Retrieves the active in-progress offline game from SharedPreferences for account, if any.
+  Future<ActiveOfflineGameData?> getActiveOfflineGame({
+    String? userId,
+    bool? isGuest,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_keyActiveOfflineGame);
-      if (raw == null || raw.isEmpty) return null;
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      return ActiveOfflineGameData.fromJson(map);
+      final key = await _resolveActiveGameKey(userId: userId, isGuest: isGuest);
+      final raw = prefs.getString(key);
+      if (raw != null && raw.isNotEmpty) {
+        final map = jsonDecode(raw) as Map<String, dynamic>;
+        return ActiveOfflineGameData.fromJson(map);
+      }
+
+      // Check legacy active match key if scoped is empty
+      final legacyRaw = prefs.getString(_legacyKeyActiveOfflineGame);
+      if (legacyRaw != null && legacyRaw.isNotEmpty) {
+        final map = jsonDecode(legacyRaw) as Map<String, dynamic>;
+        final data = ActiveOfflineGameData.fromJson(map);
+        final matches = (isGuest == true && data.isGuest) ||
+            (userId != null && data.playerId == userId);
+        if (matches) {
+          await prefs.remove(_legacyKeyActiveOfflineGame);
+          await saveActiveOfflineGame(data, userId: userId, isGuest: isGuest);
+          return data;
+        }
+      }
+      return null;
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error reading active offline game: $e');
       return null;
@@ -184,10 +456,17 @@ class LocalMatchHistoryService {
   }
 
   /// Clears the active offline game from SharedPreferences (on game over or resignation).
-  Future<void> clearActiveOfflineGame() async {
+  Future<void> clearActiveOfflineGame({
+    String? userId,
+    bool? isGuest,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyActiveOfflineGame);
+      final key = await _resolveActiveGameKey(userId: userId, isGuest: isGuest);
+      await prefs.remove(key);
+      if (prefs.containsKey(_legacyKeyActiveOfflineGame)) {
+        await prefs.remove(_legacyKeyActiveOfflineGame);
+      }
     } catch (e) {
       debugPrint('[LocalMatchHistoryService] Error clearing active offline game: $e');
     }

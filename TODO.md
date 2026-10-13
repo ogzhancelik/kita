@@ -53,7 +53,7 @@ This document tracks planned features, active backlog items, and completed miles
 ### 📜 Match Analysis, Replay & History
 - [x] **Online Post-Match Replay**: Support "Review Match" replay navigation directly from GameOverDialog in online matches.
 - [x] **Unified Deep Linking, File Association & Replay Sharing**: Comprehensive match replay sharing supporting in-app sharing links/codes (auto-uploading local offline games to server), direct `.kita` file OS association, and deep link universal routing.
-- [ ] **Account-Scoped Local Match Storage**: Isolate locally saved matches per user account ID instead of global shared device storage.
+- [x] **Account-Scoped Local Match Storage**: Isolate locally saved matches per user account ID instead of global shared device storage.
 - [x] **Match History Lazy Pagination**: Implement infinite scrolling or lazy pagination for the Match History view to optimize performance and prevent bulk fetch lag.
 - [x] **Match History Date Grouping Dividers**: Remove individual date badges from match cards and group matches by day with slim date divider headers (e.g. "Today", "Yesterday", "2 Sep 2026", same format as Direct Chat.).
 
@@ -102,6 +102,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Player Statistics**: Total matches, W/L/D records, win rate, and streak tracking
 - [x] **Match History**: Recent match list with termination badges (timeout, resignation, draw) and auto-refresh
 - [x] **User Settings**: Cloud & local preferences for board themes, audio, orientation, and move highlights
+- [x] **In-App Logo Branding (4-Grid BG + White Pawn)**: Replaced legacy `#` grid icon with vector-exact pawn emblem (matching app_icon SVG geometry, bottom 3D shadow, and 4-grid checkered quadrant colors), and cleaned redundant top-left logo from main menu.
 
 ---
 

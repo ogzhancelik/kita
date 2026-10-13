@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../widgets/common/api_url_config_bar.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
+import '../../widgets/common/kita_logo.dart';
 import '../../widgets/common/responsive_layout.dart';
 import 'guest_setup_screen.dart';
 import 'login_screen.dart';
@@ -19,7 +20,10 @@ class WelcomeScreen extends StatelessWidget {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: const KitaAppBar(showAuthActions: false),
+      appBar: const KitaAppBar(
+        showAuthActions: false,
+        showLogoAndTitle: false,
+      ),
       body: ResponsiveLayout(
         child: SingleChildScrollView(
           child: Padding(
@@ -29,24 +33,8 @@ class WelcomeScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 20),
                 // Hero Chess Board Icon / Illustration
-                Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.primaryVibrant : AppColors.primary,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: AppColors.primaryShadow,
-                        offset: Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.grid_4x4_rounded,
-                    color: AppColors.accent,
-                    size: 64,
-                  ),
+                const KitaLogo(
+                  size: 110,
                 ),
                 const SizedBox(height: 24),
                 Text(

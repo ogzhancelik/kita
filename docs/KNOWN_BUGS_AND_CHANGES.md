@@ -8,7 +8,7 @@ This document tracks identified bugs, UX glitches, and quick changes across the 
 
 - [ ] **Form Focus & Tab Navigation**: `Tab` key in Login and Sign-In forms cycles to prefix/suffix icons and password toggle buttons instead of jumping strictly between text inputs.
 - [ ] **Mobile Keyboard Action & Layout Overflow**: Mobile keyboard shows enter button instead of `next`/`done` actions, and fixed-height form layout on login clips the bottom action/play button when keyboard is visible.
-- [ ] **Top Players Podium Layout Distortion**: Long nicknames in the top players leaderboard cause text truncation and distort podium alignment.
+- [x] **Top Players Podium Layout Distortion**: Long nicknames in the top players leaderboard cause text truncation and distort podium alignment. Fixed by aligning leaderboard screen podium columns with symmetric Expanded flex layouts and empty spacers matching the dashboard podium.
 - [x] **Replay Navigation Double-Click Glitch**: When scrubbing back to the latest move in the move ribbon using arrows, two clicks are required to regain interactive move control.
 - [x] **Match Replay Move List Scroll Offset Mismatch**: Fixed cumulative drift in replay move list auto-scrolling on long games caused by missing fixed item extent matching rowHeight calculation.
 - [x] **Settings Tutorial Dialog Padding**: Excessive outer padding when opening the Tutorial modal directly from the in-game / main Settings menu.

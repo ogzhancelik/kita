@@ -130,8 +130,8 @@ class OfflineGameProvider extends ChangeNotifier {
     offlinePlayMode = mode;
     offlineBotDifficulty = botDifficulty;
     offlinePlayerTeam = playerTeam;
-    offlinePlayerId = playerId ?? offlinePlayerId;
-    offlinePlayerName = playerName ?? offlinePlayerName;
+    offlinePlayerId = isGuest ? null : (playerId ?? offlinePlayerId);
+    offlinePlayerName = playerName ?? (isGuest ? 'Guest' : offlinePlayerName);
     offlinePlayerRating = playerRating ?? offlinePlayerRating;
     offlinePlayerAvatarIndex = playerAvatarIndex ?? offlinePlayerAvatarIndex;
     offlineIsGuest = isGuest;
@@ -621,7 +621,11 @@ class OfflineGameProvider extends ChangeNotifier {
     try {
       final record = _createOfflineMatchRecord(payload);
       if (record != null) {
-        await LocalMatchHistoryService.instance.saveMatch(record);
+        await LocalMatchHistoryService.instance.saveMatch(
+          record,
+          userId: offlinePlayerId,
+          isGuest: offlineIsGuest,
+        );
       }
     } catch (e) {
       debugPrint('[OfflineGameProvider] Failed to save offline match: $e');
@@ -649,7 +653,11 @@ class OfflineGameProvider extends ChangeNotifier {
         moveHistory: moveHistory.value.map((m) => m.toJson()).toList(),
         startedAt: _matchStartedAt ?? DateTime.now(),
       );
-      await LocalMatchHistoryService.instance.saveActiveOfflineGame(data);
+      await LocalMatchHistoryService.instance.saveActiveOfflineGame(
+        data,
+        userId: offlinePlayerId,
+        isGuest: offlineIsGuest,
+      );
     } catch (e) {
       debugPrint('[OfflineGameProvider] Error persisting active offline match: $e');
     }
@@ -657,15 +665,21 @@ class OfflineGameProvider extends ChangeNotifier {
 
   Future<void> _clearPersistedActiveOfflineMatch() async {
     try {
-      await LocalMatchHistoryService.instance.clearActiveOfflineGame();
+      await LocalMatchHistoryService.instance.clearActiveOfflineGame(
+        userId: offlinePlayerId,
+        isGuest: offlineIsGuest,
+      );
     } catch (e) {
       debugPrint('[OfflineGameProvider] Error clearing active offline match: $e');
     }
   }
 
-  Future<void> _restoreActiveOfflineMatch() async {
+  Future<void> _restoreActiveOfflineMatch({String? userId, bool? isGuest}) async {
     try {
-      final saved = await LocalMatchHistoryService.instance.getActiveOfflineGame();
+      final saved = await LocalMatchHistoryService.instance.getActiveOfflineGame(
+        userId: userId ?? offlinePlayerId,
+        isGuest: isGuest ?? offlineIsGuest,
+      );
       if (saved == null) return;
 
       _hasActiveMatch = true;

@@ -33,6 +33,15 @@ class AppColors {
     0xFF4C856F,
   ); // 3D bevel shadow for accent buttons
 
+  // --- App Logo & Icon Quadrant Colors ---
+  static const Color logoGridTopLeft = Color(0xFFBF5377);
+  static const Color logoGridTopRight = Color(0xFF863653);
+  static const Color logoGridBottomLeft = Color(0xFF863653);
+  static const Color logoGridBottomRight = Color(0xFF562838);
+  static const Color logoPawnInnerDot = Color(0xFFBDC3C7);
+  static const Color logoPawnShadow = Color(0x59000000); // rgba(0, 0, 0, 0.35)
+  static const Color logoPawnStroke = Color(0x40000000); // rgba(0, 0, 0, 0.25)
+
   // Interactive Action Colors (Main action is reddish purplish)
   static const Color primaryGreen = primary; // #863653: Main interactive CTA
   static const Color primaryGreenHover = primaryHover; // #9E4366: Hover state

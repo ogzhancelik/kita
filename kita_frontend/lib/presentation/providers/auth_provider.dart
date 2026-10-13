@@ -7,6 +7,7 @@ import '../../core/network/connectivity_service.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/auth_api_service.dart';
+import '../../data/services/local_match_history_service.dart';
 import '../../data/services/user_api_service.dart';
 import '../../data/services/websocket_service.dart';
 import '../widgets/common/guest_guard_dialog.dart';
@@ -281,6 +282,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
           await _storage.saveUser(profile);
           _state = AuthState.authenticated;
           _isServerDown = false;
+          LocalMatchHistoryService.instance.notifyMatchesChanged();
           notifyListeners();
           return;
         } catch (e) {
@@ -293,6 +295,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
             if (cached != null) {
               _currentUser = cached;
               _state = AuthState.authenticated;
+              LocalMatchHistoryService.instance.notifyMatchesChanged();
               notifyListeners();
               return;
             }
@@ -311,6 +314,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
         if (cached != null) {
           _currentUser = cached;
           _state = AuthState.authenticated;
+          LocalMatchHistoryService.instance.notifyMatchesChanged();
           notifyListeners();
           return;
         }
@@ -374,6 +378,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Fallback default guest profile
     _guestProfile = const GuestProfile(nickname: 'Guest', avatarIndex: 0);
     _state = AuthState.guest;
+    LocalMatchHistoryService.instance.notifyMatchesChanged();
     notifyListeners();
   }
 
@@ -455,6 +460,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       _state = AuthState.authenticated;
       _setLoading(false);
+      LocalMatchHistoryService.instance.notifyMatchesChanged();
       return true;
     } catch (_) {
       _setLoading(false);
@@ -481,6 +487,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       _state = AuthState.authenticated;
       _setLoading(false);
+      LocalMatchHistoryService.instance.notifyMatchesChanged();
       return true;
     } catch (_) {
       _setLoading(false);
@@ -504,6 +511,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       await _storage.saveGuestProfile(guest.nickname, guest.avatarIndex);
     } catch (_) {}
     _state = AuthState.guest;
+    LocalMatchHistoryService.instance.notifyMatchesChanged();
     notifyListeners();
   }
 
@@ -520,6 +528,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     _token = null;
     _state = AuthState.unauthenticated;
     _setLoading(false);
+    LocalMatchHistoryService.instance.notifyMatchesChanged();
   }
 
   // --- Feature Guard for Guests ---
