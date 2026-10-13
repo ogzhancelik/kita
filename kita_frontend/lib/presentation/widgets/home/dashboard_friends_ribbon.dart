@@ -277,143 +277,153 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Avatar + Online status indicator + Unread badge
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: avatar.accentColor.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: avatar.accentColor,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Icon(
-                        avatar.icon,
-                        color: avatar.accentColor,
-                        size: 20,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 11,
-                        height: 11,
-                        decoration: BoxDecoration(
-                          color: friend.isOnline ? AppColors.online : AppColors.offline,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                            width: 1.5,
-                          ),
-                          boxShadow: friend.isOnline
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.online.withValues(alpha: 0.5),
-                                    blurRadius: 3,
-                                    spreadRadius: 0.5,
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Avatar + Online status indicator + Unread badge
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: avatar.accentColor.withValues(alpha: 0.18),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: avatar.accentColor,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Icon(
+                                avatar.icon,
+                                color: avatar.accentColor,
+                                size: 20,
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 11,
+                                height: 11,
+                                decoration: BoxDecoration(
+                                  color: friend.isOnline ? AppColors.online : AppColors.offline,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                                    width: 1.5,
                                   ),
-                                ]
-                              : null,
+                                  boxShadow: friend.isOnline
+                                      ? [
+                                          BoxShadow(
+                                            color: AppColors.online.withValues(alpha: 0.5),
+                                            blurRadius: 3,
+                                            spreadRadius: 0.5,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                              ),
+                            ),
+                            if (unreadCount > 0)
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryVibrant,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    unreadCount > 9 ? '9+' : '$unreadCount',
+                                    style: const TextStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 5),
+
+                        // Friend Username
+                        Text(
+                          friend.username,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 1),
+
+                        // Rating
+                        Text(
+                          '${friend.rating}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.ratingGold,
+                          ),
+                        ),
+                      ],
                     ),
-                    if (unreadCount > 0)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryVibrant,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                              width: 1.5,
-                            ),
-                          ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          alignment: Alignment.center,
-                          child: Text(
-                            unreadCount > 9 ? '9+' : '$unreadCount',
-                            style: const TextStyle(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              height: 1.0,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-
-                // Friend Username
-                Text(
-                  friend.username,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 1),
-
-                // Rating
-                Text(
-                  '${friend.rating}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.ratingGold,
                   ),
                 ),
-                const SizedBox(height: 6),
 
                 // Direct Challenge Button
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: friend.isOnline
-                        ? AppColors.primaryGreen
-                        : AppColors.getSurface(isDark),
-                    elevation: friend.isOnline ? 1 : 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    minimumSize: const Size(0, 38),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      side: friend.isOnline
-                          ? BorderSide.none
-                          : BorderSide(color: AppColors.getBorder(isDark)),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: friend.isOnline
+                          ? AppColors.primaryGreen
+                          : AppColors.getSurface(isDark),
+                      elevation: friend.isOnline ? 1 : 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                      minimumSize: const Size(0, 25),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        side: friend.isOnline
+                            ? BorderSide.none
+                            : BorderSide(color: AppColors.getBorder(isDark)),
+                      ),
                     ),
-                  ),
-                  onPressed: () => _quickInvite(friend),
-                  child: Text(
-                    'dashboard.quickChallenge'.tr(),
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold,
-                      color: friend.isOnline
-                          ? AppColors.darkTextPrimary
-                          : (isDark
-                              ? AppColors.darkTextPrimary.withValues(alpha: 0.9)
-                              : AppColors.lightTextPrimary),
+                    onPressed: () => _quickInvite(friend),
+                    child: Text(
+                      'dashboard.quickChallenge'.tr(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: friend.isOnline
+                            ? AppColors.darkTextPrimary
+                            : (isDark
+                                ? AppColors.darkTextPrimary.withValues(alpha: 0.9)
+                                : AppColors.lightTextPrimary),
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
