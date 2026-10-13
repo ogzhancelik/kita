@@ -341,10 +341,11 @@ class KitaBoardWidget extends StatelessWidget {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Heatmap background color strictly derived from tile value (1, 2, or 3),
-    // or dimmed gray if marked as grayTile (used in tutorial tile value isolation)
+    // or softened with a gray tint if marked as grayTile (used in tutorial tile value isolation)
+    final normalColor = theme.getColorForValue(tileValue);
     final cellBaseColor = isGray
-        ? AppColors.getBoardTileGray(isDark)
-        : theme.getColorForValue(tileValue);
+        ? AppColors.getBoardTileGrayTint(normalColor, isDark)
+        : normalColor;
 
     // Coordinates:
     // First column: row labels (A, B, C, D)

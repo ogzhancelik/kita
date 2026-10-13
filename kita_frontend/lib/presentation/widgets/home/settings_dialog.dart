@@ -6,9 +6,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/theme_provider.dart';
-import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
 import '../../screens/tutorial/tutorial_screen.dart';
+import 'account_settings_dialog.dart';
 import 'match_settings_dialog.dart';
 
 class SettingsDialog extends StatelessWidget {
@@ -145,35 +145,32 @@ class SettingsDialog extends StatelessWidget {
                         MatchSettingsDialog.show(context);
                       },
                       trailing: Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: isDark
+                ? AppColors.darkTextMuted
+                : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- Dedicated Account Settings Action (Right Above How to Play) ---
+                    _buildSettingsTile(
+                      isDark: isDark,
+                      icon: Icons.manage_accounts_rounded,
+                      iconColor: AppColors.accentGold,
+                      title: 'account.title'.tr(),
+                      subtitle: authProv.displayName,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        AccountSettingsDialog.show(context);
+                      },
+                      trailing: Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 14,
                         color: isDark
                             ? AppColors.darkTextMuted
                             : AppColors.lightTextMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // --- Avatar / Profile Quick Action ---
-                    _buildSettingsTile(
-                      isDark: isDark,
-                      icon: Icons.face_rounded,
-                      iconColor: AppColors.accentGold,
-                      title: 'profile.title'.tr(),
-                      subtitle: authProv.displayName,
-                      trailing: TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          AvatarPicker.show(context);
-                        },
-                        child: Text(
-                          'profile.changeAvatar'.tr(),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primaryGreen,
-                          ),
-                        ),
                       ),
                     ),
                     const SizedBox(height: 10),

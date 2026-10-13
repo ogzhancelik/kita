@@ -64,6 +64,8 @@ func NewDatabase() (*gorm.DB, error) {
 		_ = db.Exec("ALTER TABLE matches ALTER COLUMN black_player_id TYPE varchar(64) USING black_player_id::varchar").Error
 		_ = db.Exec("ALTER TABLE matches ALTER COLUMN winner_id TYPE varchar(64) USING winner_id::varchar").Error
 		_ = db.Exec("ALTER TABLE matches ALTER COLUMN id TYPE varchar(64) USING id::varchar").Error
+		_ = db.Exec("ALTER TABLE matches ADD COLUMN IF NOT EXISTS white_rating integer").Error
+		_ = db.Exec("ALTER TABLE matches ADD COLUMN IF NOT EXISTS black_rating integer").Error
 	}
 
 	if db.Migrator().HasTable("notifications") {

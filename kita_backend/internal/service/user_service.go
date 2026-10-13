@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
@@ -105,4 +106,57 @@ func (s *userService) UpdateAvatar(ctx context.Context, userID string, avatarInd
 	profile := user.ToProfile()
 	return &profile, nil
 }
+
+func (s *userService) UpdateUsername(ctx context.Context, userID string, username string) (*domain.UserProfile, error) {
+	username = strings.TrimSpace(username)
+	if err := ValidateUsername(username); err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	if strings.EqualFold(user.Username, username) {
+		if user.Username == username {
+			profile := user.ToProfile()
+			return &profile, nil
+		}
+	} else {
+		existing, err := s.userRepo.FindByUsername(ctx, username)
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil && existing.ID != userID {
+			return nil, ErrUserAlreadyExists
+		}
+	}
+
+	user.Username = username
+	user.UpdatedAt = time.Now()
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	profile := user.ToProfile()
+	return &profile, nil
+}
+
+func (s *userService) DeleteAccount(ctx context.Context, userID string) error {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	return s.userRepo.Delete(ctx, userID)
+}
+
+
 

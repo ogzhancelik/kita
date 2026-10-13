@@ -360,9 +360,67 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     }
   }
 
-  Widget _buildPlayerAvatar(UserProfile? player, bool isDark) {
-    final int avatarIndex = player?.avatarIndex ?? 0;
-    final avatarItem = AvatarPicker.avatars[avatarIndex % AvatarPicker.avatars.length];
+  Widget _buildPlayerAvatar(UserProfile? player, bool isDark, {bool? isDeleted, bool? isGuest}) {
+    final rawName = player?.username;
+    final bool isNameUuid = rawName != null &&
+        rawName.length >= 32 &&
+        RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(rawName);
+    final bool effectiveDeleted = isDeleted ??
+        (rawName == '[Deleted]' ||
+            isNameUuid ||
+            (player?.id != null && player!.id.contains('deleted')));
+    final bool effectiveGuest = isGuest ??
+        ((player?.id != null && player!.id.startsWith('guest-')) ||
+            (rawName != null && rawName.toLowerCase().startsWith('guest')));
+
+    if (effectiveDeleted) {
+      final deletedColor = AppColors.getDeletedUser(isDark);
+      return Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: deletedColor.withValues(alpha: 0.18),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: deletedColor.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.face_rounded,
+            size: 16,
+            color: deletedColor,
+          ),
+        ),
+      );
+    }
+
+    final int rawAvatarIndex = player?.avatarIndex ?? 0;
+    if (effectiveGuest && rawAvatarIndex == 0) {
+      const guestColor = AppColors.guestOrange;
+      return Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: guestColor.withValues(alpha: 0.18),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: guestColor.withValues(alpha: 0.6),
+            width: 1,
+          ),
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.face_rounded,
+            size: 16,
+            color: guestColor,
+          ),
+        ),
+      );
+    }
+
+    final avatarItem = AvatarPicker.avatars[rawAvatarIndex % AvatarPicker.avatars.length];
     return Container(
       width: 28,
       height: 28,
@@ -483,10 +541,20 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     final bool isWhite = match.isUserWhite(currentUserId);
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
     final bool isVsAi = match.isVsAi;
-    final opponentName = (opponent?.id == 'bot' || opponent?.username == 'game.aiBot' || isVsAi)
+    final rawOpponentName = opponent?.username;
+    final bool isNameUuid = rawOpponentName != null &&
+        rawOpponentName.length >= 32 &&
+        RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(rawOpponentName);
+    final bool isOpponentDeleted = rawOpponentName == '[Deleted]' ||
+        isNameUuid ||
+        (opponent?.id != null && opponent!.id.contains('deleted'));
+    final bool isOpponentGuest = (opponent?.id != null && opponent!.id.startsWith('guest-')) ||
+        (rawOpponentName != null && rawOpponentName.toLowerCase().startsWith('guest'));
+    final opponentName = (opponent?.id == 'bot' || rawOpponentName == 'game.aiBot' || isVsAi)
         ? 'game.aiBot'.tr()
-        : (opponent?.username ??
-            (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'history.blackTeam'.tr() : 'history.whiteTeam'.tr())));
+        : ((rawOpponentName != null && rawOpponentName.isNotEmpty && !isNameUuid)
+            ? rawOpponentName
+            : (isOpponentDeleted ? '[Deleted]' : (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'history.blackTeam'.tr() : 'history.whiteTeam'.tr()))));
     final opponentRating = opponent?.rating ?? 1200;
 
     final isDraw = match.isDraw || match.isDrawOutcome;
@@ -536,7 +604,12 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
           else if (isVsAi)
             _buildAiAvatar(isDark)
           else
-            _buildPlayerAvatar(opponent, isDark),
+            _buildPlayerAvatar(
+              opponent,
+              isDark,
+              isDeleted: isOpponentDeleted,
+              isGuest: isOpponentGuest,
+            ),
           const SizedBox(width: 10),
 
           // Match Details (Top: Name / AI Difficulty, Bottom: Moves & Date)
@@ -623,21 +696,27 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                            color: isOpponentDeleted
+                                ? AppColors.getDeletedUser(isDark)
+                                : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '($opponentRating)',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.ratingGold,
+                      if (!isOpponentGuest) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '($opponentRating)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isOpponentDeleted
+                                ? AppColors.getDeletedUser(isDark)
+                                : AppColors.ratingGold,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                     if ((match.isTimeout || match.isResigned || match.isDrawAgreement) && !(isCoop && match.isDraw)) ...[
                       const SizedBox(width: 6),

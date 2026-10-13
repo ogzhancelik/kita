@@ -14,6 +14,7 @@ import '../../providers/notification_provider.dart';
 import '../../screens/friends/dm_chat_screen.dart';
 import '../common/avatar_picker.dart';
 import '../common/stat_badge.dart';
+import 'account_settings_dialog.dart';
 
 class UserProfileDialog extends StatefulWidget {
   final String? userId;
@@ -171,9 +172,14 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
         ? (authProv.currentUser?.isProvisional ?? true)
         : (user?.isProvisional ?? widget.fallbackIsProvisional ?? false);
 
+    final bool isDeleted = displayName == '[Deleted]' || user?.username == '[Deleted]';
+
     String badgeText;
     Color badgeColor;
-    if (isBot) {
+    if (isDeleted) {
+      badgeText = 'profile.deletedUser'.tr();
+      badgeColor = AppColors.lossRed;
+    } else if (isBot) {
       badgeText = 'profile.botPlayer'.tr();
       badgeColor = AppColors.accentGold;
     } else if (isGuest) {
@@ -253,16 +259,41 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             width: 88,
                             height: 88,
                             decoration: BoxDecoration(
-                              color: (isBot ? AppColors.primaryGreen : avatarItem.accentColor).withValues(alpha: 0.18),
+                              color: (isBot
+                                      ? AppColors.primaryGreen
+                                      : (isDeleted
+                                          ? AppColors.getDeletedUser(isDark)
+                                          : (isGuest && rawAvatarIndex == 0
+                                              ? AppColors.guestOrange
+                                              : avatarItem.accentColor)))
+                                  .withValues(alpha: 0.18),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isBot ? AppColors.primaryGreen : avatarItem.accentColor,
+                                color: isBot
+                                    ? AppColors.primaryGreen
+                                    : (isDeleted
+                                        ? AppColors.getDeletedUser(isDark)
+                                        : (isGuest && rawAvatarIndex == 0
+                                            ? AppColors.guestOrange
+                                            : avatarItem.accentColor)),
                                 width: 3,
                               ),
                             ),
                             child: Icon(
-                              isBot ? Icons.smart_toy_rounded : avatarItem.icon,
-                              color: isBot ? AppColors.primaryGreen : avatarItem.accentColor,
+                              isBot
+                                  ? Icons.smart_toy_rounded
+                                  : (isDeleted
+                                      ? Icons.face_rounded
+                                      : (isGuest && rawAvatarIndex == 0
+                                          ? Icons.face_rounded
+                                          : avatarItem.icon)),
+                              color: isBot
+                                  ? AppColors.primaryGreen
+                                  : (isDeleted
+                                      ? AppColors.getDeletedUser(isDark)
+                                      : (isGuest && rawAvatarIndex == 0
+                                          ? AppColors.guestOrange
+                                          : avatarItem.accentColor)),
                               size: 46,
                             ),
                           ),
@@ -297,13 +328,43 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     const SizedBox(height: 14),
 
                     // Display Name
-                    Text(
-                      displayName,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            displayName,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: isDeleted
+                                  ? AppColors.getDeletedUser(isDark)
+                                  : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isCurrent) ...[
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              AccountSettingsDialog.show(context);
+                            },
+                            borderRadius: BorderRadius.circular(6),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Icon(
+                                Icons.edit_rounded,
+                                size: 18,
+                                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 6),
 
@@ -311,7 +372,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (!isGuest) ...[
+                        if (!isGuest && !isDeleted) ...[
                           StatBadge(
                             rating: rating,
                             isGuest: isGuest,
@@ -436,6 +497,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       final isPendingIncoming = targetId != null && friendsProv.incomingRequests.any((r) => r.userId == targetId);
 
                       final canAddFriend = !isCurrent &&
+                          !isDeleted &&
                           !isBot &&
                           !isGuest &&
                           targetId != null &&
@@ -445,6 +507,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           !isFriend;
 
                       final canSendMessage = !isCurrent &&
+                          !isDeleted &&
                           !isBot &&
                           !isGuest &&
                           targetId != null &&
@@ -452,7 +515,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           authProv.isAuthenticated &&
                           !authProv.isGuest;
 
-                      if (isCurrent || (!canSendMessage && !canAddFriend && widget.onInvite == null)) {
+                      if (isCurrent || isDeleted || (!canSendMessage && !canAddFriend && widget.onInvite == null)) {
                         return const SizedBox.shrink();
                       }
 

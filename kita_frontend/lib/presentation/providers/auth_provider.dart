@@ -246,6 +246,65 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<bool> updateUsername(String newUsername) async {
+    final trimmed = newUsername.trim();
+    if (trimmed.isEmpty) return false;
+
+    if (isGuest && _guestProfile != null) {
+      _guestProfile = GuestProfile(
+        nickname: trimmed,
+        avatarIndex: _guestProfile!.avatarIndex,
+      );
+      try {
+        await _storage.saveGuestProfile(_guestProfile!.nickname, _guestProfile!.avatarIndex);
+      } catch (_) {}
+      notifyListeners();
+      return true;
+    } else if (isAuthenticated && _currentUser != null) {
+      try {
+        final updated = await _userApiService.updateUsername(trimmed);
+        _currentUser = updated;
+        await _storage.saveUser(updated);
+        notifyListeners();
+        return true;
+      } catch (e) {
+        debugPrint('[AuthProvider] Failed to update username: $e');
+        rethrow;
+      }
+    }
+    return false;
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (!isAuthenticated) return;
+    try {
+      await _apiService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+    } catch (e) {
+      debugPrint('[AuthProvider] Failed to change password: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    if (!isAuthenticated) return false;
+    _setLoading(true);
+    try {
+      await _userApiService.deleteAccount();
+      await logout();
+      return true;
+    } catch (e) {
+      _setLoading(false);
+      debugPrint('[AuthProvider] Failed to delete account: $e');
+      rethrow;
+    }
+  }
+
   int _initCheckGeneration = 0;
 
   // --- Step 1 & 2 & 3 Initialization Flow ---

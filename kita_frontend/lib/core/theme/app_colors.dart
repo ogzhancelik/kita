@@ -57,10 +57,17 @@ class AppColors {
   static const Color lastMoveLine = accent;
 
   // --- Board Dimmed / Gray Tile Colors ---
-  static const Color boardTileGray = Color(0xFF2C2F33);
+  static const Color boardTileGray = Color(0xFF4C4F53);
   static const Color boardTileGrayLight = Color(0xFFD4D8DD);
   static Color getBoardTileGray(bool isDark) =>
       isDark ? boardTileGray : boardTileGrayLight;
+
+  /// Returns a muted, dimmed gray-tinted version of [baseColor] for tutorial tile isolation.
+  static Color getBoardTileGrayTint(Color baseColor, bool isDark) =>
+      Color.alphaBlend(
+        getBoardTileGray(isDark).withValues(alpha: isDark ? 0.82 : 0.78),
+        baseColor,
+      );
 
   // --- Board Piece Colors ---
   static const Color pieceWhite = Color(0xFFFFFFFF);
@@ -86,6 +93,7 @@ class AppColors {
   static const Color drawYellow = Color(0xFFFFC83B); // Standard warning yellow for draw outcomes
   static const Color draw = drawYellow;
   static const Color drawGray = drawYellow; // Backward-compatibility alias
+  static const Color deletedUser = Color(0xFF7E7E7E); // Deleted account / muted identifier
 
   // --- Positive & Status Indicators (Accents: #A8D8C6 / #75B69C) ---
   static const Color online = accent; // #A8D8C6: Açık mint yeşili (çevrimiçi göstergesi)
@@ -170,5 +178,6 @@ class AppColors {
       isDark ? darkTextSecondary : lightTextSecondary;
   static Color getTextMuted(bool isDark) =>
       isDark ? darkTextMuted : lightTextMuted;
+  static Color getDeletedUser(bool isDark) => getTextMuted(isDark);
   static Color getBrandPrimary(bool isDark) => isDark ? primaryLight : primary;
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/oguzhancelik/kita/internal/core/errors"
 	"github.com/oguzhancelik/kita/internal/core/ports"
+	"github.com/oguzhancelik/kita/internal/service"
 )
 
 type UserHandler struct {
@@ -95,4 +96,61 @@ func (h *UserHandler) UpdateAvatar(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
+
+type UpdateUsernameRequest struct {
+	Username string `json:"username" binding:"required,min=2,max=15"`
+}
+
+func (h *UserHandler) UpdateUsername(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		SendError(c, http.StatusUnauthorized, errors.ErrUnauthorized, "Unauthorized")
+		return
+	}
+
+	var req UpdateUsernameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, err.Error())
+		return
+	}
+
+	profile, err := h.userService.UpdateUsername(c.Request.Context(), userID.(string), req.Username)
+	if err != nil {
+		if err == service.ErrUserAlreadyExists {
+			SendError(c, http.StatusConflict, errors.ErrUserAlreadyExists, err.Error())
+			return
+		}
+		if err == service.ErrUsernameReserved {
+			SendError(c, http.StatusBadRequest, errors.ErrUsernameReserved, err.Error())
+			return
+		}
+		if err == service.ErrInvalidUsername {
+			SendError(c, http.StatusBadRequest, errors.ErrUsernameInvalid, err.Error())
+			return
+		}
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+
+func (h *UserHandler) DeleteAccount(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		SendError(c, http.StatusUnauthorized, errors.ErrUnauthorized, "Unauthorized")
+		return
+	}
+
+	if err := h.userService.DeleteAccount(c.Request.Context(), userID.(string)); err != nil {
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "account deleted successfully",
+	})
+}
+
+
 

@@ -59,4 +59,32 @@ class UserApiService {
 
     return UserProfile.fromJson(response.data as Map<String, dynamic>);
   }
+
+  /// Updates authenticated user's username
+  Future<UserProfile> updateUsername(String username) async {
+    final token = ApiClient.currentToken;
+
+    final response = await _client.dio.put(
+      ApiConstants.updateUsername,
+      data: {'username': username.trim()},
+      options: (token != null && token.isNotEmpty)
+          ? Options(headers: {'Authorization': 'Bearer $token'})
+          : null,
+    );
+
+    return UserProfile.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Permanently deletes authenticated user's account
+  Future<void> deleteAccount() async {
+    final token = ApiClient.currentToken;
+
+    await _client.dio.delete(
+      ApiConstants.deleteAccount,
+      options: (token != null && token.isNotEmpty)
+          ? Options(headers: {'Authorization': 'Bearer $token'})
+          : null,
+    );
+  }
 }
+

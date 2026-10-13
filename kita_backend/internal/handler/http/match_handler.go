@@ -257,6 +257,10 @@ func (h *MatchHandler) ShareReplay(c *gin.Context) {
 			AvatarIndex: req.Match.WhitePlayer.AvatarIndex,
 			Rating:      req.Match.WhitePlayer.Rating,
 		}
+		if req.Match.WhitePlayer.Rating > 0 {
+			wr := int(req.Match.WhitePlayer.Rating)
+			matchRecord.WhiteRating = &wr
+		}
 	}
 	if req.Match.BlackPlayer != nil {
 		matchRecord.BlackPlayer = &domain.User{
@@ -264,6 +268,10 @@ func (h *MatchHandler) ShareReplay(c *gin.Context) {
 			Username:    req.Match.BlackPlayer.Username,
 			AvatarIndex: req.Match.BlackPlayer.AvatarIndex,
 			Rating:      req.Match.BlackPlayer.Rating,
+		}
+		if req.Match.BlackPlayer.Rating > 0 {
+			br := int(req.Match.BlackPlayer.Rating)
+			matchRecord.BlackRating = &br
 		}
 	}
 

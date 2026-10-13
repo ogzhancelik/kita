@@ -157,6 +157,12 @@ func (r *matchRepo) populatePlayers(ctx context.Context, matches []*domain.Match
 	for _, m := range matches {
 		m.WhitePlayer = r.resolvePlayer(m.WhitePlayerID, usersMap)
 		m.BlackPlayer = r.resolvePlayer(m.BlackPlayerID, usersMap)
+		if m.WhiteRating != nil && m.WhitePlayer != nil {
+			m.WhitePlayer.Rating = float64(*m.WhiteRating)
+		}
+		if m.BlackRating != nil && m.BlackPlayer != nil {
+			m.BlackPlayer.Rating = float64(*m.BlackRating)
+		}
 	}
 }
 
@@ -182,8 +188,10 @@ func (r *matchRepo) resolvePlayer(playerID string, usersMap map[string]*domain.U
 
 	if parsed, err := uuid.Parse(trimmedID); err == nil {
 		if u, ok := usersMap[parsed.String()]; ok {
-			return u
+			userCopy := *u
+			return &userCopy
 		}
+		return &domain.User{ID: trimmedID, Username: "[Deleted]", Rating: 1200, AvatarIndex: 0}
 	}
 
 	return &domain.User{ID: trimmedID, Username: trimmedID, Rating: 1200, AvatarIndex: 0}

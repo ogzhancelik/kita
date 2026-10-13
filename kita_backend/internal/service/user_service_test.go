@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +23,11 @@ func (m *mockUserRepoForUserService) FindByID(ctx context.Context, id string) (*
 	return nil, nil
 }
 func (m *mockUserRepoForUserService) FindByUsername(ctx context.Context, u string) (*domain.User, error) {
+	for _, user := range m.users {
+		if strings.EqualFold(user.Username, u) {
+			return &user, nil
+		}
+	}
 	return nil, nil
 }
 func (m *mockUserRepoForUserService) FindByEmail(ctx context.Context, e string) (*domain.User, error) {
@@ -36,6 +42,17 @@ func (m *mockUserRepoForUserService) Update(ctx context.Context, user *domain.Us
 	}
 	return nil
 }
+
+func (m *mockUserRepoForUserService) Delete(ctx context.Context, id string) error {
+	for i, u := range m.users {
+		if u.ID == id {
+			m.users = append(m.users[:i], m.users[i+1:]...)
+			return nil
+		}
+	}
+	return nil
+}
+
 func (m *mockUserRepoForUserService) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	if len(userIDs) == 0 {
 		return m.users, nil
@@ -206,4 +223,86 @@ func TestUserService_UpdateAvatar_UserNotFound(t *testing.T) {
 		t.Error("expected error for nonexistent user, got nil")
 	}
 }
+
+func TestUserService_UpdateUsername(t *testing.T) {
+	userRepo := &mockUserRepoForUserService{
+		users: []domain.User{
+			{ID: "u1", Username: "playerOne", Rating: 1200},
+			{ID: "u2", Username: "playerTwo", Rating: 1300},
+		},
+	}
+	friendRepo := &mockFriendRepoForUserService{}
+	svc := NewUserService(userRepo, friendRepo)
+	ctx := context.Background()
+
+	// 1. Invalid username (too short)
+	_, err := svc.UpdateUsername(ctx, "u1", "a")
+	if err != ErrInvalidUsername {
+		t.Fatalf("expected ErrInvalidUsername for single char, got %v", err)
+	}
+
+	// 2. Reserved username
+	_, err = svc.UpdateUsername(ctx, "u1", "admin")
+	if err != ErrUsernameReserved {
+		t.Fatalf("expected ErrUsernameReserved for 'admin', got %v", err)
+	}
+
+	// 3. Already taken username
+	_, err = svc.UpdateUsername(ctx, "u1", "playerTwo")
+	if err != ErrUserAlreadyExists {
+		t.Fatalf("expected ErrUserAlreadyExists for taken name, got %v", err)
+	}
+
+	// 4. Same username returns profile successfully
+	prof, err := svc.UpdateUsername(ctx, "u1", "playerOne")
+	if err != nil || prof.Username != "playerOne" {
+		t.Fatalf("expected success on identical username, got %v", err)
+	}
+
+	// 5. Successful username change
+	prof, err = svc.UpdateUsername(ctx, "u1", "playerRenamed")
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	if prof.Username != "playerRenamed" {
+		t.Fatalf("expected profile username to be 'playerRenamed', got %s", prof.Username)
+	}
+
+	// Verify persistence in repo
+	u1, _ := userRepo.FindByID(ctx, "u1")
+	if u1.Username != "playerRenamed" {
+		t.Fatalf("expected repo username to be 'playerRenamed', got %s", u1.Username)
+	}
+}
+
+func TestUserService_DeleteAccount(t *testing.T) {
+	userRepo := &mockUserRepoForUserService{
+		users: []domain.User{
+			{ID: "u1", Username: "playerOne", Rating: 1200},
+		},
+	}
+	friendRepo := &mockFriendRepoForUserService{}
+	svc := NewUserService(userRepo, friendRepo)
+	ctx := context.Background()
+
+	// 1. Delete existing account
+	err := svc.DeleteAccount(ctx, "u1")
+	if err != nil {
+		t.Fatalf("expected delete to succeed, got %v", err)
+	}
+
+	// Verify user is deleted
+	u, _ := userRepo.FindByID(ctx, "u1")
+	if u != nil {
+		t.Fatalf("expected user to be nil after deletion")
+	}
+
+	// 2. Delete non-existent account
+	err = svc.DeleteAccount(ctx, "nonexistent")
+	if err == nil {
+		t.Fatalf("expected error for non-existent user, got nil")
+	}
+}
+
+
 

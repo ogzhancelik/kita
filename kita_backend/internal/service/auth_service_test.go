@@ -56,6 +56,16 @@ func (m *mockUserRepoForAuthService) Update(ctx context.Context, user *domain.Us
 	return nil
 }
 
+func (m *mockUserRepoForAuthService) Delete(ctx context.Context, id string) error {
+	for i, u := range m.users {
+		if u.ID == id {
+			m.users = append(m.users[:i], m.users[i+1:]...)
+			return nil
+		}
+	}
+	return nil
+}
+
 func (m *mockUserRepoForAuthService) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	return nil, nil
 }
@@ -189,3 +199,52 @@ func TestIsReservedUsername_HotReloading(t *testing.T) {
 		t.Fatalf("expected 'CustomVIP' (case-insensitive) to be reserved after file edit")
 	}
 }
+
+func TestChangePassword(t *testing.T) {
+	mockRepo := &mockUserRepoForAuthService{users: []*domain.User{}}
+	svc := NewAuthService(mockRepo)
+	ctx := context.Background()
+
+	// Register a test user
+	user, _, err := svc.Register(ctx, "passwordTester", "pass@test.com", "oldPassword123")
+	if err != nil {
+		t.Fatalf("failed to register user: %v", err)
+	}
+
+	// 1. Password too short (<6)
+	err = svc.ChangePassword(ctx, user.ID, "oldPassword123", "123")
+	if err != ErrPasswordTooShort {
+		t.Fatalf("expected ErrPasswordTooShort, got %v", err)
+	}
+
+	// 2. Same password
+	err = svc.ChangePassword(ctx, user.ID, "oldPassword123", "oldPassword123")
+	if err != ErrSamePassword {
+		t.Fatalf("expected ErrSamePassword, got %v", err)
+	}
+
+	// 3. Wrong current password
+	err = svc.ChangePassword(ctx, user.ID, "wrongCurrent", "newPassword123")
+	if err != ErrWrongPassword {
+		t.Fatalf("expected ErrWrongPassword, got %v", err)
+	}
+
+	// 4. Successful password change
+	err = svc.ChangePassword(ctx, user.ID, "oldPassword123", "newPassword123")
+	if err != nil {
+		t.Fatalf("expected successful change, got %v", err)
+	}
+
+	// 5. Verify login with new password works
+	loginUser, _, err := svc.Login(ctx, "passwordTester", "newPassword123")
+	if err != nil || loginUser == nil {
+		t.Fatalf("failed to login with new password: %v", err)
+	}
+
+	// 6. Verify old password no longer works
+	_, _, err = svc.Login(ctx, "passwordTester", "oldPassword123")
+	if err != ErrInvalidCredentials {
+		t.Fatalf("expected old password to fail with ErrInvalidCredentials, got %v", err)
+	}
+}
+

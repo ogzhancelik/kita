@@ -414,6 +414,43 @@ class _DmChatScreenState extends State<DmChatScreen> {
   }
 
   Widget _buildInputBar(bool isDark) {
+    final friendsProv = context.watch<FriendsProvider>();
+    final friend = friendsProv.friends.firstWhere(
+      (f) => f.userId == _friend.userId,
+      orElse: () => _friend,
+    );
+    final isDeleted = friend.username == '[Deleted]';
+
+    if (isDeleted) {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.getCard(isDark),
+          border: Border(
+            top: BorderSide(color: AppColors.getBorder(isDark), width: 0.5),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.lossRed),
+              const SizedBox(width: 8),
+              Text(
+                'chats.accountDeletedNotice'.tr(),
+                style: TextStyle(
+                  color: AppColors.getTextMuted(isDark),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),

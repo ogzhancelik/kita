@@ -10,12 +10,15 @@ type AuthService interface {
 	Register(ctx context.Context, username, email, password string) (*domain.User, string, error)
 	Login(ctx context.Context, usernameOrEmail, password string) (*domain.User, string, error)
 	ValidateToken(tokenString string) (string, error)
+	ChangePassword(ctx context.Context, userID, currentPassword, newPassword string) error
 }
 
 type UserService interface {
 	GetProfile(ctx context.Context, userID string) (*domain.UserProfile, error)
 	GetLeaderboard(ctx context.Context, limit int, filter string, currentUserID string) ([]domain.UserProfile, error)
 	UpdateAvatar(ctx context.Context, userID string, avatarIndex int) (*domain.UserProfile, error)
+	UpdateUsername(ctx context.Context, userID string, username string) (*domain.UserProfile, error)
+	DeleteAccount(ctx context.Context, userID string) error
 }
 
 type MatchService interface {

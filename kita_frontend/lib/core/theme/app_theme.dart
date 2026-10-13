@@ -140,5 +140,8 @@ class AppTheme {
 
   static Color getBoardTileGray(bool isDark) =>
       AppColors.getBoardTileGray(isDark);
+
+  static Color getBoardTileGrayTint(Color baseColor, bool isDark) =>
+      AppColors.getBoardTileGrayTint(baseColor, isDark);
 }
 

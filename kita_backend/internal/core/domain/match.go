@@ -28,6 +28,8 @@ type Match struct {
 	ID            string       `json:"id" gorm:"primaryKey;type:varchar(64)"`
 	WhitePlayerID string       `json:"white_player_id" gorm:"type:varchar(64);index;not null"`
 	BlackPlayerID string       `json:"black_player_id" gorm:"type:varchar(64);index;not null"`
+	WhiteRating   *int         `json:"white_rating,omitempty" gorm:"column:white_rating"`
+	BlackRating   *int         `json:"black_rating,omitempty" gorm:"column:black_rating"`
 	WhitePlayer   *User        `json:"white_player,omitempty" gorm:"-"`
 	BlackPlayer   *User        `json:"black_player,omitempty" gorm:"-"`
 	WinnerID      *string      `json:"winner_id" gorm:"type:varchar(64);index"`

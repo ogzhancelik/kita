@@ -1009,9 +1009,10 @@ class _TutorialScreenState extends State<TutorialScreen>
     final spans = <InlineSpan>[];
     final defaultColor = isDark ? Colors.white : AppColors.lightTextPrimary;
     final colorStack = <Color>[];
+    final grayColor = AppColors.getTextMuted(isDark);
 
     final tagRegex = RegExp(
-      r'</?(mint|red|yellow)>|<king_icon/>|<pawn_icon/>',
+      r'</?(mint|red|yellow|gray)>|<king_icon/>|<pawn_icon/>',
       caseSensitive: false,
     );
 
@@ -1019,20 +1020,23 @@ class _TutorialScreenState extends State<TutorialScreen>
     for (final match in tagRegex.allMatches(text)) {
       if (match.start > lastIndex) {
         final textChunk = text.substring(lastIndex, match.start);
+        final isGray = colorStack.isNotEmpty && colorStack.last == grayColor;
         spans.add(
           TextSpan(
             text: textChunk,
             style: TextStyle(
               fontSize: 15.0,
               height: 1.45,
-              fontWeight: colorStack.isNotEmpty ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: isGray
+                  ? FontWeight.w500
+                  : (colorStack.isNotEmpty ? FontWeight.w700 : FontWeight.w500),
               color: colorStack.isNotEmpty ? colorStack.last : defaultColor,
             ),
           ),
         );
       }
 
-      final matched = match.group(0)!;
+      final matched = match.group(0)!.toLowerCase();
       if (matched == '<king_icon/>') {
         spans.add(
           WidgetSpan(
@@ -1067,25 +1071,32 @@ class _TutorialScreenState extends State<TutorialScreen>
         colorStack.add(AppColors.lossRed);
       } else if (matched == '<yellow>') {
         colorStack.add(AppColors.accentGold);
+      } else if (matched == '<gray>') {
+        colorStack.add(grayColor);
       } else if (matched == '</mint>') {
         colorStack.remove(AppColors.accent);
       } else if (matched == '</red>') {
         colorStack.remove(AppColors.lossRed);
       } else if (matched == '</yellow>') {
         colorStack.remove(AppColors.accentGold);
+      } else if (matched == '</gray>') {
+        colorStack.remove(grayColor);
       }
 
       lastIndex = match.end;
     }
 
     if (lastIndex < text.length) {
+      final isGray = colorStack.isNotEmpty && colorStack.last == grayColor;
       spans.add(
         TextSpan(
           text: text.substring(lastIndex),
           style: TextStyle(
             fontSize: 15.0,
             height: 1.45,
-            fontWeight: colorStack.isNotEmpty ? FontWeight.w700 : FontWeight.w500,
+            fontWeight: isGray
+                ? FontWeight.w500
+                : (colorStack.isNotEmpty ? FontWeight.w700 : FontWeight.w500),
             color: colorStack.isNotEmpty ? colorStack.last : defaultColor,
           ),
         ),

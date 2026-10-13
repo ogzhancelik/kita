@@ -28,6 +28,7 @@ class PlayerInfoBar extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isGameOver;
   final bool isBot;
+  final bool isGuest;
   final IconData? customAvatarIcon;
   final Color? customAvatarColor;
 
@@ -46,6 +47,7 @@ class PlayerInfoBar extends StatelessWidget {
     this.onTap,
     this.isGameOver = false,
     this.isBot = false,
+    this.isGuest = false,
     this.customAvatarIcon,
     this.customAvatarColor,
   });
@@ -64,10 +66,17 @@ class PlayerInfoBar extends StatelessWidget {
     final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
 
     final bool showBotAvatar = isBot || customAvatarIcon != null;
-    final IconData effectiveIcon = customAvatarIcon ?? (isBot ? Icons.smart_toy_rounded : avatarItem.icon);
+    final IconData effectiveIcon = customAvatarIcon ??
+        (isBot
+            ? Icons.smart_toy_rounded
+            : (isGuest && avatarIdx == 0
+                ? Icons.face_rounded
+                : avatarItem.icon));
     final Color effectiveAccentColor = showBotAvatar
         ? (customAvatarColor ?? AppColors.primaryGreen)
-        : avatarItem.accentColor;
+        : (isGuest && avatarIdx == 0
+            ? AppColors.guestOrange
+            : avatarItem.accentColor);
 
     final avatarWidget = Container(
       width: 34,
@@ -113,22 +122,24 @@ class PlayerInfoBar extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 1),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-          decoration: BoxDecoration(
-            color: AppColors.ratingGold.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            ratingLabel ?? (isProvisional ? '$rating?' : '$rating'),
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppColors.ratingGold,
+        if (!isGuest) ...[
+          const SizedBox(height: 1),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: AppColors.ratingGold.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              ratingLabel ?? (isProvisional ? '$rating?' : '$rating'),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ratingGold,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
 

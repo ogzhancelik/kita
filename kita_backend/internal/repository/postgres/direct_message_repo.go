@@ -89,20 +89,27 @@ func (r *directMessageRepo) populateUserMetadata(ctx context.Context, msgs []dom
 	}
 
 	var users []domain.User
+	userMap := make(map[string]domain.User)
 	if err := r.db.WithContext(ctx).Where("id IN (?)", userIDs).Find(&users).Error; err == nil {
-		userMap := make(map[string]domain.User, len(users))
 		for _, u := range users {
 			userMap[u.ID] = u
 		}
-		for i := range msgs {
-			if su, ok := userMap[msgs[i].SenderID]; ok {
-				msgs[i].SenderUsername = su.Username
-				msgs[i].SenderAvatarIndex = su.AvatarIndex
-			}
-			if ru, ok := userMap[msgs[i].RecipientID]; ok {
-				msgs[i].RecipientUsername = ru.Username
-				msgs[i].RecipientAvatarIndex = ru.AvatarIndex
-			}
+	}
+
+	for i := range msgs {
+		if su, ok := userMap[msgs[i].SenderID]; ok {
+			msgs[i].SenderUsername = su.Username
+			msgs[i].SenderAvatarIndex = su.AvatarIndex
+		} else {
+			msgs[i].SenderUsername = "[Deleted]"
+			msgs[i].SenderAvatarIndex = 0
+		}
+		if ru, ok := userMap[msgs[i].RecipientID]; ok {
+			msgs[i].RecipientUsername = ru.Username
+			msgs[i].RecipientAvatarIndex = ru.AvatarIndex
+		} else {
+			msgs[i].RecipientUsername = "[Deleted]"
+			msgs[i].RecipientAvatarIndex = 0
 		}
 	}
 }

@@ -877,10 +877,23 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 
 	// 1. Veritabanına tek bir transaction ile toplu kayıt (Deferred Persistence)
 	totalMoves := len(r.MovesBuffer)
+	var whiteRating *int
+	var blackRating *int
+	if r.WhitePlayer != nil && r.WhitePlayer.Rating > 0 {
+		wr := r.WhitePlayer.Rating
+		whiteRating = &wr
+	}
+	if r.BlackPlayer != nil && r.BlackPlayer.Rating > 0 {
+		br := r.BlackPlayer.Rating
+		blackRating = &br
+	}
+
 	matchRecord := &domain.Match{
 		ID:            r.ID,
 		WhitePlayerID: r.WhitePlayer.UserID,
 		BlackPlayerID: r.BlackPlayer.UserID,
+		WhiteRating:   whiteRating,
+		BlackRating:   blackRating,
 		WinnerID:      winnerID,
 		Result:        domain.MatchResult(result),
 		Reason:        reason,

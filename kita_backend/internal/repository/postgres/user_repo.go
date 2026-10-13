@@ -63,6 +63,18 @@ func (r *userRepo) Update(ctx context.Context, user *domain.User) error {
 	return r.db.WithContext(ctx).Save(user).Error
 }
 
+func (r *userRepo) Delete(ctx context.Context, id string) error {
+	trimmedID := strings.TrimSpace(id)
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Clean up friendships, notifications and settings while preserving matches and chat messages
+		_ = tx.Where("requester_id = ? OR addressee_id = ?", trimmedID, trimmedID).Delete(&domain.Friendship{}).Error
+		_ = tx.Where("user_id = ? OR actor_id = ?", trimmedID, trimmedID).Delete(&domain.Notification{}).Error
+		_ = tx.Where("user_id = ?", trimmedID).Delete(&domain.UserSettings{}).Error
+		// Delete the user record
+		return tx.Where("id = ?", trimmedID).Delete(&domain.User{}).Error
+	})
+}
+
 func (r *userRepo) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	var users []domain.User
 	query := r.db.WithContext(ctx)

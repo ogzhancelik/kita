@@ -22,6 +22,9 @@ var (
 	ErrInvalidToken       = errors.New("invalid or expired token")
 	ErrUsernameReserved   = errors.New("this username is reserved")
 	ErrInvalidUsername    = errors.New("username must be 2-15 characters and contain only letters, numbers, underscores, or hyphens")
+	ErrWrongPassword      = errors.New("current password is incorrect")
+	ErrSamePassword       = errors.New("new password cannot be the same as current password")
+	ErrPasswordTooShort   = errors.New("password must be at least 6 characters")
 )
 
 type authService struct {
@@ -156,3 +159,35 @@ func (s *authService) generateToken(userID, username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(s.jwtSecret)
 }
+
+func (s *authService) ChangePassword(ctx context.Context, userID, currentPassword, newPassword string) error {
+	if len(newPassword) < 6 {
+		return ErrPasswordTooShort
+	}
+	if currentPassword == newPassword {
+		return ErrSamePassword
+	}
+
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(currentPassword)); err != nil {
+		return ErrWrongPassword
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user.PasswordHash = string(hash)
+	user.UpdatedAt = time.Now()
+
+	return s.userRepo.Update(ctx, user)
+}
+

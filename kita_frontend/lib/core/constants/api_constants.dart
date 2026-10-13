@@ -72,10 +72,13 @@ class ApiConstants {
   static const String register = '/api/auth/register';
   static const String login = '/api/auth/login';
   static const String me = '/api/auth/me';
+  static const String changePassword = '/api/users/me/password';
 
   // User & Stats
   static const String leaderboard = '/api/users/leaderboard';
   static const String updateAvatar = '/api/users/me/avatar';
+  static const String updateUsername = '/api/users/me/username';
+  static const String deleteAccount = '/api/users/me';
   static String userProfile(String id) => '/api/users/profile/$id';
 
   // Matches & Replay

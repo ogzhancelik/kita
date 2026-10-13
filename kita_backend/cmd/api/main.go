@@ -117,6 +117,7 @@ func main() {
 			authRoutes.POST("/register", authH.Register)
 			authRoutes.POST("/login", authH.Login)
 			authRoutes.GET("/me", middleware.AuthMiddleware(authService), authH.Me)
+			authRoutes.PUT("/password", middleware.AuthMiddleware(authService), authH.ChangePassword)
 		}
 
 		userRoutes := api.Group("/users")
@@ -129,6 +130,10 @@ func main() {
 			userRoutes.PATCH("/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
 			userRoutes.PUT("/profile/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
 			userRoutes.PATCH("/profile/avatar", middleware.AuthMiddleware(authService), userH.UpdateAvatar)
+			userRoutes.PUT("/me/username", middleware.AuthMiddleware(authService), userH.UpdateUsername)
+			userRoutes.PATCH("/me/username", middleware.AuthMiddleware(authService), userH.UpdateUsername)
+			userRoutes.PUT("/me/password", middleware.AuthMiddleware(authService), authH.ChangePassword)
+			userRoutes.DELETE("/me", middleware.AuthMiddleware(authService), userH.DeleteAccount)
 			userRoutes.GET("/me/settings", middleware.AuthMiddleware(authService), settingsH.GetSettings)
 			userRoutes.PUT("/me/settings", middleware.AuthMiddleware(authService), settingsH.UpdateSettings)
 		}

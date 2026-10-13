@@ -20,6 +20,8 @@
   "errUnknownMessage": "Bilinmeyen mesaj tipi.",
   "errNetworkError": "Bağlantı kurulamadı. Lütfen ağınızı kontrol edin.",
   "errUnknown": "Beklenmeyen bir hata oluştu.",
+  "errWrongPassword": "Mevcut şifre hatalı.",
+  "errSamePassword": "Yeni şifre mevcut şifrenizle aynı olamaz.",
   "auth": {
     "login": "Giriş Yap",
     "register": "Kayıt Ol",
@@ -160,7 +162,7 @@
     "makeYourMove": "Tahta üzerinde hamlenizi yapın",
     "page1Card1": "Kita tahtası bu şekildedir.",
     "page1Card2": "Her iki tarafın da:\n<king_icon/> 1 Şahı",
-    "page1Card3": "Her iki tarafın da:\n<king_icon/> 1 Şahı\n<pawn_icon/> Ve 2 Taşı (Kalkanı) bulunur.",
+    "page1Card3": "Her iki tarafın da:\n<king_icon/> 1 Şahı\n<pawn_icon/> Ve 2 Piyonu bulunur.",
     "page1Card4": "Sağ alt köşedesiniz (Beyaz).",
     "page2Card1": "Her kare <yellow>1</yellow>, 2 veya 3 değerindedir.",
     "page2Card2": "Her kare 1, <yellow>2</yellow> veya 3 değerindedir.",
@@ -170,17 +172,17 @@
     "page2Title3": "3 Değerli Kareler",
     "page2Desc": "Her kare <yellow>1</yellow>, <yellow>2</yellow> veya <yellow>3</yellow> değerindedir.",
     "page3Card1": "Yapabileceğiniz adım sayısı, rakip Şah'ın bulunduğu karenin değerine eşittir.",
-    "page3Card2": "<red>Siyah Şah'ın <mint>2 değerli</mint> bir karede olduğuna dikkat edin.</red>\n\n<yellow>Bir hamle yapın!</yellow> Diğer taşların <yellow>üstünden atlayamazsınız</yellow> ve piyonları <red>yiyemezsiniz</red>.",
+    "page3Card2": "<red>Siyah Şah'ın <mint>2 değerli</mint> bir karede olduğuna dikkat edin.</red>\n\n<yellow>Bir hamle yapın!</yellow>\nDiğer taşların <yellow>üstünden atlayamazsınız</yellow> ve piyonları <red>yiyemezsiniz</red>.",
     "page3OpponentMoved": "<red>Siyah Şah'ın artık <mint>{val} değerli</mint> bir karede olduğuna dikkat edin.</red>\n\n<yellow>Bir hamle daha yapın!</yellow>",
     "page4Card1": "Bir önceki hamlenizi, aynı taşı az önce geldiği kareye geri götürerek geri alamazsınız.\n\nSon hamleniz: <red>{lastMove}</red>. Şu an <red>{reversedMove}</red> hamlesini yapamazsınız.\n\n<yellow>Farklı bir hamle yapın!</yellow>",
     "page4Success": "Harika! Az önce geldiğiniz kareye geri dönüşün engellendiğine dikkat edin.",
     "page5Card1": "Ancak o geri dönüş tahtadaki <mint>TEK</mint> yasal hamlenizse, zorunlu istisna olarak izin verilir.",
     "page5Success": "Zorunlu geri dönüş yapıldı! Başka yasal hamle olmadığı için geri dönüşe izin verildi.",
     "page6Card1": "Şu durumlarda <mint>kazanırsınız</mint>:\n• <yellow>Rakibin Şahını ele geçirdiğinizde.</yellow>",
-    "page6Card2": "Şu durumlarda <mint>kazanırsınız</mint>:\n• Rakibin Şahını ele geçirdiğinizde.\n• <yellow>Rakibinizin yapabileceği hiçbir yasal hamle kalmadığında.</yellow>",
+    "page6Card2": "Şu durumlarda <mint>kazanırsınız</mint>:\n• <gray>Rakibin Şahını ele geçirdiğinizde.</gray>\n• <yellow>Rakibinizin yapabileceği hiçbir yasal hamle kalmadığında.</yellow>",
     "page6SuccessKing": "Şah ele geçirildi! Anında zafer.",
     "page6SuccessTrap": "Rakip hamlesiz bırakılarak sıkıştırıldı! Kazandınız.",
-    "page7Card1": "Bir Şah ele geçirildiğinde oyun hemen bitmez! Eğer rakip hemen sonraki hamlesinde sizin Şahınızı alabiliyorsa, oyun <yellow>berabere</yellow> biter.",
+    "page7Card1": "Bir Şah ele geçirildiğinde oyun hemen bitmez!\nEğer rakip hemen sonraki hamlesinde sizin Şahınızı alabiliyorsa, oyun <yellow>berabere</yellow> biter.",
     "page7Success": "Misilleme gerçekleşti! İki Şah da düştü, oyun Berabere bitti.",
     "page8Card1": "Ayrıca tahtadaki aynı konum 3 kez tekrarlanırsa veya karşılıklı anlaşmayla oyun <mint>berabere</mint> biter.",
     "practiceTitle": "Eğitim Tamamlandı!",
@@ -239,6 +241,9 @@
   },
   "settings": {
     "title": "Ayarlar",
+    "general": "Genel",
+    "account": "Hesap",
+    "accountSettings": "Hesap Ayarları",
     "quickTheme": "Tema",
     "sound": "Ses",
     "vibration": "Titreşim",
@@ -382,7 +387,9 @@
     "prevMove": "Önceki Hamle",
     "nextMove": "Sonraki Hamle",
     "orientationHorizontal": "Yatay (7x4)",
-    "orientationVertical": "Dikey (4x7)"
+    "orientationVertical": "Dikey (4x7)",
+    "save": "Kaydet",
+    "confirm": "Onayla"
   },
   "online": {
     "noMoves": "Henüz hamle yapılmadı",
@@ -549,7 +556,8 @@
     "sendMessage": "Mesaj Gönder",
     "addFriend": "Arkadaş Ekle",
     "friendRequestSent": "Arkadaşlık isteği gönderildi!",
-    "requestPending": "İstek Gönderildi"
+    "requestPending": "İstek Gönderildi",
+    "deletedUser": "Silinmiş Hesap"
   },
   "apiConfig": {
     "label": "API SUNUCU URL",
@@ -582,6 +590,31 @@
     "noChatsFound": "Sohbet bulunamadı",
     "guestNotice": "Arkadaşlarınla sohbet etmek için giriş yap.",
     "you": "Sen: ",
-    "noMessages": "Henüz mesaj yok"
+    "noMessages": "Henüz mesaj yok",
+    "accountDeletedNotice": "Bu kullanıcı hesabı silindi."
+  },
+  "account": {
+    "title": "Hesap Ayarları",
+    "profileIdentity": "Profil & Kimlik",
+    "accountSecurity": "Güvenlik",
+    "changeUsername": "Kullanıcı Adını Değiştir",
+    "changeNickname": "Takma Adı Değiştir",
+    "changePassword": "Şifre Değiştir",
+    "currentPassword": "Mevcut Şifre",
+    "newPassword": "Yeni Şifre",
+    "confirmNewPassword": "Yeni Şifreyi Onayla",
+    "enterNewUsername": "Yeni kullanıcı adını girin",
+    "enterNewNickname": "Yeni takma adı girin",
+    "usernameUpdated": "Kullanıcı adı başarıyla güncellendi!",
+    "nicknameUpdated": "Takma ad başarıyla güncellendi!",
+    "passwordUpdated": "Şifre başarıyla güncellendi!",
+    "guestRegisterNotice": "Misafir hesapla oynuyorsunuz. Derecenizi, istatistiklerinizi kaydetmek ve arkadaş eklemek için kaydolun.",
+    "registerNow": "Hesap Oluştur",
+    "deleteAccount": "Hesabı Sil",
+    "deleteAccountDesc": "Hesabınızı ve verilerinizi kalıcı olarak silin",
+    "deleteAccountConfirmTitle": "Hesabı Sil?",
+    "deleteAccountConfirmDesc": "Hesabınızı kalıcı olarak silmek istediğinize emin misiniz?",
+    "deleteAccountCheckbox": "Bu işlemin kalıcı olduğunu ve geri alınamayacağını onaylıyorum.",
+    "accountDeleted": "Hesabınız başarıyla silindi."
   }
 }

@@ -103,3 +103,45 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+}
+
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		SendError(c, http.StatusUnauthorized, errors.ErrUnauthorized, "Unauthorized")
+		return
+	}
+
+	var req ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, err.Error())
+		return
+	}
+
+	err := h.authService.ChangePassword(c.Request.Context(), userID.(string), req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		if err == service.ErrWrongPassword {
+			SendError(c, http.StatusBadRequest, errors.ErrWrongPassword, err.Error())
+			return
+		}
+		if err == service.ErrSamePassword {
+			SendError(c, http.StatusBadRequest, errors.ErrSamePassword, err.Error())
+			return
+		}
+		if err == service.ErrPasswordTooShort {
+			SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, err.Error())
+			return
+		}
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "password updated successfully",
+	})
+}
+

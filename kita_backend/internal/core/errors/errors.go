@@ -15,6 +15,8 @@ const (
 	ErrInvalidCredentials  ErrorCode = "ERR_INVALID_CREDENTIALS"
 	ErrTokenExpired        ErrorCode = "ERR_TOKEN_EXPIRED"
 	ErrUserAlreadyExists   ErrorCode = "ERR_USER_ALREADY_EXISTS"
+	ErrWrongPassword       ErrorCode = "ERR_WRONG_PASSWORD"
+	ErrSamePassword        ErrorCode = "ERR_SAME_PASSWORD"
 
 	// Resource
 	ErrNotFound ErrorCode = "ERR_NOT_FOUND"

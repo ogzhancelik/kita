@@ -8,7 +8,7 @@ This document tracks planned features, active backlog items, and completed miles
 
 ### 🔐 Auth, Forms & Account Management
 - [x] **Strict Username Validation**: Disallow whitespace and invalid special characters in username/nickname registration (min 2, max 15, alphanumeric/underscore/hyphen, case-insensitive uniqueness, reserved keywords).
-- [ ] **Dedicated Account Settings Tab**: Extract avatar and user profile options into a dedicated Account Settings view, supporting password change and account deletion.
+- [x] **Dedicated Account Settings Tab**: Extract avatar and user profile options into a dedicated Account Settings view, supporting password change and account deletion.
 
 ### 🎨 UI & Design Systems
 - [ ] **Unified Design System & Spacing Alignment**: Standardize spacing, top bars, typography, and page paddings across all secondary screens (Friends, Chats, Groups) using Main Dashboard, Leaderboard, and Match History as reference layouts.
@@ -56,6 +56,8 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Account-Scoped Local Match Storage**: Isolate locally saved matches per user account ID instead of global shared device storage.
 - [x] **Match History Lazy Pagination**: Implement infinite scrolling or lazy pagination for the Match History view to optimize performance and prevent bulk fetch lag.
 - [x] **Match History Date Grouping Dividers**: Remove individual date badges from match cards and group matches by day with slim date divider headers (e.g. "Today", "Yesterday", "2 Sep 2026", same format as Direct Chat.).
+- [x] **Match History Guest & Deleted Player Avatars**: Distinct face avatar with guest orange styling for guests and muted gray styling with gray text for deleted accounts instead of defaulting to Wolf.
+- [x] **Match-Time Player Rating Snapshot & Guest Rating Suppression**: Persist and display the exact ratings of players at the time each match was played (preserving historical ratings for deleted and existing accounts), and hide rating indicators for Guest players across live matches, match history, and replays.
 
 ### 🛡️ Moderation & Support
 - [ ] In-game player reporting system

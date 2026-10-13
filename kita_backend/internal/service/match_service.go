@@ -64,6 +64,15 @@ func (s *matchService) SaveFinishedMatch(ctx context.Context, match *domain.Matc
 		}
 	}
 
+	if whiteUser != nil {
+		wr := int(math.Round(whiteRating))
+		match.WhiteRating = &wr
+	}
+	if blackUser != nil {
+		br := int(math.Round(blackRating))
+		match.BlackRating = &br
+	}
+
 	wR, wRD, wVol, bR, bRD, bVol := calculateGlicko2(whiteRating, whiteRD, whiteVol, blackRating, blackRD, blackVol, match.Result, match.WinnerID, match.WhitePlayerID)
 
 	if err := s.matchRepo.SaveFinishedMatchWithMoves(ctx, match, wR, wRD, wVol, bR, bRD, bVol); err != nil {
@@ -142,6 +151,14 @@ func (s *matchService) SaveReplay(ctx context.Context, match *domain.Match) (str
 	}
 	if match.TotalMoves == 0 && len(match.Moves) > 0 {
 		match.TotalMoves = len(match.Moves)
+	}
+	if match.WhiteRating == nil && match.WhitePlayer != nil && match.WhitePlayer.Rating > 0 {
+		wr := int(math.Round(match.WhitePlayer.Rating))
+		match.WhiteRating = &wr
+	}
+	if match.BlackRating == nil && match.BlackPlayer != nil && match.BlackPlayer.Rating > 0 {
+		br := int(math.Round(match.BlackPlayer.Rating))
+		match.BlackRating = &br
 	}
 
 	if s.matchRepo != nil {

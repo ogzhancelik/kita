@@ -48,4 +48,23 @@ class AuthApiService {
     );
     return UserProfile.fromJson(response.data as Map<String, dynamic>);
   }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final token = ApiClient.currentToken;
+
+    await _client.dio.put(
+      ApiConstants.changePassword,
+      data: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+      options: (token != null && token.isNotEmpty)
+          ? Options(headers: {'Authorization': 'Bearer $token'})
+          : null,
+    );
+  }
 }
+

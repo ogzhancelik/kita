@@ -1093,9 +1093,14 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final bool isNameUuid = player?.username != null &&
         player!.username.length >= 32 &&
         RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(player.username);
-    final displayName = isNameUuid
-        ? (isWhite ? 'common.white'.tr() : 'common.black'.tr())
+    final bool isDeleted = player?.username == '[Deleted]' ||
+        isNameUuid ||
+        (player?.id != null && player!.id.contains('deleted'));
+    final displayName = isDeleted
+        ? '[Deleted]'
         : rawName;
+    final bool isGuest = (player?.id != null && player!.id.startsWith('guest-')) ||
+        (displayName.toLowerCase().startsWith('guest'));
     final playerRating = player?.rating ?? 1200;
 
     final isBot = player?.id == 'bot' ||
@@ -1161,11 +1166,27 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       ),
     );
 
+    final IconData avatarIcon;
+    final Color avatarAccentColor;
+    if (isBot) {
+      avatarIcon = Icons.smart_toy_rounded;
+      avatarAccentColor = AppColors.primaryGreen;
+    } else if (isDeleted) {
+      avatarIcon = Icons.face_rounded;
+      avatarAccentColor = AppColors.getDeletedUser(isDark);
+    } else if (isGuest && (player?.avatarIndex == null || player?.avatarIndex == 0)) {
+      avatarIcon = Icons.face_rounded;
+      avatarAccentColor = AppColors.guestOrange;
+    } else {
+      avatarIcon = avatarItem.icon;
+      avatarAccentColor = avatarItem.accentColor;
+    }
+
     final avatarWidget = Container(
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: (isBot ? AppColors.primaryGreen : avatarItem.accentColor).withValues(alpha: 0.15),
+        color: avatarAccentColor.withValues(alpha: 0.15),
         shape: BoxShape.circle,
         border: Border.all(
           color: teamColor,
@@ -1181,9 +1202,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       ),
       child: Center(
         child: Icon(
-          isBot ? Icons.smart_toy_rounded : avatarItem.icon,
+          avatarIcon,
           size: 16,
-          color: isBot ? AppColors.primaryGreen : avatarItem.accentColor,
+          color: avatarAccentColor,
         ),
       ),
     );
@@ -1197,27 +1218,35 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: AppColors.getTextPrimary(isDark),
+            color: isDeleted
+                ? AppColors.getDeletedUser(isDark)
+                : AppColors.getTextPrimary(isDark),
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 1),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0.5),
-          decoration: BoxDecoration(
-            color: AppColors.ratingGold.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            ratingBadgeText,
-            style: const TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              color: AppColors.ratingGold,
+        if (!isGuest) ...[
+          const SizedBox(height: 1),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0.5),
+            decoration: BoxDecoration(
+              color: isDeleted
+                  ? AppColors.getDeletedUser(isDark).withValues(alpha: 0.15)
+                  : AppColors.ratingGold.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              ratingBadgeText,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                color: isDeleted
+                    ? AppColors.getDeletedUser(isDark)
+                    : AppColors.ratingGold,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
 

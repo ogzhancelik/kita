@@ -281,6 +281,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
 
                     final isGameOver = provider.matchState.value == OnlineMatchState.gameOver;
                     final isOpponentBot = isBot || provider.opponentInfo?.id == 'bot';
+                    final isOpponentGuest = (provider.opponentInfo?.id != null && provider.opponentInfo!.id.startsWith('guest-')) ||
+                        (opponentName.toLowerCase().startsWith('guest'));
 
                     final opponentCard = PlayerInfoBar(
                       isOpponent: true,
@@ -290,6 +292,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                       ratingLabel: opponentRatingLabel,
                       avatarIndex: provider.opponentInfo?.avatarIndex,
                       isBot: isOpponentBot,
+                      isGuest: isOpponentGuest,
                       team: isBlack ? 'white' : 'black',
                       remainingMs: isBlack
                           ? provider.whiteRemainingMs
@@ -322,6 +325,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                       rating: myRating,
                       isProvisional: authProv.currentUser?.isProvisional ?? false,
                       avatarIndex: authProv.avatarIndex,
+                      isGuest: authProv.isGuest,
                       team: provider.myTeam ?? 'white',
                       remainingMs: isBlack
                           ? provider.blackRemainingMs

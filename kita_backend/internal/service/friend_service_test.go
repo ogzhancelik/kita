@@ -34,6 +34,7 @@ func (m *mockUserRepoForFriendService) FindByEmail(ctx context.Context, email st
 	return nil, nil
 }
 func (m *mockUserRepoForFriendService) Update(ctx context.Context, user *domain.User) error { return nil }
+func (m *mockUserRepoForFriendService) Delete(ctx context.Context, id string) error           { return nil }
 func (m *mockUserRepoForFriendService) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	return nil, nil
 }
