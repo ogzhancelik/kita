@@ -167,10 +167,11 @@ func parseFlexibleTime(val *string) time.Time {
 }
 
 type SharePlayerDTO struct {
-	ID          string  `json:"id"`
-	Username    string  `json:"username"`
-	AvatarIndex int     `json:"avatar_index"`
-	Rating      float64 `json:"rating"`
+	ID           string  `json:"id"`
+	Username     string  `json:"username"`
+	AvatarIndex  int     `json:"avatar_index"`
+	AvatarCustom string  `json:"avatar_custom,omitempty"`
+	Rating       float64 `json:"rating"`
 }
 
 type ShareMoveDTO struct {
@@ -252,10 +253,11 @@ func (h *MatchHandler) ShareReplay(c *gin.Context) {
 
 	if req.Match.WhitePlayer != nil {
 		matchRecord.WhitePlayer = &domain.User{
-			ID:          req.Match.WhitePlayer.ID,
-			Username:    req.Match.WhitePlayer.Username,
-			AvatarIndex: req.Match.WhitePlayer.AvatarIndex,
-			Rating:      req.Match.WhitePlayer.Rating,
+			ID:           req.Match.WhitePlayer.ID,
+			Username:     req.Match.WhitePlayer.Username,
+			AvatarIndex:  req.Match.WhitePlayer.AvatarIndex,
+			AvatarCustom: req.Match.WhitePlayer.AvatarCustom,
+			Rating:       req.Match.WhitePlayer.Rating,
 		}
 		if req.Match.WhitePlayer.Rating > 0 {
 			wr := int(req.Match.WhitePlayer.Rating)
@@ -264,10 +266,11 @@ func (h *MatchHandler) ShareReplay(c *gin.Context) {
 	}
 	if req.Match.BlackPlayer != nil {
 		matchRecord.BlackPlayer = &domain.User{
-			ID:          req.Match.BlackPlayer.ID,
-			Username:    req.Match.BlackPlayer.Username,
-			AvatarIndex: req.Match.BlackPlayer.AvatarIndex,
-			Rating:      req.Match.BlackPlayer.Rating,
+			ID:           req.Match.BlackPlayer.ID,
+			Username:     req.Match.BlackPlayer.Username,
+			AvatarIndex:  req.Match.BlackPlayer.AvatarIndex,
+			AvatarCustom: req.Match.BlackPlayer.AvatarCustom,
+			Rating:       req.Match.BlackPlayer.Rating,
 		}
 		if req.Match.BlackPlayer.Rating > 0 {
 			br := int(req.Match.BlackPlayer.Rating)

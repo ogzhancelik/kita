@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Mode Splash Screen Colors matching AppColors.darkBg (#191919) -->
+    <color name="splash_background">#191919</color>
+    <color name="splash_primary">#863653</color>
+</resources>

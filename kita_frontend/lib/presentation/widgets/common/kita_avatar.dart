@@ -11,6 +11,8 @@ class KitaAvatar extends StatelessWidget {
   final double? fontSize;
   final double? iconSize;
   final double borderWidth;
+  final Color? borderColor;
+  final Color? backgroundColor;
   final bool isBot;
   final bool isGuest;
   final bool isDeleted;
@@ -24,6 +26,8 @@ class KitaAvatar extends StatelessWidget {
     this.fontSize,
     this.iconSize,
     this.borderWidth = 2.0,
+    this.borderColor,
+    this.backgroundColor,
     this.isBot = false,
     this.isGuest = false,
     this.isDeleted = false,
@@ -89,10 +93,10 @@ class KitaAvatar extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.18),
+        color: backgroundColor ?? effectiveColor.withValues(alpha: 0.18),
         shape: BoxShape.circle,
         border: Border.all(
-          color: effectiveColor,
+          color: borderColor ?? effectiveColor,
           width: borderWidth,
         ),
       ),

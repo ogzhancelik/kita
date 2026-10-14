@@ -31,6 +31,7 @@ class OfflineGameProvider extends ChangeNotifier {
   bool _offlineMatchSaved = false;
   bool? _localCoopIsHorizontal;
   bool _hasActiveMatch = false;
+  bool _isDisposed = false;
 
   OpponentInfo? opponentInfo;
   String? matchId;
@@ -163,7 +164,7 @@ class OfflineGameProvider extends ChangeNotifier {
         id: 'local_player',
         name: playerTeam == PieceTeam.white ? 'common.black'.tr() : 'common.white'.tr(),
         rating: 1200,
-        avatarIndex: 1,
+        avatarIndex: playerTeam == PieceTeam.white ? 1 : 0,
       );
       matchId = 'offline-coop-${DateTime.now().millisecondsSinceEpoch}';
     }
@@ -390,9 +391,11 @@ class OfflineGameProvider extends ChangeNotifier {
     notifyListeners();
 
     await Future.delayed(delay);
-    if (!hasActiveMatch || matchId != currentMatchId) {
-      isAiThinking.value = false;
-      notifyListeners();
+    if (_isDisposed || !hasActiveMatch || matchId != currentMatchId) {
+      if (!_isDisposed) {
+        isAiThinking.value = false;
+        notifyListeners();
+      }
       return;
     }
 
@@ -400,6 +403,7 @@ class OfflineGameProvider extends ChangeNotifier {
     if (!ai.isInitialized) {
       await ai.initialize();
     }
+    if (_isDisposed) return;
 
     final diffIndex = offlineBotDifficulty.clamp(0, AIDifficulty.all.length - 1);
     final diff = AIDifficulty.all[diffIndex];
@@ -408,6 +412,7 @@ class OfflineGameProvider extends ChangeNotifier {
       diff,
     );
 
+    if (_isDisposed) return;
     isAiThinking.value = false;
     notifyListeners();
 
@@ -751,7 +756,7 @@ class OfflineGameProvider extends ChangeNotifier {
           id: 'local_player',
           name: offlinePlayerTeam == PieceTeam.white ? 'common.black'.tr() : 'common.white'.tr(),
           rating: 1200,
-          avatarIndex: 1,
+          avatarIndex: offlinePlayerTeam == PieceTeam.white ? 1 : 0,
         );
       }
 
@@ -906,6 +911,7 @@ class OfflineGameProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _stopClockTimer();
     whiteRemainingMs.dispose();
     blackRemainingMs.dispose();

@@ -7,6 +7,7 @@ import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../common/avatar_picker.dart';
+import '../common/kita_avatar.dart';
 import '../common/kita_card.dart';
 import '../../screens/auth/register_screen.dart';
 
@@ -26,7 +27,6 @@ class AccountSettingsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProv = context.watch<AuthProvider>();
-    final avatarItem = AvatarPicker.avatars[authProv.avatarIndex % AvatarPicker.avatars.length];
 
     return Container(
       constraints: BoxConstraints(
@@ -109,22 +109,12 @@ class AccountSettingsDialog extends StatelessWidget {
                             onTap: () => AvatarPicker.show(context),
                             child: Stack(
                               children: [
-                                Container(
-                                  width: 58,
-                                  height: 58,
-                                  decoration: BoxDecoration(
-                                    color: avatarItem.accentColor.withValues(alpha: 0.20),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: avatarItem.accentColor,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    avatarItem.icon,
-                                    color: avatarItem.accentColor,
-                                    size: 30,
-                                  ),
+                                KitaAvatar(
+                                  size: 58,
+                                  avatarIndex: authProv.avatarIndex,
+                                  avatarCustom: authProv.avatarCustom,
+                                  borderWidth: 2,
+                                  isGuest: authProv.isGuest,
                                 ),
                                 Positioned(
                                   bottom: 0,
@@ -236,7 +226,7 @@ class AccountSettingsDialog extends StatelessWidget {
                     _buildTile(
                       isDark: isDark,
                       icon: Icons.face_rounded,
-                      iconColor: avatarItem.accentColor,
+                      iconColor: AvatarPicker.getColor(authProv.avatarIndex),
                       title: 'profile.changeAvatar'.tr(),
                       onTap: () => AvatarPicker.show(context),
                       trailing: Icon(

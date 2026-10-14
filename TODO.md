@@ -22,7 +22,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Custom Emoji Profile Avatars & Accent Color Palette**: Allow players to select custom emojis (free text input or quick popular emoji grid) and customize their avatar's background & border accent color from 8 theme tones, or retain classic icon avatars with real-time preview and cross-platform synchronization (matches, chats, leaderboards, profile dialogs).
 - [ ] **Text Visibility & Overflow Resilience Audit**: Audit labels, chips, and subtitles across small screens; ensure multi-line reflow (Wrap), tooltips for truncated nicknames/rooms, and fallback ellipsis without losing essential context.
 - [ ] **App Branding & Assets Update**: Update loading screen branding, application launcher icons, and store display name across all platforms.
-- [ ] **Android 12+ Splash Screen Tuning**: Configure native Android splash screen theme to eliminate double-splash flicker on app launch.
+- [x] **Android 12+ Splash Screen Tuning**: Configure native Android splash screen theme to eliminate double-splash flicker on app launch.
 - [x] App logo, branding, and icon design (Android launcher icons, Web icons & Kita Online naming)
 - [ ] In-match hamburger menu and settings recoloring.
 
@@ -50,6 +50,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Automatic Perspective Mirroring**: Auto-orient board perspective so the local player's pieces always appear on the bottom-right across all non-coop modes.
 - [ ] **Independent Orientation Preferences**: Support independent layout and theme configurations for vertical and horizontal board modes, toggled via hamburger menu.
 - [x] **Local Coop Horizontal Board Flip & Drag Parity**: Auto-flip board in Local Coop mode when default piece orientation is horizontal 90° so the player is positioned at bottom-right, with drag-and-drop feedback offset oriented sideways away from finger in landscape mode.
+- [x] **Board & Background Deselect**: Allow deselecting selected pieces when tapping on background areas, holes/gaps inside the board, or board margins.
 - [x] **Provisional Rating Display ('?')**: Display provisional unrated status (`?`) for new accounts until calibration match count is completed.
 
 ### 📜 Match Analysis, Replay & History

@@ -162,7 +162,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
         : settings.isHorizontal;
 
     final effectiveFlip = settings.shouldFlipBoard(provider.myTeam);
-    final flipBoard = isLocalCoop ? false : effectiveFlip;
+    final flipBoard = isLocalCoop ? (provider.myTeam == 'black') : effectiveFlip;
 
     final opponentTeam = isBlack ? 'white' : 'black';
     final opponentRemainingMs = provider.timeControl > 0
@@ -200,7 +200,11 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
                   remainingMs: opponentRemainingMs,
                   isActiveTurn: provider.currentTurn,
                   timeControl: provider.timeControl,
-                  avatarIndex: isVsAi ? 7 : 1,
+                  avatarIndex: isVsAi
+                      ? 7
+                      : (isLocalCoop
+                          ? (provider.opponentInfo?.avatarIndex ?? (isBlack ? 0 : 1))
+                          : 1),
                   isGameOver: provider.isGameOver,
                   isBot: isVsAi,
                   isGuest: isLocalCoop,
@@ -267,9 +271,9 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
               remainingMs: myRemainingMs,
               isActiveTurn: provider.currentTurn,
               timeControl: provider.timeControl,
-              avatarIndex: authProv.avatarIndex,
+              avatarIndex: isLocalCoop ? (isBlack ? 1 : 0) : authProv.avatarIndex,
               isGameOver: provider.isGameOver,
-              isGuest: authProv.isGuest,
+              isGuest: isLocalCoop ? true : authProv.isGuest,
             ),
 
             // 5. Offline Match Bottom Bar

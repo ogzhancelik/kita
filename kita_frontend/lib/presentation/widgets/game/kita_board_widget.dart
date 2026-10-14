@@ -46,6 +46,9 @@ class KitaBoardWidget extends StatelessWidget {
   /// Callback when an active, valid tile is tapped
   final void Function(KitaPos pos)? onTileTap;
 
+  /// Callback when the board background (empty holes, gaps between tiles, or board bounds) is tapped
+  final VoidCallback? onBackgroundTap;
+
   /// Callback when a piece is dropped onto a tile
   final void Function(KitaPos fromPos, KitaPos toPos)? onPieceDropped;
 
@@ -109,6 +112,7 @@ class KitaBoardWidget extends StatelessWidget {
     this.lastMove,
     this.lastMoveIndicator = 'line',
     this.onTileTap,
+    this.onBackgroundTap,
     this.onPieceDropped,
     this.onPieceDragStarted,
     this.onPieceDragCancelled,
@@ -171,7 +175,7 @@ class KitaBoardWidget extends StatelessWidget {
       }
     }
 
-    return Center(
+    final boardContent = Center(
       child: AspectRatio(
         aspectRatio: colsCount / rowsCount,
         child: LayoutBuilder(
@@ -180,6 +184,16 @@ class KitaBoardWidget extends StatelessWidget {
 
             return Stack(
               children: [
+                // Layer 0: Board background gesture detector (catches spacing between tiles, etc.)
+                if (onBackgroundTap != null)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onBackgroundTap,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+
                 // Layer 1: Board Tiles & Coordinates
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -267,6 +281,16 @@ class KitaBoardWidget extends StatelessWidget {
         ),
       ),
     );
+
+    if (onBackgroundTap != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onBackgroundTap,
+        child: boardContent,
+      );
+    }
+
+    return boardContent;
   }
 
   KitaPos _mapToCanonical(int displayCol, int displayRow) {
@@ -301,8 +325,15 @@ class KitaBoardWidget extends StatelessWidget {
       canonicalPos.row,
     );
 
-    // Empty hole tiles: completely transparent & non-interactive
+    // Empty hole tiles: completely transparent (or handle background tap)
     if (!isValid) {
+      if (onBackgroundTap != null) {
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onBackgroundTap,
+          child: const SizedBox.expand(),
+        );
+      }
       return const SizedBox.shrink();
     }
 

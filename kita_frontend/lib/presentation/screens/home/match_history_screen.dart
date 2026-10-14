@@ -9,7 +9,7 @@ import '../../../data/services/local_match_history_service.dart';
 import '../../../data/services/match_api_service.dart';
 import '../../../data/services/replay_file_service.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/common/avatar_picker.dart';
+import '../../widgets/common/kita_avatar.dart';
 import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/kita_card.dart';
@@ -1050,72 +1050,15 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
         ((player?.id != null && player!.id.startsWith('guest-')) ||
             (rawName != null && rawName.toLowerCase().startsWith('guest')));
 
-    if (effectiveDeleted) {
-      final deletedColor = AppColors.getDeletedUser(isDark);
-      return Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: deletedColor.withValues(alpha: 0.18),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: deletedColor.withValues(alpha: 0.5),
-            width: 1,
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.face_rounded,
-            size: 16,
-            color: deletedColor,
-          ),
-        ),
-      );
-    }
-
-    final int rawAvatarIndex = player?.avatarIndex ?? 0;
-    if (effectiveGuest && rawAvatarIndex == 0) {
-      const guestColor = AppColors.guestOrange;
-      return Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: guestColor.withValues(alpha: 0.18),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: guestColor.withValues(alpha: 0.6),
-            width: 1,
-          ),
-        ),
-        child: const Center(
-          child: Icon(
-            Icons.face_rounded,
-            size: 16,
-            color: guestColor,
-          ),
-        ),
-      );
-    }
-
-    final avatarItem = AvatarPicker.avatars[rawAvatarIndex % AvatarPicker.avatars.length];
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: avatarItem.accentColor.withValues(alpha: 0.2),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: avatarItem.accentColor.withValues(alpha: 0.6),
-          width: 1,
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          avatarItem.icon,
-          size: 16,
-          color: avatarItem.accentColor,
-        ),
-      ),
+    return KitaAvatar(
+      avatarIndex: player?.avatarIndex ?? 0,
+      avatarCustom: player?.avatarCustom,
+      size: 28,
+      fontSize: 14,
+      iconSize: 16,
+      borderWidth: 1.0,
+      isDeleted: effectiveDeleted,
+      isGuest: effectiveGuest,
     );
   }
 

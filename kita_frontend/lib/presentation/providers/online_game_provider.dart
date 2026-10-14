@@ -85,6 +85,8 @@ class OnlineGameProvider extends ChangeNotifier {
   String? myUserId;
   String? myUsername;
   int myRating = 1200;
+  int myAvatarIndex = 0;
+  String? myAvatarCustom;
   OpponentInfo? opponentInfo;
   int timeControl = 0;
   MatchRecordModel? _lastOnlineMatchRecord;
@@ -276,14 +278,18 @@ class OnlineGameProvider extends ChangeNotifier {
     myUserId = null;
     myUsername = null;
     myRating = 1200;
+    myAvatarIndex = avatarIndex ?? 0;
+    myAvatarCustom = avatarCustom;
     _ws.connect(token: token, nickname: nickname, avatarIndex: avatarIndex, avatarCustom: avatarCustom);
   }
 
   /// Update the player's avatar on the server via WebSocket.
   void updateAvatar(int avatarIndex, {String? avatarCustom}) {
+    myAvatarIndex = avatarIndex;
+    myAvatarCustom = avatarCustom;
     final payload = <String, dynamic>{
       'avatar_index': avatarIndex,
-      'avatar_custom': ?avatarCustom,
+      'avatar_custom': avatarCustom,
     };
     _ws.send(WsClientType.updateAvatar, payload);
   }
@@ -1344,6 +1350,7 @@ class OnlineGameProvider extends ChangeNotifier {
           name: opponentInfo!._name,
           rating: newRating,
           avatarIndex: opponentInfo!.avatarIndex,
+          avatarCustom: opponentInfo!.avatarCustom,
           isProvisional: isProv,
         );
       }
@@ -1377,19 +1384,22 @@ class OnlineGameProvider extends ChangeNotifier {
 
     final whitePlayerId = isPlayerWhite ? pId : oppId;
     final blackPlayerId = isPlayerWhite ? oppId : pId;
+    final oppCustom = opponentInfo?.avatarCustom;
 
     final whiteUser = UserProfile(
       id: whitePlayerId,
       username: isPlayerWhite ? pName : oppName,
       rating: isPlayerWhite ? myRating : oppRating,
-      avatarIndex: isPlayerWhite ? 0 : oppAvatar,
+      avatarIndex: isPlayerWhite ? myAvatarIndex : oppAvatar,
+      avatarCustom: isPlayerWhite ? myAvatarCustom : oppCustom,
     );
 
     final blackUser = UserProfile(
       id: blackPlayerId,
       username: isPlayerWhite ? oppName : pName,
       rating: isPlayerWhite ? oppRating : myRating,
-      avatarIndex: isPlayerWhite ? oppAvatar : 0,
+      avatarIndex: isPlayerWhite ? oppAvatar : myAvatarIndex,
+      avatarCustom: isPlayerWhite ? oppCustom : myAvatarCustom,
     );
 
     String? winnerId;

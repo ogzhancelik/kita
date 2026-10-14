@@ -22,6 +22,7 @@ import '../../../data/services/replay_file_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
+import '../../widgets/common/kita_avatar.dart';
 import '../../widgets/game/ai_advantage_bar.dart';
 import '../../widgets/game/kita_board_theme.dart';
 import '../../widgets/game/kita_board_widget.dart';
@@ -551,6 +552,16 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       _selectedPieceId = null;
       _validMoves = {};
     });
+  }
+
+  void _onBackgroundTap() {
+    if (_selectedPos != null || _validMoves.isNotEmpty) {
+      setState(() {
+        _selectedPos = null;
+        _selectedPieceId = null;
+        _validMoves = {};
+      });
+    }
   }
 
   bool _isCapture(KitaGameEngine engine, KitaMove move) {
@@ -1113,7 +1124,6 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final avatarIdx = isBot
         ? 7
         : (player?.avatarIndex ?? (playerName.hashCode.abs() % AvatarPicker.avatars.length));
-    final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
 
     final isTerminalStep = _hasTerminalIndicator && _currentStep == _states.length - 1;
     final isTurnToMove = !isTerminalStep &&
@@ -1166,47 +1176,17 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       ),
     );
 
-    final IconData avatarIcon;
-    final Color avatarAccentColor;
-    if (isBot) {
-      avatarIcon = Icons.smart_toy_rounded;
-      avatarAccentColor = AppColors.primaryGreen;
-    } else if (isDeleted) {
-      avatarIcon = Icons.face_rounded;
-      avatarAccentColor = AppColors.getDeletedUser(isDark);
-    } else if (isGuest && (player?.avatarIndex == null || player?.avatarIndex == 0)) {
-      avatarIcon = Icons.face_rounded;
-      avatarAccentColor = AppColors.guestOrange;
-    } else {
-      avatarIcon = avatarItem.icon;
-      avatarAccentColor = avatarItem.accentColor;
-    }
-
-    final avatarWidget = Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: avatarAccentColor.withValues(alpha: 0.15),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: teamColor,
-          width: 2.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Icon(
-          avatarIcon,
-          size: 16,
-          color: avatarAccentColor,
-        ),
-      ),
+    final avatarWidget = KitaAvatar(
+      avatarIndex: avatarIdx,
+      avatarCustom: player?.avatarCustom,
+      size: 32,
+      fontSize: 16,
+      iconSize: 16,
+      borderWidth: 2.0,
+      borderColor: teamColor,
+      isBot: isBot,
+      isDeleted: isDeleted,
+      isGuest: isGuest,
     );
 
     final nameAndRating = Column(
@@ -1356,6 +1336,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       lastMove: lastMove,
       lastMoveIndicator: gameSettings.lastMoveIndicator,
       onTileTap: _onTileTap,
+      onBackgroundTap: _onBackgroundTap,
       isHorizontal: _isHorizontal,
       flipBoard: _flipBoard,
       theme: boardTheme,

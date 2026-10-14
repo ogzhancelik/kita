@@ -354,31 +354,14 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
 
             // Live Preview Card
             Center(
-              child: Column(
-                children: [
-                  KitaAvatar(
-                    size: 88,
-                    avatarIndex: previewIndex,
-                    avatarCustom: _customEmoji,
-                    borderWidth: 3.5,
-                  ),
-                  if (_customEmoji != null && _customEmoji!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    TextButton.icon(
-                      onPressed: () => _applyChange(clearEmoji: true),
-                      icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: Text('avatar.useClassic'.tr()),
-                      style: TextButton.styleFrom(
-                        foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ] else
-                    const SizedBox(height: 12),
-                ],
+              child: KitaAvatar(
+                size: 88,
+                avatarIndex: previewIndex,
+                avatarCustom: _customEmoji,
+                borderWidth: 3.5,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
             // Section: Color Theme (Border & Glow Accent)
             Text(
@@ -446,7 +429,7 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
                 crossAxisCount: 3,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 1.25,
+                childAspectRatio: 1.15,
               ),
               itemCount: 9,
               itemBuilder: (context, index) {
@@ -460,7 +443,6 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
                     borderRadius: BorderRadius.circular(14),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                       decoration: BoxDecoration(
                         color: isIconActive
                             ? currentColor.withValues(alpha: 0.2)
@@ -485,35 +467,17 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                avatar.icon,
-                                size: 28,
-                                color: isIconActive
-                                    ? currentColor
-                                    : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                avatar.label,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: isIconActive ? FontWeight.bold : FontWeight.w500,
-                                  color: isIconActive
-                                      ? currentColor
-                                      : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                          Icon(
+                            avatar.icon,
+                            size: 32,
+                            color: isIconActive
+                                ? currentColor
+                                : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                           ),
                           if (isIconActive)
                             Positioned(
-                              top: 0,
-                              right: 2,
+                              top: 6,
+                              right: 6,
                               child: Container(
                                 padding: const EdgeInsets.all(2),
                                 decoration: BoxDecoration(
@@ -541,7 +505,6 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
                     borderRadius: BorderRadius.circular(14),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                       decoration: BoxDecoration(
                         color: isEmojiActive
                             ? currentColor.withValues(alpha: 0.2)
@@ -566,41 +529,21 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (isEmojiActive)
-                                Text(
-                                  _customEmoji!,
-                                  style: const TextStyle(fontSize: 26),
-                                )
-                              else
-                                Icon(
-                                  Icons.add_reaction_outlined,
-                                  size: 28,
-                                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                                ),
-                              const SizedBox(height: 4),
-                              Text(
-                                isEmojiActive
-                                    ? 'avatar.customEmoji'.tr()
-                                    : 'avatar.chooseEmoji'.tr(),
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: isEmojiActive ? FontWeight.bold : FontWeight.w500,
-                                  color: isEmojiActive
-                                      ? currentColor
-                                      : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
+                          if (isEmojiActive)
+                            Text(
+                              _customEmoji!,
+                              style: const TextStyle(fontSize: 32),
+                            )
+                          else
+                            Icon(
+                              Icons.add_reaction_outlined,
+                              size: 32,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            ),
                           if (isEmojiActive)
                             Positioned(
-                              top: 0,
-                              right: 2,
+                              top: 6,
+                              right: 6,
                               child: Container(
                                 padding: const EdgeInsets.all(2),
                                 decoration: BoxDecoration(

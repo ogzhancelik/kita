@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light Mode Splash Screen Colors matching AppColors.lightBg (#F3F4F4) -->
+    <color name="splash_background">#F3F4F4</color>
+    <color name="splash_primary">#863653</color>
+</resources>

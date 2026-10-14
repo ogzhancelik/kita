@@ -72,6 +72,9 @@ class KitaGameBoard extends StatefulWidget {
   /// Callback when a valid move is made by the player
   final void Function(KitaMove move)? onMakeMove;
 
+  /// Callback when the board background (empty holes, gaps between tiles, or outer board area) is tapped
+  final VoidCallback? onBackgroundTap;
+
   const KitaGameBoard({
     super.key,
     required this.displayEngine,
@@ -92,6 +95,7 @@ class KitaGameBoard extends StatefulWidget {
     this.tintColor,
     this.grayTiles = const {},
     this.onMakeMove,
+    this.onBackgroundTap,
   });
 
   @override
@@ -376,6 +380,17 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
     });
   }
 
+  void _onBackgroundTap() {
+    if (!widget.isInteractive) return;
+    if (_selectedPos != null || _validMoves.isNotEmpty) {
+      setState(() {
+        _selectedPos = null;
+        _validMoves = {};
+      });
+    }
+    widget.onBackgroundTap?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final gameSettings = context.watch<GameSettingsProvider?>();
@@ -402,7 +417,7 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
         if (gameSettings?.localCoopAutoRotate ?? true) {
           effectiveRotation = isBlackTurn ? blackRotation : whiteRotation;
         } else {
-          effectiveRotation = whiteRotation;
+          effectiveRotation = widget.flipBoard ? blackRotation : whiteRotation;
         }
       } else {
         // When piece orientation is 0° (vertical):
@@ -412,7 +427,7 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
         if (gameSettings?.localCoopAutoRotate ?? true) {
           effectiveRotation = isBlackTurn ? blackRotation : whiteRotation;
         } else {
-          effectiveRotation = whiteRotation;
+          effectiveRotation = widget.flipBoard ? blackRotation : whiteRotation;
         }
       }
     } else {
@@ -448,6 +463,7 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
       isCurrentTurn: _isCurrentTurnSelection,
       theme: boardTheme,
       onTileTap: widget.isInteractive ? _onTileTap : null,
+      onBackgroundTap: widget.isInteractive ? _onBackgroundTap : null,
       onPieceDropped: widget.isInteractive ? (from, to) => _executeMove(from, to) : null,
       onPieceDragStarted: widget.isInteractive ? _onPieceDragStarted : null,
       onPieceDragCancelled: widget.isInteractive ? _onPieceDragCancelled : null,
