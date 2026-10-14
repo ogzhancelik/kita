@@ -721,13 +721,15 @@ class MatchSettingsDialog extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              constraints: const BoxConstraints(minHeight: 82),
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+              constraints: const BoxConstraints(minHeight: 88),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                color: isDark
+                    ? AppColors.ratingGold.withValues(alpha: 0.14)
+                    : AppColors.ratingGold.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: AppColors.primary,
+                  color: AppColors.ratingGold.withValues(alpha: 0.55),
                   width: 1.5,
                 ),
               ),
@@ -735,10 +737,18 @@ class MatchSettingsDialog extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    icon,
-                    size: 26,
-                    color: AppColors.primary,
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.ratingGold.withValues(alpha: 0.22),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 20,
+                      color: AppColors.ratingGold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
