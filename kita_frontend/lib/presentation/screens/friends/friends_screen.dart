@@ -15,7 +15,6 @@ import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_avatar.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/friends/add_friend_dialog.dart';
-import '../../widgets/friends/player_search_view.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
 import 'dm_chat_screen.dart';
@@ -506,6 +505,12 @@ class _FriendsScreenState extends State<FriendsScreen>
   }
 }
 
+enum _FriendAction {
+  challenge,
+  chat,
+  remove,
+}
+
 class _FriendCard extends StatelessWidget {
   final FriendItemModel friend;
   final bool isDark;
@@ -612,44 +617,7 @@ class _FriendCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
 
-                // Quick Invite Button
-                Tooltip(
-                  message: 'online.sendInvite'.tr(),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: onInvite,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: friend.isOnline
-                              ? AppColors.accent.withValues(alpha: 0.15)
-                              : AppColors.getSurface(isDark),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: friend.isOnline
-                                ? AppColors.accent.withValues(alpha: 0.4)
-                                : AppColors.getBorder(isDark),
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.sports_esports_rounded,
-                          size: 18,
-                          color: friend.isOnline
-                              ? AppColors.accent
-                              : AppColors.getTextSecondary(isDark),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-
-                // Chat Button with unread badge
+                // More Options Menu (Three dots)
                 Consumer<DmProvider>(
                   builder: (context, dmProv, _) {
                     final convId = dmConversationId(
@@ -657,76 +625,175 @@ class _FriendCard extends StatelessWidget {
                       friend.userId,
                     );
                     final unread = dmProv.unreadFor(convId);
-                    return Tooltip(
-                      message: 'dm.chatTooltip'.tr(),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: onChat,
-                          borderRadius: BorderRadius.circular(10),
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryVibrant.withAlpha(30),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: AppColors.primaryVibrant.withAlpha(
-                                      80,
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      children: [
+                        PopupMenuButton<_FriendAction>(
+                          tooltip: 'common.moreOptions'.tr(),
+                          icon: Icon(
+                            Icons.more_vert_rounded,
+                            size: 22,
+                            color: AppColors.getTextSecondary(isDark),
+                          ),
+                          position: PopupMenuPosition.under,
+                          color: AppColors.getCard(isDark),
+                          elevation: 6,
+                          shadowColor: Colors.black.withValues(alpha: 0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: AppColors.getBorder(isDark),
+                              width: 1,
+                            ),
+                          ),
+                          onSelected: (action) {
+                            switch (action) {
+                              case _FriendAction.challenge:
+                                onInvite();
+                                break;
+                              case _FriendAction.chat:
+                                onChat?.call();
+                                break;
+                              case _FriendAction.remove:
+                                onRemove();
+                                break;
+                            }
+                          },
+                          itemBuilder: (ctx) => [
+                            PopupMenuItem<_FriendAction>(
+                              value: _FriendAction.challenge,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.sports_esports_rounded,
+                                    size: 20,
+                                    color: friend.isOnline
+                                        ? AppColors.accent
+                                        : AppColors.getTextSecondary(isDark),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'dashboard.quickChallenge'.tr(),
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.getTextPrimary(isDark),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                child: const Icon(
-                                  Icons.chat_bubble_outline_rounded,
-                                  size: 18,
-                                  color: AppColors.primaryVibrant,
-                                ),
+                                ],
                               ),
-                              if (unread > 0)
-                                Positioned(
-                                  top: -4,
-                                  right: -4,
-                                  child: Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.lossRed,
-                                      shape: BoxShape.circle,
+                            ),
+                            PopupMenuItem<_FriendAction>(
+                              value: _FriendAction.chat,
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                    size: 20,
+                                    color: AppColors.primaryVibrant,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'online.chat'.tr(),
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.getTextPrimary(isDark),
+                                      ),
                                     ),
-                                    child: Center(
+                                  ),
+                                  if (unread > 0)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.lossRed,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                       child: Text(
                                         unread > 9 ? '9+' : '$unread',
                                         style: const TextStyle(
-                                          fontSize: 9,
+                                          fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                           color: AppColors.darkTextPrimary,
                                         ),
                                       ),
                                     ),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuDivider(height: 1),
+                            PopupMenuItem<_FriendAction>(
+                              value: _FriendAction.remove,
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.person_remove_rounded,
+                                    size: 20,
+                                    color: AppColors.lossRed,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'online.removeFriend'.tr(),
+                                      style: const TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.lossRed,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (unread > 0)
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: IgnorePointer(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.lossRed,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? AppColors.darkCard
+                                        : AppColors.lightCard,
+                                    width: 1.5,
                                   ),
                                 ),
-                            ],
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  unread > 9 ? '9+' : '$unread',
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.darkTextPrimary,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                      ],
                     );
                   },
-                ),
-                const SizedBox(width: 4),
-
-                // Remove Friend Button
-                IconButton(
-                  tooltip: 'online.removeFriend'.tr(),
-                  icon: const Icon(Icons.person_remove_rounded, size: 20),
-                  color: AppColors.lossRed,
-                  hoverColor: AppColors.error.withValues(alpha: 0.1),
-                  splashRadius: 20,
-                  onPressed: onRemove,
                 ),
               ],
             ),

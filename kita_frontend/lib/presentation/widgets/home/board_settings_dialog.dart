@@ -287,8 +287,8 @@ class BoardSettingsDialog extends StatelessWidget {
   ) {
     final themes = [
       {'key': 'amber_sunset', 'nameKey': 'settings.boardThemeAmber'},
-      {'key': 'emerald', 'nameKey': 'settings.boardThemeEmerald'},
       {'key': 'ocean_azure', 'nameKey': 'settings.boardThemeOcean'},
+      {'key': 'emerald', 'nameKey': 'settings.boardThemeEmerald'},
       {'key': 'cyber_purple', 'nameKey': 'settings.boardThemePurple'},
       {'key': 'slate_monochrome', 'nameKey': 'settings.boardThemeSlate'},
       {'key': 'minecraft', 'nameKey': 'settings.boardThemeMinecraft'},
@@ -345,24 +345,15 @@ class BoardSettingsDialog extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildMiniTile(
-                              previewTheme.getColorForValue(1),
-                              width: 18,
-                              height: 15,
-                            ),
-                            const SizedBox(width: 4),
-                            _buildMiniTile(
-                              previewTheme.getColorForValue(2),
-                              width: 18,
-                              height: 15,
-                            ),
+                            _buildMiniTile(previewTheme.getColorForValue(1)),
+                            const SizedBox(width: 3),
+                            _buildMiniTile(previewTheme.getColorForValue(2)),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         _buildMiniTile(
                           previewTheme.getColorForValue(3),
-                          width: 40,
-                          height: 15,
+                          width: 31,
                         ),
                       ],
                     ),
@@ -388,19 +379,15 @@ class BoardSettingsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildMiniTile(
-    Color color, {
-    double width = 18,
-    double height = 15,
-  }) {
+  Widget _buildMiniTile(Color color, {double width = 14}) {
     return Container(
       width: width,
-      height: height,
+      height: 14,
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(3),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.20),
+          color: Colors.white.withValues(alpha: 0.15),
           width: 0.5,
         ),
       ),

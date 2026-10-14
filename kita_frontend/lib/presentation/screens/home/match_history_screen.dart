@@ -1442,8 +1442,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      if (match.isDraw)
+                      if (match.isDraw) ...[
+                        const SizedBox(width: 6),
                         Tooltip(
                           message: 'online.resultDraw'.tr(),
                           child: Container(
@@ -1465,31 +1465,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                               ),
                             ),
                           ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: resultColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: resultColor.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Text(
-                            match.winnerId == match.whitePlayerId
-                                ? 'game.whiteWins'.tr()
-                                : 'game.blackWins'.tr(),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: resultColor,
-                            ),
-                          ),
                         ),
+                      ],
                     ] else if (isVsAi) ...[
                       Flexible(
                         child: Text(

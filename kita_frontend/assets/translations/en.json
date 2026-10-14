@@ -400,7 +400,9 @@
     "orientationVertical": "Vertical (4x7)",
     "orientationVerticalShort": "Vertical",
     "save": "Save",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "more": "More",
+    "moreOptions": "More Options"
   },
   "online": {
     "noMoves": "No moves played yet",

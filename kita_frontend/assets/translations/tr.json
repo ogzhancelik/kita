@@ -400,7 +400,9 @@
     "orientationVertical": "Dikey (4x7)",
     "orientationVerticalShort": "Dikey",
     "save": "Kaydet",
-    "confirm": "Onayla"
+    "confirm": "Onayla",
+    "more": "Daha Fazla",
+    "moreOptions": "Daha Fazla Seçenek"
   },
   "online": {
     "noMoves": "Henüz hamle yapılmadı",

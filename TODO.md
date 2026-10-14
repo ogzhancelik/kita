@@ -47,6 +47,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Direct Player Challenge**: Allow challenging any user directly from their profile card or chat without requiring an accepted friendship first.
 - [x] **Quick "Add Friend" from Match & History**: Add one-tap friend request actions directly inside in-match player cards and post-match history views.
 - [x] **Add Friend Shortcut on Home Dashboard**: Add an explicit "+ Add Friend" action to the dashboard friends widget or as a tail card at the end of the friends carousel.
+- [x] **Friends List Overflow Action Menu**: Replace inline Challenge, Chat, and Remove action buttons on friends cards with a unified "more options" (three dots) popup menu.
 
 ### 💬 Chat & In-Game Messaging
 - [ ] **Direct Chat Layout Spacing**: Tighten excessive horizontal/vertical padding in direct message conversation views.
