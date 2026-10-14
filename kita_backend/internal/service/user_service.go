@@ -30,6 +30,7 @@ func (s *userService) GetProfile(ctx context.Context, userID string) (*domain.Us
 			Username:    "Guest",
 			AvatarIndex: 0,
 			Rating:      1200,
+			Roles:       []string{},
 		}, nil
 	}
 	if userID == "bot" {
@@ -38,6 +39,7 @@ func (s *userService) GetProfile(ctx context.Context, userID string) (*domain.Us
 			Username:    "AI Bot",
 			AvatarIndex: 7,
 			Rating:      1200,
+			Roles:       []string{"bot"},
 		}, nil
 	}
 	user, err := s.userRepo.FindByID(ctx, userID)
@@ -238,12 +240,42 @@ func (s *userService) SearchUsers(ctx context.Context, query string, currentUser
 			Losses:           prof.Losses,
 			Draws:            prof.Draws,
 			WinRate:          prof.WinRate,
+			Roles:            prof.Roles,
 			FriendshipStatus: status,
 			FriendshipID:     fID,
 		}
 	}
 
 	return results, nil
+}
+
+func (s *userService) UpdateRoles(ctx context.Context, userID string, roles []string) (*domain.UserProfile, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	sanitized := make([]string, 0, len(roles))
+	seen := make(map[string]bool)
+	for _, r := range roles {
+		trimmed := strings.ToLower(strings.TrimSpace(r))
+		if trimmed != "" && !seen[trimmed] {
+			seen[trimmed] = true
+			sanitized = append(sanitized, trimmed)
+		}
+	}
+
+	user.Roles = sanitized
+	user.UpdatedAt = time.Now()
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	profile := user.ToProfile()
+	return &profile, nil
 }
 
 

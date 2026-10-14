@@ -16,6 +16,7 @@ type UserRepository interface {
 	Delete(ctx context.Context, id string) error
 	GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error)
 	Search(ctx context.Context, query string, excludeUserID string, limit int) ([]domain.User, error)
+	UpdateRoles(ctx context.Context, userID string, roles []string) error
 }
 
 type MatchRepository interface {

@@ -20,6 +20,7 @@ type UserService interface {
 	UpdateUsername(ctx context.Context, userID string, username string) (*domain.UserProfile, error)
 	DeleteAccount(ctx context.Context, userID string, password string) error
 	SearchUsers(ctx context.Context, query string, currentUserID string, limit int) ([]domain.UserSearchResult, error)
+	UpdateRoles(ctx context.Context, userID string, roles []string) (*domain.UserProfile, error)
 }
 
 type MatchService interface {

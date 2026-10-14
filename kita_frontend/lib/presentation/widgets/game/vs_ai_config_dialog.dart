@@ -11,6 +11,7 @@ import '../../../data/models/kita_ai.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/offline_game_provider.dart';
 import '../../screens/game/offline_match_screen.dart';
+import '../../../core/experimental/iroztel_exp_mode.dart';
 
 /// Pre-game configuration dialog for "Play vs Computer" (AI).
 /// Allows the player to select Bot Difficulty and Player Side.
@@ -37,7 +38,8 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
   static String _cachedSide = 'random';
 
   int _selectedDifficulty = _cachedDifficulty; // 0: Novice, 1: Easy (Beginner), 2: Medium (Intermediate), 3: Master, 4: Grandmaster
-  String _selectedSide = _cachedSide; // 'white', 'random', 'black'
+  String _selectedSide = _cachedSide; // 'white', 'random', 'black', 'exp'
+  bool _isStarting = false;
 
   @override
   void initState() {
@@ -83,6 +85,11 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    AuthProvider? authProv;
+    try {
+      authProv = context.watch<AuthProvider>();
+    } catch (_) {}
+    final isIroztel = IroztelExpMode.isIroztelUser(authProv);
 
     return AlertDialog(
       backgroundColor: AppColors.getCard(isDark),
@@ -236,6 +243,19 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
                     isDark: isDark,
                   ),
                 ),
+                if (isIroztel) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildSideOption(
+                      title: 'common.exp'.tr(),
+                      sideKey: 'exp',
+                      icon: Icons.science_rounded,
+                      iconColor: AppColors.accentSecondary,
+                      iconBorder: false,
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -268,8 +288,17 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
             Expanded(
               flex: 2,
               child: ElevatedButton.icon(
-                onPressed: _startGame,
-                icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                onPressed: _isStarting ? null : _startGame,
+                icon: _isStarting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.darkTextPrimary,
+                        ),
+                      )
+                    : const Icon(Icons.play_arrow_rounded, size: 20),
                 label: Text(
                   'game.startMatch'.tr(),
                   style: const TextStyle(
@@ -378,10 +407,14 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
     final activeColor = AppColors.primaryGreen;
 
     return InkWell(
-      onTap: () {
-        setState(() => _selectedSide = sideKey);
-        _persistPreferences(_selectedDifficulty, sideKey);
-      },
+      onTap: _isStarting
+          ? null
+          : () {
+              setState(() => _selectedSide = sideKey);
+              if (sideKey != 'exp') {
+                _persistPreferences(_selectedDifficulty, sideKey);
+              }
+            },
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
@@ -430,9 +463,14 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
   }
 
   Future<void> _startGame() async {
-    _persistPreferences(_selectedDifficulty, _selectedSide);
+    if (_selectedSide != 'exp') {
+      _persistPreferences(_selectedDifficulty, _selectedSide);
+    }
     final offlineProv = context.read<OfflineGameProvider>();
-    final authProv = context.read<AuthProvider>();
+    AuthProvider? authProv;
+    try {
+      authProv = context.read<AuthProvider>();
+    } catch (_) {}
 
     if (offlineProv.hasActiveMatch) {
       final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -478,23 +516,39 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       offlineProv.resignAndClear();
     }
 
-    final isGuest = authProv.isGuest || authProv.currentUser == null;
-    final playerId = authProv.currentUser?.id;
-    final playerName = authProv.currentUser?.username ??
-        authProv.guestProfile?.nickname ??
+    final isGuest = authProv?.isGuest ?? (authProv?.currentUser == null);
+    final playerId = authProv?.currentUser?.id;
+    final playerName = authProv?.currentUser?.username ??
+        authProv?.guestProfile?.nickname ??
         'Guest';
-    final playerRating = authProv.currentUser?.rating ?? 1200;
-    final playerAvatarIndex = authProv.currentUser?.avatarIndex ??
-        authProv.guestProfile?.avatarIndex ??
+    final playerRating = authProv?.currentUser?.rating ?? 1200;
+    final playerAvatarIndex = authProv?.currentUser?.avatarIndex ??
+        authProv?.guestProfile?.avatarIndex ??
         0;
 
+    final isExpMode = _selectedSide == 'exp' && IroztelExpMode.isIroztelUser(authProv);
+
     PieceTeam team;
-    if (_selectedSide == 'random') {
+    if (_selectedSide == 'random' || isExpMode) {
       team = Random().nextBool() ? PieceTeam.white : PieceTeam.black;
     } else if (_selectedSide == 'black') {
       team = PieceTeam.black;
     } else {
       team = PieceTeam.white;
+    }
+
+    KitaGameEngine? initialEngine;
+    if (isExpMode) {
+      setState(() => _isStarting = true);
+      try {
+        initialEngine = await IroztelExpMode.generateBalancedBoard();
+      } catch (e) {
+        debugPrint('[IroztelExp] Error generating balanced board: $e');
+      } finally {
+        if (mounted) {
+          setState(() => _isStarting = false);
+        }
+      }
     }
 
     if (!mounted) return;
@@ -509,6 +563,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
       playerRating: playerRating,
       playerAvatarIndex: playerAvatarIndex,
       isGuest: isGuest,
+      initialEngine: initialEngine,
     );
 
     Navigator.of(context).push(

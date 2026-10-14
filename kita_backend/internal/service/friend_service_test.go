@@ -41,6 +41,9 @@ func (m *mockUserRepoForFriendService) GetLeaderboard(ctx context.Context, limit
 func (m *mockUserRepoForFriendService) Search(ctx context.Context, query string, excludeUserID string, limit int) ([]domain.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepoForFriendService) UpdateRoles(ctx context.Context, userID string, roles []string) error {
+	return nil
+}
 
 
 type mockFriendRepoForFriendService struct {

@@ -93,6 +93,7 @@ class PlayerSearchResultModel {
   final int losses;
   final int draws;
   final double winRate;
+  final List<String> roles;
   final String friendshipStatus; // 'none', 'friend', 'incoming', 'outgoing'
   final String? friendshipId;
 
@@ -107,13 +108,18 @@ class PlayerSearchResultModel {
     this.losses = 0,
     this.draws = 0,
     this.winRate = 0.0,
+    this.roles = const [],
     this.friendshipStatus = 'none',
     this.friendshipId,
   });
 
   String get displayRating => isProvisional ? '$rating?' : '$rating';
+  bool get isAdmin => roles.any((r) => r.toLowerCase() == 'admin');
+  bool get isPremium => roles.any((r) => r.toLowerCase() == 'premium');
+  bool hasRole(String role) => roles.any((r) => r.toLowerCase() == role.toLowerCase());
 
   factory PlayerSearchResultModel.fromJson(Map<String, dynamic> json) {
+    final rawRoles = (json['roles'] as List<dynamic>?) ?? (json['tags'] as List<dynamic>?);
     return PlayerSearchResultModel(
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? '',
@@ -125,6 +131,7 @@ class PlayerSearchResultModel {
       losses: (json['losses'] as num?)?.toInt() ?? 0,
       draws: (json['draws'] as num?)?.toInt() ?? 0,
       winRate: (json['win_rate'] as num?)?.toDouble() ?? 0.0,
+      roles: rawRoles != null ? rawRoles.map((e) => e.toString()).toList() : const [],
       friendshipStatus: json['friendship_status'] as String? ?? 'none',
       friendshipId: json['friendship_id'] as String?,
     );
@@ -141,6 +148,7 @@ class PlayerSearchResultModel {
     int? losses,
     int? draws,
     double? winRate,
+    List<String>? roles,
     String? friendshipStatus,
     String? friendshipId,
   }) {
@@ -155,6 +163,7 @@ class PlayerSearchResultModel {
       losses: losses ?? this.losses,
       draws: draws ?? this.draws,
       winRate: winRate ?? this.winRate,
+      roles: roles ?? this.roles,
       friendshipStatus: friendshipStatus ?? this.friendshipStatus,
       friendshipId: friendshipId ?? this.friendshipId,
     );

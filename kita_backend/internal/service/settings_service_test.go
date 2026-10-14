@@ -49,6 +49,9 @@ func (m *mockUserRepo) GetLeaderboard(ctx context.Context, limit int, userIDs []
 func (m *mockUserRepo) Search(ctx context.Context, query string, excludeUserID string, limit int) ([]domain.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepo) UpdateRoles(ctx context.Context, userID string, roles []string) error {
+	return nil
+}
 
 
 func TestSettingsService_GetSettings_DefaultFallback(t *testing.T) {

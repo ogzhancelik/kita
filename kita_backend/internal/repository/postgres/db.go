@@ -74,6 +74,8 @@ func NewDatabase() (*gorm.DB, error) {
 
 	if db.Migrator().HasTable("users") {
 		_ = db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower ON users (LOWER(username));").Error
+		_ = db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS roles jsonb DEFAULT '[]'::jsonb;").Error
+		_ = db.Exec("UPDATE users SET roles = '[]'::jsonb WHERE roles IS NULL;").Error
 	}
 
 	log.Println("[Postgres] Database connected and schema migrated successfully")

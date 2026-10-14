@@ -72,6 +72,9 @@ func (m *mockUserRepoForAuthService) GetLeaderboard(ctx context.Context, limit i
 func (m *mockUserRepoForAuthService) Search(ctx context.Context, query string, excludeUserID string, limit int) ([]domain.User, error) {
 	return nil, nil
 }
+func (m *mockUserRepoForAuthService) UpdateRoles(ctx context.Context, userID string, roles []string) error {
+	return nil
+}
 
 
 func TestValidateUsername(t *testing.T) {

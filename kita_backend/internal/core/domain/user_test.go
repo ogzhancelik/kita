@@ -83,3 +83,48 @@ func TestUser_IsProvisional(t *testing.T) {
 		})
 	}
 }
+
+func TestUser_Roles(t *testing.T) {
+	u := &User{
+		Username: "admin_user",
+		Roles:    []string{"admin"},
+	}
+
+	if !u.HasRole("admin") {
+		t.Errorf("expected HasRole('admin') to be true")
+	}
+	if !u.HasRole("ADMIN") {
+		t.Errorf("expected case-insensitive HasRole('ADMIN') to be true")
+	}
+	if !u.IsAdmin() {
+		t.Errorf("expected IsAdmin() to be true")
+	}
+	if u.IsPremium() {
+		t.Errorf("expected IsPremium() to be false initially")
+	}
+
+	// Add role
+	u.AddRole("premium")
+	u.AddRole("PREMIUM") // Duplicate shouldn't be added
+	if !u.IsPremium() {
+		t.Errorf("expected IsPremium() to be true after AddRole")
+	}
+	if len(u.Roles) != 2 {
+		t.Errorf("expected 2 roles without duplicates, got %d: %v", len(u.Roles), u.Roles)
+	}
+
+	// Convert to profile
+	p := u.ToProfile()
+	if !p.IsAdmin() || !p.IsPremium() {
+		t.Errorf("expected profile to inherit admin and premium roles")
+	}
+
+	// Remove role
+	u.RemoveRole("admin")
+	if u.IsAdmin() {
+		t.Errorf("expected IsAdmin() to be false after RemoveRole")
+	}
+	if len(u.Roles) != 1 {
+		t.Errorf("expected 1 role after removal, got %d", len(u.Roles))
+	}
+}

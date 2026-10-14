@@ -79,6 +79,7 @@ func (s *authService) Register(ctx context.Context, username, email, password st
 		Wins:         0,
 		Losses:       0,
 		Draws:        0,
+		Roles:        []string{},
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}

@@ -1,0 +1,21 @@
+meta {
+  name: 03 Update User Roles
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/users/{{userId1}}/roles
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{player1Token}}
+}
+
+body:json {
+  {
+    "roles": ["admin", "premium"]
+  }
+}

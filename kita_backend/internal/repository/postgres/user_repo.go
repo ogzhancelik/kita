@@ -113,3 +113,11 @@ func (r *userRepo) Search(ctx context.Context, query string, excludeUserID strin
 	return users, nil
 }
 
+func (r *userRepo) UpdateRoles(ctx context.Context, userID string, roles []string) error {
+	trimmedID := strings.TrimSpace(userID)
+	if roles == nil {
+		roles = []string{}
+	}
+	return r.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", trimmedID).Update("roles", roles).Error
+}
+

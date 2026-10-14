@@ -10,6 +10,7 @@ class UserProfile {
   final int draws;
   final int totalGames;
   final double winRate;
+  final List<String> roles;
   final DateTime? createdAt;
 
   const UserProfile({
@@ -24,10 +25,14 @@ class UserProfile {
     this.draws = 0,
     this.totalGames = 0,
     this.winRate = 0.0,
+    this.roles = const [],
     this.createdAt,
   });
 
   String get displayRating => isProvisional ? '$rating?' : '$rating';
+  bool get isAdmin => roles.any((r) => r.toLowerCase() == 'admin');
+  bool get isPremium => roles.any((r) => r.toLowerCase() == 'premium');
+  bool hasRole(String role) => roles.any((r) => r.toLowerCase() == role.toLowerCase());
 
   UserProfile copyWith({
     String? id,
@@ -42,6 +47,7 @@ class UserProfile {
     int? draws,
     int? totalGames,
     double? winRate,
+    List<String>? roles,
     DateTime? createdAt,
   }) {
     return UserProfile(
@@ -56,6 +62,7 @@ class UserProfile {
       draws: draws ?? this.draws,
       totalGames: totalGames ?? this.totalGames,
       winRate: winRate ?? this.winRate,
+      roles: roles ?? this.roles,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -63,6 +70,7 @@ class UserProfile {
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     final totalGames = (json['total_games'] as num?)?.toInt() ?? 0;
     final isProv = json['is_provisional'] as bool? ?? (totalGames < 5);
+    final rawRoles = (json['roles'] as List<dynamic>?) ?? (json['tags'] as List<dynamic>?);
     return UserProfile(
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? 'Player',
@@ -75,6 +83,7 @@ class UserProfile {
       draws: (json['draws'] as num?)?.toInt() ?? 0,
       totalGames: totalGames,
       winRate: (json['win_rate'] as num?)?.toDouble() ?? 0.0,
+      roles: rawRoles != null ? rawRoles.map((e) => e.toString()).toList() : const [],
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
@@ -94,6 +103,7 @@ class UserProfile {
       'draws': draws,
       'total_games': totalGames,
       'win_rate': winRate,
+      'roles': roles,
       'created_at': createdAt?.toIso8601String(),
     };
   }

@@ -21,6 +21,7 @@ type SeedUser struct {
 	Wins        int
 	Losses      int
 	Draws       int
+	Roles       []string
 }
 
 func main() {
@@ -40,8 +41,8 @@ func main() {
 
 	usersToSeed := []SeedUser{
 		// 1. Grandmaster tier
-		{Username: "Grandmaster_K", Email: "gm.k@kita.gg", AvatarIndex: 6, Rating: 2150, Wins: 88, Losses: 12, Draws: 6}, // Dragon
-		{Username: "ViperTactics", Email: "viper.tactics@kita.gg", AvatarIndex: 4, Rating: 1980, Wins: 65, Losses: 19, Draws: 8}, // Striker
+		{Username: "Grandmaster_K", Email: "gm.k@kita.gg", AvatarIndex: 6, Rating: 2150, Wins: 88, Losses: 12, Draws: 6, Roles: []string{"admin", "premium"}}, // Dragon
+		{Username: "ViperTactics", Email: "viper.tactics@kita.gg", AvatarIndex: 4, Rating: 1980, Wins: 65, Losses: 19, Draws: 8, Roles: []string{"premium"}}, // Striker
 		{Username: "QueenOfGambits", Email: "queen.gambits@kita.gg", AvatarIndex: 3, Rating: 1850, Wins: 52, Losses: 21, Draws: 7}, // Mage
 
 		// 2. Expert tier
@@ -81,14 +82,23 @@ func main() {
 			existing.Wins = u.Wins
 			existing.Losses = u.Losses
 			existing.Draws = u.Draws
+			roles := u.Roles
+			if roles == nil {
+				roles = []string{}
+			}
+			existing.Roles = roles
 			existing.UpdatedAt = time.Now()
 			if err := db.Save(&existing).Error; err != nil {
 				log.Printf("[%02d] Failed to update %s: %v", i+1, u.Username, err)
 			} else {
-				fmt.Printf("[%02d] Updated user: %-18s | Avatar: %d | ELO: %4.0f\n", i+1, existing.Username, existing.AvatarIndex, existing.Rating)
+				fmt.Printf("[%02d] Updated user: %-18s | Avatar: %d | ELO: %4.0f | Roles: %v\n", i+1, existing.Username, existing.AvatarIndex, existing.Rating, existing.Roles)
 				seededUsers[u.Username] = existing
 			}
 		} else {
+			roles := u.Roles
+			if roles == nil {
+				roles = []string{}
+			}
 			newUser := domain.User{
 				ID:              uuid.New().String(),
 				Username:        u.Username,
@@ -101,13 +111,14 @@ func main() {
 				Wins:            u.Wins,
 				Losses:          u.Losses,
 				Draws:           u.Draws,
+				Roles:           roles,
 				CreatedAt:       time.Now(),
 				UpdatedAt:       time.Now(),
 			}
 			if err := db.Create(&newUser).Error; err != nil {
 				log.Printf("[%02d] Failed to create %s: %v", i+1, u.Username, err)
 			} else {
-				fmt.Printf("[%02d] Created user: %-18s | Avatar: %d | ELO: %4.0f\n", i+1, newUser.Username, newUser.AvatarIndex, newUser.Rating)
+				fmt.Printf("[%02d] Created user: %-18s | Avatar: %d | ELO: %4.0f | Roles: %v\n", i+1, newUser.Username, newUser.AvatarIndex, newUser.Rating, newUser.Roles)
 				seededUsers[u.Username] = newUser
 			}
 		}

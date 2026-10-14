@@ -2,6 +2,7 @@ package domain
 
 import (
 	"math"
+	"strings"
 	"time"
 )
 
@@ -23,9 +24,53 @@ type User struct {
 	Wins            int           `json:"wins" gorm:"default:0"`
 	Losses          int           `json:"losses" gorm:"default:0"`
 	Draws           int           `json:"draws" gorm:"default:0"`
+	Roles           []string      `json:"roles" gorm:"type:jsonb;serializer:json;default:'[]'"`
 	CreatedAt       time.Time     `json:"created_at"`
 	UpdatedAt       time.Time     `json:"updated_at"`
 	Settings        *UserSettings `json:"settings,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+}
+
+const (
+	RoleAdmin   = "admin"
+	RolePremium = "premium"
+)
+
+func (u *User) HasRole(role string) bool {
+	for _, r := range u.Roles {
+		if strings.EqualFold(r, role) {
+			return true
+		}
+	}
+	return false
+}
+
+func (u *User) IsAdmin() bool {
+	return u.HasRole(RoleAdmin)
+}
+
+func (u *User) IsPremium() bool {
+	return u.HasRole(RolePremium)
+}
+
+func (u *User) AddRole(role string) {
+	trimmed := strings.ToLower(strings.TrimSpace(role))
+	if trimmed == "" {
+		return
+	}
+	if !u.HasRole(trimmed) {
+		u.Roles = append(u.Roles, trimmed)
+	}
+}
+
+func (u *User) RemoveRole(role string) {
+	trimmed := strings.ToLower(strings.TrimSpace(role))
+	newRoles := make([]string, 0, len(u.Roles))
+	for _, r := range u.Roles {
+		if !strings.EqualFold(r, trimmed) {
+			newRoles = append(newRoles, r)
+		}
+	}
+	u.Roles = newRoles
 }
 
 func (u *User) IsProvisional() bool {
@@ -51,7 +96,25 @@ type UserProfile struct {
 	Draws         int       `json:"draws"`
 	Total         int       `json:"total_games"`
 	WinRate       float64   `json:"win_rate"`
+	Roles         []string  `json:"roles"`
 	CreatedAt     time.Time `json:"created_at"`
+}
+
+func (p *UserProfile) HasRole(role string) bool {
+	for _, r := range p.Roles {
+		if strings.EqualFold(r, role) {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *UserProfile) IsAdmin() bool {
+	return p.HasRole(RoleAdmin)
+}
+
+func (p *UserProfile) IsPremium() bool {
+	return p.HasRole(RolePremium)
 }
 
 func (u *User) ToProfile() UserProfile {
@@ -59,6 +122,10 @@ func (u *User) ToProfile() UserProfile {
 	winRate := 0.0
 	if total > 0 {
 		winRate = float64(u.Wins) / float64(total) * 100
+	}
+	roles := u.Roles
+	if roles == nil {
+		roles = []string{}
 	}
 	return UserProfile{
 		ID:            u.ID,
@@ -72,23 +139,25 @@ func (u *User) ToProfile() UserProfile {
 		Draws:         u.Draws,
 		Total:         total,
 		WinRate:       winRate,
+		Roles:         roles,
 		CreatedAt:     u.CreatedAt,
 	}
 }
 
 type UserSearchResult struct {
-	ID               string  `json:"id"`
-	Username         string  `json:"username"`
-	AvatarIndex      int     `json:"avatar_index"`
-	AvatarCustom     string  `json:"avatar_custom"`
-	Rating           int     `json:"rating"`
-	IsProvisional    bool    `json:"is_provisional"`
-	Wins             int     `json:"wins"`
-	Losses           int     `json:"losses"`
-	Draws            int     `json:"draws"`
-	WinRate          float64 `json:"win_rate"`
-	FriendshipStatus string  `json:"friendship_status"` // "none", "friend", "outgoing", "incoming"
-	FriendshipID     string  `json:"friendship_id,omitempty"`
+	ID               string   `json:"id"`
+	Username         string   `json:"username"`
+	AvatarIndex      int      `json:"avatar_index"`
+	AvatarCustom     string   `json:"avatar_custom"`
+	Rating           int      `json:"rating"`
+	IsProvisional    bool     `json:"is_provisional"`
+	Wins             int      `json:"wins"`
+	Losses           int      `json:"losses"`
+	Draws            int      `json:"draws"`
+	WinRate          float64  `json:"win_rate"`
+	Roles            []string `json:"roles"`
+	FriendshipStatus string   `json:"friendship_status"` // "none", "friend", "outgoing", "incoming"
+	FriendshipID     string   `json:"friendship_id,omitempty"`
 }
 
 

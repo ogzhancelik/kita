@@ -85,6 +85,16 @@ func (m *mockUserRepoForUserService) Search(ctx context.Context, query string, e
 	return res, nil
 }
 
+func (m *mockUserRepoForUserService) UpdateRoles(ctx context.Context, userID string, roles []string) error {
+	for i, u := range m.users {
+		if u.ID == userID {
+			m.users[i].Roles = roles
+			return nil
+		}
+	}
+	return nil
+}
+
 
 type mockFriendRepoForUserService struct {
 	friends []domain.Friendship
@@ -406,6 +416,43 @@ func TestUserService_SearchUsers(t *testing.T) {
 		t.Errorf("expected Bob to have friendship_id 'f1', got %s", bobResults[0].FriendshipID)
 	}
 }
+
+func TestUserService_UpdateRoles(t *testing.T) {
+	ctx := context.Background()
+	userRepo := &mockUserRepoForUserService{
+		users: []domain.User{
+			{ID: "u1", Username: "player1", Roles: []string{}},
+		},
+	}
+	friendRepo := &mockFriendRepoForUserService{}
+	svc := NewUserService(userRepo, friendRepo)
+
+	// Update with admin and premium (with duplicates and mixed casing)
+	profile, err := svc.UpdateRoles(ctx, "u1", []string{"Admin", "premium", "ADMIN", "  vip  "})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(profile.Roles) != 3 {
+		t.Fatalf("expected 3 roles, got %d: %v", len(profile.Roles), profile.Roles)
+	}
+	if !profile.IsAdmin() {
+		t.Errorf("expected IsAdmin to be true")
+	}
+	if !profile.IsPremium() {
+		t.Errorf("expected IsPremium to be true")
+	}
+	if !profile.HasRole("vip") {
+		t.Errorf("expected HasRole('vip') to be true")
+	}
+
+	// Verify not found user
+	_, err = svc.UpdateRoles(ctx, "unknown", []string{"admin"})
+	if err == nil {
+		t.Errorf("expected error for unknown user, got nil")
+	}
+}
+
 
 
 

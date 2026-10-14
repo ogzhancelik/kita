@@ -215,6 +215,32 @@ func (h *UserHandler) SearchUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"users": results})
 }
 
+type UpdateRolesRequest struct {
+	Roles []string `json:"roles" binding:"required"`
+}
+
+func (h *UserHandler) UpdateRoles(c *gin.Context) {
+	targetUserID := c.Param("id")
+	if targetUserID == "" {
+		SendError(c, http.StatusBadRequest, errors.ErrMissingField, "Target user ID is required")
+		return
+	}
+
+	var req UpdateRolesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		SendError(c, http.StatusBadRequest, errors.ErrValidationFailed, err.Error())
+		return
+	}
+
+	profile, err := h.userService.UpdateRoles(c.Request.Context(), targetUserID, req.Roles)
+	if err != nil {
+		SendError(c, http.StatusInternalServerError, errors.ErrInternalServer, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+
 
 
 

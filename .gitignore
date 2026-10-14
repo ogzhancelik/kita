@@ -34,3 +34,4 @@ local.properties
 .env
 .kita_run/
 extracted_pieces/
+kita_frontend/lib/core/experimental/iroztel_exp_mode.dart

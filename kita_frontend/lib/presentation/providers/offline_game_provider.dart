@@ -135,6 +135,7 @@ class OfflineGameProvider extends ChangeNotifier {
     bool isGuest = false,
     int timeControl = 0,
     bool? initialIsHorizontal,
+    KitaGameEngine? initialEngine,
   }) {
     _stopClockTimer();
     _hasActiveMatch = true;
@@ -170,17 +171,18 @@ class OfflineGameProvider extends ChangeNotifier {
       matchId = 'offline-coop-${DateTime.now().millisecondsSinceEpoch}';
     }
 
-    gameEngine.value = KitaGameEngine();
+    final startingEngine = initialEngine ?? KitaGameEngine();
+    gameEngine.value = startingEngine;
     _engineSnapshots.clear();
-    _engineSnapshots.add(KitaGameEngine());
-    legalMoves.value = gameEngine.value.getLegalMoves();
-    lastMove.value = null;
+    _engineSnapshots.add(startingEngine.clone());
+    legalMoves.value = startingEngine.getLegalMoves();
+    lastMove.value = startingEngine.mostRecentMove;
     moveHistory.value = [];
     viewingMoveIndex.value = -1;
     gameOverData.value = null;
     isGameOverDialogActive.value = false;
     isAiThinking.value = false;
-    currentTurn.value = 'white';
+    currentTurn.value = startingEngine.turn.name;
     elapsedSeconds.value = 0;
     _matchStartedAt = DateTime.now();
 
@@ -203,8 +205,8 @@ class OfflineGameProvider extends ChangeNotifier {
     _persistActiveOfflineMatch();
     notifyListeners();
 
-    // If human plays Black vs Bot, Bot is White and moves first!
-    if (mode == PlayMode.vsAi && playerTeam == PieceTeam.black) {
+    // If human plays vs Bot and it is bot's turn to move first:
+    if (mode == PlayMode.vsAi && startingEngine.turn != playerTeam) {
       _triggerBotMove(delay: const Duration(milliseconds: 1000));
     }
   }

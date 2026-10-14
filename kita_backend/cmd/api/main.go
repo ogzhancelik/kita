@@ -137,6 +137,8 @@ func main() {
 			userRoutes.DELETE("/me", middleware.AuthMiddleware(authService), userH.DeleteAccount)
 			userRoutes.GET("/me/settings", middleware.AuthMiddleware(authService), settingsH.GetSettings)
 			userRoutes.PUT("/me/settings", middleware.AuthMiddleware(authService), settingsH.UpdateSettings)
+			userRoutes.PUT("/:id/roles", middleware.AuthMiddleware(authService), userH.UpdateRoles)
+			userRoutes.PATCH("/:id/roles", middleware.AuthMiddleware(authService), userH.UpdateRoles)
 		}
 
 		settingsRoutes := api.Group("/settings")

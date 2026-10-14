@@ -108,6 +108,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Match History**: Recent match list with termination badges (timeout, resignation, draw) and auto-refresh
 - [x] **User Settings**: Cloud & local preferences for board themes, audio, orientation, and move highlights
 - [x] **In-App Logo Branding (4-Grid BG + White Pawn)**: Replaced legacy `#` grid icon with vector-exact pawn emblem (matching app_icon SVG geometry, bottom 3D shadow, and 4-grid checkered quadrant colors), and cleaned redundant top-left logo from main menu.
+- [x] **User Roles & Tags**: JSONB-backed list on User domain and DB schema with auto-migration, admin/premium/custom tag helpers, and role management API endpoint.
 
 ---
 
