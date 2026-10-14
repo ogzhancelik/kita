@@ -178,18 +178,112 @@ class MatchSettingsDialog extends StatelessWidget {
                     _buildLastMoveSelector(context, gameSettings, isDark),
                     const SizedBox(height: 20),
 
-                    // Section 3: Board Orientation
+                    // Section 3: Board and Piece Orientation
                     _buildSectionHeader(
                       context: context,
                       isDark: isDark,
-                      title: 'settings.boardOrientation'.tr(),
+                      title: 'settings.boardAndPieceOrientation'.tr(),
                       icon: Icons.screen_rotation_rounded,
                     ),
+                    const SizedBox(height: 12),
+
+                    // Subsection A: Online & AI
+                    Text(
+                      'settings.onlineAndAiSection'.tr(),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCycleTile(
+                            isDark: isDark,
+                            label: 'settings.boardLabel'.tr(),
+                            valueText: gameSettings.boardOrientation == 'horizontal'
+                                ? 'common.orientationHorizontalShort'.tr()
+                                : 'common.orientationVerticalShort'.tr(),
+                            icon: gameSettings.boardOrientation == 'horizontal'
+                                ? Icons.stay_current_landscape_rounded
+                                : Icons.stay_current_portrait_rounded,
+                            onTap: () => gameSettings.toggleOrientation(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildCycleTile(
+                            isDark: isDark,
+                            label: 'settings.pieceAngleLabel'.tr(),
+                            valueText: gameSettings.pieceAngleMode == 'fixed'
+                                ? 'settings.angleFixed0'.tr()
+                                : 'settings.angleAuto'.tr(),
+                            icon: gameSettings.pieceAngleMode == 'fixed'
+                                ? Icons.lock_outline_rounded
+                                : Icons.rotate_right_rounded,
+                            onTap: () => gameSettings.togglePieceAngleMode(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Subsection B: Local 2P Co-op
+                    Text(
+                      'settings.localCoopSection'.tr(),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCycleTile(
+                            isDark: isDark,
+                            label: 'settings.boardLabel'.tr(),
+                            valueText: gameSettings.localCoopBoardOrientation == 'vertical'
+                                ? 'common.orientationVerticalShort'.tr()
+                                : 'common.orientationHorizontalShort'.tr(),
+                            icon: gameSettings.localCoopBoardOrientation == 'vertical'
+                                ? Icons.stay_current_portrait_rounded
+                                : Icons.stay_current_landscape_rounded,
+                            onTap: () => gameSettings.toggleLocalCoopBoardOrientation(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildCycleTile(
+                            isDark: isDark,
+                            label: 'settings.pieceAngleLabel'.tr(),
+                            valueText: gameSettings.localCoopPieceAngleMode == 'auto'
+                                ? 'settings.angleAuto'.tr()
+                                : 'settings.angleFixed0'.tr(),
+                            icon: gameSettings.localCoopPieceAngleMode == 'auto'
+                                ? Icons.rotate_right_rounded
+                                : Icons.lock_outline_rounded,
+                            onTap: () => gameSettings.toggleLocalCoopPieceAngleMode(),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 10),
-                    _buildOrientationSelector(context, gameSettings, isDark),
+                    _buildToggleTile(
+                      isDark: isDark,
+                      icon: Icons.sync_rounded,
+                      iconColor: AppColors.primaryGreen,
+                      title: 'settings.localCoopAutoRotate'.tr(),
+                      subtitle: 'settings.localCoopAutoRotateDesc'.tr(),
+                      value: gameSettings.localCoopAutoRotate,
+                      onChanged: (val) => gameSettings.setLocalCoopAutoRotate(val),
+                    ),
                     const SizedBox(height: 20),
 
-                    // Section 3: Flip Direction
+                    // Section 4: Flip Direction
                     _buildSectionHeader(
                       context: context,
                       isDark: isDark,
@@ -208,27 +302,6 @@ class MatchSettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     _buildFlipSelector(context, gameSettings, isDark),
-                    const SizedBox(height: 20),
-
-                    // Section 4: 2P Local Coop Settings
-                    _buildSectionHeader(
-                      context: context,
-                      isDark: isDark,
-                      title: 'settings.localCoopSection'.tr(),
-                      icon: Icons.people_outline_rounded,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildToggleTile(
-                      isDark: isDark,
-                      icon: Icons.rotate_right_rounded,
-                      iconColor: AppColors.primaryGreen,
-                      title: 'settings.localCoopAutoRotate'.tr(),
-                      subtitle: 'settings.localCoopAutoRotateDesc'.tr(),
-                      value: gameSettings.localCoopAutoRotate,
-                      onChanged: (val) => gameSettings.setLocalCoopAutoRotate(val),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildLocalCoopRotationSelector(context, gameSettings, isDark),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -630,85 +703,73 @@ class MatchSettingsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildOrientationSelector(
-    BuildContext context,
-    GameSettingsProvider gameSettings,
-    bool isDark,
-  ) {
-    final options = [
-      {
-        'key': 'horizontal',
-        'title': 'common.orientationHorizontal'.tr(),
-        'icon': Icons.stay_current_landscape_rounded,
-      },
-      {
-        'key': 'vertical',
-        'title': 'common.orientationVertical'.tr(),
-        'icon': Icons.stay_current_portrait_rounded,
-      },
-    ];
-
-    return Row(
-      children: options.map((opt) {
-        final key = opt['key'] as String;
-        final title = opt['title'] as String;
-        final icon = opt['icon'] as IconData;
-        final isSelected = gameSettings.boardOrientation == key;
-
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => gameSettings.setBoardOrientation(key),
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primaryGreen
-                          : (isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder),
-                      width: isSelected ? 2 : 1,
+  Widget _buildCycleTile({
+    required bool isDark,
+    required String label,
+    required String valueText,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              constraints: const BoxConstraints(minHeight: 82),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 26,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    valueText,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        icon,
-                        size: 22,
-                        color: isSelected
-                            ? AppColors.primaryGreen
-                            : (isDark
-                                ? AppColors.darkTextMuted
-                                : AppColors.lightTextMuted),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w600,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
           ),
-        );
-      }).toList(),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+          ),
+        ),
+      ],
     );
   }
 
@@ -797,111 +858,6 @@ class MatchSettingsDialog extends StatelessWidget {
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildLocalCoopRotationSelector(
-    BuildContext context,
-    GameSettingsProvider gameSettings,
-    bool isDark,
-  ) {
-    final options = [
-      {
-        'key': 'vertical',
-        'title': 'settings.pieceOrientationVertical'.tr(),
-        'icon': Icons.stay_current_portrait_rounded,
-      },
-      {
-        'key': 'horizontal',
-        'title': 'settings.pieceOrientationHorizontal'.tr(),
-        'icon': Icons.stay_current_landscape_rounded,
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'settings.localCoopPieceOrientation'.tr(),
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'settings.localCoopPieceOrientationDesc'.tr(),
-          style: TextStyle(
-            fontSize: 11.5,
-            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: options.map((opt) {
-            final key = opt['key'] as String;
-            final title = opt['title'] as String;
-            final icon = opt['icon'] as IconData;
-            final isSelected = gameSettings.localCoopDefaultRotation == key;
-
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => gameSettings.setLocalCoopDefaultRotation(key),
-                    borderRadius: BorderRadius.circular(12),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primaryGreen
-                              : (isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.lightBorder),
-                          width: isSelected ? 2 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            icon,
-                            size: 20,
-                            color: isSelected
-                                ? AppColors.primaryGreen
-                                : (isDark
-                                    ? AppColors.darkTextMuted
-                                    : AppColors.lightTextMuted),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight:
-                                  isSelected ? FontWeight.bold : FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : AppColors.lightTextPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
     );
   }
 }

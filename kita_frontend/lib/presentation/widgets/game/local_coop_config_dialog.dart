@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/game_settings_provider.dart';
 import '../../providers/offline_game_provider.dart';
 import '../../screens/game/offline_match_screen.dart';
 
@@ -303,6 +304,7 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
     if (!mounted) return;
     Navigator.of(context).pop();
 
+    final gameSettings = context.read<GameSettingsProvider>();
     offlineProv.startOfflineMatch(
       mode: PlayMode.localCoop,
       playerId: playerId,
@@ -310,6 +312,7 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
       playerAvatarIndex: playerAvatarIndex,
       isGuest: isGuest,
       timeControl: _selectedTimeControl,
+      initialIsHorizontal: gameSettings.isLocalCoopBoardHorizontal,
     );
 
     Navigator.of(context).push(

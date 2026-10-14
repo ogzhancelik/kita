@@ -401,17 +401,22 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
             : KitaBoardTheme.amberSunset());
     final lastMoveIndicator = gameSettings?.lastMoveIndicator ?? 'line';
 
-    final isHorizontalCoop = widget.isLocalCoop && (gameSettings?.isLocalCoopHorizontal ?? false);
-    final flipColumns = isHorizontalCoop && !widget.isHorizontal;
+    final bool isPieceAngleAuto = widget.isLocalCoop
+        ? (gameSettings?.isLocalCoopPieceAngleAuto ?? true)
+        : (gameSettings?.isPieceAngleAuto ?? false);
+
+    // In auto mode, sideways rotation (90°) and column flip only occur when the board is vertical
+    final bool shouldRotatePieces = isPieceAngleAuto && !widget.isHorizontal;
+    final bool flipColumns = shouldRotatePieces;
 
     final double effectiveRotation;
     if (widget.pieceRotation != null) {
       effectiveRotation = widget.pieceRotation!;
     } else if (widget.isLocalCoop) {
       final isBlackTurn = widget.displayEngine.turn == PieceTeam.black;
-      if (isHorizontalCoop) {
-        // When piece orientation is 90° (horizontal):
-        // White is on the left (col 0, facing +0.25 / +90°) and Black is on the right (col 3, facing -0.25 / -90°).
+      if (shouldRotatePieces) {
+        // When board is vertical and angle is auto:
+        // White faces +0.25 / +90° and Black faces -0.25 / -90°.
         final whiteRotation = widget.flipBoard ? -0.25 : 0.25;
         final blackRotation = widget.flipBoard ? 0.25 : -0.25;
         if (gameSettings?.localCoopAutoRotate ?? true) {
@@ -420,7 +425,7 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
           effectiveRotation = widget.flipBoard ? blackRotation : whiteRotation;
         }
       } else {
-        // When piece orientation is 0° (vertical):
+        // When board is horizontal OR piece orientation is fixed (0° / vertical):
         // White faces 0.0 and Black faces 0.5 (or vice-versa if flipped).
         final whiteRotation = widget.flipBoard ? 0.5 : 0.0;
         final blackRotation = widget.flipBoard ? 0.0 : 0.5;
@@ -431,7 +436,13 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
         }
       }
     } else {
-      effectiveRotation = 0.0;
+      if (shouldRotatePieces) {
+        // In Online / AI with auto piece angle and vertical board:
+        effectiveRotation = widget.flipBoard ? -0.25 : 0.25;
+      } else {
+        // Fixed 0° (or when board is horizontal):
+        effectiveRotation = 0.0;
+      }
     }
 
     final effectiveLastMoves =

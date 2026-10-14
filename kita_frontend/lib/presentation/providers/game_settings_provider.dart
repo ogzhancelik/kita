@@ -18,6 +18,9 @@ class GameSettingsProvider extends ChangeNotifier {
 
   String _boardTheme = 'amber_sunset';
   String _boardOrientation = 'horizontal';
+  String _pieceAngleMode = 'fixed'; // 'fixed' = Sabit 0°, 'auto' = Otomatik
+  String _localCoopBoardOrientation = 'vertical'; // 'vertical' = Dikey, 'horizontal' = Yatay
+  String _localCoopPieceAngleMode = 'auto'; // 'auto' = Otomatik, 'fixed' = Sabit 0°
   String _flipDirection = 'auto';
   bool _soundEnabled = true;
   bool _hapticsEnabled = true;
@@ -29,6 +32,9 @@ class GameSettingsProvider extends ChangeNotifier {
 
   static const String _themeStorageKey = 'kita_board_theme';
   static const String _orientationStorageKey = 'kita_board_orientation';
+  static const String _pieceAngleModeKey = 'kita_piece_angle_mode';
+  static const String _localCoopBoardOrientationKey = 'kita_local_coop_board_orientation';
+  static const String _localCoopPieceAngleModeKey = 'kita_local_coop_piece_angle_mode';
   static const String _flipStorageKey = 'kita_flip_direction';
   static const String _soundStorageKey = 'kita_sound_enabled';
   static const String _hapticsStorageKey = 'kita_haptics_enabled';
@@ -45,12 +51,18 @@ class GameSettingsProvider extends ChangeNotifier {
 
   String get boardTheme => _boardTheme;
   String get boardOrientation => _boardOrientation;
+  String get pieceAngleMode => _pieceAngleMode;
+  bool get isPieceAngleAuto => _pieceAngleMode == 'auto';
+  String get localCoopBoardOrientation => _localCoopBoardOrientation;
+  bool get isLocalCoopBoardHorizontal => _localCoopBoardOrientation == 'horizontal';
+  String get localCoopPieceAngleMode => _localCoopPieceAngleMode;
+  bool get isLocalCoopPieceAngleAuto => _localCoopPieceAngleMode == 'auto';
   String get flipDirection => _flipDirection;
   bool get soundEnabled => _soundEnabled;
   bool get hapticsEnabled => _hapticsEnabled;
   bool get localCoopAutoRotate => _localCoopAutoRotate;
   String get localCoopDefaultRotation => _localCoopDefaultRotation;
-  bool get isLocalCoopHorizontal => _localCoopDefaultRotation == 'horizontal';
+  bool get isLocalCoopHorizontal => _localCoopBoardOrientation == 'horizontal' || _localCoopDefaultRotation == 'horizontal';
   bool get swapTileColors => _swapTileColors;
   String get lastMoveIndicator => _lastMoveIndicator;
   bool get isLastMoveHighlight => _lastMoveIndicator == 'highlight';
@@ -74,6 +86,9 @@ class GameSettingsProvider extends ChangeNotifier {
         _storage.readString(_swapTileColorsKey),
         _storage.readString(_lastMoveIndicatorKey),
         _storage.readString(_boardTileStyleKey),
+        _storage.readString(_pieceAngleModeKey),
+        _storage.readString(_localCoopBoardOrientationKey),
+        _storage.readString(_localCoopPieceAngleModeKey),
       ]);
 
       final savedTheme = results[0];
@@ -128,6 +143,21 @@ class GameSettingsProvider extends ChangeNotifier {
         _boardTileStyle = savedBoardTileStyle;
       }
 
+      final savedPieceAngleMode = results[10];
+      if (savedPieceAngleMode != null && savedPieceAngleMode.isNotEmpty) {
+        _pieceAngleMode = savedPieceAngleMode;
+      }
+
+      final savedLocalCoopBoardOrientation = results[11];
+      if (savedLocalCoopBoardOrientation != null && savedLocalCoopBoardOrientation.isNotEmpty) {
+        _localCoopBoardOrientation = savedLocalCoopBoardOrientation;
+      }
+
+      final savedLocalCoopPieceAngleMode = results[12];
+      if (savedLocalCoopPieceAngleMode != null && savedLocalCoopPieceAngleMode.isNotEmpty) {
+        _localCoopPieceAngleMode = savedLocalCoopPieceAngleMode;
+      }
+
       notifyListeners();
     } catch (_) {}
   }
@@ -164,6 +194,45 @@ class GameSettingsProvider extends ChangeNotifier {
     _boardOrientation = _boardOrientation == 'horizontal' ? 'vertical' : 'horizontal';
     notifyListeners();
     await _storage.writeString(_orientationStorageKey, _boardOrientation);
+  }
+
+  Future<void> setPieceAngleMode(String mode) async {
+    if (_pieceAngleMode == mode) return;
+    _pieceAngleMode = mode;
+    notifyListeners();
+    await _storage.writeString(_pieceAngleModeKey, mode);
+  }
+
+  Future<void> togglePieceAngleMode() async {
+    _pieceAngleMode = _pieceAngleMode == 'fixed' ? 'auto' : 'fixed';
+    notifyListeners();
+    await _storage.writeString(_pieceAngleModeKey, _pieceAngleMode);
+  }
+
+  Future<void> setLocalCoopBoardOrientation(String orientation) async {
+    if (_localCoopBoardOrientation == orientation) return;
+    _localCoopBoardOrientation = orientation;
+    notifyListeners();
+    await _storage.writeString(_localCoopBoardOrientationKey, orientation);
+  }
+
+  Future<void> toggleLocalCoopBoardOrientation() async {
+    _localCoopBoardOrientation = _localCoopBoardOrientation == 'vertical' ? 'horizontal' : 'vertical';
+    notifyListeners();
+    await _storage.writeString(_localCoopBoardOrientationKey, _localCoopBoardOrientation);
+  }
+
+  Future<void> setLocalCoopPieceAngleMode(String mode) async {
+    if (_localCoopPieceAngleMode == mode) return;
+    _localCoopPieceAngleMode = mode;
+    notifyListeners();
+    await _storage.writeString(_localCoopPieceAngleModeKey, mode);
+  }
+
+  Future<void> toggleLocalCoopPieceAngleMode() async {
+    _localCoopPieceAngleMode = _localCoopPieceAngleMode == 'auto' ? 'fixed' : 'auto';
+    notifyListeners();
+    await _storage.writeString(_localCoopPieceAngleModeKey, _localCoopPieceAngleMode);
   }
 
   Future<void> setFlipDirection(String flip) async {

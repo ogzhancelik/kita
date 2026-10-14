@@ -134,6 +134,7 @@ class OfflineGameProvider extends ChangeNotifier {
     int? playerAvatarIndex,
     bool isGuest = false,
     int timeControl = 0,
+    bool? initialIsHorizontal,
   }) {
     _stopClockTimer();
     _hasActiveMatch = true;
@@ -159,7 +160,7 @@ class OfflineGameProvider extends ChangeNotifier {
       );
       matchId = 'offline-${DateTime.now().millisecondsSinceEpoch}';
     } else {
-      _localCoopIsHorizontal = false; // Start in vertical board mode by default for Local Coop
+      _localCoopIsHorizontal = initialIsHorizontal ?? false;
       opponentInfo = OpponentInfo(
         id: 'local_player',
         name: playerTeam == PieceTeam.white ? 'common.black'.tr() : 'common.white'.tr(),
