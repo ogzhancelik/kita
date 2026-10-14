@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/theme/app_colors.dart';
 import 'avatar_picker.dart';
 
@@ -44,12 +45,12 @@ class KitaAvatar extends StatelessWidget {
         avatarCustom != null && avatarCustom!.trim().isNotEmpty;
 
     final Color effectiveColor = isBot
-        ? AppColors.primaryGreen
+        ? AppColors.primaryAmber
         : isDeleted
-            ? AppColors.getDeletedUser(isDark)
-            : (isGuest && avatarIndex == 0 && !hasCustomEmoji)
-                ? AppColors.guestOrange
-                : symbolColor;
+        ? AppColors.getDeletedUser(isDark)
+        : (isGuest && avatarIndex == 0 && !hasCustomEmoji)
+        ? AppColors.guestOrange
+        : symbolColor;
 
     final Widget content;
     if (isBot) {
@@ -68,10 +69,7 @@ class KitaAvatar extends StatelessWidget {
       content = Center(
         child: Text(
           avatarCustom!.trim(),
-          style: TextStyle(
-            fontSize: fontSize ?? (size * 0.52),
-            height: 1.0,
-          ),
+          style: TextStyle(fontSize: fontSize ?? (size * 0.52), height: 1.0),
           textAlign: TextAlign.center,
         ),
       );

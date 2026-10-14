@@ -12,7 +12,24 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Password Confirmation for Account Deletion**: Require entering current account password instead of a simple confirmation checkbox before permanently deleting user account.
 
 ### 🎨 UI & Design Systems
-- [ ] **Unified Design System & Spacing Alignment**: Standardize spacing, top bars, typography, and page paddings across all secondary screens (Friends, Chats, Groups) using Main Dashboard, Leaderboard, and Match History as reference layouts.
+- [x] **Unified Design System & Screen Harmonization (Leaderboard Parity)**:
+  - [x] **Auth Pages Vertical Centering**: Vertically center all content (emblem/logo, forms, buttons) on `LoginScreen` and `RegisterScreen` while preserving top bar and on-screen keyboard scrolling.
+  - [x] **Guest Setup Simplification**: Streamline `GuestSetupScreen` to exclusively feature the nickname input, randomize button, and play button, removing the avatar preview and avatar grid (auto-assigning a default avatar).
+  - [x] **Avatar Selector Differentiation**: Visually segregate default classic icons from custom emote/emoji selection into distinct sections with dedicated styling rather than a mixed 3x3 grid.
+  - [x] **Centered Username in Profile Overview**: Ensure the username in `UserProfileDialog` remains strictly centered, preventing the right-hand customize icon from shifting it off-center.
+  - [x] **Registered Tag Removal & Guest Ranking Text**: Remove the "Registered Player" tag across all views (`UserProfileDialog`, `AccountSettingsDialog`), and replace numeric ranking displays for guest accounts with localized `"GUEST"` text.
+  - [x] **Main Menu Action Buttons Parity**: Unify "+ Add Friend" (`dashboard_friends_ribbon.dart`) and "+ Create Room" (`dashboard_open_rooms_card.dart`) in shape, typography, padding, width, and styling matching the create room button.
+  - [x] **Floating Action Button for Friend Search**: Replace the dedicated search tab in `FriendsScreen` with a bottom-right floating action button (matching `RoomBrowserScreen`) to launch the player search view.
+  - [x] **Leaderboard-Style Segmented Tab Bar for Friends**: Replace `FriendsScreen`'s standard Flutter `TabBar` with the segmented pill toggle bar matching `LeaderboardScreen` (`_buildFilterSelector`), supporting Friends and Friend Requests tabs with badge counter.
+  - [x] **Screen Layout Consistency (Leaderboard Parity)**: Standardize secondary screens (`FriendsScreen`, `RoomBrowserScreen`) to follow `LeaderboardScreen` styling: `KitaAppBar`, unified background colors, `ResponsiveLayout(maxWidth: 640)`, card padding, page padding, button hierarchy and general styling.
+  - [x] **Vertical Gradient Backdrop for Main Menu Play Button**: In `DashboardScreen`, add a smooth vertical gradient backdrop behind `DashboardActionDock` (fading from background color to transparent) to eliminate abrupt overlap with scrolling content.
+  - [x] **Separation of Board Settings & Match Settings Dialogs**: In `SettingsDialog`, rename the existing configuration dialog to "Board Settings" (`BoardSettingsDialog` focusing on themes, tile colors, tile style, and last move indicator), and create a separate "Match Settings" dialog (`MatchSettingsDialog` for board orientation, piece rotation, and flip viewpoint).
+  - [x] **Minimalist 3x2 Board Theme Grid**: In board theme selection, keep the 3-tile color palette preview swatches, remove the text labels, and arrange themes into a clean, responsive 3x2 grid with minimal padding.
+  - [x] **Hide Local Co-op UI Customizations**: Remove the 2P local co-op board orientation, piece angle, and auto-rotate controls from the settings UI dialogs while preserving underlying functionality and default preferences.
+  - [x] **Segmented Toggles for Board & Piece Orientation**: Replace the rotation cycle tiles with Leaderboard-style segmented toggle bars:
+    - Board Orientation: Horizontal on the left, Vertical on the right.
+    - Piece Rotation / Angle: Fixed 0° on the left, Auto on the right.
+ 
 - [x] **Settings Quick Controls Row**: Consolidate Theme, Vibration, and Sound toggles into a single compact horizontal strip of 3 rounded/square action tiles within the Settings modal.
 - [x] **Custom Piece Icons for Move Notation**: Replace generic King icons in the move history ribbon and match replay moves list with custom SVG icon, matching the app's visual identity.
 - [x] **Recent Matches Count Indicator**: Remove Recent Matches dashboard header's match counter (e.g., "5").
@@ -21,10 +38,9 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Standardize Draw Outcome Color**: Standardize draw match status badges, chips, and result banners to warning yellow in theme colors.
 - [x] **Custom Emoji Profile Avatars & Accent Color Palette**: Allow players to select custom emojis (free text input or quick popular emoji grid) and customize their avatar's background & border accent color from 8 theme tones, or retain classic icon avatars with real-time preview and cross-platform synchronization (matches, chats, leaderboards, profile dialogs).
 - [ ] **Text Visibility & Overflow Resilience Audit**: Audit labels, chips, and subtitles across small screens; ensure multi-line reflow (Wrap), tooltips for truncated nicknames/rooms, and fallback ellipsis without losing essential context.
-- [ ] **App Branding & Assets Update**: Update loading screen branding, application launcher icons, and store display name across all platforms.
 - [x] **Android 12+ Splash Screen Tuning**: Configure native Android splash screen theme to eliminate double-splash flicker on app launch.
 - [x] App logo, branding, and icon design (Android launcher icons, Web icons & Kita Online naming)
-- [ ] In-match hamburger menu and settings recoloring.
+
 
 ### 👥 Friends & Social
 - [x] **Global Player Search & Friend Requests**: Replace manual nickname entry box with a dedicated player search view backed by server-side query, showing player tiles with inline "Add Friend" actions.

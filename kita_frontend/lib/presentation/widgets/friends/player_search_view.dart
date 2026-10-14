@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -15,11 +16,7 @@ class PlayerSearchView extends StatefulWidget {
   final bool isModal;
   final VoidCallback? onClose;
 
-  const PlayerSearchView({
-    super.key,
-    this.isModal = false,
-    this.onClose,
-  });
+  const PlayerSearchView({super.key, this.isModal = false, this.onClose});
 
   @override
   State<PlayerSearchView> createState() => _PlayerSearchViewState();
@@ -124,7 +121,9 @@ class _PlayerSearchViewState extends State<PlayerSearchView> {
           ),
           backgroundColor: AppColors.darkCard,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } else {
@@ -148,7 +147,9 @@ class _PlayerSearchViewState extends State<PlayerSearchView> {
           ),
           backgroundColor: AppColors.darkCard,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -237,7 +238,10 @@ class _PlayerSearchViewState extends State<PlayerSearchView> {
                   : null,
               filled: true,
               fillColor: AppColors.getSurface(isDark),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: AppColors.getBorder(isDark)),
@@ -249,7 +253,7 @@ class _PlayerSearchViewState extends State<PlayerSearchView> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(
-                  color: AppColors.primaryGreen,
+                  color: AppColors.primaryAmber,
                   width: 1.6,
                 ),
               ),
@@ -258,9 +262,7 @@ class _PlayerSearchViewState extends State<PlayerSearchView> {
         ),
 
         // Results / Empty / Loading content
-        Expanded(
-          child: _buildContent(isDark),
-        ),
+        Expanded(child: _buildContent(isDark)),
       ],
     );
   }
@@ -272,7 +274,7 @@ class _PlayerSearchViewState extends State<PlayerSearchView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CircularProgressIndicator(
-              color: AppColors.primaryGreen,
+              color: AppColors.primaryAmber,
               strokeWidth: 2.2,
             ),
             const SizedBox(height: 12),
@@ -300,7 +302,8 @@ class _PlayerSearchViewState extends State<PlayerSearchView> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: AppColors.getBrandPrimary(isDark).withValues(alpha: 0.12),
+                  color: AppColors.getBrandPrimary(isDark)
+                      .withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -431,10 +434,7 @@ class _PlayerSearchTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.getBorder(isDark),
-              width: 1.1,
-            ),
+            border: Border.all(color: AppColors.getBorder(isDark), width: 1.1),
           ),
           child: Row(
             children: [
@@ -468,7 +468,10 @@ class _PlayerSearchTile extends StatelessWidget {
                       children: [
                         // Rating Tag
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accentGold.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(5),
@@ -594,14 +597,19 @@ class _PlayerSearchTile extends StatelessWidget {
                 : const Icon(Icons.check_rounded, size: 15),
             label: Text(
               'online.statusAccept'.tr(),
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: AppColors.primaryAmber,
               foregroundColor: AppColors.darkTextPrimary,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         );
@@ -624,14 +632,19 @@ class _PlayerSearchTile extends StatelessWidget {
                 : const Icon(Icons.person_add_alt_1_rounded, size: 15),
             label: Text(
               'online.addFriendAction'.tr(),
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: AppColors.primaryAmber,
               foregroundColor: AppColors.darkTextPrimary,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         );

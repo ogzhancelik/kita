@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../core/theme/app_colors.dart';
 
 class KitaTextField extends StatefulWidget {
@@ -17,6 +18,7 @@ class KitaTextField extends StatefulWidget {
   final void Function(String)? onSubmitted;
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
+  final Widget? suffixIcon;
 
   const KitaTextField({
     super.key,
@@ -34,6 +36,7 @@ class KitaTextField extends StatefulWidget {
     this.onSubmitted,
     this.inputFormatters,
     this.maxLength,
+    this.suffixIcon,
   });
 
   @override
@@ -45,7 +48,8 @@ class _KitaTextFieldState extends State<KitaTextField> {
   bool _isFocused = false;
   FocusNode? _internalFocusNode;
 
-  FocusNode get _effectiveFocusNode => widget.focusNode ?? (_internalFocusNode ??= FocusNode());
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ?? (_internalFocusNode ??= FocusNode());
 
   @override
   void initState() {
@@ -57,7 +61,9 @@ class _KitaTextFieldState extends State<KitaTextField> {
   void didUpdateWidget(KitaTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focusNode != oldWidget.focusNode) {
-      (oldWidget.focusNode ?? _internalFocusNode)?.removeListener(_handleFocusChange);
+      (oldWidget.focusNode ?? _internalFocusNode)?.removeListener(
+        _handleFocusChange,
+      );
       _effectiveFocusNode.addListener(_handleFocusChange);
     }
   }
@@ -85,7 +91,9 @@ class _KitaTextFieldState extends State<KitaTextField> {
         Text(
           widget.label,
           style: TextStyle(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary,
             fontSize: 13.5,
             fontWeight: FontWeight.w600,
           ),
@@ -111,7 +119,9 @@ class _KitaTextFieldState extends State<KitaTextField> {
           maxLength: widget.maxLength,
           scrollPadding: const EdgeInsets.all(24.0),
           style: TextStyle(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary,
             fontSize: 14.5,
             fontWeight: FontWeight.w500,
           ),
@@ -119,7 +129,9 @@ class _KitaTextFieldState extends State<KitaTextField> {
             counterText: widget.maxLength != null ? '' : null,
             hintText: widget.hint,
             hintStyle: TextStyle(
-              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+              color: isDark
+                  ? AppColors.darkTextMuted
+                  : AppColors.lightTextMuted,
               fontSize: 14,
             ),
             filled: true,
@@ -128,8 +140,10 @@ class _KitaTextFieldState extends State<KitaTextField> {
                 ? Icon(
                     widget.prefixIcon,
                     color: _isFocused
-                        ? AppColors.primaryGreen
-                        : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                        ? AppColors.primaryAmber
+                        : (isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted),
                     size: 20,
                   )
                 : null,
@@ -141,14 +155,20 @@ class _KitaTextFieldState extends State<KitaTextField> {
                         _obscureText
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                         size: 20,
                       ),
-                      onPressed: () => setState(() => _obscureText = !_obscureText),
+                      onPressed: () =>
+                          setState(() => _obscureText = !_obscureText),
                     ),
                   )
-                : null,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                : widget.suffixIcon,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(
@@ -166,23 +186,17 @@ class _KitaTextFieldState extends State<KitaTextField> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(
-                color: AppColors.primaryGreen,
+                color: AppColors.primaryAmber,
                 width: 1.8,
               ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: AppColors.error,
-                width: 1.2,
-              ),
+              borderSide: const BorderSide(color: AppColors.error, width: 1.2),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: AppColors.error,
-                width: 1.8,
-              ),
+              borderSide: const BorderSide(color: AppColors.error, width: 1.8),
             ),
           ),
         ),

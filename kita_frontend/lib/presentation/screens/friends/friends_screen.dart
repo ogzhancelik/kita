@@ -11,12 +11,14 @@ import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
+import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_avatar.dart';
+import '../../widgets/common/responsive_layout.dart';
+import '../../widgets/friends/add_friend_dialog.dart';
 import '../../widgets/friends/player_search_view.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
 import 'dm_chat_screen.dart';
-
 
 /// Screen managing friends list, incoming/outgoing requests, and direct challenges.
 class FriendsScreen extends StatefulWidget {
@@ -33,7 +35,10 @@ class _FriendsScreenState extends State<FriendsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FriendsProvider>().loadAll().then((_) {
         if (mounted) {
@@ -50,6 +55,123 @@ class _FriendsScreenState extends State<FriendsScreen>
     super.dispose();
   }
 
+  Widget _buildFilterSelector(bool isDark, int pendingCount) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildFilterTab(
+              label: 'online.friends'.tr(),
+              icon: Icons.people_alt_rounded,
+              isSelected: _tabController.index == 0,
+              onTap: () => _tabController.animateTo(0),
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildFilterTab(
+              label: 'online.friendRequests'.tr(),
+              icon: Icons.mail_outline_rounded,
+              isSelected: _tabController.index == 1,
+              badgeCount: pendingCount,
+              onTap: () => _tabController.animateTo(1),
+              isDark: isDark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterTab({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required bool isDark,
+    int badgeCount = 0,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryAmber : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryAmber.withValues(alpha: 0.35),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected
+                  ? AppColors.darkTextPrimary
+                  : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? AppColors.darkTextPrimary
+                      : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (badgeCount > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white : AppColors.lossRed,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isSelected ? AppColors.primaryAmberDark : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final friendsProv = context.watch<FriendsProvider>();
@@ -60,74 +182,63 @@ class _FriendsScreenState extends State<FriendsScreen>
     final pendingFriendCount = notifProv.pendingNotifications
         .where((n) => n.type == KitaNotificationType.friendRequest)
         .length;
-
+    final totalPendingRequests = pendingFriendCount > 0
+        ? pendingFriendCount
+        : friendsProv.pendingIncomingCount;
 
     return Scaffold(
-      backgroundColor: AppColors.getBackground(isDark),
-      appBar: AppBar(
-        title: Text('online.friends'.tr()),
-        backgroundColor: AppColors.getCard(isDark),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primaryGreen,
-          labelColor: AppColors.primaryGreen,
-          unselectedLabelColor: AppColors.getTextMuted(isDark),
-          tabs: [
-            Tab(text: 'online.friends'.tr()),
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('online.friendRequests'.tr()),
-                  if (pendingFriendCount > 0 || friendsProv.pendingIncomingCount > 0) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: AppColors.lossRed,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '${pendingFriendCount > 0 ? pendingFriendCount : friendsProv.pendingIncomingCount}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.darkTextPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+      appBar: KitaAppBar(
+        title: 'online.friends'.tr(),
+        showBack: true,
+        showAuthActions: false,
+        showLanguageToggle: false,
+        showThemeToggle: false,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => AddFriendDialog.show(context),
+        backgroundColor: AppColors.primaryAmber,
+        elevation: 4,
+        icon: const Icon(
+          Icons.person_add_alt_1_rounded,
+          color: AppColors.darkTextPrimary,
+        ),
+        label: Text(
+          'online.searchPlayers'.tr(),
+          style: const TextStyle(
+            color: AppColors.darkTextPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: ResponsiveLayout(
+        maxWidth: 640,
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: _buildFilterSelector(isDark, totalPendingRequests),
             ),
-            Tab(text: 'online.searchPlayers'.tr()),
+            Expanded(
+              child: friendsProv.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.primaryAmber),
+                    )
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        // 1. Friends list
+                        _buildFriendsTab(context, friendsProv, onlineProv, isDark),
+
+                        // 2. Friend requests
+                        _buildRequestsTab(context, friendsProv, isDark),
+                      ],
+                    ),
+            ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add_alt_1_rounded),
-            tooltip: 'online.searchPlayers'.tr(),
-            onPressed: () => _tabController.animateTo(2),
-          ),
-        ],
       ),
-      body: friendsProv.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryGreen),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                // 1. Friends list
-                _buildFriendsTab(context, friendsProv, onlineProv, isDark),
-
-                // 2. Friend requests
-                _buildRequestsTab(context, friendsProv, isDark),
-
-                // 3. Global player search
-                const PlayerSearchView(isModal: false),
-              ],
-            ),
     );
   }
 
@@ -159,11 +270,11 @@ class _FriendsScreenState extends State<FriendsScreen>
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: () => _tabController.animateTo(2),
+              onPressed: () => AddFriendDialog.show(context),
               icon: const Icon(Icons.person_search_rounded, size: 18),
               label: Text('online.searchPlayers'.tr()),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: AppColors.primaryAmber,
                 foregroundColor: AppColors.darkTextPrimary,
               ),
             ),
@@ -173,7 +284,7 @@ class _FriendsScreenState extends State<FriendsScreen>
     }
 
     return RefreshIndicator(
-      color: AppColors.primaryGreen,
+      color: AppColors.primaryAmber,
       onRefresh: friendsProv.loadAll,
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
@@ -201,9 +312,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                 );
               }
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => DmChatScreen(friend: friend),
-                ),
+                MaterialPageRoute(builder: (_) => DmChatScreen(friend: friend)),
               );
             },
             onTap: () {
@@ -213,7 +322,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                 fallbackName: friend.username,
                 fallbackAvatarIndex: friend.avatarIndex,
                 fallbackRating: friend.rating,
-                onInvite: () => _inviteFriendToMatch(context, onlineProv, friend),
+                onInvite: () =>
+                    _inviteFriendToMatch(context, onlineProv, friend),
               );
             },
           );
@@ -234,16 +344,13 @@ class _FriendsScreenState extends State<FriendsScreen>
       return Center(
         child: Text(
           'online.noFriendsYet'.tr(),
-          style: TextStyle(
-            fontSize: 14,
-            color: AppColors.getTextMuted(isDark),
-          ),
+          style: TextStyle(fontSize: 14, color: AppColors.getTextMuted(isDark)),
         ),
       );
     }
 
     return RefreshIndicator(
-      color: AppColors.primaryGreen,
+      color: AppColors.primaryAmber,
       onRefresh: () async {
         final notifProv = context.read<NotificationProvider>();
         await friendsProv.loadAll();
@@ -280,14 +387,20 @@ class _FriendsScreenState extends State<FriendsScreen>
                   final notifProv = context.read<NotificationProvider>();
                   await notifProv.acceptNotification(context, notifId);
                   await friendsProv.acceptRequest(r.friendshipId);
-                  notifProv.syncFriendshipActioned(r.friendshipId, NotificationStatus.accepted);
+                  notifProv.syncFriendshipActioned(
+                    r.friendshipId,
+                    NotificationStatus.accepted,
+                  );
                 },
                 onDecline: () async {
                   final notifId = 'friend_request_${r.friendshipId}';
                   final notifProv = context.read<NotificationProvider>();
                   await notifProv.declineNotification(context, notifId);
                   await friendsProv.declineRequest(r.friendshipId);
-                  notifProv.syncFriendshipActioned(r.friendshipId, NotificationStatus.declined);
+                  notifProv.syncFriendshipActioned(
+                    r.friendshipId,
+                    NotificationStatus.declined,
+                  );
                 },
               ),
             ),
@@ -381,7 +494,9 @@ class _FriendsScreenState extends State<FriendsScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: Text('online.removeFriend'.tr()),
           ),
@@ -390,7 +505,6 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 }
-
 
 class _FriendCard extends StatelessWidget {
   final FriendItemModel friend;
@@ -443,16 +557,22 @@ class _FriendCard extends StatelessWidget {
                         width: 11,
                         height: 11,
                         decoration: BoxDecoration(
-                          color: friend.isOnline ? AppColors.online : AppColors.offline,
+                          color: friend.isOnline
+                              ? AppColors.online
+                              : AppColors.offline,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                            color: isDark
+                                ? AppColors.darkCard
+                                : AppColors.lightCard,
                             width: 1.5,
                           ),
                           boxShadow: friend.isOnline
                               ? [
                                   BoxShadow(
-                                    color: AppColors.online.withValues(alpha: 0.5),
+                                    color: AppColors.online.withValues(
+                                      alpha: 0.5,
+                                    ),
                                     blurRadius: 3,
                                     spreadRadius: 0.5,
                                   ),
@@ -501,7 +621,10 @@ class _FriendCard extends StatelessWidget {
                       onTap: onInvite,
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: friend.isOnline
                               ? AppColors.accent.withValues(alpha: 0.15)
@@ -546,12 +669,16 @@ class _FriendCard extends StatelessWidget {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 8),
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.primaryVibrant.withAlpha(30),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: AppColors.primaryVibrant.withAlpha(80),
+                                    color: AppColors.primaryVibrant.withAlpha(
+                                      80,
+                                    ),
                                   ),
                                 ),
                                 child: const Icon(
@@ -609,7 +736,6 @@ class _FriendCard extends StatelessWidget {
     );
   }
 }
-
 
 class _IncomingRequestCard extends StatelessWidget {
   final FriendItemModel request;
@@ -675,7 +801,10 @@ class _IncomingRequestCard extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.check_circle, color: AppColors.accentSecondary),
+                  icon: const Icon(
+                    Icons.check_circle,
+                    color: AppColors.accentSecondary,
+                  ),
                   onPressed: onAccept,
                 ),
                 IconButton(
@@ -765,4 +894,3 @@ class _OutgoingRequestCard extends StatelessWidget {
     );
   }
 }
-

@@ -28,10 +28,7 @@ class MatchBottomBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         border: Border(
-          top: BorderSide(
-            color: AppColors.getBorder(isDark),
-            width: 0.8,
-          ),
+          top: BorderSide(color: AppColors.getBorder(isDark), width: 0.8),
         ),
       ),
       child: Row(
@@ -63,7 +60,7 @@ class MatchBottomBar extends StatelessWidget {
                             : Icons.chat_bubble_outline_rounded,
                       ),
                       color: provider.isChatOpen
-                          ? AppColors.primaryGreen
+                          ? AppColors.primaryAmber
                           : AppColors.getTextSecondary(isDark),
                       tooltip: 'online.toggleChat'.tr(),
                       onPressed: provider.toggleChat,

@@ -51,7 +51,8 @@ class HomePendingGameCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final matchState = onlineProv.matchState.value;
-    final isRoomOpen = matchState == OnlineMatchState.inRoom &&
+    final isRoomOpen =
+        matchState == OnlineMatchState.inRoom &&
         onlineProv.currentRoomCode != null &&
         onlineProv.currentRoomCode!.isNotEmpty;
     final pendingChallenges = onlineProv.pendingOutgoingChallenges.value;
@@ -70,10 +71,17 @@ class HomePendingGameCard extends StatelessWidget {
         borderRadius: hasBothActive
             ? const BorderRadius.vertical(top: Radius.circular(16))
             : BorderRadius.circular(16),
-        margin: hasBothActive ? EdgeInsets.zero : const EdgeInsets.only(bottom: 12.0),
+        margin: hasBothActive
+            ? EdgeInsets.zero
+            : const EdgeInsets.only(bottom: 12.0),
       );
     } else if (pendingRematch != null) {
-      onlineSection = _buildPendingRematchCard(context, onlineProv, isDark, pendingRematch);
+      onlineSection = _buildPendingRematchCard(
+        context,
+        onlineProv,
+        isDark,
+        pendingRematch,
+      );
     } else if (isRoomOpen) {
       onlineSection = _buildOpenRoomCard(context, onlineProv, isDark);
     } else if (pendingChallenges.isNotEmpty) {
@@ -110,10 +118,7 @@ class HomePendingGameCard extends StatelessWidget {
     if (onlineSection != null && offlineSection != null) {
       return Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          onlineSection,
-          offlineSection,
-        ],
+        children: [onlineSection, offlineSection],
       );
     } else if (onlineSection != null) {
       return onlineSection;
@@ -131,10 +136,13 @@ class HomePendingGameCard extends StatelessWidget {
     BuildContext context,
     OnlineGameProvider onlineProv,
     bool isDark, {
-    BorderRadiusGeometry borderRadius = const BorderRadius.all(Radius.circular(16)),
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(
+      Radius.circular(16),
+    ),
     EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
   }) {
-    final opponentName = onlineProv.opponentInfo?.name ?? 'online.opponent'.tr();
+    final opponentName =
+        onlineProv.opponentInfo?.name ?? 'online.opponent'.tr();
     final badgeLabel = '★ ${onlineProv.opponentInfo?.displayRating ?? "1200"}';
     final tcStr = _formatTimeControl(onlineProv.timeControl);
 
@@ -150,7 +158,9 @@ class HomePendingGameCard extends StatelessWidget {
       margin: margin,
       child: InkWell(
         onTap: () => _rejoinOnlineGame(context),
-        borderRadius: borderRadius is BorderRadius ? borderRadius : BorderRadius.circular(16),
+        borderRadius: borderRadius is BorderRadius
+            ? borderRadius
+            : BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
@@ -180,7 +190,9 @@ class HomePendingGameCard extends StatelessWidget {
                 child: Center(
                   child: Icon(
                     Icons.sports_esports_rounded,
-                    color: isDark ? AppColors.accent : AppColors.accentSecondary,
+                    color: isDark
+                        ? AppColors.accent
+                        : AppColors.accentSecondary,
                     size: 24,
                   ),
                 ),
@@ -204,7 +216,9 @@ class HomePendingGameCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'dashboard.pendingSection.activeGameTitle'.tr().toUpperCase(),
+                            'dashboard.pendingSection.activeGameTitle'
+                                .tr()
+                                .toUpperCase(),
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
@@ -227,11 +241,14 @@ class HomePendingGameCard extends StatelessWidget {
                                     height: 6,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
+                                      color: isMyTurn
+                                          ? AppColors.accentGold
+                                          : AppColors.getTextMuted(isDark),
                                       boxShadow: isMyTurn
                                           ? [
                                               BoxShadow(
-                                                color: AppColors.accentGold.withValues(alpha: 0.6),
+                                                color: AppColors.accentGold
+                                                    .withValues(alpha: 0.6),
                                                 blurRadius: 4,
                                                 spreadRadius: 0.5,
                                               ),
@@ -243,12 +260,16 @@ class HomePendingGameCard extends StatelessWidget {
                                   Flexible(
                                     child: Text(
                                       isMyTurn
-                                          ? 'dashboard.pendingSection.yourTurn'.tr()
-                                          : 'dashboard.pendingSection.opponentTurn'.tr(),
+                                          ? 'dashboard.pendingSection.yourTurn'
+                                                .tr()
+                                          : 'dashboard.pendingSection.opponentTurn'
+                                                .tr(),
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: isMyTurn ? AppColors.accentGold : AppColors.getTextMuted(isDark),
+                                        color: isMyTurn
+                                            ? AppColors.accentGold
+                                            : AppColors.getTextMuted(isDark),
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -276,7 +297,10 @@ class HomePendingGameCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.ratingGold.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
@@ -303,9 +327,14 @@ class HomePendingGameCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                      color: isDark
+                          ? AppColors.darkSurface
+                          : AppColors.lightSurface,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: AppColors.getBorder(isDark),
@@ -334,9 +363,12 @@ class HomePendingGameCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primaryAmber,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -374,15 +406,15 @@ class HomePendingGameCard extends StatelessWidget {
     BuildContext context,
     OfflineGameProvider offlineProv,
     bool isDark, {
-    BorderRadiusGeometry borderRadius = const BorderRadius.all(Radius.circular(16)),
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(
+      Radius.circular(16),
+    ),
     EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
   }) {
     final isBot = offlineProv.offlinePlayMode == PlayMode.vsAi;
     final isLocalCoop = offlineProv.offlinePlayMode == PlayMode.localCoop;
 
-    final opponentName = isLocalCoop
-        ? 'game.player2'.tr()
-        : 'game.aiBot'.tr();
+    final opponentName = isLocalCoop ? 'game.player2'.tr() : 'game.aiBot'.tr();
 
     final badgeLabel = isBot ? offlineProv.offlineBotDifficultyLabel : '2P';
 
@@ -398,7 +430,9 @@ class HomePendingGameCard extends StatelessWidget {
       margin: margin,
       child: InkWell(
         onTap: () => _rejoinOfflineGame(context),
-        borderRadius: borderRadius is BorderRadius ? borderRadius : BorderRadius.circular(16),
+        borderRadius: borderRadius is BorderRadius
+            ? borderRadius
+            : BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
@@ -427,7 +461,9 @@ class HomePendingGameCard extends StatelessWidget {
                 ),
                 child: Center(
                   child: Icon(
-                    isBot ? Icons.smart_toy_rounded : Icons.people_outline_rounded,
+                    isBot
+                        ? Icons.smart_toy_rounded
+                        : Icons.people_outline_rounded,
                     color: AppColors.primaryLight,
                     size: 24,
                   ),
@@ -452,7 +488,9 @@ class HomePendingGameCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'dashboard.pendingSection.activeGameTitle'.tr().toUpperCase(),
+                            'dashboard.pendingSection.activeGameTitle'
+                                .tr()
+                                .toUpperCase(),
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
@@ -467,16 +505,22 @@ class HomePendingGameCard extends StatelessWidget {
                             valueListenable: offlineProv.currentTurn,
                             builder: (context, currentTurn, _) {
                               final isMyTurn = isLocalCoop
-                                  ? (currentTurn == 'white' ? 'common.white'.tr() : 'common.black'.tr())
+                                  ? (currentTurn == 'white'
+                                        ? 'common.white'.tr()
+                                        : 'common.black'.tr())
                                   : (currentTurn == offlineProv.myTeam
-                                      ? 'dashboard.pendingSection.yourTurn'.tr()
-                                      : 'dashboard.pendingSection.opponentTurn'.tr());
+                                        ? 'dashboard.pendingSection.yourTurn'
+                                              .tr()
+                                        : 'dashboard.pendingSection.opponentTurn'
+                                              .tr());
                               final turnColor = isLocalCoop
                                   ? AppColors.getTextPrimary(isDark)
                                   : (currentTurn == offlineProv.myTeam
-                                      ? AppColors.accentGold
-                                      : AppColors.getTextMuted(isDark));
-                              final isHighlighted = !isLocalCoop && currentTurn == offlineProv.myTeam;
+                                        ? AppColors.accentGold
+                                        : AppColors.getTextMuted(isDark));
+                              final isHighlighted =
+                                  !isLocalCoop &&
+                                  currentTurn == offlineProv.myTeam;
 
                               return Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -490,7 +534,8 @@ class HomePendingGameCard extends StatelessWidget {
                                       boxShadow: isHighlighted
                                           ? [
                                               BoxShadow(
-                                                color: AppColors.accentGold.withValues(alpha: 0.6),
+                                                color: AppColors.accentGold
+                                                    .withValues(alpha: 0.6),
                                                 blurRadius: 4,
                                                 spreadRadius: 0.5,
                                               ),
@@ -533,7 +578,10 @@ class HomePendingGameCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.ratingGold.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
@@ -560,9 +608,14 @@ class HomePendingGameCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                      color: isDark
+                          ? AppColors.darkSurface
+                          : AppColors.lightSurface,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: AppColors.getBorder(isDark),
@@ -591,9 +644,12 @@ class HomePendingGameCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primaryAmber,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -693,13 +749,18 @@ class HomePendingGameCard extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accentGold.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'dashboard.pendingSection.openRoomTitle'.tr().toUpperCase(),
+                            'dashboard.pendingSection.openRoomTitle'
+                                .tr()
+                                .toUpperCase(),
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
@@ -732,11 +793,16 @@ class HomePendingGameCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.getSurface(isDark),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: AppColors.getBorder(isDark)),
+                            border: Border.all(
+                              color: AppColors.getBorder(isDark),
+                            ),
                           ),
                           child: Text(
                             tcStr,
@@ -788,7 +854,9 @@ class HomePendingGameCard extends StatelessWidget {
     final tcStr = _formatTimeControl(rematch.timeControl);
 
     return _buildDismissibleContainer(
-      key: ValueKey('rematch_${rematch.matchId}_${rematch.sentAt.millisecondsSinceEpoch}'),
+      key: ValueKey(
+        'rematch_${rematch.matchId}_${rematch.sentAt.millisecondsSinceEpoch}',
+      ),
       dismissLabel: 'dashboard.pendingSection.cancelRematch'.tr(),
       dismissIcon: Icons.cancel_schedule_send_rounded,
       onDismissed: () {
@@ -818,7 +886,9 @@ class HomePendingGameCard extends StatelessWidget {
               radius: 20,
               backgroundColor: AppColors.winBlue.withValues(alpha: 0.2),
               child: Text(
-                rematch.opponentName.isNotEmpty ? rematch.opponentName[0].toUpperCase() : '?',
+                rematch.opponentName.isNotEmpty
+                    ? rematch.opponentName[0].toUpperCase()
+                    : '?',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -836,13 +906,18 @@ class HomePendingGameCard extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.winBlue.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'dashboard.pendingSection.pendingRematchTitle'.tr().toUpperCase(),
+                          'dashboard.pendingSection.pendingRematchTitle'
+                              .tr()
+                              .toUpperCase(),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
@@ -870,7 +945,10 @@ class HomePendingGameCard extends StatelessWidget {
                       if (rematch.opponentRating != null) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.ratingGold.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
@@ -923,17 +1001,24 @@ class HomePendingGameCard extends StatelessWidget {
     OnlineGameProvider onlineProv,
     bool isDark,
     PendingOutgoingChallenge challenge, {
-    BorderRadiusGeometry borderRadius = const BorderRadius.all(Radius.circular(16)),
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(
+      Radius.circular(16),
+    ),
     EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
   }) {
     final tcStr = _formatTimeControl(challenge.timeControl);
 
     return _buildDismissibleContainer(
-      key: ValueKey('challenge_${challenge.friendId}_${challenge.inviteId ?? challenge.sentAt.millisecondsSinceEpoch}'),
+      key: ValueKey(
+        'challenge_${challenge.friendId}_${challenge.inviteId ?? challenge.sentAt.millisecondsSinceEpoch}',
+      ),
       dismissLabel: 'dashboard.pendingSection.cancelInvite'.tr(),
       dismissIcon: Icons.cancel_schedule_send_rounded,
       onDismissed: () {
-        onlineProv.cancelOutgoingChallenge(friendId: challenge.friendId, inviteId: challenge.inviteId);
+        onlineProv.cancelOutgoingChallenge(
+          friendId: challenge.friendId,
+          inviteId: challenge.inviteId,
+        );
       },
       borderRadius: borderRadius,
       margin: margin,
@@ -961,7 +1046,9 @@ class HomePendingGameCard extends StatelessWidget {
               radius: 20,
               backgroundColor: AppColors.accentSecondary.withValues(alpha: 0.2),
               child: Text(
-                challenge.friendName.isNotEmpty ? challenge.friendName[0].toUpperCase() : '?',
+                challenge.friendName.isNotEmpty
+                    ? challenge.friendName[0].toUpperCase()
+                    : '?',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -979,13 +1066,20 @@ class HomePendingGameCard extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.accentSecondary.withValues(alpha: 0.2),
+                          color: AppColors.accentSecondary.withValues(
+                            alpha: 0.2,
+                          ),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'dashboard.pendingSection.pendingChallengeTitle'.tr().toUpperCase(),
+                          'dashboard.pendingSection.pendingChallengeTitle'
+                              .tr()
+                              .toUpperCase(),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
@@ -1013,7 +1107,10 @@ class HomePendingGameCard extends StatelessWidget {
                       if (challenge.friendRating != null) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.ratingGold.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
@@ -1055,7 +1152,10 @@ class HomePendingGameCard extends StatelessWidget {
               strokeWidth: 2.4,
               color: AppColors.accentSecondary,
               onTimeout: () {
-                onlineProv.cancelOutgoingChallenge(friendId: challenge.friendId, inviteId: challenge.inviteId);
+                onlineProv.cancelOutgoingChallenge(
+                  friendId: challenge.friendId,
+                  inviteId: challenge.inviteId,
+                );
               },
             ),
 
@@ -1067,7 +1167,10 @@ class HomePendingGameCard extends StatelessWidget {
               color: AppColors.lossRed,
               tooltip: 'dashboard.pendingSection.cancelInvite'.tr(),
               onPressed: () {
-                onlineProv.cancelOutgoingChallenge(friendId: challenge.friendId, inviteId: challenge.inviteId);
+                onlineProv.cancelOutgoingChallenge(
+                  friendId: challenge.friendId,
+                  inviteId: challenge.inviteId,
+                );
               },
             ),
           ],
@@ -1127,7 +1230,9 @@ class HomePendingGameCard extends StatelessWidget {
     required VoidCallback onDismissed,
     Future<bool?> Function()? confirmDismiss,
     required Widget child,
-    BorderRadiusGeometry borderRadius = const BorderRadius.all(Radius.circular(16)),
+    BorderRadiusGeometry borderRadius = const BorderRadius.all(
+      Radius.circular(16),
+    ),
     EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
   }) {
     return Container(

@@ -44,9 +44,12 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final onlineProv = widget.moveHistory == null ? context.read<OnlineGameProvider>() : null;
+    final onlineProv = widget.moveHistory == null
+        ? context.read<OnlineGameProvider>()
+        : null;
     final moveHistoryListenable = widget.moveHistory ?? onlineProv!.moveHistory;
-    final viewingMoveIndexListenable = widget.viewingMoveIndex ?? onlineProv!.viewingMoveIndex;
+    final viewingMoveIndexListenable =
+        widget.viewingMoveIndex ?? onlineProv!.viewingMoveIndex;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -112,7 +115,8 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
                         final move = moves[index];
                         final isLatestMove = index == moves.length - 1;
                         final isViewingThis =
-                            (viewIdx == index + 1) || (viewIdx == -1 && isLatestMove);
+                            (viewIdx == index + 1) ||
+                            (viewIdx == -1 && isLatestMove);
                         final isWhiteMove = move.playerTeam == 'white';
                         final piece = KitaPiece.allPieces[move.pieceId];
 
@@ -153,14 +157,16 @@ class _MoveHistoryPanelState extends State<MoveHistoryPanel> {
                             ),
                             decoration: BoxDecoration(
                               color: isViewingThis
-                                  ? AppColors.primaryGreen.withValues(alpha: 0.3)
+                                  ? AppColors.primaryAmber.withValues(
+                                      alpha: 0.3,
+                                    )
                                   : isDark
-                                      ? AppColors.darkCard
-                                      : AppColors.lightCard,
+                                  ? AppColors.darkCard
+                                  : AppColors.lightCard,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
                                 color: isViewingThis
-                                    ? AppColors.primaryGreen
+                                    ? AppColors.primaryAmber
                                     : Colors.transparent,
                                 width: 1.5,
                               ),
@@ -238,7 +244,7 @@ class _LiveButton extends StatelessWidget {
         margin: const EdgeInsets.only(right: 6, left: 4),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.primaryGreen,
+          color: AppColors.primaryAmber,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(

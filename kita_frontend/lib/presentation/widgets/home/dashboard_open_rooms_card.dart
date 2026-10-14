@@ -63,14 +63,18 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
                       ),
                     ),
                     const SizedBox(width: 4),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 12,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ],
                 ),
@@ -79,8 +83,13 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
               // "Oda Kur" Button
               TextButton.icon(
                 style: TextButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  backgroundColor: AppColors.primaryAmber.withValues(
+                    alpha: 0.15,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
@@ -88,13 +97,17 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                   ),
                 ),
                 onPressed: () => CreateRoomDialog.show(context),
-                icon: const Icon(Icons.add_rounded, size: 16, color: AppColors.primaryGreen),
+                icon: const Icon(
+                  Icons.add_rounded,
+                  size: 16,
+                  color: AppColors.primaryAmber,
+                ),
                 label: Text(
                   'dashboard.createRoom'.tr(),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primaryGreen,
+                    color: AppColors.primaryAmber,
                   ),
                 ),
               ),
@@ -117,14 +130,18 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                         Icon(
                           Icons.inbox_rounded,
                           size: 32,
-                          color: isDark ? AppColors.darkTextMuted.withValues(alpha: 0.5) : AppColors.lightTextMuted.withValues(alpha: 0.5),
+                          color: isDark
+                              ? AppColors.darkTextMuted.withValues(alpha: 0.5)
+                              : AppColors.lightTextMuted.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'dashboard.noOpenRooms'.tr(),
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                            color: isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.lightTextMuted,
                           ),
                         ),
                       ],
@@ -134,7 +151,9 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
               }
 
               return Column(
-                children: rooms.map((room) => _buildRoomTile(room, onlineProv, isDark)).toList(),
+                children: rooms
+                    .map((room) => _buildRoomTile(room, onlineProv, isDark))
+                    .toList(),
               );
             },
           ),
@@ -143,7 +162,11 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
     );
   }
 
-  Widget _buildRoomTile(RoomInfoPayload room, OnlineGameProvider onlineProv, bool isDark) {
+  Widget _buildRoomTile(
+    RoomInfoPayload room,
+    OnlineGameProvider onlineProv,
+    bool isDark,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -183,7 +206,9 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -191,7 +216,10 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.ratingGold.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -212,7 +240,9 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                   _formatTimeControl(room.timeControl),
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
               ],
@@ -220,7 +250,7 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: AppColors.primaryAmber,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,

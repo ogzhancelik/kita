@@ -9,6 +9,7 @@ import '../../providers/theme_provider.dart';
 import '../common/kita_card.dart';
 import '../../screens/tutorial/tutorial_screen.dart';
 import 'account_settings_dialog.dart';
+import 'board_settings_dialog.dart';
 import 'match_settings_dialog.dart';
 
 class SettingsDialog extends StatelessWidget {
@@ -73,13 +74,17 @@ class SettingsDialog extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
                   ),
                   IconButton(
                     icon: Icon(
                       Icons.close_rounded,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -105,39 +110,70 @@ class SettingsDialog extends StatelessWidget {
                     _buildSettingsTile(
                       isDark: isDark,
                       icon: Icons.language_rounded,
-                      iconColor: AppColors.primaryGreen,
+                      iconColor: AppColors.primaryAmber,
                       title: 'settings.language'.tr(),
-                      subtitle: currentLocale == 'tr' ? 'settings.languageTr'.tr() : 'settings.languageEn'.tr(),
+                      subtitle: currentLocale == 'tr'
+                          ? 'settings.languageTr'.tr()
+                          : 'settings.languageEn'.tr(),
                       trailing: TextButton(
                         style: TextButton.styleFrom(
-                          backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+                          backgroundColor: isDark
+                              ? AppColors.darkBg
+                              : AppColors.lightBg,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                             side: BorderSide(
-                              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : AppColors.lightBorder,
                             ),
                           ),
                         ),
                         onPressed: () {
-                          final newLocale = currentLocale == 'en' ? const Locale('tr') : const Locale('en');
+                          final newLocale = currentLocale == 'en'
+                              ? const Locale('tr')
+                              : const Locale('en');
                           context.setLocale(newLocale);
                         },
                         child: Text(
                           currentLocale == 'en' ? 'TR' : 'EN',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
 
-                    // --- Match Settings (Board theme, orientation & flip) ---
+                    // --- Board Settings (Theme, tile colors & last move indicator) ---
+                    _buildSettingsTile(
+                      isDark: isDark,
+                      icon: Icons.palette_outlined,
+                      iconColor: AppColors.primaryAmber,
+                      title: 'settings.boardSettings'.tr(),
+                      subtitle: 'settings.boardSettingsDesc'.tr(),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        BoardSettingsDialog.show(context);
+                      },
+                      trailing: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- Match Settings (Orientation, piece angle & flip viewpoint) ---
                     _buildSettingsTile(
                       isDark: isDark,
                       icon: Icons.sports_esports_rounded,
-                      iconColor: AppColors.primaryGreen,
+                      iconColor: AppColors.accentSecondary,
                       title: 'settings.matchSettings'.tr(),
                       subtitle: 'settings.matchSettingsDesc'.tr(),
                       onTap: () {
@@ -145,11 +181,11 @@ class SettingsDialog extends StatelessWidget {
                         MatchSettingsDialog.show(context);
                       },
                       trailing: Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: isDark
-                ? AppColors.darkTextMuted
-                : AppColors.lightTextMuted,
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -198,7 +234,10 @@ class SettingsDialog extends StatelessWidget {
                     if (authProv.isAuthenticated || authProv.isGuest) ...[
                       const SizedBox(height: 16),
                       KitaCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: InkWell(
                           onTap: () {
                             Navigator.of(context).pop();
@@ -277,7 +316,8 @@ class SettingsDialog extends StatelessWidget {
             title: 'settings.sound'.tr(),
             isActive: gameSettings.soundEnabled,
             tooltip: 'settings.sound'.tr(),
-            onTap: () => gameSettings.setSoundEnabled(!gameSettings.soundEnabled),
+            onTap: () =>
+                gameSettings.setSoundEnabled(!gameSettings.soundEnabled),
           ),
         ),
         const SizedBox(width: 8),
@@ -293,7 +333,8 @@ class SettingsDialog extends StatelessWidget {
             title: 'settings.vibration'.tr(),
             isActive: gameSettings.hapticsEnabled,
             tooltip: 'settings.vibration'.tr(),
-            onTap: () => gameSettings.setHapticsEnabled(!gameSettings.hapticsEnabled),
+            onTap: () =>
+                gameSettings.setHapticsEnabled(!gameSettings.hapticsEnabled),
           ),
         ),
       ],
@@ -323,8 +364,8 @@ class SettingsDialog extends StatelessWidget {
             decoration: BoxDecoration(
               color: isActive
                   ? (isDark
-                      ? activeColor.withValues(alpha: 0.12)
-                      : activeColor.withValues(alpha: 0.08))
+                        ? activeColor.withValues(alpha: 0.12)
+                        : activeColor.withValues(alpha: 0.08))
                   : (isDark ? AppColors.darkBg : AppColors.lightBg),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
@@ -345,8 +386,8 @@ class SettingsDialog extends StatelessWidget {
                     color: isActive
                         ? activeColor.withValues(alpha: 0.20)
                         : (isDark
-                            ? AppColors.darkSurfaceElevated
-                            : AppColors.lightSurfaceElevated),
+                              ? AppColors.darkSurfaceElevated
+                              : AppColors.lightSurfaceElevated),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -355,8 +396,8 @@ class SettingsDialog extends StatelessWidget {
                     color: isActive
                         ? activeColor
                         : (isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted),
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted),
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -421,7 +462,9 @@ class SettingsDialog extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                 ),
                 if (subtitle != null && subtitle.isNotEmpty) ...[
@@ -430,7 +473,9 @@ class SettingsDialog extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ),
                 ],
@@ -455,15 +500,23 @@ class SettingsDialog extends StatelessWidget {
     return tileContent;
   }
 
-  void _showLogoutConfirmation(BuildContext context, AuthProvider authProv, bool isDark) {
+  void _showLogoutConfirmation(
+    BuildContext context,
+    AuthProvider authProv,
+    bool isDark,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.lightSurface,
         title: Text(
           'settings.logoutConfirmTitle'.tr(),
           style: TextStyle(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -479,21 +532,24 @@ class SettingsDialog extends StatelessWidget {
             child: Text(
               'common.cancel'.tr(),
               style: TextStyle(
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                color: isDark
+                    ? AppColors.darkTextMuted
+                    : AppColors.lightTextMuted,
               ),
             ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.lossRed,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.lossRed),
             onPressed: () {
               Navigator.of(ctx).pop();
               authProv.logout();
             },
             child: Text(
               'settings.confirm'.tr(),
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

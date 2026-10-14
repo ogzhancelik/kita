@@ -1,8 +1,10 @@
 import 'dart:math';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
@@ -61,7 +63,15 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
     final raw = _nameController.text.trim();
     String name = raw;
     if (raw.isNotEmpty) {
-      const reserved = {'admin', 'guest', 'system', 'kita', 'bot', 'moderator', 'support'};
+      const reserved = {
+        'admin',
+        'guest',
+        'system',
+        'kita',
+        'bot',
+        'moderator',
+        'support',
+      };
       if (raw.length < 2) {
         KitaToast.error('auth.usernameTooShort'.tr());
         return;
@@ -88,9 +98,9 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
     }
     if (!mounted) return;
     await context.read<AuthProvider>().continueAsGuest(
-          name,
-          _selectedAvatarIndex,
-        );
+      name,
+      _selectedAvatarIndex,
+    );
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -108,103 +118,105 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
         title: 'guest.title'.tr(),
       ),
       body: ResponsiveLayout(
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 12),
-                Text(
-                  'guest.subtitle'.tr(),
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Selected Avatar Preview
-                Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        color: AvatarPicker.avatars[_selectedAvatarIndex].accentColor.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AvatarPicker.avatars[_selectedAvatarIndex].accentColor,
-                          width: 3,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0,
+                      vertical: 12.0,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryAmber,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: AppColors.primaryAmberDark,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.person_rounded,
+                              color: Colors.white,
+                              size: 38,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Icon(
-                        AvatarPicker.avatars[_selectedAvatarIndex].icon,
-                        size: 48,
-                        color: AvatarPicker.avatars[_selectedAvatarIndex].accentColor,
-                      ),
-                    ),
-                    IconButton.filled(
-                      icon: const Icon(Icons.casino_rounded, size: 18),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                      ),
-                      tooltip: 'guest.randomize'.tr(),
-                      onPressed: _randomizeName,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                        const SizedBox(height: 20),
+                        Text(
+                          'guest.title'.tr(),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'guest.subtitle'.tr(),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
 
-                // Avatar Grid
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'guest.chooseAvatar'.tr(),
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        // Nickname Input with randomize suffix button
+                        KitaTextField(
+                          controller: _nameController,
+                          label: 'guest.nickname'.tr(),
+                          hint: 'guest.nicknameHint'.tr(),
+                          prefixIcon: Icons.badge_rounded,
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.casino_rounded, size: 20),
+                            color: AppColors.primaryAmber,
+                            tooltip: 'guest.randomize'.tr(),
+                            onPressed: _randomizeName,
+                          ),
+                          maxLength: 15,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _continueAsGuest(),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
+                            LengthLimitingTextInputFormatter(15),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Enter Game Button
+                        KitaButton(
+                          text: 'guest.startPlaying'.tr(),
+                          icon: Icons.play_arrow_rounded,
+                          variant: KitaButtonVariant.primary,
+                          onPressed: _continueAsGuest,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                AvatarPicker(
-                  selectedIndex: _selectedAvatarIndex,
-                  onSelected: (idx) => setState(() => _selectedAvatarIndex = idx),
-                ),
-                const SizedBox(height: 24),
-
-                // Nickname Input
-                KitaTextField(
-                  controller: _nameController,
-                  label: 'guest.nickname'.tr(),
-                  hint: 'guest.nicknameHint'.tr(),
-                  prefixIcon: Icons.badge_rounded,
-                  maxLength: 15,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _continueAsGuest(),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
-                    LengthLimitingTextInputFormatter(15),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                // Enter Game Button
-                KitaButton(
-                  text: 'guest.startPlaying'.tr(),
-                  icon: Icons.play_arrow_rounded,
-                  variant: KitaButtonVariant.primary,
-                  onPressed: _continueAsGuest,
-                ),
-                const SizedBox(height: 36),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

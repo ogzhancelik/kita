@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
+import '../../widgets/common/kita_app_bar.dart';
+import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/matchmaking/activity_conflict_dialog.dart';
 import '../../widgets/room/room_dialog.dart';
 
@@ -57,10 +59,7 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
         if (mounted && _joiningRoomCode != null) {
           final err = provider.lastError.value?.message ?? 'Error';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(err),
-              backgroundColor: AppColors.lossRed,
-            ),
+            SnackBar(content: Text(err), backgroundColor: AppColors.lossRed),
           );
           setState(() => _joiningRoomCode = null);
           provider.clearError();
@@ -68,37 +67,48 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
       });
     }
 
-
     return Scaffold(
-      backgroundColor: AppColors.getBackground(isDark),
-      appBar: AppBar(
-        title: Text('online.roomBrowserTitle'.tr()),
-        backgroundColor: AppColors.getCard(isDark),
-        actions: [
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+      appBar: KitaAppBar(
+        title: 'online.roomBrowserTitle'.tr(),
+        showBack: true,
+        showAuthActions: false,
+        showLanguageToggle: false,
+        showThemeToggle: false,
+        extraActions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: 'common.refresh'.tr(),
             onPressed: _fetchRooms,
           ),
         ],
       ),
-      body: ValueListenableBuilder<RoomsListPayload?>(
-        valueListenable: provider.roomsList,
-        builder: (ctx, payload, _) {
+      body: ResponsiveLayout(
+        maxWidth: 640,
+        padding: EdgeInsets.zero,
+        child: ValueListenableBuilder<RoomsListPayload?>(
+          valueListenable: provider.roomsList,
+          builder: (ctx, payload, _) {
           if (payload == null) {
             return const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+              child: CircularProgressIndicator(color: AppColors.primaryAmber),
             );
           }
 
           final rooms = payload.rooms.where((r) {
-            if (provider.myUserId != null && provider.myUserId!.isNotEmpty && r.hostId == provider.myUserId) {
+            if (provider.myUserId != null &&
+                provider.myUserId!.isNotEmpty &&
+                r.hostId == provider.myUserId) {
               return false;
             }
-            if (provider.myUsername != null && provider.myUsername!.isNotEmpty && r.hostName == provider.myUsername) {
+            if (provider.myUsername != null &&
+                provider.myUsername!.isNotEmpty &&
+                r.hostName == provider.myUsername) {
               return false;
             }
-            if (provider.currentRoomCode != null && provider.currentRoomCode!.isNotEmpty && r.roomCode == provider.currentRoomCode) {
+            if (provider.currentRoomCode != null &&
+                provider.currentRoomCode!.isNotEmpty &&
+                r.roomCode == provider.currentRoomCode) {
               return false;
             }
             return true;
@@ -106,19 +116,24 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
           final totalPages = (payload.total / _limit).ceil().clamp(1, 999);
 
           return RefreshIndicator(
-            color: AppColors.primaryGreen,
+            color: AppColors.primaryAmber,
             onRefresh: () async => _fetchRooms(),
             child: Column(
               children: [
                 // Top stats bar
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   color: AppColors.getSurface(isDark),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'online.activePublicRooms'.tr(args: ['${payload.total}']),
+                        'online.activePublicRooms'.tr(
+                          args: ['${payload.total}'],
+                        ),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -145,7 +160,8 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
                       : ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: rooms.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 10),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (ctx, index) {
                             final room = rooms[index];
                             final isJoining = _joiningRoomCode == room.roomCode;
@@ -154,13 +170,16 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
                               isDark: isDark,
                               isJoining: isJoining,
                               onJoin: () async {
-                                final canProceed = await ActivityConflictHelper.checkAndConfirm(
-                                  context: context,
-                                  provider: provider,
-                                );
+                                final canProceed =
+                                    await ActivityConflictHelper.checkAndConfirm(
+                                      context: context,
+                                      provider: provider,
+                                    );
                                 if (!canProceed) return;
                                 if (!context.mounted) return;
-                                setState(() => _joiningRoomCode = room.roomCode);
+                                setState(
+                                  () => _joiningRoomCode = room.roomCode,
+                                );
                                 provider.joinRoom(room.roomCode);
                               },
                             );
@@ -187,7 +206,7 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
                         IconButton(
                           icon: const Icon(Icons.chevron_left),
                           onPressed: _currentPage > 1 ? _onPrevPage : null,
-                          color: AppColors.primaryGreen,
+                          color: AppColors.primaryAmber,
                         ),
                         const SizedBox(width: 16),
                         Text(
@@ -200,9 +219,10 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
                         const SizedBox(width: 16),
                         IconButton(
                           icon: const Icon(Icons.chevron_right),
-                          onPressed:
-                              _currentPage < totalPages ? () => _onNextPage(totalPages) : null,
-                          color: AppColors.primaryGreen,
+                          onPressed: _currentPage < totalPages
+                              ? () => _onNextPage(totalPages)
+                              : null,
+                          color: AppColors.primaryAmber,
                         ),
                       ],
                     ),
@@ -212,9 +232,10 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
           );
         },
       ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => CreateRoomDialog.show(context),
-        backgroundColor: AppColors.primaryGreen,
+        backgroundColor: AppColors.primaryAmber,
         icon: const Icon(Icons.add, color: AppColors.darkTextPrimary),
         label: Text(
           'online.createRoom'.tr(),
@@ -260,8 +281,8 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
             icon: const Icon(Icons.add),
             label: Text('online.createRoom'.tr()),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryGreen,
-              side: const BorderSide(color: AppColors.primaryGreen),
+              foregroundColor: AppColors.primaryAmber,
+              side: const BorderSide(color: AppColors.primaryAmber),
             ),
           ),
         ],
@@ -303,7 +324,7 @@ class _RoomCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.15),
+              color: AppColors.primaryAmber.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -312,7 +333,7 @@ class _RoomCard extends StatelessWidget {
                 fontFamily: 'monospace',
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
-                color: AppColors.primaryGreen,
+                color: AppColors.primaryAmber,
               ),
             ),
           ),
@@ -359,7 +380,7 @@ class _RoomCard extends StatelessWidget {
           ElevatedButton(
             onPressed: isJoining ? null : onJoin,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: AppColors.primaryAmber,
               foregroundColor: AppColors.darkTextPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(

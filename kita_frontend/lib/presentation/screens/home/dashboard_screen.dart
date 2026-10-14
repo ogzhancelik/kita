@@ -119,7 +119,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // --- 2. Scrollable Middle Panel ---
               Expanded(
-                child: RefreshIndicator(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    RefreshIndicator(
                   onRefresh: () async {
                     final currentAuth = context.read<AuthProvider>();
                     final onlineProv = context.read<OnlineGameProvider>();
@@ -219,12 +222,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const DashboardMatchHistoryCard(),
 
                         // Bottom Spacing for Floating/Docked Action Buttons
-                        const SizedBox(height: 85),
+                        const SizedBox(height: 90),
                       ],
                     ),
                   ),
                 ),
-              ),
+
+                // Bottom gradient backdrop behind floating play dock to eliminate abrupt overlap
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 100,
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            (isDark ? AppColors.darkBg : AppColors.lightBg)
+                                .withValues(alpha: 0.0),
+                            (isDark ? AppColors.darkBg : AppColors.lightBg)
+                                .withValues(alpha: 0.85),
+                            isDark ? AppColors.darkBg : AppColors.lightBg,
+                          ],
+                          stops: const [0.0, 0.65, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
             ],
           ),
         ),

@@ -18,7 +18,8 @@ class DashboardMatchHistoryCard extends StatefulWidget {
   const DashboardMatchHistoryCard({super.key});
 
   @override
-  State<DashboardMatchHistoryCard> createState() => _DashboardMatchHistoryCardState();
+  State<DashboardMatchHistoryCard> createState() =>
+      _DashboardMatchHistoryCardState();
 }
 
 class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
@@ -40,8 +41,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
   @override
   void initState() {
     super.initState();
-    LocalMatchHistoryService.instance.matchHistoryRevision
-        .addListener(_onRevisionChanged);
+    LocalMatchHistoryService.instance.matchHistoryRevision.addListener(
+      _onRevisionChanged,
+    );
     _fetchMatches(reset: true);
   }
 
@@ -77,8 +79,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     if (_routeSubscribed) {
       appRouteObserver.unsubscribe(this);
     }
-    LocalMatchHistoryService.instance.matchHistoryRevision
-        .removeListener(_onRevisionChanged);
+    LocalMatchHistoryService.instance.matchHistoryRevision.removeListener(
+      _onRevisionChanged,
+    );
     super.dispose();
   }
 
@@ -123,29 +126,31 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
           .getShowOfflineMatches(userId: user?.id, isGuest: isGuest);
 
       final offlineList = showOffline
-          ? await LocalMatchHistoryService.instance
-              .getMatches(userId: user?.id, isGuest: isGuest)
+          ? await LocalMatchHistoryService.instance.getMatches(
+              userId: user?.id,
+              isGuest: isGuest,
+            )
           : <MatchRecordModel>[];
 
       List<MatchRecordModel> onlineList = [];
       if (!isGuest && !isOnlineUnavailable) {
         try {
           onlineList = await _matchApiService
-              .getUserMatches(
-                user.id,
-                limit: _pageSize,
-                offset: _offset,
-              )
+              .getUserMatches(user.id, limit: _pageSize, offset: _offset)
               .timeout(const Duration(seconds: 4));
         } catch (e) {
-          debugPrint('[DashboardMatchHistoryCard] Offline or error fetching online matches: $e');
+          debugPrint(
+            '[DashboardMatchHistoryCard] Offline or error fetching online matches: $e',
+          );
           onlineList = [];
         }
       }
 
       if (mounted) {
         setState(() {
-          final List<MatchRecordModel> current = reset ? [] : List.from(_matches);
+          final List<MatchRecordModel> current = reset
+              ? []
+              : List.from(_matches);
           if (reset) {
             current.addAll(onlineList);
             if (showOffline) {
@@ -160,7 +165,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
               }
             }
             _matches = deduplicated.take(_pageSize).toList();
-            _hasMore = onlineList.length == _pageSize || deduplicated.length > _matches.length;
+            _hasMore =
+                onlineList.length == _pageSize ||
+                deduplicated.length > _matches.length;
           } else {
             if (onlineList.isNotEmpty) {
               current.addAll(onlineList);
@@ -178,7 +185,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
             }
             final nextCount = _matches.length + _pageSize;
             _matches = deduplicated.take(nextCount).toList();
-            _hasMore = onlineList.length == _pageSize || deduplicated.length > _matches.length;
+            _hasMore =
+                onlineList.length == _pageSize ||
+                deduplicated.length > _matches.length;
           }
           _offset += onlineList.length;
           _isLoading = false;
@@ -245,14 +254,18 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                 ),
                 const SizedBox(width: 4),
                 Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 12,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  color: isDark
+                      ? AppColors.darkTextMuted
+                      : AppColors.lightTextMuted,
                 ),
               ],
             ),
@@ -290,7 +303,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                           : 'dashboard.noRecentMatches'.tr(),
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -319,7 +334,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primaryAmber,
                     ),
                   ),
                 ),
@@ -338,11 +353,17 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
       return 'game.grandmaster'.tr();
     } else if (username.contains('novice') || username.contains('acemi')) {
       return 'game.novice'.tr();
-    } else if (username.contains('easy') || username.contains('beginner') || username.contains('başlangıç')) {
+    } else if (username.contains('easy') ||
+        username.contains('beginner') ||
+        username.contains('başlangıç')) {
       return 'game.easy'.tr();
-    } else if (username.contains('hard') || username.contains('master') || username.contains('usta')) {
+    } else if (username.contains('hard') ||
+        username.contains('master') ||
+        username.contains('usta')) {
       return 'game.hard'.tr();
-    } else if (username.contains('medium') || username.contains('intermediate') || username.contains('orta')) {
+    } else if (username.contains('medium') ||
+        username.contains('intermediate') ||
+        username.contains('orta')) {
       return 'game.medium'.tr();
     }
 
@@ -360,16 +381,24 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
     }
   }
 
-  Widget _buildPlayerAvatar(UserProfile? player, bool isDark, {bool? isDeleted, bool? isGuest}) {
+  Widget _buildPlayerAvatar(
+    UserProfile? player,
+    bool isDark, {
+    bool? isDeleted,
+    bool? isGuest,
+  }) {
     final rawName = player?.username;
-    final bool isNameUuid = rawName != null &&
+    final bool isNameUuid =
+        rawName != null &&
         rawName.length >= 32 &&
         RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(rawName);
-    final bool effectiveDeleted = isDeleted ??
+    final bool effectiveDeleted =
+        isDeleted ??
         (rawName == '[Deleted]' ||
             isNameUuid ||
             (player?.id != null && player!.id.contains('deleted')));
-    final bool effectiveGuest = isGuest ??
+    final bool effectiveGuest =
+        isGuest ??
         ((player?.id != null && player!.id.startsWith('guest-')) ||
             (rawName != null && rawName.toLowerCase().startsWith('guest')));
 
@@ -467,37 +496,48 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
             width: 1,
           ),
         ),
-        child: Center(
-          child: Icon(
-            icon,
-            size: 11,
-            color: badgeColor,
-          ),
-        ),
+        child: Center(child: Icon(icon, size: 11, color: badgeColor)),
       ),
     );
   }
 
-  Widget _buildMatchTile(MatchRecordModel match, String currentUserId, bool isDark) {
+  Widget _buildMatchTile(
+    MatchRecordModel match,
+    String currentUserId,
+    bool isDark,
+  ) {
     final bool isOffline = match.isOffline || match.id.startsWith('offline');
     final bool isCoop = match.isLocalCoop;
     final bool isWhite = match.isUserWhite(currentUserId);
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
     final bool isVsAi = match.isVsAi;
     final rawOpponentName = opponent?.username;
-    final bool isNameUuid = rawOpponentName != null &&
+    final bool isNameUuid =
+        rawOpponentName != null &&
         rawOpponentName.length >= 32 &&
         RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(rawOpponentName);
-    final bool isOpponentDeleted = rawOpponentName == '[Deleted]' ||
+    final bool isOpponentDeleted =
+        rawOpponentName == '[Deleted]' ||
         isNameUuid ||
         (opponent?.id != null && opponent!.id.contains('deleted'));
-    final bool isOpponentGuest = (opponent?.id != null && opponent!.id.startsWith('guest-')) ||
-        (rawOpponentName != null && rawOpponentName.toLowerCase().startsWith('guest'));
-    final opponentName = (opponent?.id == 'bot' || rawOpponentName == 'game.aiBot' || isVsAi)
+    final bool isOpponentGuest =
+        (opponent?.id != null && opponent!.id.startsWith('guest-')) ||
+        (rawOpponentName != null &&
+            rawOpponentName.toLowerCase().startsWith('guest'));
+    final opponentName =
+        (opponent?.id == 'bot' || rawOpponentName == 'game.aiBot' || isVsAi)
         ? 'game.aiBot'.tr()
-        : ((rawOpponentName != null && rawOpponentName.isNotEmpty && !isNameUuid)
-            ? rawOpponentName
-            : (isOpponentDeleted ? '[Deleted]' : (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'history.blackTeam'.tr() : 'history.whiteTeam'.tr()))));
+        : ((rawOpponentName != null &&
+                  rawOpponentName.isNotEmpty &&
+                  !isNameUuid)
+              ? rawOpponentName
+              : (isOpponentDeleted
+                    ? '[Deleted]'
+                    : (isOffline
+                          ? 'game.aiBot'.tr()
+                          : (isWhite
+                                ? 'history.blackTeam'.tr()
+                                : 'history.whiteTeam'.tr()))));
     final opponentRating = opponent?.rating ?? 1200;
 
     final isDraw = match.isDraw || match.isDrawOutcome;
@@ -570,7 +610,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -602,11 +644,16 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: outcomeColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: outcomeColor.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: outcomeColor.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Text(
                             match.winnerId == match.whitePlayerId
@@ -626,7 +673,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -641,7 +690,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                             fontWeight: FontWeight.w700,
                             color: isOpponentDeleted
                                 ? AppColors.getDeletedUser(isDark)
-                                : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                                : (isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.lightTextPrimary),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -661,7 +712,10 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                         ),
                       ],
                     ],
-                    if ((match.isTimeout || match.isResigned || match.isDrawAgreement) && !(isCoop && match.isDraw)) ...[
+                    if ((match.isTimeout ||
+                            match.isResigned ||
+                            match.isDrawAgreement) &&
+                        !(isCoop && match.isDraw)) ...[
                       const SizedBox(width: 6),
                       _buildEndReasonBadge(match, isDark),
                     ],
@@ -672,7 +726,9 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                   '${match.totalMoves} ${'game.moveCount'.tr(args: ['']).trim()} • $dateStr',
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
               ],

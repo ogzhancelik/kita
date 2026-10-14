@@ -6,13 +6,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../providers/game_settings_provider.dart';
 import 'settings_dialog.dart';
 
-/// Bottom sheet dialog for in-game presentation & match preferences:
-/// - Board Theme (emerald, amber_sunset, ocean_azure, cyber_purple, slate_monochrome, minecraft)
-/// - Swap tile colors 1 and 3 (1s lighter, 3s darker)
-/// - Board Orientation (horizontal, vertical)
-/// - Flip Direction (auto, white, black)
-/// - 2P Local Coop: Auto-rotate pieces
-/// - 2P Local Coop: Default piece orientation (vertical 0°, horizontal 90°)
+/// Bottom sheet dialog for match runtime preferences:
+/// - Board Orientation (Horizontal vs Vertical segmented toggle)
+/// - Piece Rotation / Angle (Fixed 0° vs Auto segmented toggle)
+/// - Flip Viewpoint (Auto, White, Black uniform height buttons)
 class MatchSettingsDialog extends StatelessWidget {
   const MatchSettingsDialog({super.key});
 
@@ -114,71 +111,7 @@ class MatchSettingsDialog extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Section 1: Board Theme
-                    _buildSectionHeader(
-                      context: context,
-                      isDark: isDark,
-                      title: 'settings.boardTheme'.tr(),
-                      icon: Icons.palette_outlined,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildThemeGrid(context, gameSettings, isDark),
-                    const SizedBox(height: 12),
-
-                    // Swap 1 and 3 Tile Colors Toggle
-                    _buildToggleTile(
-                      isDark: isDark,
-                      icon: Icons.swap_vert_circle_rounded,
-                      iconColor: AppColors.accentGold,
-                      title: 'settings.swapTileColors'.tr(),
-                      value: gameSettings.swapTileColors,
-                      onChanged: (val) => gameSettings.setSwapTileColors(val),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Section: Tile Style (Rounded vs Flat/Adjacent)
-                    _buildSectionHeader(
-                      context: context,
-                      isDark: isDark,
-                      title: 'settings.boardTileStyle'.tr(),
-                      icon: Icons.grid_view_rounded,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'settings.boardTileStyleDesc'.tr(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildTileStyleSelector(context, gameSettings, isDark),
-                    const SizedBox(height: 20),
-
-                    // Section 2: Last Move Indicator
-                    _buildSectionHeader(
-                      context: context,
-                      isDark: isDark,
-                      title: 'settings.highlightLastMove'.tr(),
-                      icon: Icons.history_rounded,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'settings.highlightLastMoveDesc'.tr(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildLastMoveSelector(context, gameSettings, isDark),
-                    const SizedBox(height: 20),
-
-                    // Section 3: Board and Piece Orientation
+                    // Section 1: Board and Piece Orientation
                     _buildSectionHeader(
                       context: context,
                       isDark: isDark,
@@ -187,103 +120,65 @@ class MatchSettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    // Subsection A: Online & AI
+                    // Board Orientation Toggle (Horizontal on Left, Vertical on Right)
                     Text(
-                      'settings.onlineAndAiSection'.tr(),
+                      'settings.boardOrientation'.tr(),
                       style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildCycleTile(
-                            isDark: isDark,
-                            label: 'settings.boardLabel'.tr(),
-                            valueText: gameSettings.boardOrientation == 'horizontal'
-                                ? 'common.orientationHorizontalShort'.tr()
-                                : 'common.orientationVerticalShort'.tr(),
-                            icon: gameSettings.boardOrientation == 'horizontal'
-                                ? Icons.stay_current_landscape_rounded
-                                : Icons.stay_current_portrait_rounded,
-                            onTap: () => gameSettings.toggleOrientation(),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildCycleTile(
-                            isDark: isDark,
-                            label: 'settings.pieceAngleLabel'.tr(),
-                            valueText: gameSettings.pieceAngleMode == 'fixed'
-                                ? 'settings.angleFixed0'.tr()
-                                : 'settings.angleAuto'.tr(),
-                            icon: gameSettings.pieceAngleMode == 'fixed'
-                                ? Icons.lock_outline_rounded
-                                : Icons.rotate_right_rounded,
-                            onTap: () => gameSettings.togglePieceAngleMode(),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 6),
+                    _buildSegmentedToggle(
+                      isDark: isDark,
+                      leftLabel: 'common.orientationHorizontalShort'.tr(),
+                      leftIcon: Icons.stay_current_landscape_rounded,
+                      isLeftSelected:
+                          gameSettings.boardOrientation == 'horizontal',
+                      onSelectLeft: () =>
+                          gameSettings.setBoardOrientation('horizontal'),
+                      rightLabel: 'common.orientationVerticalShort'.tr(),
+                      rightIcon: Icons.stay_current_portrait_rounded,
+                      isRightSelected:
+                          gameSettings.boardOrientation == 'vertical',
+                      onSelectRight: () =>
+                          gameSettings.setBoardOrientation('vertical'),
                     ),
                     const SizedBox(height: 16),
 
-                    // Subsection B: Local 2P Co-op
+                    // Piece Rotation / Angle Toggle (Fixed 0° on Left, Auto on Right)
                     Text(
-                      'settings.localCoopSection'.tr(),
+                      'settings.pieceAngleLabel'.tr(),
                       style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildCycleTile(
-                            isDark: isDark,
-                            label: 'settings.boardLabel'.tr(),
-                            valueText: gameSettings.localCoopBoardOrientation == 'vertical'
-                                ? 'common.orientationVerticalShort'.tr()
-                                : 'common.orientationHorizontalShort'.tr(),
-                            icon: gameSettings.localCoopBoardOrientation == 'vertical'
-                                ? Icons.stay_current_portrait_rounded
-                                : Icons.stay_current_landscape_rounded,
-                            onTap: () => gameSettings.toggleLocalCoopBoardOrientation(),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildCycleTile(
-                            isDark: isDark,
-                            label: 'settings.pieceAngleLabel'.tr(),
-                            valueText: gameSettings.localCoopPieceAngleMode == 'auto'
-                                ? 'settings.angleAuto'.tr()
-                                : 'settings.angleFixed0'.tr(),
-                            icon: gameSettings.localCoopPieceAngleMode == 'auto'
-                                ? Icons.rotate_right_rounded
-                                : Icons.lock_outline_rounded,
-                            onTap: () => gameSettings.toggleLocalCoopPieceAngleMode(),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _buildToggleTile(
+                    const SizedBox(height: 6),
+                    _buildSegmentedToggle(
                       isDark: isDark,
-                      icon: Icons.sync_rounded,
-                      iconColor: AppColors.primaryGreen,
-                      title: 'settings.localCoopAutoRotate'.tr(),
-                      subtitle: 'settings.localCoopAutoRotateDesc'.tr(),
-                      value: gameSettings.localCoopAutoRotate,
-                      onChanged: (val) => gameSettings.setLocalCoopAutoRotate(val),
+                      leftLabel: 'settings.angleFixed0'.tr(),
+                      leftIcon: Icons.lock_outline_rounded,
+                      isLeftSelected:
+                          gameSettings.pieceAngleMode == 'fixed',
+                      onSelectLeft: () =>
+                          gameSettings.setPieceAngleMode('fixed'),
+                      rightLabel: 'settings.angleAuto'.tr(),
+                      rightIcon: Icons.rotate_right_rounded,
+                      isRightSelected:
+                          gameSettings.pieceAngleMode == 'auto',
+                      onSelectRight: () =>
+                          gameSettings.setPieceAngleMode('auto'),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
-                    // Section 4: Flip Direction
+                    // Section 2: Flip Direction / Viewpoint
                     _buildSectionHeader(
                       context: context,
                       isDark: isDark,
@@ -321,11 +216,7 @@ class MatchSettingsDialog extends StatelessWidget {
   }) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 18,
-          color: AppColors.primaryGreen,
-        ),
+        Icon(icon, size: 18, color: AppColors.primaryAmber),
         const SizedBox(width: 8),
         Text(
           title,
@@ -341,17 +232,20 @@ class MatchSettingsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildToggleTile({
+  Widget _buildSegmentedToggle({
     required bool isDark,
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    String? subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
+    required String leftLabel,
+    required IconData leftIcon,
+    required bool isLeftSelected,
+    required VoidCallback onSelectLeft,
+    required String rightLabel,
+    required IconData rightIcon,
+    required bool isRightSelected,
+    required VoidCallback onSelectRight,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      height: 44,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBg : AppColors.lightBg,
         borderRadius: BorderRadius.circular(12),
@@ -362,424 +256,95 @@ class MatchSettingsDialog extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.lightTextPrimary,
-                  ),
-                ),
-                if (subtitle != null && subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.lightTextMuted,
-                    ),
-                  ),
-                ],
-              ],
+            child: _buildSegmentOption(
+              isDark: isDark,
+              label: leftLabel,
+              icon: leftIcon,
+              isSelected: isLeftSelected,
+              onTap: onSelectLeft,
             ),
           ),
-          Switch(
-            value: value,
-            activeThumbColor: AppColors.primaryGreen,
-            activeTrackColor: AppColors.primaryGreen.withValues(alpha: 0.4),
-            onChanged: onChanged,
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildSegmentOption(
+              isDark: isDark,
+              label: rightLabel,
+              icon: rightIcon,
+              isSelected: isRightSelected,
+              onTap: onSelectRight,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildThemeGrid(
-    BuildContext context,
-    GameSettingsProvider gameSettings,
-    bool isDark,
-  ) {
-    final themes = [
-      {'key': 'amber_sunset', 'nameKey': 'settings.boardThemeAmber'},
-      {'key': 'emerald', 'nameKey': 'settings.boardThemeEmerald'},
-      {'key': 'ocean_azure', 'nameKey': 'settings.boardThemeOcean'},
-      {'key': 'cyber_purple', 'nameKey': 'settings.boardThemePurple'},
-      {'key': 'slate_monochrome', 'nameKey': 'settings.boardThemeSlate'},
-      {'key': 'minecraft', 'nameKey': 'settings.boardThemeMinecraft'},
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 2.2,
-      ),
-      itemCount: themes.length,
-      itemBuilder: (context, index) {
-        final t = themes[index];
-        final key = t['key']!;
-        final name = t['nameKey']!.tr();
-        final isSelected = gameSettings.boardTheme == key;
-        final previewTheme = gameSettings.previewTheme(key, isDark);
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => gameSettings.setBoardTheme(key),
-            borderRadius: BorderRadius.circular(12),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primaryGreen
-                      : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                  width: isSelected ? 2 : 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  // Palette mini preview (3 tiles for 1, 2, 3 values)
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          _buildMiniTile(previewTheme.getColorForValue(1)),
-                          const SizedBox(width: 3),
-                          _buildMiniTile(previewTheme.getColorForValue(2)),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      _buildMiniTile(previewTheme.getColorForValue(3), width: 31),
-                    ],
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.w600,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.lightTextPrimary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (isSelected)
-                    const Icon(
-                      Icons.check_circle_rounded,
-                      size: 16,
-                      color: AppColors.primaryGreen,
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMiniTile(Color color, {double width = 14}) {
-    return Container(
-      width: width,
-      height: 14,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-          width: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLastMoveSelector(
-    BuildContext context,
-    GameSettingsProvider gameSettings,
-    bool isDark,
-  ) {
-    final options = [
-      {
-        'key': 'highlight',
-        'title': 'settings.lastMoveHighlight'.tr(),
-        'icon': Icons.square_rounded,
-      },
-      {
-        'key': 'line',
-        'title': 'settings.lastMoveLine'.tr(),
-        'icon': Icons.timeline_rounded,
-      },
-      {
-        'key': 'off',
-        'title': 'settings.lastMoveOff'.tr(),
-        'icon': Icons.visibility_off_rounded,
-      },
-    ];
-
-    return Row(
-      children: options.map((opt) {
-        final key = opt['key'] as String;
-        final title = opt['title'] as String;
-        final icon = opt['icon'] as IconData;
-        final isSelected = gameSettings.lastMoveIndicator == key;
-
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => gameSettings.setLastMoveIndicator(key),
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primaryGreen
-                          : (isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        icon,
-                        size: 22,
-                        color: isSelected
-                            ? AppColors.primaryGreen
-                            : (isDark
-                                ? AppColors.darkTextMuted
-                                : AppColors.lightTextMuted),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected
-                              ? (isDark
-                                  ? AppColors.darkTextPrimary
-                                  : AppColors.lightTextPrimary)
-                              : (isDark
-                                  ? AppColors.darkTextMuted
-                                  : AppColors.lightTextMuted),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildTileStyleSelector(
-    BuildContext context,
-    GameSettingsProvider gameSettings,
-    bool isDark,
-  ) {
-    final options = [
-      {
-        'key': 'rounded',
-        'title': 'settings.tileStyleRounded'.tr(),
-        'icon': Icons.rounded_corner_rounded,
-      },
-      {
-        'key': 'flat',
-        'title': 'settings.tileStyleFlat'.tr(),
-        'icon': Icons.crop_square_rounded,
-      },
-    ];
-
-    return Row(
-      children: options.map((opt) {
-        final key = opt['key'] as String;
-        final title = opt['title'] as String;
-        final icon = opt['icon'] as IconData;
-        final isSelected = gameSettings.boardTileStyle == key;
-
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => gameSettings.setBoardTileStyle(key),
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primaryGreen
-                          : (isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder),
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        icon,
-                        size: 22,
-                        color: isSelected
-                            ? AppColors.primaryGreen
-                            : (isDark
-                                ? AppColors.darkTextMuted
-                                : AppColors.lightTextMuted),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected
-                              ? (isDark
-                                  ? AppColors.darkTextPrimary
-                                  : AppColors.lightTextPrimary)
-                              : (isDark
-                                  ? AppColors.darkTextMuted
-                                  : AppColors.lightTextMuted),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildCycleTile({
+  Widget _buildSegmentOption({
     required bool isDark,
     required String label,
-    required String valueText,
     required IconData icon,
+    required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              constraints: const BoxConstraints(minHeight: 88),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.ratingGold.withValues(alpha: 0.14)
-                    : AppColors.ratingGold.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: AppColors.ratingGold.withValues(alpha: 0.55),
-                  width: 1.5,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeInOut,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primaryAmber
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primaryAmber.withValues(alpha: 0.35),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary),
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.ratingGold.withValues(alpha: 0.22),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 20,
-                      color: AppColors.ratingGold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    valueText,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.lightTextPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -806,68 +371,80 @@ class MatchSettingsDialog extends StatelessWidget {
       },
     ];
 
-    return Row(
-      children: options.map((opt) {
-        final key = opt['key'] as String;
-        final title = opt['title'] as String;
-        final icon = opt['icon'] as IconData;
-        final isSelected = gameSettings.flipDirection == key;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: options.map((opt) {
+          final key = opt['key'] as String;
+          final title = opt['title'] as String;
+          final icon = opt['icon'] as IconData;
+          final isSelected = gameSettings.flipDirection == key;
 
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => gameSettings.setFlipDirection(key),
-                borderRadius: BorderRadius.circular(12),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primaryGreen
-                          : (isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder),
-                      width: isSelected ? 2 : 1,
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => gameSettings.setFlipDirection(key),
+                  borderRadius: BorderRadius.circular(12),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 6,
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        icon,
-                        size: 20,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
                         color: isSelected
-                            ? AppColors.primaryGreen
+                            ? AppColors.primaryAmber
                             : (isDark
-                                ? AppColors.darkTextMuted
-                                : AppColors.lightTextMuted),
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder),
+                        width: isSelected ? 2 : 1,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w600,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          icon,
+                          size: 22,
+                          color: isSelected
+                              ? AppColors.primaryAmber
+                              : (isDark
+                                  ? AppColors.darkTextMuted
+                                  : AppColors.lightTextMuted),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            color: isSelected
+                                ? (isDark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.lightTextPrimary)
+                                : (isDark
+                                    ? AppColors.darkTextMuted
+                                    : AppColors.lightTextMuted),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 }

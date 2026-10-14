@@ -32,6 +32,7 @@ class UserProfile {
   String get displayRating => isProvisional ? '$rating?' : '$rating';
   bool get isAdmin => roles.any((r) => r.toLowerCase() == 'admin');
   bool get isPremium => roles.any((r) => r.toLowerCase() == 'premium');
+  bool get isGuest => id.startsWith('guest-') || roles.any((r) => r.toLowerCase() == 'guest');
   bool hasRole(String role) => roles.any((r) => r.toLowerCase() == role.toLowerCase());
 
   UserProfile copyWith({

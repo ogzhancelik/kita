@@ -60,7 +60,8 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
       return const SizedBox.shrink();
     }
 
-    final totalBadgeCount = (dmProv?.totalUnread ?? 0) + friendsProv.pendingIncomingCount;
+    final totalBadgeCount =
+        (dmProv?.totalUnread ?? 0) + friendsProv.pendingIncomingCount;
 
     // Sort friends: online first, then by last interaction recency (match/chat)
     final sortedFriends = List<FriendItemModel>.from(friendsProv.friends)
@@ -102,13 +103,18 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
                       ),
                     ),
                     if (totalBadgeCount > 0) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryVibrant,
                           borderRadius: BorderRadius.circular(10),
@@ -127,46 +133,41 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 12,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ],
                 ),
               ),
-              // Explicit "+ Add Friend" Header Action
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => AddFriendDialog.show(context),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-                    decoration: BoxDecoration(
-                      color: AppColors.getBrandPrimary(isDark).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.getBrandPrimary(isDark).withValues(alpha: 0.35),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.person_add_alt_1_rounded,
-                          size: 14,
-                          color: AppColors.getBrandPrimary(isDark),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          'dashboard.addFriend'.tr(),
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.getBrandPrimary(isDark),
-                          ),
-                        ),
-                      ],
-                    ),
+              // Explicit "+ Add Friend" Header Action (Matches "Create Room" styling)
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.primaryAmber.withValues(
+                    alpha: 0.15,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () => AddFriendDialog.show(context),
+                icon: const Icon(
+                  Icons.person_add_alt_1_rounded,
+                  size: 16,
+                  color: AppColors.primaryAmber,
+                ),
+                label: Text(
+                  'dashboard.addFriend'.tr(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryAmber,
                   ),
                 ),
               ),
@@ -196,21 +197,32 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                       'online.noFriendsYet'.tr(),
                       style: TextStyle(
                         fontSize: 12.5,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                     const SizedBox(height: 10),
                     ElevatedButton.icon(
                       onPressed: () => AddFriendDialog.show(context),
-                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 15),
+                      icon: const Icon(
+                        Icons.person_add_alt_1_rounded,
+                        size: 15,
+                      ),
                       label: Text(
                         'dashboard.addFriend'.tr(),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
+                        backgroundColor: AppColors.primaryAmber,
                         foregroundColor: AppColors.darkTextPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         shape: RoundedRectangleBorder(
@@ -249,7 +261,11 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
     );
   }
 
-  Widget _buildFriendCard(FriendItemModel friend, bool isDark, int unreadCount) {
+  Widget _buildFriendCard(
+    FriendItemModel friend,
+    bool isDark,
+    int unreadCount,
+  ) {
     return Container(
       width: 108,
       decoration: BoxDecoration(
@@ -301,16 +317,22 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                                 width: 11,
                                 height: 11,
                                 decoration: BoxDecoration(
-                                  color: friend.isOnline ? AppColors.online : AppColors.offline,
+                                  color: friend.isOnline
+                                      ? AppColors.online
+                                      : AppColors.offline,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                                    color: isDark
+                                        ? AppColors.darkBg
+                                        : AppColors.lightBg,
                                     width: 1.5,
                                   ),
                                   boxShadow: friend.isOnline
                                       ? [
                                           BoxShadow(
-                                            color: AppColors.online.withValues(alpha: 0.5),
+                                            color: AppColors.online.withValues(
+                                              alpha: 0.5,
+                                            ),
                                             blurRadius: 3,
                                             spreadRadius: 0.5,
                                           ),
@@ -324,16 +346,24 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                                 top: -4,
                                 right: -4,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 1,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.primaryVibrant,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: isDark ? AppColors.darkBg : AppColors.lightBg,
+                                      color: isDark
+                                          ? AppColors.darkBg
+                                          : AppColors.lightBg,
                                       width: 1.5,
                                     ),
                                   ),
-                                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
                                   alignment: Alignment.center,
                                   child: Text(
                                     unreadCount > 9 ? '9+' : '$unreadCount',
@@ -356,7 +386,9 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -383,10 +415,13 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: friend.isOnline
-                          ? AppColors.primaryGreen
+                          ? AppColors.primaryAmber
                           : AppColors.getSurface(isDark),
                       elevation: friend.isOnline ? 1 : 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 5,
+                      ),
                       minimumSize: const Size(0, 25),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
@@ -405,8 +440,10 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                         color: friend.isOnline
                             ? AppColors.darkTextPrimary
                             : (isDark
-                                ? AppColors.darkTextPrimary.withValues(alpha: 0.9)
-                                : AppColors.lightTextPrimary),
+                                  ? AppColors.darkTextPrimary.withValues(
+                                      alpha: 0.9,
+                                    )
+                                  : AppColors.lightTextPrimary),
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -424,9 +461,9 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
 
   Widget _buildViewAllCard(bool isDark) {
     return InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const FriendsScreen()),
-      ),
+      onTap: () =>
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const FriendsScreen())),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         width: 90,
@@ -444,12 +481,16 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (isDark ? AppColors.darkSurface : AppColors.lightSurface),
+                color: (isDark
+                    ? AppColors.darkSurface
+                    : AppColors.lightSurface),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.arrow_forward_rounded,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
                 size: 20,
               ),
             ),
@@ -459,7 +500,9 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
               ),
               textAlign: TextAlign.center,
             ),

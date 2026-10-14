@@ -12,7 +12,8 @@ class DashboardLeaderboardCard extends StatefulWidget {
   const DashboardLeaderboardCard({super.key});
 
   @override
-  State<DashboardLeaderboardCard> createState() => _DashboardLeaderboardCardState();
+  State<DashboardLeaderboardCard> createState() =>
+      _DashboardLeaderboardCardState();
 }
 
 class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
@@ -32,10 +33,7 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
       setState(() => _isLoading = true);
     }
     try {
-      final list = await _apiService.getLeaderboard(
-        limit: 3,
-        filter: _filter,
-      );
+      final list = await _apiService.getLeaderboard(limit: 3, filter: _filter);
       if (mounted) {
         setState(() {
           _topPlayers = list.take(3).toList();
@@ -91,14 +89,18 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
                       ),
                     ),
                     const SizedBox(width: 4),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 12,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ],
                 ),
@@ -111,14 +113,24 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
                   color: isDark ? AppColors.darkBg : AppColors.lightBg,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildFilterChip('global', 'dashboard.globalTab'.tr(), isDark),
-                    _buildFilterChip('friends', 'dashboard.friendsTab'.tr(), isDark),
+                    _buildFilterChip(
+                      'global',
+                      'dashboard.globalTab'.tr(),
+                      isDark,
+                    ),
+                    _buildFilterChip(
+                      'friends',
+                      'dashboard.friendsTab'.tr(),
+                      isDark,
+                    ),
                   ],
                 ),
               ),
@@ -148,7 +160,9 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
                       : 'leaderboard.noPlayersFound'.tr(),
                   style: TextStyle(
                     fontSize: 12,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
               ),
@@ -191,9 +205,7 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryGreen
-              : Colors.transparent,
+          color: isSelected ? AppColors.primaryAmber : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Text(
@@ -211,7 +223,8 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
   }
 
   Widget _buildPodiumItem(UserProfile player, int rank, bool isDark) {
-    final avatarItem = AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
+    final avatarItem =
+        AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
     final Color medalColor;
     final double avatarSize;
 
@@ -249,7 +262,9 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
                   width: rank == 1 ? 2.5 : 1.8,
                 ),
               ),
-              child: (player.avatarCustom != null && player.avatarCustom!.trim().isNotEmpty)
+              child:
+                  (player.avatarCustom != null &&
+                      player.avatarCustom!.trim().isNotEmpty)
                   ? Center(
                       child: Text(
                         player.avatarCustom!.trim(),
@@ -294,7 +309,9 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: rank == 1 ? FontWeight.w800 : FontWeight.w600,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary,
           ),
         ),
         const SizedBox(height: 2),

@@ -39,7 +39,7 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
     TimeControlPreset.oneMin,
     TimeControlPreset.threeMin,
     TimeControlPreset.fiveMin,
-    TimeControlPreset.unlimited
+    TimeControlPreset.unlimited,
   ];
 
   @override
@@ -132,7 +132,9 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
                 final isSelected = _selectedTimeControl == preset;
                 final label = preset <= 0
                     ? 'online.timeUnlimited'.tr()
-                    : 'online.timeMinutes'.tr(args: ['${(preset / 60000).round()}']);
+                    : 'online.timeMinutes'.tr(
+                        args: ['${(preset / 60000).round()}'],
+                      );
 
                 final icon = preset <= 0
                     ? Icons.all_inclusive_rounded
@@ -156,7 +158,9 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
                           : AppColors.getSurface(isDark),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isSelected ? AppColors.accent : AppColors.getBorder(isDark),
+                        color: isSelected
+                            ? AppColors.accent
+                            : AppColors.getBorder(isDark),
                         width: isSelected ? 1.8 : 1.0,
                       ),
                     ),
@@ -175,7 +179,9 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
                           label,
                           style: TextStyle(
                             fontSize: 12.5,
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w600,
                             color: isSelected
                                 ? AppColors.getTextPrimary(isDark)
                                 : AppColors.getTextSecondary(isDark),
@@ -227,7 +233,7 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
+                  backgroundColor: AppColors.primaryAmber,
                   foregroundColor: AppColors.darkTextPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   elevation: 0,
@@ -254,7 +260,9 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
         context: context,
         builder: (dialogCtx) => AlertDialog(
           backgroundColor: AppColors.getCard(isDark),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             'online.conflictDialogTitle'.tr(),
             style: TextStyle(
@@ -264,9 +272,7 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
           ),
           content: Text(
             'online.conflictAbandonOfflineDesc'.tr(),
-            style: TextStyle(
-              color: AppColors.getTextSecondary(isDark),
-            ),
+            style: TextStyle(color: AppColors.getTextSecondary(isDark)),
           ),
           actions: [
             TextButton(
@@ -278,9 +284,11 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: AppColors.primaryAmber,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               onPressed: () => Navigator.of(dialogCtx).pop(true),
               child: Text('online.abandonAndProceed'.tr()),
@@ -294,10 +302,12 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
 
     final isGuest = authProv.isGuest || authProv.currentUser == null;
     final playerId = authProv.currentUser?.id;
-    final playerName = authProv.currentUser?.username ??
+    final playerName =
+        authProv.currentUser?.username ??
         authProv.guestProfile?.nickname ??
         'Guest';
-    final playerAvatarIndex = authProv.currentUser?.avatarIndex ??
+    final playerAvatarIndex =
+        authProv.currentUser?.avatarIndex ??
         authProv.guestProfile?.avatarIndex ??
         0;
 

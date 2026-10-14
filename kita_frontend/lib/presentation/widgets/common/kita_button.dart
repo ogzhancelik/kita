@@ -46,11 +46,11 @@ class _KitaButtonState extends State<KitaButton> {
     switch (widget.variant) {
       case KitaButtonVariant.primary:
         topColor = isEnabled
-            ? AppColors.primaryGreen
-            : AppColors.primaryGreen.withValues(alpha: 0.5);
+            ? AppColors.primaryAmber
+            : AppColors.primaryAmber.withValues(alpha: 0.5);
         bottomColor = isEnabled
-            ? AppColors.primaryGreenDark
-            : AppColors.primaryGreenDark.withValues(alpha: 0.5);
+            ? AppColors.primaryAmberDark
+            : AppColors.primaryAmberDark.withValues(alpha: 0.5);
         textColor = Colors.white; // Crisp high-contrast white on reddish-purple
         break;
       case KitaButtonVariant.brand:

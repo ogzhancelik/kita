@@ -52,27 +52,34 @@ class _ChatsScreenState extends State<ChatsScreen> {
   final Set<String> _pendingProfileFetches = {};
 
   void _fetchProfileIfNeeded(String userId) {
-    if (userId.isEmpty || _pendingProfileFetches.contains(userId) || _profileCache.containsKey(userId)) {
+    if (userId.isEmpty ||
+        _pendingProfileFetches.contains(userId) ||
+        _profileCache.containsKey(userId)) {
       return;
     }
     _pendingProfileFetches.add(userId);
-    UserApiService().getUserProfile(userId).then((profile) {
-      if (mounted) {
-        setState(() {
-          _profileCache[userId] = profile;
+    UserApiService()
+        .getUserProfile(userId)
+        .then((profile) {
+          if (mounted) {
+            setState(() {
+              _profileCache[userId] = profile;
+            });
+          }
+        })
+        .catchError((_) {
+          // Ignore network errors on background fetch
+        })
+        .whenComplete(() {
+          _pendingProfileFetches.remove(userId);
         });
-      }
-    }).catchError((_) {
-      // Ignore network errors on background fetch
-    }).whenComplete(() {
-      _pendingProfileFetches.remove(userId);
-    });
   }
 
   void _openChat(FriendItemModel friend) {
     var targetFriend = friend;
     final cached = _profileCache[friend.userId];
-    if (cached != null && (targetFriend.username == 'Player' || targetFriend.username.isEmpty)) {
+    if (cached != null &&
+        (targetFriend.username == 'Player' || targetFriend.username.isEmpty)) {
       targetFriend = targetFriend.copyWith(
         username: cached.username,
         avatarIndex: cached.avatarIndex,
@@ -86,14 +93,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
       dmProv.clearUnread(convId, userId: targetFriend.userId);
       dmProv.setActiveConversation(convId);
       context.read<NotificationProvider>().deleteChatNotifications(
-            convId,
-            actorId: targetFriend.userId,
-          );
+        convId,
+        actorId: targetFriend.userId,
+      );
     }
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DmChatScreen(friend: targetFriend),
-      ),
+      MaterialPageRoute(builder: (_) => DmChatScreen(friend: targetFriend)),
     );
   }
 
@@ -156,8 +161,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
     final Set<String> processedUserIds = {};
 
     for (final preview in previews) {
-      final otherUserId =
-          preview.senderId == myId ? preview.recipientId : preview.senderId;
+      final otherUserId = preview.senderId == myId
+          ? preview.recipientId
+          : preview.senderId;
       if (otherUserId.isEmpty || processedUserIds.contains(otherUserId)) {
         continue;
       }
@@ -178,12 +184,14 @@ class _ChatsScreenState extends State<ChatsScreen> {
         int rating = 1200;
 
         if (preview.senderId == otherUserId) {
-          if (preview.senderUsername.isNotEmpty && preview.senderUsername != 'Player') {
+          if (preview.senderUsername.isNotEmpty &&
+              preview.senderUsername != 'Player') {
             name = preview.senderUsername;
           }
           avatarIndex = preview.senderAvatarIndex;
         } else if (preview.recipientId == otherUserId) {
-          if (preview.recipientUsername.isNotEmpty && preview.recipientUsername != 'Player') {
+          if (preview.recipientUsername.isNotEmpty &&
+              preview.recipientUsername != 'Player') {
             name = preview.recipientUsername;
           }
           avatarIndex = preview.recipientAvatarIndex;
@@ -216,13 +224,15 @@ class _ChatsScreenState extends State<ChatsScreen> {
           ? '${'chats.you'.tr()}${preview.content}'
           : preview.content;
 
-      items.add(_ChatItemData(
-        friend: friend,
-        conversationId: preview.conversationId,
-        lastMessageSnippet: snippet,
-        lastMessageTime: preview.createdAt,
-        unreadCount: dmProv.unreadFor(preview.conversationId),
-      ));
+      items.add(
+        _ChatItemData(
+          friend: friend,
+          conversationId: preview.conversationId,
+          lastMessageSnippet: snippet,
+          lastMessageTime: preview.createdAt,
+          unreadCount: dmProv.unreadFor(preview.conversationId),
+        ),
+      );
     }
 
     // Filter by search query
@@ -230,8 +240,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
     final filteredItems = query.isEmpty
         ? items
         : items.where((item) {
-            final nameMatch = item.friend.username.toLowerCase().contains(query);
-            final msgMatch = item.lastMessageSnippet.toLowerCase().contains(query);
+            final nameMatch = item.friend.username.toLowerCase().contains(
+              query,
+            );
+            final msgMatch = item.lastMessageSnippet.toLowerCase().contains(
+              query,
+            );
             return nameMatch || msgMatch;
           }).toList();
 
@@ -243,7 +257,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary,
             size: 20,
           ),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -253,7 +269,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w800,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary,
           ),
         ),
         actions: [
@@ -262,15 +280,19 @@ class _ChatsScreenState extends State<ChatsScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                  color: isDark
+                      ? AppColors.darkSurface
+                      : AppColors.lightSurface,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
                   ),
                 ),
                 child: const Icon(
                   Icons.edit_note_rounded,
-                  color: AppColors.primaryGreen,
+                  color: AppColors.primaryAmber,
                   size: 20,
                 ),
               ),
@@ -283,9 +305,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
       floatingActionButton: (!isGuest && items.isNotEmpty)
           ? FloatingActionButton.extended(
               onPressed: () => _showNewChatSheet(context, allFriends),
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: AppColors.primaryAmber,
               elevation: 4,
-              icon: const Icon(Icons.add_comment_rounded, color: AppColors.darkTextPrimary),
+              icon: const Icon(
+                Icons.add_comment_rounded,
+                color: AppColors.darkTextPrimary,
+              ),
               label: Text(
                 'chats.startNewChat'.tr(),
                 style: const TextStyle(
@@ -299,7 +324,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
         child: isGuest
             ? _buildGuestView(isDark)
             : RefreshIndicator(
-                color: AppColors.primaryGreen,
+                color: AppColors.primaryAmber,
                 onRefresh: () async {
                   await Future.wait([
                     dmProv.loadPreviews(),
@@ -310,13 +335,20 @@ class _ChatsScreenState extends State<ChatsScreen> {
                   children: [
                     // Search bar
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                          color: isDark
+                              ? AppColors.darkSurface
+                              : AppColors.lightSurface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
                           ),
                         ),
                         child: TextField(
@@ -328,7 +360,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
                           },
                           style: TextStyle(
                             fontSize: 14,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
                           ),
                           decoration: InputDecoration(
                             hintText: 'chats.search'.tr(),
@@ -369,18 +403,29 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     // Conversations list or Empty state
                     Expanded(
                       child: filteredItems.isEmpty
-                          ? _buildEmptyState(context, isDark, allFriends, hasChats: items.isNotEmpty)
+                          ? _buildEmptyState(
+                              context,
+                              isDark,
+                              allFriends,
+                              hasChats: items.isNotEmpty,
+                            )
                           : ListView.separated(
                               physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               itemCount: filteredItems.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: 8),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 8),
                               itemBuilder: (context, index) {
                                 final item = filteredItems[index];
                                 return _ChatTile(
                                   item: item,
                                   isDark: isDark,
-                                  formattedTime: _formatTimestamp(item.lastMessageTime),
+                                  formattedTime: _formatTimestamp(
+                                    item.lastMessageTime,
+                                  ),
                                   onTap: () => _openChat(item.friend),
                                 );
                               },
@@ -404,13 +449,13 @@ class _ChatsScreenState extends State<ChatsScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                color: AppColors.primaryAmber.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.chat_bubble_outline_rounded,
                 size: 40,
-                color: AppColors.primaryGreen,
+                color: AppColors.primaryAmber,
               ),
             ),
             const SizedBox(height: 18),
@@ -419,7 +464,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -454,13 +501,13 @@ class _ChatsScreenState extends State<ChatsScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                color: AppColors.primaryAmber.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.forum_outlined,
                 size: 40,
-                color: AppColors.primaryGreen,
+                color: AppColors.primaryAmber,
               ),
             ),
             const SizedBox(height: 18),
@@ -469,7 +516,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -487,9 +536,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
               icon: const Icon(Icons.add_comment_rounded, size: 18),
               label: Text('chats.startNewChat'.tr()),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: AppColors.primaryAmber,
                 foregroundColor: AppColors.darkTextPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -547,7 +599,7 @@ class _ChatTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: hasUnread
-                  ? AppColors.primaryGreen.withValues(alpha: 0.6)
+                  ? AppColors.primaryAmber.withValues(alpha: 0.6)
                   : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
               width: hasUnread ? 1.5 : 1,
             ),
@@ -571,16 +623,22 @@ class _ChatTile extends StatelessWidget {
                       width: 13,
                       height: 13,
                       decoration: BoxDecoration(
-                        color: item.friend.isOnline ? AppColors.online : AppColors.offline,
+                        color: item.friend.isOnline
+                            ? AppColors.online
+                            : AppColors.offline,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                          color: isDark
+                              ? AppColors.darkSurface
+                              : AppColors.lightSurface,
                           width: 2,
                         ),
                         boxShadow: item.friend.isOnline
                             ? [
                                 BoxShadow(
-                                  color: AppColors.online.withValues(alpha: 0.5),
+                                  color: AppColors.online.withValues(
+                                    alpha: 0.5,
+                                  ),
                                   blurRadius: 4,
                                   spreadRadius: 1,
                                 ),
@@ -605,8 +663,12 @@ class _ChatTile extends StatelessWidget {
                             item.friend.username,
                             style: TextStyle(
                               fontSize: 15,
-                              fontWeight: hasUnread ? FontWeight.w800 : FontWeight.w700,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                              fontWeight: hasUnread
+                                  ? FontWeight.w800
+                                  : FontWeight.w700,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.lightTextPrimary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -614,7 +676,10 @@ class _ChatTile extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1.5,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.ratingGold.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
@@ -637,9 +702,13 @@ class _ChatTile extends StatelessWidget {
                           : item.lastMessageSnippet,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: hasUnread ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: hasUnread
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                         color: hasUnread
-                            ? (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)
+                            ? (isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.lightTextPrimary)
                             : AppColors.getTextSecondary(isDark),
                       ),
                       maxLines: 1,
@@ -658,21 +727,29 @@ class _ChatTile extends StatelessWidget {
                     formattedTime,
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: hasUnread
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       color: hasUnread
-                          ? AppColors.primaryGreen
+                          ? AppColors.primaryAmber
                           : AppColors.getTextMuted(isDark),
                     ),
                   ),
                   const SizedBox(height: 6),
                   if (hasUnread)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryGreen,
+                        color: AppColors.primaryAmber,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
                       alignment: Alignment.center,
                       child: Text(
                         item.unreadCount > 99 ? '99+' : '${item.unreadCount}',
@@ -749,7 +826,9 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: widget.isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                color: widget.isDark
+                    ? AppColors.darkBorder
+                    : AppColors.lightBorder,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -775,7 +854,9 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
               color: widget.isDark ? AppColors.darkBg : AppColors.lightBg,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: widget.isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                color: widget.isDark
+                    ? AppColors.darkBorder
+                    : AppColors.lightBorder,
               ),
             ),
             child: TextField(
@@ -884,7 +965,7 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
                         ),
                         trailing: const Icon(
                           Icons.chat_bubble_outline_rounded,
-                          color: AppColors.primaryGreen,
+                          color: AppColors.primaryAmber,
                           size: 20,
                         ),
                       );

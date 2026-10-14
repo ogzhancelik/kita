@@ -37,7 +37,9 @@ class ActivityConflictHelper {
       final confirmed = await _showConfirmDialog(
         context: context,
         title: 'online.conflictDialogTitle'.tr(),
-        message: customMessage ?? 'online.conflictCloseRoomDesc'.tr(args: [roomCode]),
+        message:
+            customMessage ??
+            'online.conflictCloseRoomDesc'.tr(args: [roomCode]),
         confirmLabel: 'online.closeAndProceed'.tr(),
       );
       if (confirmed) {
@@ -50,11 +52,15 @@ class ActivityConflictHelper {
     // 2.5 Soft Lock: Pending Outgoing Rematch
     final pendingRematch = provider.pendingOutgoingRematch.value;
     if (pendingRematch != null) {
-      final oppName = pendingRematch.opponentName.isNotEmpty ? pendingRematch.opponentName : 'online.opponent'.tr();
+      final oppName = pendingRematch.opponentName.isNotEmpty
+          ? pendingRematch.opponentName
+          : 'online.opponent'.tr();
       final confirmed = await _showConfirmDialog(
         context: context,
         title: 'online.conflictDialogTitle'.tr(),
-        message: customMessage ?? 'online.conflictCancelRematchDesc'.tr(args: [oppName]),
+        message:
+            customMessage ??
+            'online.conflictCancelRematchDesc'.tr(args: [oppName]),
         confirmLabel: 'online.cancelAndProceed'.tr(),
       );
       if (confirmed) {
@@ -70,10 +76,18 @@ class ActivityConflictHelper {
       if (challenges.isNotEmpty) {
         final String message;
         if (challenges.length == 1) {
-          final friendName = challenges.first.friendName.isNotEmpty ? challenges.first.friendName : 'Friend';
-          message = customMessage ?? 'online.conflictCancelChallengeDesc'.tr(args: [friendName]);
+          final friendName = challenges.first.friendName.isNotEmpty
+              ? challenges.first.friendName
+              : 'Friend';
+          message =
+              customMessage ??
+              'online.conflictCancelChallengeDesc'.tr(args: [friendName]);
         } else {
-          message = customMessage ?? 'online.conflictCancelMultipleChallengesDesc'.tr(args: ['${challenges.length}']);
+          message =
+              customMessage ??
+              'online.conflictCancelMultipleChallengesDesc'.tr(
+                args: ['${challenges.length}'],
+              );
         }
         final confirmed = await _showConfirmDialog(
           context: context,
@@ -122,9 +136,14 @@ class ActivityConflictHelper {
       builder: (dialogCtx) {
         return AlertDialog(
           backgroundColor: AppColors.getCard(isDark),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 12,
+          ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           title: Row(
             children: [
@@ -175,12 +194,15 @@ class ActivityConflictHelper {
             ElevatedButton(
               onPressed: () => Navigator.of(dialogCtx).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: AppColors.primaryAmber,
                 foregroundColor: AppColors.darkTextPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
               child: Text(
                 confirmLabel,

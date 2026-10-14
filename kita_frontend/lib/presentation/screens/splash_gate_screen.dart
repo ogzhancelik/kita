@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/common/kita_button.dart';
@@ -47,9 +48,7 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const KitaLogo(
-                    size: 80,
-                  ),
+                  const KitaLogo(size: 80),
                   const SizedBox(height: 24),
                   Text(
                     'appTitle'.tr(),
@@ -57,7 +56,9 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -66,7 +67,9 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
                     height: 28,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primaryAmber,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -74,7 +77,9 @@ class _SplashGateScreenState extends State<SplashGateScreen> {
                     'network.checking'.tr(),
                     style: TextStyle(
                       fontSize: 13.5,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ),
                   const SizedBox(height: 28),

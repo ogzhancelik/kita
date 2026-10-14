@@ -77,10 +77,7 @@ class GameOverDialog extends StatefulWidget {
         return ScaleTransition(
           scale: Tween<double>(begin: 0.85, end: 1.0).animate(curvedAnimation),
           child: FadeTransition(
-            opacity: CurvedAnimation(
-              parent: anim,
-              curve: Curves.easeOut,
-            ),
+            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
             child: child,
           ),
         );
@@ -160,12 +157,13 @@ class _GameOverDialogState extends State<GameOverDialog>
     final isLocalCoop = widget.isLocalCoop;
     final effectiveMyTeam = widget.myTeam ?? provider.myTeam;
     final isDraw = widget.gameOverData.isDraw;
-    final isWinner = !isDraw &&
+    final isWinner =
+        !isDraw &&
         ((widget.gameOverData.winnerId != null &&
                 widget.gameOverData.winnerId == widget.myUserId) ||
             (effectiveMyTeam != null &&
                 (effectiveMyTeam == widget.gameOverData.winner ||
-                 effectiveMyTeam == widget.gameOverData.winnerTeam)));
+                    effectiveMyTeam == widget.gameOverData.winnerTeam)));
 
     final Color statusColor;
     final String titleKey;
@@ -239,11 +237,7 @@ class _GameOverDialogState extends State<GameOverDialog>
                           ),
                         ),
                         child: Center(
-                          child: Icon(
-                            statusIcon,
-                            size: 40,
-                            color: statusColor,
-                          ),
+                          child: Icon(statusIcon, size: 40, color: statusColor),
                         ),
                       ),
                     ),
@@ -268,186 +262,193 @@ class _GameOverDialogState extends State<GameOverDialog>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-          // Reason description
-          Text(
-            _getLocalizedReason(
-              widget.gameOverData.reason,
-              isWinner: isWinner,
-              isLocalCoop: isLocalCoop,
+            // Reason description
+            Text(
+              _getLocalizedReason(
+                widget.gameOverData.reason,
+                isWinner: isWinner,
+                isLocalCoop: isLocalCoop,
+              ),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.getTextSecondary(isDark),
+              ),
+              textAlign: TextAlign.center,
             ),
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.getTextSecondary(isDark),
-            ),
-            textAlign: TextAlign.center,
-          ),
 
-          // Match stats pill: Elapsed time & Total moves
-          Builder(
-            builder: (ctx) {
-              if (widget.isOffline && widget.elapsedSeconds != null) {
-                final seconds = widget.elapsedSeconds!;
-                final mins = seconds ~/ 60;
-                final secs = seconds % 60;
-                final timeStr =
-                    '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-                final movesCount = widget.movesCount ?? 0;
-                return _buildStatsPill(timeStr, movesCount, isDark);
-              }
-
-              return ValueListenableBuilder<int>(
-                valueListenable: provider.elapsedSeconds,
-                builder: (ctx, seconds, _) {
-                  final effectiveSeconds = widget.elapsedSeconds ?? seconds;
-                  final mins = effectiveSeconds ~/ 60;
-                  final secs = effectiveSeconds % 60;
+            // Match stats pill: Elapsed time & Total moves
+            Builder(
+              builder: (ctx) {
+                if (widget.isOffline && widget.elapsedSeconds != null) {
+                  final seconds = widget.elapsedSeconds!;
+                  final mins = seconds ~/ 60;
+                  final secs = seconds % 60;
                   final timeStr =
                       '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-                  final movesCount =
-                      widget.movesCount ?? provider.moveHistory.value.length;
+                  final movesCount = widget.movesCount ?? 0;
                   return _buildStatsPill(timeStr, movesCount, isDark);
+                }
+
+                return ValueListenableBuilder<int>(
+                  valueListenable: provider.elapsedSeconds,
+                  builder: (ctx, seconds, _) {
+                    final effectiveSeconds = widget.elapsedSeconds ?? seconds;
+                    final mins = effectiveSeconds ~/ 60;
+                    final secs = effectiveSeconds % 60;
+                    final timeStr =
+                        '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+                    final movesCount =
+                        widget.movesCount ?? provider.moveHistory.value.length;
+                    return _buildStatsPill(timeStr, movesCount, isDark);
+                  },
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Rating Changes if any
+            if (widget.gameOverData.ratingChanges != null &&
+                widget.gameOverData.ratingChanges!.isNotEmpty)
+              _buildRatingChanges(isDark),
+
+            // Rematch pending notification inside GameOverDialog (Online only)
+            if (!widget.isOffline)
+              ValueListenableBuilder<RematchOfferedPayload?>(
+                valueListenable: provider.rematchOffer,
+                builder: (ctx, offer, _) {
+                  if (offer == null) return const SizedBox.shrink();
+                  return Container(
+                    margin: const EdgeInsets.only(top: 14),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.winBlue.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.winBlue.withValues(alpha: 0.6),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Top: Replay Icon + Text Information
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.winBlue.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.replay_rounded,
+                                color: AppColors.winBlue,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'online.rematchOfferTitle'.tr(),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.winBlue,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}'
+                                    '${offer.colorPreference == 'white' ? ' • ${'online.invitationSideBlack'.tr()}' : (offer.colorPreference == 'black' ? ' • ${'online.invitationSideWhite'.tr()}' : '')}',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: AppColors.getTextSecondary(isDark),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // Bottom: Decline & Accept Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.close_rounded, size: 16),
+                                label: Text('common.decline'.tr()),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.lossRed,
+                                  side: BorderSide(
+                                    color: AppColors.lossRed.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                  ),
+                                  backgroundColor: AppColors.lossRed.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  minimumSize: const Size(0, 36),
+                                  textStyle: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  provider.declineRematch();
+                                  _safePop();
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.check_rounded, size: 16),
+                                label: Text('common.accept'.tr()),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryAmber,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  minimumSize: const Size(0, 36),
+                                  textStyle: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  provider.acceptRematch();
+                                  _safePop();
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
                 },
-              );
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Rating Changes if any
-          if (widget.gameOverData.ratingChanges != null &&
-              widget.gameOverData.ratingChanges!.isNotEmpty)
-            _buildRatingChanges(isDark),
-
-          // Rematch pending notification inside GameOverDialog (Online only)
-          if (!widget.isOffline)
-            ValueListenableBuilder<RematchOfferedPayload?>(
-              valueListenable: provider.rematchOffer,
-              builder: (ctx, offer, _) {
-              if (offer == null) return const SizedBox.shrink();
-              return Container(
-                margin: const EdgeInsets.only(top: 14),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.winBlue.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.winBlue.withValues(alpha: 0.6),
-                    width: 1.5,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Top: Replay Icon + Text Information
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppColors.winBlue.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.replay_rounded,
-                            color: AppColors.winBlue,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'online.rematchOfferTitle'.tr(),
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.winBlue,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}'
-                                '${offer.colorPreference == 'white' ? ' • ${'online.invitationSideBlack'.tr()}' : (offer.colorPreference == 'black' ? ' • ${'online.invitationSideWhite'.tr()}' : '')}',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: AppColors.getTextSecondary(isDark),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // Bottom: Decline & Accept Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.close_rounded, size: 16),
-                            label: Text('common.decline'.tr()),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.lossRed,
-                              side: BorderSide(
-                                color: AppColors.lossRed.withValues(alpha: 0.5),
-                              ),
-                              backgroundColor:
-                                  AppColors.lossRed.withValues(alpha: 0.08),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 8),
-                              minimumSize: const Size(0, 36),
-                              textStyle: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              provider.declineRematch();
-                              _safePop();
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.check_rounded, size: 16),
-                            label: Text('common.accept'.tr()),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryGreen,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 8),
-                              minimumSize: const Size(0, 36),
-                              textStyle: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              provider.acceptRematch();
-                              _safePop();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
+              ),
+          ],
         ),
       ),
       actions: [
@@ -455,11 +456,13 @@ class _GameOverDialogState extends State<GameOverDialog>
         if (widget.onReviewMatch != null)
           TextButton.icon(
             onPressed: widget.onReviewMatch,
-            icon: const Icon(Icons.auto_awesome, size: 16, color: AppColors.ratingGold),
-            label: Text('online.reviewMatch'.tr()),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.ratingGold,
+            icon: const Icon(
+              Icons.auto_awesome,
+              size: 16,
+              color: AppColors.ratingGold,
             ),
+            label: Text('online.reviewMatch'.tr()),
+            style: TextButton.styleFrom(foregroundColor: AppColors.ratingGold),
           )
         else
           TextButton.icon(
@@ -490,7 +493,7 @@ class _GameOverDialogState extends State<GameOverDialog>
             icon: const Icon(Icons.replay, size: 18),
             label: Text('online.rematch'.tr()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: AppColors.primaryAmber,
               foregroundColor: AppColors.darkTextPrimary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -503,13 +506,15 @@ class _GameOverDialogState extends State<GameOverDialog>
             builder: (ctx, isRequested, _) {
               if (isRequested) {
                 return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                    color: AppColors.primaryAmber.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.4),
+                      color: AppColors.primaryAmber.withValues(alpha: 0.4),
                     ),
                   ),
                   child: Row(
@@ -521,7 +526,8 @@ class _GameOverDialogState extends State<GameOverDialog>
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.primaryGreen),
+                            AppColors.primaryAmber,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -530,7 +536,7 @@ class _GameOverDialogState extends State<GameOverDialog>
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primaryGreen,
+                          color: AppColors.primaryAmber,
                         ),
                       ),
                     ],
@@ -543,7 +549,7 @@ class _GameOverDialogState extends State<GameOverDialog>
                 icon: const Icon(Icons.replay, size: 18),
                 label: Text('online.rematch'.tr()),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
+                  backgroundColor: AppColors.primaryAmber,
                   foregroundColor: AppColors.darkTextPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -650,7 +656,9 @@ class _GameOverDialogState extends State<GameOverDialog>
         : (diff < 0 ? AppColors.lossRed : AppColors.drawYellow);
     final IconData diffIcon = diff > 0
         ? Icons.trending_up_rounded
-        : (diff < 0 ? Icons.trending_down_rounded : Icons.trending_flat_rounded);
+        : (diff < 0
+              ? Icons.trending_down_rounded
+              : Icons.trending_flat_rounded);
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -658,19 +666,12 @@ class _GameOverDialogState extends State<GameOverDialog>
       decoration: BoxDecoration(
         color: diffColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: diffColor.withValues(alpha: 0.4),
-          width: 1,
-        ),
+        border: Border.all(color: diffColor.withValues(alpha: 0.4), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            diffIcon,
-            size: 18,
-            color: diffColor,
-          ),
+          Icon(diffIcon, size: 18, color: diffColor),
           const SizedBox(width: 8),
           Text(
             'online.ratingChange'.tr(),
@@ -699,14 +700,17 @@ class _GameOverDialogState extends State<GameOverDialog>
     required bool isWinner,
     bool isLocalCoop = false,
   }) {
-    if (reason.startsWith('draw_agreement') || reason.startsWith('draw_offer')) {
+    if (reason.startsWith('draw_agreement') ||
+        reason.startsWith('draw_offer')) {
       return 'online.reasonDrawAgreement'.tr();
     }
     switch (reason) {
       case 'resignation':
       case 'reason_resigned':
         if (isLocalCoop) return 'online.reasonPlayerResigned'.tr();
-        return isWinner ? 'online.reasonResigned'.tr() : 'online.reasonYouResigned'.tr();
+        return isWinner
+            ? 'online.reasonResigned'.tr()
+            : 'online.reasonYouResigned'.tr();
       case 'timeout':
       case 'reason_timeout':
         return 'online.reasonTimeout'.tr();

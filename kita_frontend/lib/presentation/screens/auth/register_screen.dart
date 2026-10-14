@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/feedback/toast_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
@@ -47,7 +48,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     if (success && mounted) {
-      KitaToast.success('auth.registerSuccess'.tr(args: [authProv.displayName]));
+      KitaToast.success(
+        'auth.registerSuccess'.tr(args: [authProv.displayName]),
+      );
       context.read<FriendsProvider>().loadAll();
       context.read<NotificationProvider>().loadNotifications();
       Navigator.of(context).popUntil((route) => route.isFirst);
@@ -67,26 +70,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: 'auth.register'.tr(),
       ),
       body: ResponsiveLayout(
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 12),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 12.0,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 12),
                   Center(
                     child: Container(
                       width: 72,
                       height: 72,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryGreen,
+                        color: AppColors.primaryAmber,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: const [
                           BoxShadow(
-                            color: AppColors.primaryGreenDark,
+                            color: AppColors.primaryAmberDark,
                             offset: Offset(0, 4),
                           ),
                         ],
@@ -105,7 +117,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -119,7 +133,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     maxLength: 15,
                     textInputAction: TextInputAction.next,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_-]')),
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[a-zA-Z0-9_-]'),
+                      ),
                       LengthLimitingTextInputFormatter(15),
                     ],
                     validator: (val) {
@@ -136,7 +152,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (!RegExp(r'^[a-zA-Z0-9_-]{2,15}$').hasMatch(text)) {
                         return 'auth.usernameInvalid'.tr();
                       }
-                      const reserved = {'admin', 'guest', 'system', 'kita', 'bot', 'moderator', 'support'};
+                      const reserved = {
+                        'admin',
+                        'guest',
+                        'system',
+                        'kita',
+                        'bot',
+                        'moderator',
+                        'support',
+                      };
                       if (reserved.contains(text.toLowerCase())) {
                         return 'auth.usernameReserved'.tr();
                       }
@@ -157,7 +181,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (val == null || val.trim().isEmpty) {
                         return 'errMissingField'.tr();
                       }
-                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(val.trim())) {
+                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
+                          .hasMatch(val.trim())) {
                         return 'auth.invalidEmail'.tr();
                       }
                       return null;
@@ -221,19 +246,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'auth.alreadyHaveAccount'.tr(),
                         style: TextStyle(
                           fontSize: 13.5,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
                         ),
                       ),
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
                           );
                         },
                         child: Text(
                           'auth.login'.tr(),
                           style: const TextStyle(
-                            color: AppColors.primaryGreen,
+                            color: AppColors.primaryAmber,
                             fontWeight: FontWeight.w700,
                             fontSize: 13.5,
                           ),
@@ -241,11 +270,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
                 ],
               ),
-            ),
-          ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

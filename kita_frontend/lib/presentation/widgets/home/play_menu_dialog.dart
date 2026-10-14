@@ -68,18 +68,22 @@ class PlayMenuDialog extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                    Text(
-                      'dashboard.playMenu'.tr(),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                      ),
+                  Text(
+                    'dashboard.playMenu'.tr(),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
+                  ),
                   IconButton(
                     icon: Icon(
                       Icons.close_rounded,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -102,7 +106,12 @@ class PlayMenuDialog extends StatelessWidget {
                     // Mode 1: Rooms (Create & Join) - Default way to play
                     _wrapUnavailable(
                       isUnavailable: authProv.isOnlineUnavailable,
-                      child: _buildRoomsActionRow(context, onlineProv, authProv, isDark),
+                      child: _buildRoomsActionRow(
+                        context,
+                        onlineProv,
+                        authProv,
+                        isDark,
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -111,9 +120,9 @@ class PlayMenuDialog extends StatelessWidget {
                       context: context,
                       title: 'dashboard.playAI'.tr(),
                       icon: Icons.smart_toy_rounded,
-                      iconBg: AppColors.primaryGreen,
+                      iconBg: AppColors.primaryAmber,
                       badge: 'dashboard.badgeOffline'.tr(),
-                      badgeColor: AppColors.primaryGreen,
+                      badgeColor: AppColors.primaryAmber,
                       isDark: isDark,
                       onTap: () {
                         Navigator.of(context).pop();
@@ -141,7 +150,12 @@ class PlayMenuDialog extends StatelessWidget {
                     // Mode 4: Matchmaking (Find Match - just above Friends)
                     _wrapUnavailable(
                       isUnavailable: authProv.isOnlineUnavailable,
-                      child: _buildMatchmakingCard(context, onlineProv, authProv, isDark),
+                      child: _buildMatchmakingCard(
+                        context,
+                        onlineProv,
+                        authProv,
+                        isDark,
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -156,9 +170,11 @@ class PlayMenuDialog extends StatelessWidget {
                         isDark: isDark,
                         onTap: () {
                           if (authProv.isOnlineUnavailable) {
-                            KitaToast.warning(authProv.isOffline
-                                ? 'dashboard.offlineNotice'.tr()
-                                : 'dashboard.serverDownNotice'.tr());
+                            KitaToast.warning(
+                              authProv.isOffline
+                                  ? 'dashboard.offlineNotice'.tr()
+                                  : 'dashboard.serverDownNotice'.tr(),
+                            );
                             return;
                           }
                           authProv.guardAction(context, () {
@@ -191,10 +207,26 @@ class PlayMenuDialog extends StatelessWidget {
       opacity: 0.45,
       child: ColorFiltered(
         colorFilter: const ColorFilter.matrix(<double>[
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0,      0,      0,      1, 0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
         ]),
         child: child,
       ),
@@ -219,9 +251,11 @@ class PlayMenuDialog extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () async {
           if (authProv.isOnlineUnavailable) {
-            KitaToast.warning(authProv.isOffline
-                ? 'dashboard.offlineNotice'.tr()
-                : 'dashboard.serverDownNotice'.tr());
+            KitaToast.warning(
+              authProv.isOffline
+                  ? 'dashboard.offlineNotice'.tr()
+                  : 'dashboard.serverDownNotice'.tr(),
+            );
             return;
           }
           final canProceed = await ActivityConflictHelper.checkAndConfirm(
@@ -263,7 +297,9 @@ class PlayMenuDialog extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -272,7 +308,10 @@ class PlayMenuDialog extends StatelessWidget {
                       builder: (ctx, count, _) {
                         final total = count?.totalOnline ?? 1;
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.guestOrange.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
@@ -294,7 +333,9 @@ class PlayMenuDialog extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 13,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                color: isDark
+                    ? AppColors.darkTextMuted
+                    : AppColors.lightTextMuted,
               ),
             ],
           ),
@@ -321,9 +362,11 @@ class PlayMenuDialog extends StatelessWidget {
             isDark: isDark,
             onTap: () async {
               if (authProv.isOnlineUnavailable) {
-                KitaToast.warning(authProv.isOffline
-                    ? 'dashboard.offlineNotice'.tr()
-                    : 'dashboard.serverDownNotice'.tr());
+                KitaToast.warning(
+                  authProv.isOffline
+                      ? 'dashboard.offlineNotice'.tr()
+                      : 'dashboard.serverDownNotice'.tr(),
+                );
                 return;
               }
               final canProceed = await ActivityConflictHelper.checkAndConfirm(
@@ -353,9 +396,11 @@ class PlayMenuDialog extends StatelessWidget {
             isDark: isDark,
             onTap: () async {
               if (authProv.isOnlineUnavailable) {
-                KitaToast.warning(authProv.isOffline
-                    ? 'dashboard.offlineNotice'.tr()
-                    : 'dashboard.serverDownNotice'.tr());
+                KitaToast.warning(
+                  authProv.isOffline
+                      ? 'dashboard.offlineNotice'.tr()
+                      : 'dashboard.serverDownNotice'.tr(),
+                );
                 return;
               }
               final canProceed = await ActivityConflictHelper.checkAndConfirm(
@@ -409,11 +454,7 @@ class PlayMenuDialog extends StatelessWidget {
                 color: accentColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: accentColor,
-                size: 28,
-              ),
+              child: Icon(icon, color: accentColor, size: 28),
             ),
             const SizedBox(height: 12),
             FittedBox(
@@ -424,7 +465,9 @@ class PlayMenuDialog extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
                 ),
                 maxLines: 1,
               ),
@@ -481,15 +524,21 @@ class PlayMenuDialog extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
                         ),
                       ),
                       if (badge != null) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
-                            color: (badgeColor ?? AppColors.primaryGreen).withValues(alpha: 0.15),
+                            color: (badgeColor ?? AppColors.primaryAmber)
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -497,7 +546,7 @@ class PlayMenuDialog extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 9.5,
                               fontWeight: FontWeight.bold,
-                              color: badgeColor ?? AppColors.primaryGreen,
+                              color: badgeColor ?? AppColors.primaryAmber,
                             ),
                           ),
                         ),
@@ -510,7 +559,9 @@ class PlayMenuDialog extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                   ],
@@ -520,7 +571,9 @@ class PlayMenuDialog extends StatelessWidget {
             Icon(
               Icons.arrow_forward_ios_rounded,
               size: 13,
-              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+              color: isDark
+                  ? AppColors.darkTextMuted
+                  : AppColors.lightTextMuted,
             ),
           ],
         ),
@@ -531,7 +584,9 @@ class PlayMenuDialog extends StatelessWidget {
   Widget _buildUnavailableBanner(AuthProvider authProv) {
     final isServerDown = !authProv.isOffline && authProv.isServerDown;
     final color = isServerDown ? AppColors.error : AppColors.warning;
-    final icon = isServerDown ? Icons.cloud_off_rounded : Icons.wifi_off_rounded;
+    final icon = isServerDown
+        ? Icons.cloud_off_rounded
+        : Icons.wifi_off_rounded;
     final text = isServerDown
         ? 'dashboard.serverDownNotice'.tr()
         : 'dashboard.offlineNotice'.tr();

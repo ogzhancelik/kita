@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -51,7 +52,9 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? IconButton(
               icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
                 size: 20,
               ),
               onPressed: onBack ?? () => Navigator.of(context).maybePop(),
@@ -61,9 +64,7 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const KitaLogo(
-                  size: 26,
-                ),
+                const KitaLogo(size: 26),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
@@ -74,25 +75,29 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.3,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
                   ),
                 ),
               ],
             )
           : (title != null
-              ? Text(
-                  title!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                  ),
-                )
-              : null),
+                ? Text(
+                    title!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
+                  )
+                : null),
       actions: [
         ...?extraActions,
         // Language Toggle (TR / EN)
@@ -110,7 +115,9 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: () {
-                final newLocale = currentLocale == 'en' ? const Locale('tr') : const Locale('en');
+                final newLocale = currentLocale == 'en'
+                    ? const Locale('tr')
+                    : const Locale('en');
                 context.setLocale(newLocale);
               },
               child: Padding(
@@ -118,14 +125,20 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.language_rounded, size: 15, color: AppColors.primaryGreen),
+                    const Icon(
+                      Icons.language_rounded,
+                      size: 15,
+                      color: AppColors.primaryAmber,
+                    ),
                     const SizedBox(width: 3),
                     Text(
                       currentLocale.toUpperCase(),
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
                       ),
                     ),
                   ],
@@ -140,8 +153,12 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
             tooltip: 'settings.theme'.tr(),
             visualDensity: VisualDensity.compact,
             icon: Icon(
-              themeProv.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              color: isDark ? AppColors.ratingGold : AppColors.darkSurfaceElevated,
+              themeProv.isDarkMode
+                  ? Icons.light_mode_rounded
+                  : Icons.dark_mode_rounded,
+              color: isDark
+                  ? AppColors.ratingGold
+                  : AppColors.darkSurfaceElevated,
               size: 20,
             ),
             onPressed: () => themeProv.toggleTheme(),
@@ -154,7 +171,9 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
             visualDensity: VisualDensity.compact,
             icon: Icon(
               Icons.logout_rounded,
-              color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+              color: isDark
+                  ? AppColors.darkTextMuted
+                  : AppColors.lightTextMuted,
               size: 20,
             ),
             onPressed: () => authProv.logout(),

@@ -93,10 +93,10 @@ class KitaBoardTheme {
     this.maxTileSpacing = 2.5,
     this.maxTileValueFontSize = 22.0,
     this.maxCoordinateLabelFontSize = 14.5,
-  })  : fixedTileBorderRadius = tileBorderRadius,
-        fixedTileSpacing = tileSpacing,
-        fixedTileValueFontSize = tileValueFontSize,
-        fixedCoordinateLabelFontSize = coordinateLabelFontSize;
+  }) : fixedTileBorderRadius = tileBorderRadius,
+       fixedTileSpacing = tileSpacing,
+       fixedTileValueFontSize = tileValueFontSize,
+       fixedCoordinateLabelFontSize = coordinateLabelFontSize;
 
   /// Backward-compatible fallback assuming baseline cell size of ~55px.
   double get tileBorderRadius =>
@@ -133,7 +133,8 @@ class KitaBoardTheme {
   /// Computes the effective coordinate label font size scaled dynamically to the given [cellSize]
   /// and clamped to [maxCoordinateLabelFontSize] (with phone baseline as floor for max).
   double effectiveCoordinateLabelFontSize(double cellSize) {
-    if (fixedCoordinateLabelFontSize != null) return fixedCoordinateLabelFontSize!;
+    if (fixedCoordinateLabelFontSize != null)
+      return fixedCoordinateLabelFontSize!;
     final double phoneBaseline = 55.0 * coordinateLabelFontSizeRatio;
     final double ceiling = max(maxCoordinateLabelFontSize, phoneBaseline);
     return min(cellSize * coordinateLabelFontSizeRatio, ceiling);
@@ -174,8 +175,10 @@ class KitaBoardTheme {
     return KitaBoardTheme(
       valueColors: valueColors ?? this.valueColors,
       borderColor: borderColor ?? this.borderColor,
-      selectedHighlightColor: selectedHighlightColor ?? this.selectedHighlightColor,
-      validMoveHighlightColor: validMoveHighlightColor ?? this.validMoveHighlightColor,
+      selectedHighlightColor:
+          selectedHighlightColor ?? this.selectedHighlightColor,
+      validMoveHighlightColor:
+          validMoveHighlightColor ?? this.validMoveHighlightColor,
       tileValueColor: tileValueColor ?? this.tileValueColor,
       coordinateLabelColor: coordinateLabelColor ?? this.coordinateLabelColor,
       whitePieceColor: whitePieceColor ?? this.whitePieceColor,
@@ -184,20 +187,26 @@ class KitaBoardTheme {
       blackKingAccent: blackKingAccent ?? this.blackKingAccent,
       showTileValues: showTileValues ?? this.showTileValues,
       showCoordinateLabels: showCoordinateLabels ?? this.showCoordinateLabels,
-      lastMoveHighlightColor: lastMoveHighlightColor ?? this.lastMoveHighlightColor,
+      lastMoveHighlightColor:
+          lastMoveHighlightColor ?? this.lastMoveHighlightColor,
       lastMoveLineColor: lastMoveLineColor ?? this.lastMoveLineColor,
       tileBorderRadius: tileBorderRadius ?? fixedTileBorderRadius,
       tileSpacing: tileSpacing ?? fixedTileSpacing,
       tileValueFontSize: tileValueFontSize ?? fixedTileValueFontSize,
-      coordinateLabelFontSize: coordinateLabelFontSize ?? fixedCoordinateLabelFontSize,
-      tileBorderRadiusRatio: tileBorderRadiusRatio ?? this.tileBorderRadiusRatio,
+      coordinateLabelFontSize:
+          coordinateLabelFontSize ?? fixedCoordinateLabelFontSize,
+      tileBorderRadiusRatio:
+          tileBorderRadiusRatio ?? this.tileBorderRadiusRatio,
       tileSpacingRatio: tileSpacingRatio ?? this.tileSpacingRatio,
-      tileValueFontSizeRatio: tileValueFontSizeRatio ?? this.tileValueFontSizeRatio,
-      coordinateLabelFontSizeRatio: coordinateLabelFontSizeRatio ?? this.coordinateLabelFontSizeRatio,
+      tileValueFontSizeRatio:
+          tileValueFontSizeRatio ?? this.tileValueFontSizeRatio,
+      coordinateLabelFontSizeRatio:
+          coordinateLabelFontSizeRatio ?? this.coordinateLabelFontSizeRatio,
       maxTileBorderRadius: maxTileBorderRadius ?? this.maxTileBorderRadius,
       maxTileSpacing: maxTileSpacing ?? this.maxTileSpacing,
       maxTileValueFontSize: maxTileValueFontSize ?? this.maxTileValueFontSize,
-      maxCoordinateLabelFontSize: maxCoordinateLabelFontSize ?? this.maxCoordinateLabelFontSize,
+      maxCoordinateLabelFontSize:
+          maxCoordinateLabelFontSize ?? this.maxCoordinateLabelFontSize,
     );
   }
 
@@ -333,7 +342,7 @@ class KitaBoardTheme {
         2: Color(0xFF403C36), // 2: Mid slate
         3: Color(0xFF635E55), // 3: Ash slate
       },
-      selectedHighlightColor: AppColors.primaryGreen,
+      selectedHighlightColor: AppColors.primaryAmber,
       validMoveHighlightColor: Color(0xFF3498DB),
       lastMoveHighlightColor: Color(0xFFBDC3C7),
       lastMoveLineColor: Color(0xFFBDC3C7),

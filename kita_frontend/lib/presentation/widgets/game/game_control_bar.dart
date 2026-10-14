@@ -21,10 +21,7 @@ class GameControlBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         border: Border(
-          top: BorderSide(
-            color: AppColors.getBorder(isDark),
-            width: 1,
-          ),
+          top: BorderSide(color: AppColors.getBorder(isDark), width: 1),
         ),
       ),
       child: Row(
@@ -48,7 +45,10 @@ class GameControlBar extends StatelessWidget {
               final timeStr =
                   '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.getSurface(isDark),
                   borderRadius: BorderRadius.circular(12),
@@ -94,7 +94,7 @@ class GameControlBar extends StatelessWidget {
                           : Icons.chat_bubble_outline,
                     ),
                     color: provider.isChatOpen
-                        ? AppColors.primaryGreen
+                        ? AppColors.primaryAmber
                         : AppColors.getTextSecondary(isDark),
                     tooltip: 'online.chat'.tr(),
                     onPressed: provider.toggleChat,

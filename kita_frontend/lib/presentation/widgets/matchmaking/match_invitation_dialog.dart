@@ -15,7 +15,10 @@ class MatchInvitationDialog extends StatelessWidget {
 
   const MatchInvitationDialog({super.key, required this.invitation});
 
-  static void showIfInvited(BuildContext context, MatchInvitationPayload? invite) {
+  static void showIfInvited(
+    BuildContext context,
+    MatchInvitationPayload? invite,
+  ) {
     if (invite == null) return;
     showDialog(
       context: context,
@@ -158,7 +161,7 @@ class MatchInvitationDialog extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(sideIcon, size: 14, color: AppColors.primaryGreen),
+                        Icon(sideIcon, size: 14, color: AppColors.primaryAmber),
                         const SizedBox(width: 4),
                         Text(
                           sideLabel,

@@ -118,7 +118,9 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
             valueListenable: provider.roomCode,
             builder: (context, code, _) {
               final isWaiting =
-                  matchState == OnlineMatchState.inRoom && code != null && code.isNotEmpty;
+                  matchState == OnlineMatchState.inRoom &&
+                  code != null &&
+                  code.isNotEmpty;
 
               if (isWaiting && _isSubmitting) {
                 _isSubmitting = false;
@@ -221,7 +223,7 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
               ),
             ),
             value: _isPrivate,
-            activeThumbColor: AppColors.primaryGreen,
+            activeThumbColor: AppColors.primaryAmber,
             onChanged: (val) => setState(() => _isPrivate = val),
           ),
 
@@ -277,7 +279,7 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
                         );
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
+                  backgroundColor: AppColors.primaryAmber,
                   foregroundColor: AppColors.darkTextPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -355,10 +357,7 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
               decoration: BoxDecoration(
                 color: AppColors.getSurface(isDark),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.primaryGreen,
-                  width: 1.5,
-                ),
+                border: Border.all(color: AppColors.primaryAmber, width: 1.5),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -369,14 +368,14 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 4,
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primaryAmber,
                     ),
                   ),
                   const SizedBox(width: 14),
                   const Icon(
                     Icons.copy_rounded,
                     size: 22,
-                    color: AppColors.primaryGreen,
+                    color: AppColors.primaryAmber,
                   ),
                 ],
               ),
@@ -384,7 +383,7 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
           ),
 
           const SizedBox(height: 24),
-          const CircularProgressIndicator(color: AppColors.primaryGreen),
+          const CircularProgressIndicator(color: AppColors.primaryAmber),
           const SizedBox(height: 16),
 
           Text(
@@ -421,7 +420,11 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
                 provider.leaveRoom();
                 Navigator.of(context).pop();
               },
-              icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.lossRed),
+              icon: const Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: AppColors.lossRed,
+              ),
               label: Text('online.cancelRoom'.tr()),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.lossRed,
@@ -453,7 +456,7 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
         ),
       ),
       selected: isSelected,
-      selectedColor: AppColors.primaryGreen,
+      selectedColor: AppColors.primaryAmber,
       backgroundColor: AppColors.getSurface(isDark),
       onSelected: (_) => setState(() => _selectedTimeControl = value),
     );
@@ -473,10 +476,7 @@ class JoinRoomDialog extends StatefulWidget {
     if (!canProceed) return;
 
     if (!context.mounted) return;
-    await showDialog(
-      context: context,
-      builder: (_) => const JoinRoomDialog(),
-    );
+    await showDialog(context: context, builder: (_) => const JoinRoomDialog());
 
     // If dialog was closed because match started, ensure we navigate to OnlineMatchScreen
     if (provider.matchState.value == OnlineMatchState.inMatch &&
@@ -610,7 +610,9 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
               decoration: BoxDecoration(
                 color: AppColors.lossRed.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.lossRed.withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: AppColors.lossRed.withValues(alpha: 0.4),
+                ),
               ),
               child: Text(
                 errorMessage,
@@ -644,7 +646,7 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
                   }
                 },
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryGreen,
+            backgroundColor: AppColors.primaryAmber,
             foregroundColor: AppColors.darkTextPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

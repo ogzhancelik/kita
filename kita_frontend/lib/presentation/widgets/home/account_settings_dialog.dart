@@ -67,7 +67,9 @@ class AccountSettingsDialog extends StatelessWidget {
                   IconButton(
                     icon: Icon(
                       Icons.arrow_back_rounded,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -78,14 +80,18 @@ class AccountSettingsDialog extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
                       ),
                     ),
                   ),
                   IconButton(
                     icon: Icon(
                       Icons.close_rounded,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -122,10 +128,12 @@ class AccountSettingsDialog extends StatelessWidget {
                                   child: Container(
                                     padding: const EdgeInsets.all(3),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primaryGreen,
+                                      color: AppColors.primaryAmber,
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                        color: isDark
+                                            ? AppColors.darkSurface
+                                            : AppColors.lightSurface,
                                         width: 1.5,
                                       ),
                                     ),
@@ -150,7 +158,9 @@ class AccountSettingsDialog extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w800,
-                                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -158,36 +168,40 @@ class AccountSettingsDialog extends StatelessWidget {
                                 const SizedBox(height: 5),
                                 Row(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                                      decoration: BoxDecoration(
-                                        color: authProv.isAuthenticated
-                                            ? AppColors.winBlue.withValues(alpha: 0.15)
-                                            : AppColors.guestOrange.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: authProv.isAuthenticated
-                                              ? AppColors.winBlue.withValues(alpha: 0.4)
-                                              : AppColors.guestOrange.withValues(alpha: 0.4),
-                                          width: 1,
+                                    if (!authProv.isAuthenticated)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2.5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.guestOrange.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: AppColors.guestOrange
+                                                .withValues(alpha: 0.4),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'profile.guestPlayer'.tr(),
+                                          style: const TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.guestOrange,
+                                          ),
                                         ),
                                       ),
-                                      child: Text(
-                                        authProv.isAuthenticated
-                                            ? 'profile.registeredPlayer'.tr()
-                                            : 'profile.guestPlayer'.tr(),
-                                        style: TextStyle(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: authProv.isAuthenticated
-                                              ? AppColors.winBlue
-                                              : AppColors.guestOrange,
-                                        ),
-                                      ),
-                                    ),
-                                    if (authProv.isAuthenticated && authProv.currentUser != null) ...[
+                                    if (authProv.isAuthenticated &&
+                                        authProv.currentUser != null) ...[
                                       const SizedBox(width: 8),
-                                      const Icon(Icons.star_rounded, size: 14, color: AppColors.ratingGold),
+                                      const Icon(
+                                        Icons.star_rounded,
+                                        size: 14,
+                                        color: AppColors.ratingGold,
+                                      ),
                                       const SizedBox(width: 2),
                                       Text(
                                         authProv.currentUser!.displayRating,
@@ -216,7 +230,9 @@ class AccountSettingsDialog extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -232,7 +248,9 @@ class AccountSettingsDialog extends StatelessWidget {
                       trailing: Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 14,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -241,15 +259,18 @@ class AccountSettingsDialog extends StatelessWidget {
                     _buildTile(
                       isDark: isDark,
                       icon: Icons.badge_rounded,
-                      iconColor: AppColors.primaryGreen,
+                      iconColor: AppColors.primaryAmber,
                       title: authProv.isGuest
                           ? 'account.changeNickname'.tr()
                           : 'account.changeUsername'.tr(),
-                      onTap: () => _showChangeUsernameDialog(context, authProv, isDark),
+                      onTap: () =>
+                          _showChangeUsernameDialog(context, authProv, isDark),
                       trailing: Icon(
                         Icons.edit_rounded,
                         size: 16,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -262,7 +283,9 @@ class AccountSettingsDialog extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -276,11 +299,17 @@ class AccountSettingsDialog extends StatelessWidget {
                         iconColor: AppColors.accentGold,
                         title: 'account.changePassword'.tr(),
                         subtitle: '••••••••',
-                        onTap: () => _showChangePasswordDialog(context, authProv, isDark),
+                        onTap: () => _showChangePasswordDialog(
+                          context,
+                          authProv,
+                          isDark,
+                        ),
                         trailing: Icon(
                           Icons.arrow_forward_ios_rounded,
                           size: 14,
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
                         ),
                       ),
                     ] else ...[
@@ -304,7 +333,9 @@ class AccountSettingsDialog extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.bold,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                                      color: isDark
+                                          ? AppColors.darkTextPrimary
+                                          : AppColors.lightTextPrimary,
                                     ),
                                   ),
                                 ),
@@ -315,7 +346,9 @@ class AccountSettingsDialog extends StatelessWidget {
                               'account.guestRegisterNotice'.tr(),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                color: isDark
+                                    ? AppColors.darkTextMuted
+                                    : AppColors.lightTextMuted,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -323,14 +356,20 @@ class AccountSettingsDialog extends StatelessWidget {
                               width: double.infinity,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryGreen,
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  backgroundColor: AppColors.primaryAmber,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
                                 onPressed: () {
                                   Navigator.of(context).pop();
                                   Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                    MaterialPageRoute(
+                                      builder: (_) => const RegisterScreen(),
+                                    ),
                                   );
                                 },
                                 child: Text(
@@ -352,9 +391,16 @@ class AccountSettingsDialog extends StatelessWidget {
                     if (authProv.isAuthenticated || authProv.isGuest) ...[
                       const SizedBox(height: 20),
                       KitaCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: InkWell(
-                          onTap: () => _showLogoutConfirmation(context, authProv, isDark),
+                          onTap: () => _showLogoutConfirmation(
+                            context,
+                            authProv,
+                            isDark,
+                          ),
                           child: Row(
                             children: [
                               const Icon(
@@ -387,14 +433,23 @@ class AccountSettingsDialog extends StatelessWidget {
                     if (authProv.isAuthenticated) ...[
                       const SizedBox(height: 10),
                       KitaCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: InkWell(
-                          onTap: () => _showDeleteAccountConfirmation(context, authProv, isDark),
+                          onTap: () => _showDeleteAccountConfirmation(
+                            context,
+                            authProv,
+                            isDark,
+                          ),
                           child: Row(
                             children: [
                               Icon(
                                 Icons.delete_forever_rounded,
-                                color: AppColors.lossRed.withValues(alpha: 0.85),
+                                color: AppColors.lossRed.withValues(
+                                  alpha: 0.85,
+                                ),
                                 size: 22,
                               ),
                               const SizedBox(width: 14),
@@ -408,7 +463,9 @@ class AccountSettingsDialog extends StatelessWidget {
                                       style: TextStyle(
                                         fontSize: 14.5,
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.lossRed.withValues(alpha: 0.85),
+                                        color: AppColors.lossRed.withValues(
+                                          alpha: 0.85,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -416,7 +473,9 @@ class AccountSettingsDialog extends StatelessWidget {
                                       'account.deleteAccountDesc'.tr(),
                                       style: TextStyle(
                                         fontSize: 11.5,
-                                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                        color: isDark
+                                            ? AppColors.darkTextMuted
+                                            : AppColors.lightTextMuted,
                                       ),
                                     ),
                                   ],
@@ -425,7 +484,9 @@ class AccountSettingsDialog extends StatelessWidget {
                               Icon(
                                 Icons.arrow_forward_ios_rounded,
                                 size: 14,
-                                color: AppColors.lossRed.withValues(alpha: 0.85),
+                                color: AppColors.lossRed.withValues(
+                                  alpha: 0.85,
+                                ),
                               ),
                             ],
                           ),
@@ -482,7 +543,9 @@ class AccountSettingsDialog extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                 ),
                 if (subtitle != null && subtitle.isNotEmpty) ...[
@@ -491,7 +554,9 @@ class AccountSettingsDialog extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ),
                 ],
@@ -516,7 +581,11 @@ class AccountSettingsDialog extends StatelessWidget {
     return tileContent;
   }
 
-  void _showChangeUsernameDialog(BuildContext context, AuthProvider authProv, bool isDark) {
+  void _showChangeUsernameDialog(
+    BuildContext context,
+    AuthProvider authProv,
+    bool isDark,
+  ) {
     final controller = TextEditingController(text: authProv.displayName);
     String? errorMessage;
     bool isLoading = false;
@@ -526,14 +595,22 @@ class AccountSettingsDialog extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: isDark
+                ? AppColors.darkSurface
+                : AppColors.lightSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Text(
-              authProv.isGuest ? 'account.changeNickname'.tr() : 'account.changeUsername'.tr(),
+              authProv.isGuest
+                  ? 'account.changeNickname'.tr()
+                  : 'account.changeUsername'.tr(),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
               ),
             ),
             content: Column(
@@ -545,31 +622,53 @@ class AccountSettingsDialog extends StatelessWidget {
                   autofocus: true,
                   maxLength: 15,
                   style: TextStyle(
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                   decoration: InputDecoration(
-                    hintText: authProv.isGuest ? 'account.enterNewNickname'.tr() : 'account.enterNewUsername'.tr(),
+                    hintText: authProv.isGuest
+                        ? 'account.enterNewNickname'.tr()
+                        : 'account.enterNewUsername'.tr(),
                     hintStyle: TextStyle(
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                     counterStyle: TextStyle(
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                     filled: true,
                     fillColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2),
+                      borderSide: const BorderSide(
+                        color: AppColors.primaryAmber,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -592,14 +691,18 @@ class AccountSettingsDialog extends StatelessWidget {
                 child: Text(
                   'common.cancel'.tr(),
                   style: TextStyle(
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  backgroundColor: AppColors.primaryAmber,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 onPressed: isLoading
                     ? null
@@ -647,7 +750,8 @@ class AccountSettingsDialog extends StatelessWidget {
                             if (e is DioException && e.response != null) {
                               final data = e.response?.data;
                               if (data is Map && data['error'] != null) {
-                                final errCode = data['error']['code']?.toString() ?? '';
+                                final errCode =
+                                    data['error']['code']?.toString() ?? '';
                                 if (errCode == 'ERR_USER_ALREADY_EXISTS') {
                                   errorMessage = 'errUserAlreadyExists'.tr();
                                   return;
@@ -670,11 +774,17 @@ class AccountSettingsDialog extends StatelessWidget {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(
                         'common.save'.tr(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
             ],
@@ -684,7 +794,11 @@ class AccountSettingsDialog extends StatelessWidget {
     );
   }
 
-  void _showChangePasswordDialog(BuildContext context, AuthProvider authProv, bool isDark) {
+  void _showChangePasswordDialog(
+    BuildContext context,
+    AuthProvider authProv,
+    bool isDark,
+  ) {
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -713,7 +827,9 @@ class AccountSettingsDialog extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -721,31 +837,51 @@ class AccountSettingsDialog extends StatelessWidget {
                   controller: controller,
                   obscureText: isObscured,
                   style: TextStyle(
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2),
+                      borderSide: const BorderSide(
+                        color: AppColors.primaryAmber,
+                        width: 2,
+                      ),
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        isObscured ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                        isObscured
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
                         size: 18,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                       onPressed: onToggleObscure,
                     ),
@@ -756,14 +892,20 @@ class AccountSettingsDialog extends StatelessWidget {
           }
 
           return AlertDialog(
-            backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: isDark
+                ? AppColors.darkSurface
+                : AppColors.lightSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Text(
               'account.changePassword'.tr(),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
               ),
             ),
             content: SingleChildScrollView(
@@ -775,21 +917,24 @@ class AccountSettingsDialog extends StatelessWidget {
                     label: 'account.currentPassword'.tr(),
                     controller: currentPasswordController,
                     isObscured: obscureCurrent,
-                    onToggleObscure: () => setDialogState(() => obscureCurrent = !obscureCurrent),
+                    onToggleObscure: () =>
+                        setDialogState(() => obscureCurrent = !obscureCurrent),
                   ),
                   const SizedBox(height: 12),
                   buildPasswordField(
                     label: 'account.newPassword'.tr(),
                     controller: newPasswordController,
                     isObscured: obscureNew,
-                    onToggleObscure: () => setDialogState(() => obscureNew = !obscureNew),
+                    onToggleObscure: () =>
+                        setDialogState(() => obscureNew = !obscureNew),
                   ),
                   const SizedBox(height: 12),
                   buildPasswordField(
                     label: 'account.confirmNewPassword'.tr(),
                     controller: confirmPasswordController,
                     isObscured: obscureConfirm,
-                    onToggleObscure: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                    onToggleObscure: () =>
+                        setDialogState(() => obscureConfirm = !obscureConfirm),
                   ),
                   if (errorMessage != null) ...[
                     const SizedBox(height: 10),
@@ -811,14 +956,18 @@ class AccountSettingsDialog extends StatelessWidget {
                 child: Text(
                   'common.cancel'.tr(),
                   style: TextStyle(
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  backgroundColor: AppColors.primaryAmber,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 onPressed: isLoading
                     ? null
@@ -828,19 +977,28 @@ class AccountSettingsDialog extends StatelessWidget {
                         final confirm = confirmPasswordController.text;
 
                         if (current.isEmpty) {
-                          setDialogState(() => errorMessage = 'errMissingField'.tr());
+                          setDialogState(
+                            () => errorMessage = 'errMissingField'.tr(),
+                          );
                           return;
                         }
                         if (newP.length < 6) {
-                          setDialogState(() => errorMessage = 'auth.passwordTooShort'.tr());
+                          setDialogState(
+                            () => errorMessage = 'auth.passwordTooShort'.tr(),
+                          );
                           return;
                         }
                         if (newP == current) {
-                          setDialogState(() => errorMessage = 'errSamePassword'.tr());
+                          setDialogState(
+                            () => errorMessage = 'errSamePassword'.tr(),
+                          );
                           return;
                         }
                         if (newP != confirm) {
-                          setDialogState(() => errorMessage = 'auth.passwordsDoNotMatch'.tr());
+                          setDialogState(
+                            () =>
+                                errorMessage = 'auth.passwordsDoNotMatch'.tr(),
+                          );
                           return;
                         }
 
@@ -867,7 +1025,8 @@ class AccountSettingsDialog extends StatelessWidget {
                             if (e is DioException && e.response != null) {
                               final data = e.response?.data;
                               if (data is Map && data['error'] != null) {
-                                final errCode = data['error']['code']?.toString() ?? '';
+                                final errCode =
+                                    data['error']['code']?.toString() ?? '';
                                 if (errCode == 'ERR_WRONG_PASSWORD') {
                                   errorMessage = 'errWrongPassword'.tr();
                                   return;
@@ -886,11 +1045,17 @@ class AccountSettingsDialog extends StatelessWidget {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(
                         'common.save'.tr(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
             ],
@@ -900,15 +1065,23 @@ class AccountSettingsDialog extends StatelessWidget {
     );
   }
 
-  void _showLogoutConfirmation(BuildContext context, AuthProvider authProv, bool isDark) {
+  void _showLogoutConfirmation(
+    BuildContext context,
+    AuthProvider authProv,
+    bool isDark,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.lightSurface,
         title: Text(
           'settings.logoutConfirmTitle'.tr(),
           style: TextStyle(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+            color: isDark
+                ? AppColors.darkTextPrimary
+                : AppColors.lightTextPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -924,14 +1097,14 @@ class AccountSettingsDialog extends StatelessWidget {
             child: Text(
               'common.cancel'.tr(),
               style: TextStyle(
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                color: isDark
+                    ? AppColors.darkTextMuted
+                    : AppColors.lightTextMuted,
               ),
             ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.lossRed,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.lossRed),
             onPressed: () {
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
@@ -939,7 +1112,10 @@ class AccountSettingsDialog extends StatelessWidget {
             },
             child: Text(
               'settings.confirm'.tr(),
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -947,7 +1123,11 @@ class AccountSettingsDialog extends StatelessWidget {
     );
   }
 
-  void _showDeleteAccountConfirmation(BuildContext context, AuthProvider authProv, bool isDark) {
+  void _showDeleteAccountConfirmation(
+    BuildContext context,
+    AuthProvider authProv,
+    bool isDark,
+  ) {
     bool isDeleting = false;
     final passwordController = TextEditingController();
     bool obscurePassword = true;
@@ -961,8 +1141,12 @@ class AccountSettingsDialog extends StatelessWidget {
           return PopScope(
             canPop: !isDeleting,
             child: AlertDialog(
-              backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              backgroundColor: isDark
+                  ? AppColors.darkSurface
+                  : AppColors.lightSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               title: Row(
                 children: [
                   const Icon(
@@ -975,7 +1159,9 @@ class AccountSettingsDialog extends StatelessWidget {
                     child: Text(
                       'account.deleteAccountConfirmTitle'.tr(),
                       style: TextStyle(
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -991,7 +1177,9 @@ class AccountSettingsDialog extends StatelessWidget {
                     Text(
                       'account.deleteAccountConfirmDesc'.tr(),
                       style: TextStyle(
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -1002,7 +1190,9 @@ class AccountSettingsDialog extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1018,40 +1208,66 @@ class AccountSettingsDialog extends StatelessWidget {
                         }
                       },
                       style: TextStyle(
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
                       decoration: InputDecoration(
                         hintText: 'account.deleteAccountPasswordHint'.tr(),
                         hintStyle: TextStyle(
-                          color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
                           fontSize: 13,
                         ),
                         filled: true,
-                        fillColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        fillColor: isDark
+                            ? AppColors.darkBg
+                            : AppColors.lightBg,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.lossRed, width: 2),
+                          borderSide: const BorderSide(
+                            color: AppColors.lossRed,
+                            width: 2,
+                          ),
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            obscurePassword
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
                             size: 18,
-                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                            color: isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.lightTextMuted,
                           ),
                           onPressed: isDeleting
                               ? null
-                              : () => setDialogState(() => obscurePassword = !obscurePassword),
+                              : () => setDialogState(
+                                  () => obscurePassword = !obscurePassword,
+                                ),
                         ),
                       ),
                     ),
@@ -1075,15 +1291,21 @@ class AccountSettingsDialog extends StatelessWidget {
                   child: Text(
                     'common.cancel'.tr(),
                     style: TextStyle(
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.lossRed,
-                    disabledBackgroundColor: AppColors.lossRed.withValues(alpha: 0.35),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    disabledBackgroundColor: AppColors.lossRed.withValues(
+                      alpha: 0.35,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: (isDeleting || passwordController.text.isEmpty)
                       ? null
@@ -1094,7 +1316,9 @@ class AccountSettingsDialog extends StatelessWidget {
                             errorMessage = null;
                           });
                           try {
-                            final success = await authProv.deleteAccount(password: password);
+                            final success = await authProv.deleteAccount(
+                              password: password,
+                            );
                             if (ctx.mounted) {
                               Navigator.of(ctx).pop();
                             }
@@ -1114,7 +1338,8 @@ class AccountSettingsDialog extends StatelessWidget {
                                 if (e is DioException && e.response != null) {
                                   final data = e.response?.data;
                                   if (data is Map && data['error'] != null) {
-                                    final errCode = data['error']['code']?.toString() ?? '';
+                                    final errCode =
+                                        data['error']['code']?.toString() ?? '';
                                     if (errCode == 'ERR_WRONG_PASSWORD') {
                                       errorMessage = 'errWrongPassword'.tr();
                                       return;
@@ -1130,11 +1355,17 @@ class AccountSettingsDialog extends StatelessWidget {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(
                           'account.deleteAccount'.tr(),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ],

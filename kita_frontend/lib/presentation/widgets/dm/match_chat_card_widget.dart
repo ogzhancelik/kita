@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/dm_models.dart';
 import '../../providers/dm_provider.dart';
 
-
 /// An expandable game card shown inside a DM conversation when two friends
 /// have played a match against each other.
 ///
@@ -79,10 +78,7 @@ class _MatchChatCardWidgetState extends State<MatchChatCardWidget>
           decoration: BoxDecoration(
             color: AppColors.getCard(isDark),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: resultColor.withAlpha(80),
-              width: 1.5,
-            ),
+            border: Border.all(color: resultColor.withAlpha(80), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withAlpha(15),
@@ -100,18 +96,24 @@ class _MatchChatCardWidgetState extends State<MatchChatCardWidget>
                 onTap: _toggle,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
                       // Result badge
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: resultColor.withAlpha(30),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: resultColor.withAlpha(80), width: 1),
+                            color: resultColor.withAlpha(80),
+                            width: 1,
+                          ),
                         ),
                         child: Text(
                           result,
@@ -164,9 +166,10 @@ class _MatchChatCardWidgetState extends State<MatchChatCardWidget>
               // ─── Expanded chat messages ──────────────────────────────
               if (_expanded) ...[
                 Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.getBorder(isDark)),
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.getBorder(isDark),
+                ),
                 Consumer<DmProvider>(
                   builder: (context, dmProv, _) {
                     if (dmProv.isInGameLoading(widget.match.matchId)) {
@@ -178,16 +181,15 @@ class _MatchChatCardWidgetState extends State<MatchChatCardWidget>
                             height: 22,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.primaryGreen,
+                              color: AppColors.primaryAmber,
                             ),
                           ),
                         ),
                       );
                     }
 
-                    final msgs = dmProv.inGameMessagesFor(
-                            widget.match.matchId) ??
-                        [];
+                    final msgs =
+                        dmProv.inGameMessagesFor(widget.match.matchId) ?? [];
 
                     if (msgs.isEmpty) {
                       return Padding(
@@ -209,7 +211,9 @@ class _MatchChatCardWidgetState extends State<MatchChatCardWidget>
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         itemCount: msgs.length,
                         itemBuilder: (ctx, i) {
                           final msg = msgs[i];
@@ -276,8 +280,9 @@ class _InGameBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe)
@@ -294,8 +299,7 @@ class _InGameBubble extends StatelessWidget {
             ),
           Flexible(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.6,
               ),

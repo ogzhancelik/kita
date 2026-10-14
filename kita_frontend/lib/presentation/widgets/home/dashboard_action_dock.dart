@@ -7,11 +7,7 @@ class DashboardActionDock extends StatefulWidget {
   final VoidCallback onPlay;
   final VoidCallback? onHome;
 
-  const DashboardActionDock({
-    super.key,
-    required this.onPlay,
-    this.onHome,
-  });
+  const DashboardActionDock({super.key, required this.onPlay, this.onHome});
 
   @override
   State<DashboardActionDock> createState() => _DashboardActionDockState();
@@ -46,7 +42,7 @@ class _DashboardActionDockState extends State<DashboardActionDock> {
               height: 50,
               margin: EdgeInsets.only(top: currentShift),
               decoration: BoxDecoration(
-                color: AppColors.primaryGreen,
+                color: AppColors.primaryAmber,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   // 1. Prominent dark ambient drop shadow behind the button
@@ -58,7 +54,7 @@ class _DashboardActionDockState extends State<DashboardActionDock> {
                   ),
                   // 2. Rich brand colored glow aura behind the button
                   BoxShadow(
-                    color: AppColors.primaryGreen.withValues(
+                    color: AppColors.primaryAmber.withValues(
                       alpha: isDark ? 0.65 : 0.40,
                     ),
                     blurRadius: _isPressed ? 8 : 16,
@@ -68,7 +64,7 @@ class _DashboardActionDockState extends State<DashboardActionDock> {
                   // 3. Darker 3D bevel underneath just like "Continue as Guest" (KitaButton)
                   if (!_isPressed)
                     const BoxShadow(
-                      color: AppColors.primaryGreenDark,
+                      color: AppColors.primaryAmberDark,
                       offset: Offset(0, bottomOffset),
                       blurRadius: 0,
                     ),
@@ -104,4 +100,3 @@ class _DashboardActionDockState extends State<DashboardActionDock> {
     );
   }
 }
-

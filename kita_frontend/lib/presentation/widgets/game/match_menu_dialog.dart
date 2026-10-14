@@ -21,10 +21,7 @@ import 'game_over_dialog.dart';
 class MatchMenuDialog extends StatelessWidget {
   final bool isOffline;
 
-  const MatchMenuDialog({
-    super.key,
-    this.isOffline = false,
-  });
+  const MatchMenuDialog({super.key, this.isOffline = false});
 
   static Future<void> show(BuildContext context, {bool isOffline = false}) {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -49,7 +46,8 @@ class MatchMenuDialog extends StatelessWidget {
         ? offlineProv.gameOverData.value != null
         : onlineProv.gameOverData.value != null;
 
-    final isLocalCoop = isOffline && offlineProv.offlinePlayMode == PlayMode.localCoop;
+    final isLocalCoop =
+        isOffline && offlineProv.offlinePlayMode == PlayMode.localCoop;
     final isHorizontal = isLocalCoop
         ? offlineProv.localCoopIsHorizontal
         : gameSettings.isHorizontal;
@@ -63,10 +61,7 @@ class MatchMenuDialog extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.getSurface(isDark),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border.all(
-          color: AppColors.getBorder(isDark),
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.getBorder(isDark), width: 1),
       ),
       child: SafeArea(
         top: false,
@@ -90,7 +85,10 @@ class MatchMenuDialog extends StatelessWidget {
 
               // Title
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: Text(
                   'online.matchMenu'.tr(),
                   style: TextStyle(
@@ -106,7 +104,7 @@ class MatchMenuDialog extends StatelessWidget {
               if (isOffline && !isGameOver)
                 _MenuTile(
                   icon: Icons.replay_rounded,
-                  iconColor: AppColors.primaryGreen,
+                  iconColor: AppColors.primaryAmber,
                   title: 'game.newGame'.tr(),
                   textColor: AppColors.getTextPrimary(isDark),
                   onTap: () {
@@ -135,7 +133,8 @@ class MatchMenuDialog extends StatelessWidget {
                   textColor: AppColors.getTextPrimary(isDark),
                   onTap: () {
                     Navigator.of(context).pop();
-                    final dialogContext = appNavigatorKey.currentContext ?? context;
+                    final dialogContext =
+                        appNavigatorKey.currentContext ?? context;
                     final data = isOffline
                         ? offlineProv.gameOverData.value
                         : onlineProv.gameOverData.value;
@@ -147,7 +146,9 @@ class MatchMenuDialog extends StatelessWidget {
                             ? (offlineProv.offlinePlayerId ?? 'local')
                             : (onlineProv.myUserId ?? ''),
                         isLocalCoop: isLocalCoop,
-                        myTeam: isOffline ? offlineProv.myTeam : onlineProv.myTeam,
+                        myTeam: isOffline
+                            ? offlineProv.myTeam
+                            : onlineProv.myTeam,
                         onRematch: () {
                           if (isOffline) {
                             offlineProv.requestRematch();
@@ -162,31 +163,45 @@ class MatchMenuDialog extends StatelessWidget {
                             onlineProv.leaveFinishedMatch();
                             dialogContext.read<AuthProvider>().refreshProfile();
                           }
-                          Navigator.of(dialogContext).popUntil((route) => route.isFirst);
+                          Navigator.of(dialogContext)
+                              .popUntil((route) => route.isFirst);
                         },
                         onReviewMatch: () {
                           if (isOffline) {
-                            final matchRecord = offlineProv.lastOfflineMatchRecord ??
-                                offlineProv.buildCurrentOfflineMatchRecord(data);
+                            final matchRecord =
+                                offlineProv.lastOfflineMatchRecord ??
+                                offlineProv.buildCurrentOfflineMatchRecord(
+                                  data,
+                                );
                             if (matchRecord != null) {
-                              Navigator.of(dialogContext, rootNavigator: true).pop();
+                              Navigator.of(
+                                dialogContext,
+                                rootNavigator: true,
+                              ).pop();
                               Navigator.of(dialogContext).push(
                                 MaterialPageRoute(
-                                  builder: (_) => MatchReplayScreen(match: matchRecord),
+                                  builder: (_) =>
+                                      MatchReplayScreen(match: matchRecord),
                                 ),
                               );
                             }
                           } else {
-                            final matchRecord = onlineProv.lastOnlineMatchRecord ??
+                            final matchRecord =
+                                onlineProv.lastOnlineMatchRecord ??
                                 onlineProv.buildCurrentOnlineMatchRecord(data);
                             final matchId = onlineProv.matchId ?? data.matchId;
                             if (matchRecord != null || matchId.isNotEmpty) {
-                              Navigator.of(dialogContext, rootNavigator: true).pop();
+                              Navigator.of(
+                                dialogContext,
+                                rootNavigator: true,
+                              ).pop();
                               Navigator.of(dialogContext).push(
                                 MaterialPageRoute(
                                   builder: (_) => MatchReplayScreen(
                                     match: matchRecord,
-                                    matchId: matchId.isNotEmpty ? matchId : null,
+                                    matchId: matchId.isNotEmpty
+                                        ? matchId
+                                        : null,
                                   ),
                                 ),
                               );
@@ -197,10 +212,11 @@ class MatchMenuDialog extends StatelessWidget {
                     }
                   },
                 ),
-                if (!isOffline && !onlineProv.isRematchRequested.value || isOffline)
+                if (!isOffline && !onlineProv.isRematchRequested.value ||
+                    isOffline)
                   _MenuTile(
                     icon: Icons.replay_rounded,
-                    iconColor: AppColors.primaryGreen,
+                    iconColor: AppColors.primaryAmber,
                     title: 'online.rematch'.tr(),
                     textColor: AppColors.getTextPrimary(isDark),
                     onTap: () {
@@ -220,20 +236,21 @@ class MatchMenuDialog extends StatelessWidget {
               // ─── Section 2: Settings & Rotate Board ──────────────────
               _MenuTile(
                 icon: Icons.settings_rounded,
-                iconColor: AppColors.primaryGreen,
+                iconColor: AppColors.primaryAmber,
                 title: 'settings.title'.tr(),
                 subtitle: 'settings.generalSection'.tr(),
                 textColor: AppColors.getTextPrimary(isDark),
                 onTap: () {
                   Navigator.of(context).pop();
-                  final dialogContext = appNavigatorKey.currentContext ?? context;
+                  final dialogContext =
+                      appNavigatorKey.currentContext ?? context;
                   SettingsDialog.show(dialogContext);
                 },
               ),
 
               _MenuTile(
                 icon: Icons.rotate_90_degrees_cw_rounded,
-                iconColor: AppColors.primaryGreen,
+                iconColor: AppColors.primaryAmber,
                 title: 'online.rotateBoard'.tr(),
                 subtitle: isHorizontal
                     ? 'common.orientationHorizontal'.tr()
@@ -281,9 +298,9 @@ class MatchMenuDialog extends StatelessWidget {
                           children: [
                             _MenuTile(
                               icon: Icons.check_circle_outline,
-                              iconColor: AppColors.primaryGreen,
+                              iconColor: AppColors.primaryAmber,
                               title: 'online.acceptDraw'.tr(),
-                              textColor: AppColors.primaryGreen,
+                              textColor: AppColors.primaryAmber,
                               showChevron: false,
                               onTap: () {
                                 Navigator.of(context).pop();
@@ -360,10 +377,7 @@ class MatchMenuDialog extends StatelessWidget {
   Widget _buildDivider(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Divider(
-        color: AppColors.getBorder(isDark),
-        height: 1,
-      ),
+      child: Divider(color: AppColors.getBorder(isDark), height: 1),
     );
   }
 

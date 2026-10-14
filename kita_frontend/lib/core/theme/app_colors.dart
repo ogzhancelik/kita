@@ -9,10 +9,10 @@ class AppColors {
   static const Color primary = Color(
     0xFF863653,
   ); // Ana Renk (Reddish Purplish / Crimson Berry Wine)
-  static const Color primaryDark = Color(
-    0xFF5A2236,
-  ); // Deep Purplish Shadow
-  static const Color primaryHover = Color(0xFF9E4366); // Lighter reddish-purple for hover
+  static const Color primaryDark = Color(0xFF5A2236); // Deep Purplish Shadow
+  static const Color primaryHover = Color(
+    0xFF9E4366,
+  ); // Lighter reddish-purple for hover
   static const Color primaryShadow = Color(
     0xFF501E30,
   ); // 3D bevel shadow for reddish-purple
@@ -43,16 +43,21 @@ class AppColors {
   static const Color logoPawnStroke = Color(0x40000000); // rgba(0, 0, 0, 0.25)
 
   // Interactive Action Colors (Main action is reddish purplish)
-  static const Color primaryGreen = primary; // #863653: Main interactive CTA
-  static const Color primaryGreenHover = primaryHover; // #9E4366: Hover state
-  static const Color primaryGreenDark = primaryShadow; // #501E30: 3D button shadow
+  static const Color primaryAmber = primary; // #863653: Main interactive CTA
+  static const Color primaryAmberHover = primaryHover; // #9E4366: Hover state
+  static const Color primaryAmberDark =
+      primaryShadow; // #501E30: 3D button shadow
   static const Color accentGreen = accent; // #A8D8C6: Mint Accent
 
   static const Color boardDarkSquare = Color(0xFF769656);
   static const Color boardLightSquare = Color(0xFFEEEED2);
   static const Color boardHighlight = Color(0xFFF7F769);
-  static const Color boardOceanHighlight = Color(0xFF00F5D4); // Vibrant bioluminescent aquamarine for Ocean Azure theme
-  static const Color boardOceanSelected = Color(0xFFFFD166); // Sunlit warm gold for Ocean Azure theme
+  static const Color boardOceanHighlight = Color(
+    0xFF00F5D4,
+  ); // Vibrant bioluminescent aquamarine for Ocean Azure theme
+  static const Color boardOceanSelected = Color(
+    0xFFFFD166,
+  ); // Sunlit warm gold for Ocean Azure theme
   static const Color lastMoveHighlight = Color(0xFFF7F769);
   static const Color lastMoveLine = accent;
 
@@ -87,19 +92,28 @@ class AppColors {
   static const Color silverMedal = Color(0xFFC0C0C0);
   static const Color bronzeMedal = Color(0xFFCD7F32);
   static const Color guestOrange = Color(0xFFF39C12);
-  static const Color winGreen = Color(0xFF70EFBF); // Vibrant Emerald Green for wins
+  static const Color winGreen = Color(
+    0xFF70EFBF,
+  ); // Vibrant Emerald Green for wins
   static const Color winBlue = Color(0xFF3498DB);
   static const Color lossRed = Color(0xFFE74C3C);
-  static const Color drawYellow = Color(0xFFFFC83B); // Standard warning yellow for draw outcomes
+  static const Color drawYellow = Color(
+    0xFFFFC83B,
+  ); // Standard warning yellow for draw outcomes
   static const Color draw = drawYellow;
   static const Color drawGray = drawYellow; // Backward-compatibility alias
-  static const Color deletedUser = Color(0xFF7E7E7E); // Deleted account / muted identifier
+  static const Color deletedUser = Color(
+    0xFF7E7E7E,
+  ); // Deleted account / muted identifier
 
   // --- Positive & Status Indicators (Accents: #A8D8C6 / #75B69C) ---
-  static const Color online = accent; // #A8D8C6: Açık mint yeşili (çevrimiçi göstergesi)
-  static const Color onlineLight = accent; // #A8D8C6: Mint online glow/badge background
+  static const Color online =
+      accent; // #A8D8C6: Açık mint yeşili (çevrimiçi göstergesi)
+  static const Color onlineLight =
+      accent; // #A8D8C6: Mint online glow/badge background
   static const Color offline = Color(0xFF7E7E7E); // Gri çevrimdışı göstergesi
-  static const Color victory = winGreen; // #90F0CC: Vibrant saturated green (Galibiyet rozeti & metni)
+  static const Color victory =
+      winGreen; // #90F0CC: Vibrant saturated green (Galibiyet rozeti & metni)
   static const Color victoryLight = winGreen; // Victory tint / glow
   static const Color winStat = accent; // #A8D8C6: Saturated win rate/stat color
   static const Color winStatLight = accent; // Win stat badge tint
@@ -109,10 +123,18 @@ class AppColors {
   static Color getDraw(bool isDark) => drawYellow;
 
   // --- Active Turn Profile Panel Colors (Mint theme) ---
-  static const Color turnActiveCardDark = Color(0xFF29372F); // Deep tactical mint for dark mode
-  static const Color turnActiveCardLight = Color(0xFFD6F0E6); // Refreshing soft mint for light mode
-  static const Color turnActiveBorderDark = Color(0xFF3B7260); // Mint border highlight dark
-  static const Color turnActiveBorderLight = Color(0xFF8DCFB7); // Mint border highlight light
+  static const Color turnActiveCardDark = Color(
+    0xFF29372F,
+  ); // Deep tactical mint for dark mode
+  static const Color turnActiveCardLight = Color(
+    0xFFD6F0E6,
+  ); // Refreshing soft mint for light mode
+  static const Color turnActiveBorderDark = Color(
+    0xFF3B7260,
+  ); // Mint border highlight dark
+  static const Color turnActiveBorderLight = Color(
+    0xFF8DCFB7,
+  ); // Mint border highlight light
 
   static Color getTurnActiveCard(bool isDark) =>
       isDark ? turnActiveCardDark : turnActiveCardLight;

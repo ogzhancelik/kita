@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/match_model.dart';
 import '../../../data/models/user_model.dart';
@@ -52,8 +53,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     final onlineCount = isGuest
         ? 0
         : (_totalOnlineMatches > _onlineMatches.length
-            ? _totalOnlineMatches
-            : _onlineMatches.length);
+              ? _totalOnlineMatches
+              : _onlineMatches.length);
     final offlineCount = _showOfflineMatches ? _offlineMatches.length : 0;
     return onlineCount + offlineCount;
   }
@@ -62,8 +63,9 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    LocalMatchHistoryService.instance.matchHistoryRevision
-        .addListener(_onRevisionChanged);
+    LocalMatchHistoryService.instance.matchHistoryRevision.addListener(
+      _onRevisionChanged,
+    );
     _fetchMatches();
   }
 
@@ -71,8 +73,9 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    LocalMatchHistoryService.instance.matchHistoryRevision
-        .removeListener(_onRevisionChanged);
+    LocalMatchHistoryService.instance.matchHistoryRevision.removeListener(
+      _onRevisionChanged,
+    );
     super.dispose();
   }
 
@@ -113,8 +116,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           .getShowOfflineMatches(userId: user?.id, isGuest: isGuest);
 
       // 2. Fetch offline matches from local device storage
-      _offlineMatches = await LocalMatchHistoryService.instance
-          .getMatches(userId: user?.id, isGuest: isGuest);
+      _offlineMatches = await LocalMatchHistoryService.instance.getMatches(
+        userId: user?.id,
+        isGuest: isGuest,
+      );
 
       // 3. Fetch online matches from backend API if not guest
       if (!mounted) return;
@@ -122,11 +127,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
         try {
           context.read<AuthProvider>().refreshProfile();
           final result = await _matchApiService
-              .getUserMatchesWithTotal(
-                user.id,
-                limit: _pageSize,
-                offset: 0,
-              )
+              .getUserMatchesWithTotal(user.id, limit: _pageSize, offset: 0)
               .timeout(const Duration(seconds: 6));
           _onlineMatches = result.matches;
           _onlineOffset = result.matches.length;
@@ -296,15 +297,22 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.primaryGreen,
+          backgroundColor: AppColors.primaryAmber,
           content: Row(
             children: [
-              const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+              const Icon(
+                Icons.check_circle_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'replay.loadSuccess'.tr(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -315,9 +323,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => MatchReplayScreen(
-            match: loadedMatch,
-          ),
+          builder: (_) => MatchReplayScreen(match: loadedMatch),
         ),
       );
 
@@ -331,12 +337,19 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           backgroundColor: AppColors.lossRed,
           content: Row(
             children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'replay.invalidFile'.tr(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -351,12 +364,19 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           backgroundColor: AppColors.lossRed,
           content: Row(
             children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'replay.invalidFile'.tr(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -421,10 +441,15 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
               // 1. Check local match storage first
               final localMatches = await LocalMatchHistoryService.instance
                   .getMatches(userId: user?.id, isGuest: isGuest);
-              final matchingLocal = localMatches.where((m) =>
-                m.id.toLowerCase() == code.toLowerCase() ||
-                (m.id.contains('-') && m.id.split('-').first.toLowerCase() == code.toLowerCase())
-              ).firstOrNull;
+              final matchingLocal = localMatches
+                  .where(
+                    (m) =>
+                        m.id.toLowerCase() == code.toLowerCase() ||
+                        (m.id.contains('-') &&
+                            m.id.split('-').first.toLowerCase() ==
+                                code.toLowerCase()),
+                  )
+                  .firstOrNull;
 
               if (matchingLocal != null) {
                 if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
@@ -468,10 +493,16 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
           return AlertDialog(
             backgroundColor: AppColors.getCard(isDark),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
-                const Icon(Icons.smart_display_rounded, color: AppColors.primaryGreen, size: 22),
+                const Icon(
+                  Icons.smart_display_rounded,
+                  color: AppColors.primaryAmber,
+                  size: 22,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'replay.loadReplayTitle'.tr(),
@@ -503,7 +534,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                       ),
                       prefixIcon: const Icon(
                         Icons.tag_rounded,
-                        color: AppColors.primaryGreen,
+                        color: AppColors.primaryAmber,
                         size: 20,
                       ),
                       suffixIcon: textController.text.isNotEmpty
@@ -516,31 +547,46 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                               },
                             )
                           : IconButton(
-                              icon: const Icon(Icons.content_paste_rounded, size: 18),
+                              icon: const Icon(
+                                Icons.content_paste_rounded,
+                                size: 18,
+                              ),
                               color: AppColors.getTextMuted(isDark),
                               tooltip: 'Paste',
                               onPressed: () async {
-                                final data = await Clipboard.getData('text/plain');
+                                final data = await Clipboard.getData(
+                                  'text/plain',
+                                );
                                 if (data?.text != null) {
                                   textController.text = data!.text!;
                                   setModalState(() {});
                                 }
                               },
                             ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       filled: true,
                       fillColor: AppColors.getSurface(isDark),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: AppColors.getBorder(isDark)),
+                        borderSide: BorderSide(
+                          color: AppColors.getBorder(isDark),
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: AppColors.getBorder(isDark)),
+                        borderSide: BorderSide(
+                          color: AppColors.getBorder(isDark),
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: AppColors.primaryGreen, width: 1.5),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryAmber,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                     onChanged: (_) {
@@ -568,10 +614,12 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
+                        backgroundColor: AppColors.primaryAmber,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         elevation: 0,
                       ),
                       onPressed: isLoading ? null : submitCode,
@@ -586,7 +634,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                             )
                           : Text(
                               'replay.watchMatch'.tr(),
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                             ),
                     ),
                   ),
@@ -605,7 +656,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                       ),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.getTextSecondary(isDark),
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
@@ -618,7 +672,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                 onPressed: () => Navigator.of(dialogCtx).pop(),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   visualDensity: VisualDensity.compact,
                 ),
                 child: Text(
@@ -652,7 +709,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             visualDensity: VisualDensity.compact,
             icon: const Icon(
               Icons.file_open_rounded,
-              color: AppColors.primaryGreen,
+              color: AppColors.primaryAmber,
               size: 20,
             ),
             onPressed: _showLoadReplayDialog,
@@ -668,7 +725,9 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0, vertical: 12.0),
+                    horizontal: 10.0,
+                    vertical: 12.0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -717,14 +776,19 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              const Icon(Icons.error_outline_rounded,
-                                  size: 40, color: Colors.redAccent),
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                size: 40,
+                                color: Colors.redAccent,
+                              ),
                               const SizedBox(height: 8),
                               Text(
                                 _errorMessage!,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                    fontSize: 13, fontWeight: FontWeight.bold),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(height: 12),
                               KitaButton(
@@ -747,10 +811,15 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                           itemCount: _visibleMatches.length,
                           itemBuilder: (context, index) {
                             final match = _visibleMatches[index];
-                            final prevMatch =
-                                index > 0 ? _visibleMatches[index - 1] : null;
-                            final showDateDivider = prevMatch == null ||
-                                !_isSameDay(prevMatch.startedAt, match.startedAt);
+                            final prevMatch = index > 0
+                                ? _visibleMatches[index - 1]
+                                : null;
+                            final showDateDivider =
+                                prevMatch == null ||
+                                !_isSameDay(
+                                  prevMatch.startedAt,
+                                  match.startedAt,
+                                );
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -778,7 +847,9 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                             child: SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -840,20 +911,20 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: _showOfflineMatches
-                        ? AppColors.primaryGreen.withValues(alpha: 0.15)
+                        ? AppColors.primaryAmber.withValues(alpha: 0.15)
                         : (isDark
-                            ? AppColors.darkSurfaceElevated
-                            : AppColors.lightSurface),
+                              ? AppColors.darkSurfaceElevated
+                              : AppColors.lightSurface),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.smart_toy_rounded,
                     size: 18,
                     color: _showOfflineMatches
-                        ? AppColors.primaryGreen
+                        ? AppColors.primaryAmber
                         : (isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted),
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -893,7 +964,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           ),
           Switch.adaptive(
             value: _showOfflineMatches,
-            activeThumbColor: AppColors.primaryGreen,
+            activeThumbColor: AppColors.primaryAmber,
             onChanged: _toggleOfflineFilter,
           ),
         ],
@@ -942,8 +1013,11 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          const Icon(Icons.account_circle_outlined,
-              size: 42, color: AppColors.guestOrange),
+          const Icon(
+            Icons.account_circle_outlined,
+            size: 42,
+            color: AppColors.guestOrange,
+          ),
           const SizedBox(height: 10),
           Text(
             'history.guestTitle'.tr(),
@@ -976,11 +1050,11 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       padding: const EdgeInsets.all(28),
       child: Column(
         children: [
-          Icon(Icons.history_toggle_off_rounded,
-              size: 48,
-              color: isDark
-                  ? AppColors.darkTextMuted
-                  : AppColors.lightTextMuted),
+          Icon(
+            Icons.history_toggle_off_rounded,
+            size: 48,
+            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+          ),
           const SizedBox(height: 12),
           Text(
             'history.emptyTitle'.tr(),
@@ -1015,11 +1089,17 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       return 'game.grandmaster'.tr();
     } else if (username.contains('novice') || username.contains('acemi')) {
       return 'game.novice'.tr();
-    } else if (username.contains('easy') || username.contains('beginner') || username.contains('başlangıç')) {
+    } else if (username.contains('easy') ||
+        username.contains('beginner') ||
+        username.contains('başlangıç')) {
       return 'game.easy'.tr();
-    } else if (username.contains('hard') || username.contains('master') || username.contains('usta')) {
+    } else if (username.contains('hard') ||
+        username.contains('master') ||
+        username.contains('usta')) {
       return 'game.hard'.tr();
-    } else if (username.contains('medium') || username.contains('intermediate') || username.contains('orta')) {
+    } else if (username.contains('medium') ||
+        username.contains('intermediate') ||
+        username.contains('orta')) {
       return 'game.medium'.tr();
     }
 
@@ -1037,16 +1117,24 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     }
   }
 
-  Widget _buildPlayerAvatar(UserProfile? player, bool isDark, {bool? isDeleted, bool? isGuest}) {
+  Widget _buildPlayerAvatar(
+    UserProfile? player,
+    bool isDark, {
+    bool? isDeleted,
+    bool? isGuest,
+  }) {
     final rawName = player?.username;
-    final bool isNameUuid = rawName != null &&
+    final bool isNameUuid =
+        rawName != null &&
         rawName.length >= 32 &&
         RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(rawName);
-    final bool effectiveDeleted = isDeleted ??
+    final bool effectiveDeleted =
+        isDeleted ??
         (rawName == '[Deleted]' ||
             isNameUuid ||
             (player?.id != null && player!.id.contains('deleted')));
-    final bool effectiveGuest = isGuest ??
+    final bool effectiveGuest =
+        isGuest ??
         ((player?.id != null && player!.id.startsWith('guest-')) ||
             (rawName != null && rawName.toLowerCase().startsWith('guest')));
 
@@ -1144,13 +1232,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             width: 1,
           ),
         ),
-        child: Center(
-          child: Icon(
-            icon,
-            size: 11,
-            color: badgeColor,
-          ),
-        ),
+        child: Center(child: Icon(icon, size: 11, color: badgeColor)),
       ),
     );
   }
@@ -1180,13 +1262,12 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
   Widget _buildDateDivider(DateTime date, bool isDark, {bool isFirst = false}) {
     return Padding(
-      padding: EdgeInsets.only(
-        top: isFirst ? 4 : 10,
-        bottom: 10,
-      ),
+      padding: EdgeInsets.only(top: isFirst ? 4 : 10, bottom: 10),
       child: Row(
         children: [
-          Expanded(child: Divider(color: AppColors.getBorder(isDark), height: 1)),
+          Expanded(
+            child: Divider(color: AppColors.getBorder(isDark), height: 1),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
@@ -1198,14 +1279,20 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
               ),
             ),
           ),
-          Expanded(child: Divider(color: AppColors.getBorder(isDark), height: 1)),
+          Expanded(
+            child: Divider(color: AppColors.getBorder(isDark), height: 1),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMatchCard(BuildContext context, MatchRecordModel match,
-      String myUserId, bool isDark) {
+  Widget _buildMatchCard(
+    BuildContext context,
+    MatchRecordModel match,
+    String myUserId,
+    bool isDark,
+  ) {
     final bool isOffline = match.isOffline || match.id.startsWith('offline');
     final bool isCoop = match.isLocalCoop;
     final bool isWhite = match.isUserWhite(myUserId);
@@ -1213,20 +1300,33 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     final opponent = isWhite ? match.blackPlayer : match.whitePlayer;
     final bool isVsAi = match.isVsAi;
     final rawOpponentName = opponent?.username;
-    final bool isNameUuid = rawOpponentName != null &&
+    final bool isNameUuid =
+        rawOpponentName != null &&
         rawOpponentName.length >= 32 &&
         RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(rawOpponentName);
-    final bool isOpponentDeleted = rawOpponentName == '[Deleted]' ||
+    final bool isOpponentDeleted =
+        rawOpponentName == '[Deleted]' ||
         isNameUuid ||
         (opponent?.id != null && opponent!.id.contains('deleted'));
-    final bool isOpponentGuest = (opponent?.id != null && opponent!.id.startsWith('guest-')) ||
-        (rawOpponentName != null && rawOpponentName.toLowerCase().startsWith('guest'));
+    final bool isOpponentGuest =
+        (opponent?.id != null && opponent!.id.startsWith('guest-')) ||
+        (rawOpponentName != null &&
+            rawOpponentName.toLowerCase().startsWith('guest'));
 
-    final opponentName = (opponent?.id == 'bot' || rawOpponentName == 'game.aiBot' || isVsAi)
+    final opponentName =
+        (opponent?.id == 'bot' || rawOpponentName == 'game.aiBot' || isVsAi)
         ? 'game.aiBot'.tr()
-        : ((rawOpponentName != null && rawOpponentName.isNotEmpty && !isNameUuid)
-            ? rawOpponentName
-            : (isOpponentDeleted ? '[Deleted]' : (isOffline ? 'game.aiBot'.tr() : (isWhite ? 'common.black'.tr() : 'common.white'.tr()))));
+        : ((rawOpponentName != null &&
+                  rawOpponentName.isNotEmpty &&
+                  !isNameUuid)
+              ? rawOpponentName
+              : (isOpponentDeleted
+                    ? '[Deleted]'
+                    : (isOffline
+                          ? 'game.aiBot'.tr()
+                          : (isWhite
+                                ? 'common.black'.tr()
+                                : 'common.white'.tr()))));
     final opponentRating = opponent?.rating ?? 1200;
 
     final isDraw = match.isDraw || match.isDrawOutcome;
@@ -1368,11 +1468,16 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: resultColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: resultColor.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: resultColor.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Text(
                             match.winnerId == match.whitePlayerId
@@ -1410,8 +1515,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                             color: isOpponentDeleted
                                 ? AppColors.getDeletedUser(isDark)
                                 : (isDark
-                                    ? AppColors.darkTextPrimary
-                                    : AppColors.lightTextPrimary),
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.lightTextPrimary),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1431,7 +1536,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                         ),
                       ],
                     ],
-                    if ((match.isTimeout || match.isResigned || match.isDrawAgreement) && !(isCoop && match.isDraw)) ...[
+                    if ((match.isTimeout ||
+                            match.isResigned ||
+                            match.isDrawAgreement) &&
+                        !(isCoop && match.isDraw)) ...[
                       const SizedBox(width: 6),
                       _buildEndReasonBadge(match, isDark),
                     ],
@@ -1458,8 +1566,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted,
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
                         ),
                       ),
                   ],
@@ -1471,7 +1579,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
           // Right: Replay Action Icon
           const Icon(
             Icons.play_circle_outline_rounded,
-            color: AppColors.primaryGreen,
+            color: AppColors.primaryAmber,
             size: 28,
           ),
         ],

@@ -27,8 +27,8 @@ class DashboardTopBar extends StatelessWidget {
     final isGuest = authProv.isGuest;
 
     final hasUnreadChats = (dmProv?.totalUnread ?? 0) > 0;
-    final hasUnreadNotifications = notifProv.hasUnread ||
-        friendsProv.pendingIncomingCount > 0;
+    final hasUnreadNotifications =
+        notifProv.hasUnread || friendsProv.pendingIncomingCount > 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
@@ -64,7 +64,9 @@ class DashboardTopBar extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.lightTextPrimary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -74,9 +76,13 @@ class DashboardTopBar extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                isGuest ? Icons.person_outline_rounded : Icons.emoji_events_rounded,
+                                isGuest
+                                    ? Icons.person_outline_rounded
+                                    : Icons.emoji_events_rounded,
                                 size: 13,
-                                color: isGuest ? AppColors.guestOrange : AppColors.ratingGold,
+                                color: isGuest
+                                    ? AppColors.guestOrange
+                                    : AppColors.ratingGold,
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -86,7 +92,9 @@ class DashboardTopBar extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: isGuest ? AppColors.guestOrange : AppColors.ratingGold,
+                                  color: isGuest
+                                      ? AppColors.guestOrange
+                                      : AppColors.ratingGold,
                                 ),
                               ),
                             ],
@@ -111,8 +119,10 @@ class DashboardTopBar extends StatelessWidget {
                     ? Icons.notifications_active_rounded
                     : Icons.notifications_none_rounded,
                 color: hasUnreadNotifications
-                    ? AppColors.primaryGreen
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                    ? AppColors.primaryAmber
+                    : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary),
                 tooltip: 'notifications.title'.tr(),
                 hasBadge: hasUnreadNotifications,
                 isDark: isDark,
@@ -132,16 +142,16 @@ class DashboardTopBar extends StatelessWidget {
                     ? Icons.chat_bubble_rounded
                     : Icons.chat_bubble_outline_rounded,
                 color: hasUnreadChats
-                    ? AppColors.primaryGreen
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                    ? AppColors.primaryAmber
+                    : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary),
                 tooltip: 'chats.title'.tr(),
                 hasBadge: hasUnreadChats,
                 isDark: isDark,
                 onTap: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ChatsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const ChatsScreen()),
                   );
                 },
               ),
@@ -150,7 +160,9 @@ class DashboardTopBar extends StatelessWidget {
               // Ayarlar Sembolü
               _buildActionIcon(
                 icon: Icons.settings_outlined,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.lightTextPrimary,
                 tooltip: 'settings.title'.tr(),
                 hasBadge: false,
                 isDark: isDark,
@@ -181,11 +193,7 @@ class DashboardTopBar extends StatelessWidget {
             radius: 18,
             child: Padding(
               padding: const EdgeInsets.all(5),
-              child: Icon(
-                icon,
-                color: color,
-                size: 20,
-              ),
+              child: Icon(icon, color: color, size: 20),
             ),
           ),
         ),
@@ -197,7 +205,7 @@ class DashboardTopBar extends StatelessWidget {
               width: 8,
               height: 8,
               decoration: BoxDecoration(
-                color: AppColors.primaryGreen,
+                color: AppColors.primaryAmber,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isDark ? AppColors.darkBg : AppColors.lightBg,

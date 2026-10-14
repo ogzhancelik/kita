@@ -1,5 +1,6 @@
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
+
 import '../../../core/theme/app_colors.dart';
 
 /// Reusable Kita Emoji Picker designed for avatar customization,
@@ -30,17 +31,21 @@ class KitaEmojiPicker extends StatelessWidget {
           emojiViewConfig: EmojiViewConfig(
             columns: 8,
             emojiSizeMax: 28,
-            backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            backgroundColor: isDark
+                ? AppColors.darkSurface
+                : AppColors.lightSurface,
           ),
           categoryViewConfig: CategoryViewConfig(
-            backgroundColor: isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurfaceElevated,
-            iconColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-            iconColorSelected: AppColors.primaryGreen,
-            indicatorColor: AppColors.primaryGreen,
+            backgroundColor: isDark
+                ? AppColors.darkSurfaceElevated
+                : AppColors.lightSurfaceElevated,
+            iconColor: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.lightTextSecondary,
+            iconColorSelected: AppColors.primaryAmber,
+            indicatorColor: AppColors.primaryAmber,
           ),
-          bottomActionBarConfig: const BottomActionBarConfig(
-            enabled: false,
-          ),
+          bottomActionBarConfig: const BottomActionBarConfig(enabled: false),
         ),
       ),
     );
@@ -114,14 +119,18 @@ class KitaEmojiPicker extends StatelessWidget {
               // Optional live preview & Send row (when used in chats)
               if (hasPreview) ...[
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 4,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: isDark
                                 ? AppColors.darkSurfaceElevated
@@ -144,11 +153,11 @@ class KitaEmojiPicker extends StatelessWidget {
                                   fontSize: 14,
                                   color: text.isEmpty
                                       ? (isDark
-                                          ? AppColors.darkTextSecondary
-                                          : AppColors.lightTextSecondary)
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.lightTextSecondary)
                                       : (isDark
-                                          ? AppColors.darkTextPrimary
-                                          : AppColors.lightTextPrimary),
+                                            ? AppColors.darkTextPrimary
+                                            : AppColors.lightTextPrimary),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -169,7 +178,7 @@ class KitaEmojiPicker extends StatelessWidget {
                             width: 36,
                             height: 36,
                             decoration: const BoxDecoration(
-                              color: AppColors.primaryGreen,
+                              color: AppColors.primaryAmber,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -203,14 +212,16 @@ class KitaEmojiPicker extends StatelessWidget {
                         controller.value = TextEditingValue(
                           text: newText,
                           selection: TextSelection.collapsed(
-                              offset: start + emoji.length),
+                            offset: start + emoji.length,
+                          ),
                         );
                       } else {
                         final newText = text + emoji;
                         controller.value = TextEditingValue(
                           text: newText,
                           selection: TextSelection.collapsed(
-                              offset: newText.length),
+                            offset: newText.length,
+                          ),
                         );
                       }
                     }

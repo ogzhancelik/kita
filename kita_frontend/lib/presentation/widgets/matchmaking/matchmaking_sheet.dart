@@ -36,9 +36,7 @@ class MatchmakingSheet extends StatefulWidget {
         context.mounted &&
         !OnlineMatchScreen.isMatchScreenOpen) {
       await nav.push(
-        MaterialPageRoute(
-          builder: (_) => const OnlineMatchScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const OnlineMatchScreen()),
       );
     }
   }
@@ -96,9 +94,7 @@ class _MatchmakingSheetState extends State<MatchmakingSheet>
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(color: AppColors.getBorder(isDark)),
-        ),
+        border: Border(top: BorderSide(color: AppColors.getBorder(isDark))),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       child: Column(
@@ -141,7 +137,7 @@ class _MatchmakingSheetState extends State<MatchmakingSheet>
                           width: 8,
                           height: 8,
                           decoration: const BoxDecoration(
-                            color: AppColors.primaryGreen,
+                            color: AppColors.primaryAmber,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -211,7 +207,7 @@ class _MatchmakingSheetState extends State<MatchmakingSheet>
                   height: 84,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.primaryGreen.withValues(
+                    color: AppColors.primaryAmber.withValues(
                       alpha: 0.15 + (1 - _pulseController.value) * 0.15,
                     ),
                   ),
@@ -221,7 +217,7 @@ class _MatchmakingSheetState extends State<MatchmakingSheet>
                       height: 56,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.primaryGreen,
+                        color: AppColors.primaryAmber,
                       ),
                       child: const Icon(
                         Icons.search,

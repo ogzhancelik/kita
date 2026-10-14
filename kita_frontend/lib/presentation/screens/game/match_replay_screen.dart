@@ -44,11 +44,11 @@ class MatchReplayScreen extends StatefulWidget {
   final MatchRecordModel? match;
   final String? matchId;
 
-  const MatchReplayScreen({
-    super.key,
-    this.match,
-    this.matchId,
-  }) : assert(match != null || matchId != null, 'Either match or matchId must be provided');
+  const MatchReplayScreen({super.key, this.match, this.matchId})
+    : assert(
+        match != null || matchId != null,
+        'Either match or matchId must be provided',
+      );
 
   @override
   State<MatchReplayScreen> createState() => _MatchReplayScreenState();
@@ -197,7 +197,8 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     if (_match == null) return;
     final authProv = context.read<AuthProvider>();
     final currentUserId = authProv.currentUser?.id;
-    final currentUsername = authProv.currentUser?.username ?? authProv.displayName;
+    final currentUsername =
+        authProv.currentUser?.username ?? authProv.displayName;
 
     bool userIsBlack = false;
     if (_match!.isOffline) {
@@ -258,11 +259,13 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     // Pass 1: Fast initial evaluation (depth 1) so UI displays advantage points immediately
     final List<double> fastScores = [];
     for (final state in _states) {
-      fastScores.add(AiAdvantageBar.computeWhiteAdvantageScore(
-        state,
-        _aiReady ? _ai : null,
-        1,
-      ));
+      fastScores.add(
+        AiAdvantageBar.computeWhiteAdvantageScore(
+          state,
+          _aiReady ? _ai : null,
+          1,
+        ),
+      );
     }
 
     _stateScores = fastScores;
@@ -281,11 +284,13 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         continue;
       }
       final isWhite = i % 2 == 1; // 1-based ply: 1 is White, 2 is Black
-      evals.add(MoveEvaluation.compute(
-        whiteScoreBefore: scores[i - 1],
-        whiteScoreAfter: scores[i],
-        isWhiteMove: isWhite,
-      ));
+      evals.add(
+        MoveEvaluation.compute(
+          whiteScoreBefore: scores[i - 1],
+          whiteScoreAfter: scores[i],
+          isWhiteMove: isWhite,
+        ),
+      );
     }
     return evals;
   }
@@ -361,21 +366,28 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
     // Trim scores if sandbox branched from an earlier step
     if (_sandboxStateScores.length > _sandboxStates.length) {
-      _sandboxStateScores = _sandboxStateScores.sublist(0, _sandboxStates.length);
+      _sandboxStateScores = _sandboxStateScores.sublist(
+        0,
+        _sandboxStates.length,
+      );
     }
 
     final int startIndex = _sandboxStateScores.length;
 
     // Pass 1: Fast initial pass (depth 1) ONLY for newly added states
     for (int i = startIndex; i < _sandboxStates.length; i++) {
-      _sandboxStateScores.add(AiAdvantageBar.computeWhiteAdvantageScore(
-        _sandboxStates[i],
-        _aiReady ? _ai : null,
-        1,
-      ));
+      _sandboxStateScores.add(
+        AiAdvantageBar.computeWhiteAdvantageScore(
+          _sandboxStates[i],
+          _aiReady ? _ai : null,
+          1,
+        ),
+      );
     }
 
-    _sandboxEvaluations = _buildSandboxEvaluationsFromScores(_sandboxStateScores);
+    _sandboxEvaluations = _buildSandboxEvaluationsFromScores(
+      _sandboxStateScores,
+    );
 
     // Pass 2: Progressive refinement to depth 3 ONLY for newly added states
     if (startIndex < _sandboxStates.length) {
@@ -383,16 +395,20 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     }
   }
 
-  List<MoveEvaluation?> _buildSandboxEvaluationsFromScores(List<double> scores) {
+  List<MoveEvaluation?> _buildSandboxEvaluationsFromScores(
+    List<double> scores,
+  ) {
     final List<MoveEvaluation?> evals = [];
     for (int i = 1; i < _sandboxStates.length; i++) {
       final globalPly = _forkStep + i;
       final isWhite = globalPly % 2 == 1;
-      evals.add(MoveEvaluation.compute(
-        whiteScoreBefore: scores[i - 1],
-        whiteScoreAfter: scores[i],
-        isWhiteMove: isWhite,
-      ));
+      evals.add(
+        MoveEvaluation.compute(
+          whiteScoreBefore: scores[i - 1],
+          whiteScoreAfter: scores[i],
+          isWhiteMove: isWhite,
+        ),
+      );
     }
     return evals;
   }
@@ -419,7 +435,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
       setState(() {
         _sandboxStateScores = List<double>.from(_sandboxStateScores);
-        _sandboxEvaluations = _buildSandboxEvaluationsFromScores(_sandboxStateScores);
+        _sandboxEvaluations = _buildSandboxEvaluationsFromScores(
+          _sandboxStateScores,
+        );
       });
 
       // Yield after each refined ply
@@ -688,15 +706,15 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       _sandboxStates = [_sandboxStates.first];
       _sandboxMoves = [];
       _sandboxStep = 0;
-      _sandboxStateScores = _sandboxStateScores.isNotEmpty ? [_sandboxStateScores.first] : [];
+      _sandboxStateScores = _sandboxStateScores.isNotEmpty
+          ? [_sandboxStateScores.first]
+          : [];
       _sandboxEvaluations = [];
       _selectedPos = null;
       _selectedPieceId = null;
       _validMoves = {};
     });
   }
-
-
 
   void _jumpToSandboxStep(int step) {
     if (_sandboxStates.isEmpty) return;
@@ -736,8 +754,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       return;
     }
     final rowIndex = (_currentStep - 1) ~/ 2;
-    final targetOffset = (rowIndex * _moveRowHeight)
-        .clamp(0.0, _movesScrollController.position.maxScrollExtent);
+    final targetOffset = (rowIndex * _moveRowHeight).clamp(
+      0.0,
+      _movesScrollController.position.maxScrollExtent,
+    );
     _movesScrollController.animateTo(
       targetOffset,
       duration: const Duration(milliseconds: 200),
@@ -747,7 +767,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
   KitaBoardTheme _getBoardTheme(BuildContext context, bool isDark) {
     try {
-      final gameSettings = Provider.of<GameSettingsProvider>(context, listen: true);
+      final gameSettings = Provider.of<GameSettingsProvider>(
+        context,
+        listen: true,
+      );
       return gameSettings.currentBoardTheme(isDark);
     } catch (_) {
       switch (_themeIndex) {
@@ -783,7 +806,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       return Scaffold(
         backgroundColor: AppColors.getBackground(isDark),
         body: const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGreen),
+          child: CircularProgressIndicator(color: AppColors.primaryAmber),
         ),
       );
     }
@@ -795,7 +818,11 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.lossRed),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: AppColors.lossRed,
+              ),
               const SizedBox(height: 12),
               Text(
                 _errorMessage!,
@@ -819,7 +846,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     // When _flipBoard is false: White is at bottom, Black is at top
     // When _flipBoard is true: Black is at bottom, White is at top
     final isBottomWhite = !_flipBoard;
-    final bottomPlayer = isBottomWhite ? _match?.whitePlayer : _match?.blackPlayer;
+    final bottomPlayer = isBottomWhite
+        ? _match?.whitePlayer
+        : _match?.blackPlayer;
     final bottomTeam = isBottomWhite ? 'white' : 'black';
     final topPlayer = isBottomWhite ? _match?.blackPlayer : _match?.whitePlayer;
     final topTeam = isBottomWhite ? 'black' : 'white';
@@ -860,20 +889,29 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                   // Opponent Card (~44px) + Gap (8px) + User Card (~44px) + Gap (8px) + Advantage Bar (~26px + 8px padding) = 138px
                   const double fixedHeaderHeight = 138.0;
                   const double minMoveListHeight = 110.0;
-                  final double availableForBoardAndList =
-                      max(minMoveListHeight + 60.0, totalHeight - fixedHeaderHeight);
-                  final double maxBoardHeight =
-                      max(60.0, availableForBoardAndList - minMoveListHeight);
+                  final double availableForBoardAndList = max(
+                    minMoveListHeight + 60.0,
+                    totalHeight - fixedHeaderHeight,
+                  );
+                  final double maxBoardHeight = max(
+                    60.0,
+                    availableForBoardAndList - minMoveListHeight,
+                  );
 
                   final double boardHeight;
                   if (_isHorizontal) {
-                    final double naturalHorizontalHeight = totalWidth * (4.0 / 7.0);
+                    final double naturalHorizontalHeight =
+                        totalWidth * (4.0 / 7.0);
                     boardHeight = min(naturalHorizontalHeight, maxBoardHeight);
                   } else {
-                    final double targetVerticalHeight = availableForBoardAndList * 0.52;
-                    final double naturalVerticalHeight = totalWidth * (7.0 / 4.0);
-                    boardHeight =
-                        min(min(targetVerticalHeight, maxBoardHeight), naturalVerticalHeight);
+                    final double targetVerticalHeight =
+                        availableForBoardAndList * 0.52;
+                    final double naturalVerticalHeight =
+                        totalWidth * (7.0 / 4.0);
+                    boardHeight = min(
+                      min(targetVerticalHeight, maxBoardHeight),
+                      naturalVerticalHeight,
+                    );
                   }
 
                   return Column(
@@ -915,9 +953,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                         ),
 
                       // Move List positioned where chat is placed in live matches
-                      Expanded(
-                        child: _buildMoveHistoryPanel(isDark),
-                      ),
+                      Expanded(child: _buildMoveHistoryPanel(isDark)),
                     ],
                   );
                 },
@@ -941,10 +977,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.getBorder(isDark),
-            width: 0.8,
-          ),
+          bottom: BorderSide(color: AppColors.getBorder(isDark), width: 0.8),
         ),
       ),
       child: Row(
@@ -966,22 +999,33 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                     onTap: _exitSandbox,
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.ratingGold.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColors.ratingGold.withValues(alpha: 0.5)),
+                        border: Border.all(
+                          color: AppColors.ratingGold.withValues(alpha: 0.5),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.alt_route_rounded, size: 14, color: AppColors.ratingGold),
+                          const Icon(
+                            Icons.alt_route_rounded,
+                            size: 14,
+                            color: AppColors.ratingGold,
+                          ),
                           const SizedBox(width: 5),
                           Flexible(
                             child: Text(
                               _forkStep == 0
                                   ? 'replay.sandboxInitialActive'.tr()
-                                  : 'replay.sandboxActive'.tr(args: ['$_forkStep']),
+                                  : 'replay.sandboxActive'.tr(
+                                      args: ['$_forkStep'],
+                                    ),
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
@@ -991,7 +1035,11 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(Icons.close_rounded, size: 13, color: AppColors.ratingGold),
+                          const Icon(
+                            Icons.close_rounded,
+                            size: 13,
+                            color: AppColors.ratingGold,
+                          ),
                         ],
                       ),
                     ),
@@ -1012,7 +1060,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             icon: const Icon(Icons.swap_vert_rounded, size: 21),
-            color: _flipBoard ? AppColors.accent : AppColors.getTextPrimary(isDark),
+            color: _flipBoard
+                ? AppColors.accent
+                : AppColors.getTextPrimary(isDark),
             tooltip: 'replay.flipPerspective'.tr(),
             onPressed: () => setState(() => _flipBoard = !_flipBoard),
           ),
@@ -1054,8 +1104,6 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     );
   }
 
-
-
   String _getAiDifficultyLabel(UserProfile? bot) {
     final username = (bot?.username ?? '').toLowerCase();
     if (username.contains('grandmaster') || username.contains('büyük')) {
@@ -1064,13 +1112,19 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     if (username.contains('novice') || username.contains('acemi')) {
       return 'game.novice'.tr();
     }
-    if (username.contains('easy') || username.contains('beginner') || username.contains('başlangıç')) {
+    if (username.contains('easy') ||
+        username.contains('beginner') ||
+        username.contains('başlangıç')) {
       return 'game.easy'.tr();
     }
-    if (username.contains('hard') || username.contains('master') || username.contains('usta')) {
+    if (username.contains('hard') ||
+        username.contains('master') ||
+        username.contains('usta')) {
       return 'game.hard'.tr();
     }
-    if (username.contains('medium') || username.contains('intermediate') || username.contains('orta')) {
+    if (username.contains('medium') ||
+        username.contains('intermediate') ||
+        username.contains('orta')) {
       return 'game.medium'.tr();
     }
 
@@ -1099,34 +1153,42 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final isWhite = team == 'white';
     final teamColor = isWhite ? Colors.white : const Color(0xFF222222);
 
-    final rawName = player?.username ??
+    final rawName =
+        player?.username ??
         (isWhite ? 'common.white'.tr() : 'common.black'.tr());
-    final bool isNameUuid = player?.username != null &&
+    final bool isNameUuid =
+        player?.username != null &&
         player!.username.length >= 32 &&
         RegExp(r'^[0-9a-fA-F-]{32,}$').hasMatch(player.username);
-    final bool isDeleted = player?.username == '[Deleted]' ||
+    final bool isDeleted =
+        player?.username == '[Deleted]' ||
         isNameUuid ||
         (player?.id != null && player!.id.contains('deleted'));
-    final displayName = isDeleted
-        ? '[Deleted]'
-        : rawName;
-    final bool isGuest = (player?.id != null && player!.id.startsWith('guest-')) ||
+    final displayName = isDeleted ? '[Deleted]' : rawName;
+    final bool isGuest =
+        (player?.id != null && player!.id.startsWith('guest-')) ||
         (displayName.toLowerCase().startsWith('guest'));
     final playerRating = player?.rating ?? 1200;
 
-    final isBot = player?.id == 'bot' ||
+    final isBot =
+        player?.id == 'bot' ||
         displayName.toLowerCase().contains('ai bot') ||
         displayName.toLowerCase().contains('kita bot') ||
         displayName.toLowerCase().contains('bot');
 
     final playerName = isBot ? 'game.aiBot'.tr() : displayName;
-    final ratingBadgeText = isBot ? _getAiDifficultyLabel(player) : '$playerRating';
+    final ratingBadgeText = isBot
+        ? _getAiDifficultyLabel(player)
+        : '$playerRating';
     final avatarIdx = isBot
         ? 7
-        : (player?.avatarIndex ?? (playerName.hashCode.abs() % AvatarPicker.avatars.length));
+        : (player?.avatarIndex ??
+              (playerName.hashCode.abs() % AvatarPicker.avatars.length));
 
-    final isTerminalStep = _hasTerminalIndicator && _currentStep == _states.length - 1;
-    final isTurnToMove = !isTerminalStep &&
+    final isTerminalStep =
+        _hasTerminalIndicator && _currentStep == _states.length - 1;
+    final isTurnToMove =
+        !isTerminalStep &&
         !_activeEngine.isGameOver &&
         _activeEngine.turn == (isWhite ? PieceTeam.white : PieceTeam.black);
 
@@ -1137,7 +1199,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         color: isWhite ? Colors.white : const Color(0xFF202020),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isWhite ? Colors.grey.shade400 : AppColors.ratingGold.withValues(alpha: 0.6),
+          color: isWhite
+              ? Colors.grey.shade400
+              : AppColors.ratingGold.withValues(alpha: 0.6),
           width: 1.2,
         ),
         boxShadow: [
@@ -1190,7 +1254,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     );
 
     final nameAndRating = Column(
-      crossAxisAlignment: isBottom ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: isBottom
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
@@ -1326,7 +1392,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       }
     }
 
-    final gameSettings = Provider.of<GameSettingsProvider>(context, listen: false);
+    final gameSettings = Provider.of<GameSettingsProvider>(
+      context,
+      listen: false,
+    );
 
     return KitaBoardWidget(
       pieces: currentEngine.activePositions,
@@ -1391,12 +1460,12 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             decoration: BoxDecoration(
               color: (isWhiteActive || isBlackActive)
-                  ? AppColors.primaryGreen.withValues(alpha: 0.12)
+                  ? AppColors.primaryAmber.withValues(alpha: 0.12)
                   : (turnIndex % 2 == 0
-                      ? (isDark
-                          ? Colors.white.withValues(alpha: 0.02)
-                          : Colors.black.withValues(alpha: 0.02))
-                      : Colors.transparent),
+                        ? (isDark
+                              ? Colors.white.withValues(alpha: 0.02)
+                              : Colors.black.withValues(alpha: 0.02))
+                        : Colors.transparent),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -1568,7 +1637,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     required bool isWhite,
     required bool isDark,
   }) {
-    final eval = (_evaluations.length >= plyIndex) ? _evaluations[plyIndex - 1] : null;
+    final eval = (_evaluations.length >= plyIndex)
+        ? _evaluations[plyIndex - 1]
+        : null;
 
     return InkWell(
       onTap: () => _jumpToStep(plyIndex),
@@ -1577,12 +1648,12 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5.0),
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.primaryGreen
+              ? AppColors.primaryAmber
               : (isDark ? AppColors.darkSurface : AppColors.lightSurface),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: isActive
-                ? AppColors.primaryGreen
+                ? AppColors.primaryAmber
                 : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
           ),
         ),
@@ -1624,7 +1695,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                   fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
                   color: isActive
                       ? Colors.white
-                      : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                      : (isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1647,10 +1720,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     final badgeColor = eval.getBadgeColor(isActive);
     final borderColor = eval.getBorderColor(isDark, isActive);
 
-    final tooltipMsg = 'replay.evalDeltaTooltip'.tr(args: [
-      eval.qualityName,
-      eval.positionScoreLabel,
-    ]);
+    final tooltipMsg = 'replay.evalDeltaTooltip'.tr(
+      args: [eval.qualityName, eval.positionScoreLabel],
+    );
 
     return Tooltip(
       message: tooltipMsg,
@@ -1721,7 +1793,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 2.5),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6.5,
+                      ),
                       decoration: BoxDecoration(
                         color: isForkActive
                             ? AppColors.ratingGold.withValues(alpha: 0.18)
@@ -1735,16 +1810,23 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.fork_left_rounded,
-                              size: 14, color: AppColors.ratingGold),
+                          const Icon(
+                            Icons.fork_left_rounded,
+                            size: 14,
+                            color: AppColors.ratingGold,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             _forkStep == 0
                                 ? 'replay.initialPosition'.tr()
-                                : 'replay.sandboxActive'.tr(args: ['$_forkStep']),
+                                : 'replay.sandboxActive'.tr(
+                                    args: ['$_forkStep'],
+                                  ),
                             style: TextStyle(
                               fontSize: 11.5,
-                              fontWeight: isForkActive ? FontWeight.w800 : FontWeight.w600,
+                              fontWeight: isForkActive
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
                               color: isForkActive
                                   ? AppColors.ratingGold
                                   : AppColors.getTextPrimary(isDark),
@@ -1759,11 +1841,16 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 final moveIndex = index - 1;
                 final move = _sandboxMoves[moveIndex];
                 final isActive = _sandboxStep == index;
-                final isWhite = _sandboxStates[index - 1].turn == PieceTeam.white;
-                final isKing = move.pieceId == 'WK' ||
+                final isWhite =
+                    _sandboxStates[index - 1].turn == PieceTeam.white;
+                final isKing =
+                    move.pieceId == 'WK' ||
                     move.pieceId == 'BK' ||
                     KitaPiece.allPieces[move.pieceId]?.isKing == true;
-                final fromStr = _formatCoord(move.fromPos.col, move.fromPos.row);
+                final fromStr = _formatCoord(
+                  move.fromPos.col,
+                  move.fromPos.row,
+                );
                 final toStr = _formatCoord(move.toPos.col, move.toPos.row);
                 final turnNumber = ((_forkStep + moveIndex) ~/ 2) + 1;
                 final sandboxEval = (_sandboxEvaluations.length > moveIndex)
@@ -1775,15 +1862,18 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                   borderRadius: BorderRadius.circular(6),
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 2.5),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6.5,
+                    ),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? AppColors.primaryGreen
+                          ? AppColors.primaryAmber
                           : AppColors.getSurface(isDark),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: isActive
-                            ? AppColors.primaryGreen
+                            ? AppColors.primaryAmber
                             : AppColors.getBorder(isDark),
                       ),
                     ),
@@ -1830,7 +1920,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                             '$fromStr→$toStr',
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
+                              fontWeight: isActive
+                                  ? FontWeight.w900
+                                  : FontWeight.w600,
                               color: isActive
                                   ? Colors.white
                                   : AppColors.getTextPrimary(isDark),
@@ -1859,20 +1951,19 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         decoration: BoxDecoration(
           color: AppColors.getCard(isDark),
           border: Border(
-            top: BorderSide(
-              color: AppColors.getBorder(isDark),
-              width: 0.8,
-            ),
+            top: BorderSide(color: AppColors.getBorder(isDark), width: 0.8),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-
             // Reset to Fork
             TextButton.icon(
               icon: const Icon(Icons.restart_alt_rounded, size: 16),
-              label: Text('replay.resetFork'.tr(), style: const TextStyle(fontSize: 11.5)),
+              label: Text(
+                'replay.resetFork'.tr(),
+                style: const TextStyle(fontSize: 11.5),
+              ),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.getTextPrimary(isDark),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1883,23 +1974,35 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             // AI Move
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: AppColors.primaryAmber,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 elevation: 0,
               ),
               icon: _isAiThinking
                   ? const SizedBox(
                       width: 14,
                       height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.smart_toy_outlined, size: 16),
               label: Text(
                 'replay.aiMove'.tr(),
-                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              onPressed: (!_activeEngine.isGameOver && !_isAiThinking && !_isAutoRetaliating)
+              onPressed:
+                  (!_activeEngine.isGameOver &&
+                      !_isAiThinking &&
+                      !_isAutoRetaliating)
                   ? _playAiSandboxMove
                   : null,
             ),
@@ -1907,7 +2010,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             // Return to Replay
             TextButton.icon(
               icon: const Icon(Icons.replay_rounded, size: 16),
-              label: Text('replay.returnToReplay'.tr(), style: const TextStyle(fontSize: 11.5)),
+              label: Text(
+                'replay.returnToReplay'.tr(),
+                style: const TextStyle(fontSize: 11.5),
+              ),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.ratingGold,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1926,10 +2032,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         border: Border(
-          top: BorderSide(
-            color: AppColors.getBorder(isDark),
-            width: 0.8,
-          ),
+          top: BorderSide(color: AppColors.getBorder(isDark), width: 0.8),
         ),
       ),
       child: Row(
@@ -1948,7 +2051,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
           // Center Play / Pause button
           FloatingActionButton.small(
             elevation: 1,
-            backgroundColor: AppColors.primaryGreen,
+            backgroundColor: AppColors.primaryAmber,
             foregroundColor: Colors.white,
             onPressed: _togglePlayPause,
             child: Icon(
@@ -1970,7 +2073,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
           // AI Move (in replay mode: automatically chooses the best AI move and opens sandbox branch)
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: AppColors.primaryAmber,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               elevation: 0,
@@ -1979,14 +2082,23 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 ? const SizedBox(
                     width: 14,
                     height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.smart_toy_outlined, size: 16),
             label: Text(
               'replay.aiMove'.tr(),
-              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            onPressed: (!_activeEngine.isGameOver && !_isAiThinking && !_isAutoRetaliating)
+            onPressed:
+                (!_activeEngine.isGameOver &&
+                    !_isAiThinking &&
+                    !_isAutoRetaliating)
                 ? _playAiSandboxMove
                 : null,
           ),
@@ -2007,7 +2119,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
               decoration: BoxDecoration(
                 color: AppColors.getSurface(isDark),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.getBorder(isDark), width: 0.8),
+                border: Border.all(
+                  color: AppColors.getBorder(isDark),
+                  width: 0.8,
+                ),
               ),
               child: Text(
                 '${_playbackSpeed}x',
@@ -2024,7 +2139,9 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     );
   }
 
-  Future<void> _prepareShareLink([void Function(void Function())? setModalState]) async {
+  Future<void> _prepareShareLink([
+    void Function(void Function())? setModalState,
+  ]) async {
     if (_match == null || _shareCode != null) return;
 
     if (setModalState != null) {
@@ -2042,7 +2159,8 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     try {
       final res = await _matchApiService.shareReplay(_match!);
       final code = (res['code'] ?? res['match_id'])?.toString();
-      final url = res['share_url']?.toString() ?? 'https://kita.app/replay/$code';
+      final url =
+          res['share_url']?.toString() ?? 'https://kita.app/replay/$code';
       if (mounted) {
         if (setModalState != null) {
           setModalState(() {
@@ -2077,15 +2195,12 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     try {
       await Clipboard.setData(ClipboardData(text: text));
       if (mounted) {
-        KitaToast.show(
-          message: successMessage,
-          type: ToastType.success,
-        );
+        KitaToast.show(message: successMessage, type: ToastType.success);
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(successMessage),
-            backgroundColor: AppColors.primaryGreen,
+            backgroundColor: AppColors.primaryAmber,
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
@@ -2120,10 +2235,16 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
           return AlertDialog(
             backgroundColor: AppColors.getCard(isDark),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
-                const Icon(Icons.share_rounded, color: AppColors.primaryGreen, size: 22),
+                const Icon(
+                  Icons.share_rounded,
+                  color: AppColors.primaryAmber,
+                  size: 22,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'replay.shareTitle'.tr(),
@@ -2151,7 +2272,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.getSurface(isDark),
                       borderRadius: BorderRadius.circular(8),
@@ -2168,7 +2292,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                                       height: 14,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: AppColors.primaryGreen,
+                                        color: AppColors.primaryAmber,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -2196,16 +2320,22 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.copy_rounded, size: 18),
-                          color: AppColors.primaryGreen,
+                          color: AppColors.primaryAmber,
                           tooltip: 'replay.copyCode'.tr(),
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
                           onPressed: (_shareCode == null || _isUploadingShare)
                               ? (_shareError != null
-                                  ? () => _prepareShareLink(setModalState)
-                                  : null)
-                              : () => _copyToClipboard(_shareCode!, 'replay.codeCopied'.tr()),
+                                    ? () => _prepareShareLink(setModalState)
+                                    : null)
+                              : () => _copyToClipboard(
+                                  _shareCode!,
+                                  'replay.codeCopied'.tr(),
+                                ),
                         ),
                       ],
                     ),
@@ -2224,7 +2354,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.getSurface(isDark),
                       borderRadius: BorderRadius.circular(8),
@@ -2241,7 +2374,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                                       height: 14,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: AppColors.primaryGreen,
+                                        color: AppColors.primaryAmber,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -2267,28 +2400,39 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.share_rounded, size: 18),
-                          color: AppColors.primaryGreen,
+                          color: AppColors.primaryAmber,
                           tooltip: 'replay.shareLink'.tr(),
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
                           onPressed: (_shareUrl == null || _isUploadingShare)
                               ? (_shareError != null
-                                  ? () => _prepareShareLink(setModalState)
-                                  : null)
+                                    ? () => _prepareShareLink(setModalState)
+                                    : null)
                               : () async {
                                   try {
-                                    final result = await SharePlus.instance.share(
-                                      ShareParams(
-                                        text: _shareUrl!,
-                                        subject: 'replay.shareReplay'.tr(),
-                                      ),
-                                    );
-                                    if (result.status == ShareResultStatus.unavailable) {
-                                      await _copyToClipboard(_shareUrl!, 'replay.linkCopied'.tr());
+                                    final result = await SharePlus.instance
+                                        .share(
+                                          ShareParams(
+                                            text: _shareUrl!,
+                                            subject: 'replay.shareReplay'.tr(),
+                                          ),
+                                        );
+                                    if (result.status ==
+                                        ShareResultStatus.unavailable) {
+                                      await _copyToClipboard(
+                                        _shareUrl!,
+                                        'replay.linkCopied'.tr(),
+                                      );
                                     }
                                   } catch (_) {
-                                    await _copyToClipboard(_shareUrl!, 'replay.linkCopied'.tr());
+                                    await _copyToClipboard(
+                                      _shareUrl!,
+                                      'replay.linkCopied'.tr(),
+                                    );
                                   }
                                 },
                         ),
@@ -2309,7 +2453,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                       ),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.getTextSecondary(isDark),
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
@@ -2322,14 +2469,15 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 onPressed: () => Navigator.of(ctx).pop(),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   visualDensity: VisualDensity.compact,
                 ),
                 child: Text(
                   'common.close'.tr(),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -2352,15 +2500,22 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: AppColors.primaryGreen,
+            backgroundColor: AppColors.primaryAmber,
             content: Row(
               children: [
-                const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'replay.downloadSuccess'.tr(),
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -2376,12 +2531,19 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
             backgroundColor: AppColors.lossRed,
             content: Row(
               children: [
-                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'replay.downloadError'.tr(),
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -2393,4 +2555,3 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     }
   }
 }
-

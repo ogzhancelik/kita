@@ -16,10 +16,7 @@ import 'match_elapsed_timer.dart';
 class ChatPanel extends StatefulWidget {
   final bool isKeyboardOpen;
 
-  const ChatPanel({
-    super.key,
-    this.isKeyboardOpen = false,
-  });
+  const ChatPanel({super.key, this.isKeyboardOpen = false});
 
   @override
   State<ChatPanel> createState() => _ChatPanelState();
@@ -78,10 +75,7 @@ class _ChatPanelState extends State<ChatPanel> {
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         border: Border(
-          top: BorderSide(
-            color: AppColors.getBorder(isDark),
-            width: 0.8,
-          ),
+          top: BorderSide(color: AppColors.getBorder(isDark), width: 0.8),
         ),
       ),
       child: Column(
@@ -184,10 +178,7 @@ class _ChatPanelState extends State<ChatPanel> {
             decoration: BoxDecoration(
               color: AppColors.getSurface(isDark),
               border: Border(
-                top: BorderSide(
-                  color: AppColors.getBorder(isDark),
-                  width: 0.8,
-                ),
+                top: BorderSide(color: AppColors.getBorder(isDark), width: 0.8),
               ),
             ),
             child: Row(
@@ -264,7 +255,7 @@ class _ChatPanelState extends State<ChatPanel> {
                     width: 36,
                     height: 36,
                     decoration: const BoxDecoration(
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primaryAmber,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -305,9 +296,7 @@ class _ChatMessageBubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.70,
         ),
         decoration: BoxDecoration(
-          color: isMe
-              ? AppColors.primaryGreen
-              : AppColors.getSurface(isDark),
+          color: isMe ? AppColors.primaryAmber : AppColors.getSurface(isDark),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(10),
             topRight: const Radius.circular(10),
@@ -316,14 +305,12 @@ class _ChatMessageBubble extends StatelessWidget {
           ),
           border: isMe
               ? null
-              : Border.all(
-                  color: AppColors.getBorder(isDark),
-                  width: 0.5,
-                ),
+              : Border.all(color: AppColors.getBorder(isDark), width: 0.5),
         ),
         child: Column(
-          crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (!isMe)
@@ -342,9 +329,7 @@ class _ChatMessageBubble extends StatelessWidget {
               message.content,
               style: TextStyle(
                 fontSize: 12,
-                color: isMe
-                    ? Colors.white
-                    : AppColors.getTextPrimary(isDark),
+                color: isMe ? Colors.white : AppColors.getTextPrimary(isDark),
               ),
             ),
           ],

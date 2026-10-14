@@ -61,27 +61,30 @@ class PlayerInfoBar extends StatelessWidget {
     final teamColor = isWhite ? Colors.white : const Color(0xFF222222);
 
     final authProv = context.watch<AuthProvider>();
-    final int avatarIdx = avatarIndex ??
+    final int avatarIdx =
+        avatarIndex ??
         (isOpponent
             ? (name.hashCode.abs() % AvatarPicker.avatars.length)
             : authProv.avatarIndex);
-    final avatarItem = AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
+    final avatarItem =
+        AvatarPicker.avatars[avatarIdx % AvatarPicker.avatars.length];
 
     final bool showBotAvatar = isBot || customAvatarIcon != null;
-    final IconData effectiveIcon = customAvatarIcon ??
+    final IconData effectiveIcon =
+        customAvatarIcon ??
         (isBot
             ? Icons.smart_toy_rounded
             : (isGuest && avatarIdx == 0
-                ? Icons.face_rounded
-                : avatarItem.icon));
+                  ? Icons.face_rounded
+                  : avatarItem.icon));
     final Color effectiveAccentColor = showBotAvatar
-        ? (customAvatarColor ?? AppColors.primaryGreen)
+        ? (customAvatarColor ?? AppColors.primaryAmber)
         : (isGuest && avatarIdx == 0
-            ? AppColors.guestOrange
-            : avatarItem.accentColor);
+              ? AppColors.guestOrange
+              : avatarItem.accentColor);
 
-    final String? effectiveAvatarCustom = avatarCustom ??
-        (!isOpponent ? authProv.avatarCustom : null);
+    final String? effectiveAvatarCustom =
+        avatarCustom ?? (!isOpponent ? authProv.avatarCustom : null);
 
     final avatarWidget = Container(
       width: 34,
@@ -89,10 +92,7 @@ class PlayerInfoBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: effectiveAccentColor.withValues(alpha: 0.15),
         shape: BoxShape.circle,
-        border: Border.all(
-          color: teamColor,
-          width: 2.0,
-        ),
+        border: Border.all(color: teamColor, width: 2.0),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -102,24 +102,22 @@ class PlayerInfoBar extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: (effectiveAvatarCustom != null &&
+        child:
+            (effectiveAvatarCustom != null &&
                 effectiveAvatarCustom.trim().isNotEmpty &&
                 !showBotAvatar)
             ? Text(
                 effectiveAvatarCustom.trim(),
                 style: const TextStyle(fontSize: 16, height: 1.0),
               )
-            : Icon(
-                effectiveIcon,
-                size: 18,
-                color: effectiveAccentColor,
-              ),
+            : Icon(effectiveIcon, size: 18, color: effectiveAccentColor),
       ),
     );
 
     final nameAndRatingWidget = Column(
-      crossAxisAlignment:
-          isOpponent ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      crossAxisAlignment: isOpponent
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
@@ -169,10 +167,8 @@ class PlayerInfoBar extends StatelessWidget {
           );
 
     final content = InkWell(
-      onTap: onTap ??
-          (!isOpponent
-              ? () => UserProfileDialog.show(context)
-              : null),
+      onTap:
+          onTap ?? (!isOpponent ? () => UserProfileDialog.show(context) : null),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         child: isOpponent
@@ -274,7 +270,7 @@ class _ChessClock extends StatelessWidget {
               bgColor = AppColors.warning.withValues(alpha: 0.9);
               textColor = AppColors.darkTextPrimary;
             } else if (isActive) {
-              bgColor = AppColors.primaryGreen;
+              bgColor = AppColors.primaryAmber;
               textColor = AppColors.darkTextPrimary;
             } else {
               bgColor = Theme.of(context).brightness == Brightness.dark
@@ -342,12 +338,12 @@ class _UnlimitedClockBadge extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.primaryGreen.withValues(alpha: 0.15)
+                ? AppColors.primaryAmber.withValues(alpha: 0.15)
                 : AppColors.getSurface(isDark),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isActive
-                  ? AppColors.primaryGreen
+                  ? AppColors.primaryAmber
                   : AppColors.getBorder(isDark),
               width: 1.5,
             ),
@@ -356,7 +352,7 @@ class _UnlimitedClockBadge extends StatelessWidget {
             Icons.all_inclusive_rounded,
             size: 16,
             color: isActive
-                ? AppColors.primaryGreen
+                ? AppColors.primaryAmber
                 : AppColors.getTextMuted(isDark),
           ),
         );

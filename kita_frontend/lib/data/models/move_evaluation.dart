@@ -1,15 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 
-enum MoveQuality {
-  brilliant,
-  good,
-  inaccuracy,
-  mistake,
-  blunder,
-  neutral,
-}
+enum MoveQuality { brilliant, good, inaccuracy, mistake, blunder, neutral }
 
 class MoveEvaluation {
   /// Advantage change from the perspective of the player who made the move.
@@ -52,7 +46,9 @@ class MoveEvaluation {
         ? (clampedAfter - clampedBefore)
         : (clampedBefore - clampedAfter);
 
-    final double playerAdvantageAfter = isWhiteMove ? clampedAfter : -clampedAfter;
+    final double playerAdvantageAfter = isWhiteMove
+        ? clampedAfter
+        : -clampedAfter;
 
     // Classification
     MoveQuality quality;
@@ -132,7 +128,7 @@ class MoveEvaluation {
     switch (quality) {
       case MoveQuality.brilliant:
       case MoveQuality.good:
-        return isDark ? AppColors.accentGreen : AppColors.primaryGreenDark;
+        return isDark ? AppColors.accentGreen : AppColors.primaryAmberDark;
       case MoveQuality.inaccuracy:
         return isDark ? AppColors.warning : AppColors.guestOrange;
       case MoveQuality.mistake:
@@ -140,7 +136,9 @@ class MoveEvaluation {
       case MoveQuality.blunder:
         return AppColors.evalBlunder;
       case MoveQuality.neutral:
-        return isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+        return isDark
+            ? AppColors.darkTextSecondary
+            : AppColors.lightTextSecondary;
     }
   }
 

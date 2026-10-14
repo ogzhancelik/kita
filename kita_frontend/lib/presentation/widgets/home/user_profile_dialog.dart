@@ -99,7 +99,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 
   void _initProfileFetch() {
     final authProv = context.read<AuthProvider>();
-    final isCurrent = (widget.userId == null && widget.profile == null) ||
+    final isCurrent =
+        (widget.userId == null && widget.profile == null) ||
         (authProv.currentUser != null &&
             (widget.userId == authProv.currentUser!.id ||
                 widget.profile?.id == authProv.currentUser!.id));
@@ -112,7 +113,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     }
 
     final isBot = widget.isBot == true || widget.userId == 'bot';
-    final isGuest = widget.isGuest == true ||
+    final isGuest =
+        widget.isGuest == true ||
         (widget.userId != null && widget.userId!.startsWith('guest-'));
 
     if (isBot || isGuest) return;
@@ -120,20 +122,23 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     final targetId = widget.userId;
     if (targetId != null && targetId.isNotEmpty) {
       _isLoading = true;
-      UserApiService().getUserProfile(targetId).then((user) {
-        if (mounted) {
-          setState(() {
-            _fetchedProfile = user;
-            _isLoading = false;
+      UserApiService()
+          .getUserProfile(targetId)
+          .then((user) {
+            if (mounted) {
+              setState(() {
+                _fetchedProfile = user;
+                _isLoading = false;
+              });
+            }
+          })
+          .catchError((_) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
           });
-        }
-      }).catchError((_) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      });
     }
   }
 
@@ -142,7 +147,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProv = context.watch<AuthProvider>();
 
-    final isCurrent = (widget.userId == null && widget.profile == null) ||
+    final isCurrent =
+        (widget.userId == null && widget.profile == null) ||
         (authProv.currentUser != null &&
             (widget.userId == authProv.currentUser!.id ||
                 widget.profile?.id == authProv.currentUser!.id));
@@ -151,7 +157,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     final isGuest = isCurrent
         ? authProv.isGuest
         : (widget.isGuest == true ||
-            (widget.userId != null && widget.userId!.startsWith('guest-')));
+              (widget.userId != null && widget.userId!.startsWith('guest-')));
 
     final UserProfile? user = isCurrent
         ? authProv.currentUser
@@ -160,8 +166,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     final String displayName = isCurrent
         ? authProv.displayName
         : (user?.username ??
-            widget.fallbackName ??
-            (isBot ? 'game.aiBot'.tr() : 'Guest'));
+              widget.fallbackName ??
+              (isBot ? 'game.aiBot'.tr() : 'Guest'));
 
     final int rawAvatarIndex = isCurrent
         ? authProv.avatarIndex
@@ -175,10 +181,11 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
         ? (authProv.currentUser?.isProvisional ?? true)
         : (user?.isProvisional ?? widget.fallbackIsProvisional ?? false);
 
-    final bool isDeleted = displayName == '[Deleted]' || user?.username == '[Deleted]';
+    final bool isDeleted =
+        displayName == '[Deleted]' || user?.username == '[Deleted]';
 
-    String badgeText;
-    Color badgeColor;
+    String? badgeText;
+    Color? badgeColor;
     if (isDeleted) {
       badgeText = 'profile.deletedUser'.tr();
       badgeColor = AppColors.lossRed;
@@ -188,9 +195,6 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     } else if (isGuest) {
       badgeText = 'profile.guestPlayer'.tr();
       badgeColor = AppColors.guestOrange;
-    } else {
-      badgeText = 'profile.registeredPlayer'.tr();
-      badgeColor = AppColors.winBlue;
     }
 
     return Container(
@@ -235,13 +239,17 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
                     ),
                   ),
                   IconButton(
                     icon: Icon(
                       Icons.close_rounded,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -263,7 +271,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             avatarIndex: rawAvatarIndex,
                             avatarCustom: isCurrent
                                 ? authProv.avatarCustom
-                                : (user?.avatarCustom ?? widget.fallbackAvatarCustom),
+                                : (user?.avatarCustom ??
+                                      widget.fallbackAvatarCustom),
                             borderWidth: 3,
                             isBot: isBot,
                             isGuest: isGuest,
@@ -279,10 +288,12 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                                 child: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen,
+                                    color: AppColors.primaryAmber,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                      color: isDark
+                                          ? AppColors.darkSurface
+                                          : AppColors.lightSurface,
                                       width: 2,
                                     ),
                                   ),
@@ -304,6 +315,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (isCurrent)
+                          const SizedBox(width: 32),
                         Flexible(
                           child: Text(
                             displayName,
@@ -312,8 +325,11 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               fontWeight: FontWeight.w800,
                               color: isDeleted
                                   ? AppColors.getDeletedUser(isDark)
-                                  : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                                  : (isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary),
                             ),
+                            textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -331,7 +347,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               child: Icon(
                                 Icons.edit_rounded,
                                 size: 18,
-                                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                color: isDark
+                                    ? AppColors.darkTextMuted
+                                    : AppColors.lightTextMuted,
                               ),
                             ),
                           ),
@@ -350,23 +368,28 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             isGuest: isGuest,
                             isProvisional: isProvisional,
                           ),
-                          const SizedBox(width: 8),
                         ],
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: badgeColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            badgeText,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: badgeColor,
+                        if (badgeText != null && badgeColor != null) ...[
+                          if (!isGuest && !isDeleted) const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: badgeColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              badgeText,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: badgeColor,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -378,7 +401,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                         color: isDark ? AppColors.darkBg : AppColors.lightBg,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder,
                         ),
                       ),
                       child: Column(
@@ -392,7 +417,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                                  color: isDark
+                                      ? AppColors.darkTextMuted
+                                      : AppColors.lightTextMuted,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -402,7 +429,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                                   height: 14,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: AppColors.primaryGreen,
+                                    color: AppColors.primaryAmber,
                                   ),
                                 ),
                             ],
@@ -423,7 +450,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               Expanded(
                                 child: _buildStatItem(
                                   label: 'profile.winRate'.tr(),
-                                  value: '${(user?.winRate ?? 0).toStringAsFixed(1)}%',
+                                  value:
+                                      '${(user?.winRate ?? 0).toStringAsFixed(1)}%',
                                   icon: Icons.trending_up_rounded,
                                   color: AppColors.winStat,
                                   isDark: isDark,
@@ -437,7 +465,11 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               Expanded(
                                 child: _buildStatItem(
                                   label: 'profile.rating'.tr(),
-                                  value: isGuest ? '—' : (isProvisional ? '$rating?' : '$rating'),
+                                  value: isGuest
+                                      ? '—'
+                                      : (isProvisional
+                                            ? '$rating?'
+                                            : '$rating'),
                                   icon: Icons.military_tech_rounded,
                                   color: AppColors.ratingGold,
                                   isDark: isDark,
@@ -447,7 +479,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               Expanded(
                                 child: _buildStatItem(
                                   label: 'profile.wld'.tr(),
-                                  value: '${user?.wins ?? 0} / ${user?.losses ?? 0} / ${user?.draws ?? 0}',
+                                  value:
+                                      '${user?.wins ?? 0} / ${user?.losses ?? 0} / ${user?.draws ?? 0}',
                                   icon: Icons.analytics_rounded,
                                   color: AppColors.primaryVibrant,
                                   isDark: isDark,
@@ -462,13 +495,26 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                     // Quick Actions (Send Message / Invite to Match)
                     // Quick Actions (Add Friend / Send Message / Invite to Match)
                     () {
-                      final targetId = isCurrent ? authProv.currentUser?.id : (user?.id ?? widget.userId);
+                      final targetId = isCurrent
+                          ? authProv.currentUser?.id
+                          : (user?.id ?? widget.userId);
                       final friendsProv = context.watch<FriendsProvider>();
-                      final isFriend = targetId != null && friendsProv.friends.any((f) => f.userId == targetId);
-                      final isPendingOutgoing = targetId != null && friendsProv.outgoingRequests.any((r) => r.userId == targetId);
-                      final isPendingIncoming = targetId != null && friendsProv.incomingRequests.any((r) => r.userId == targetId);
+                      final isFriend =
+                          targetId != null &&
+                          friendsProv.friends.any((f) => f.userId == targetId);
+                      final isPendingOutgoing =
+                          targetId != null &&
+                          friendsProv.outgoingRequests.any(
+                            (r) => r.userId == targetId,
+                          );
+                      final isPendingIncoming =
+                          targetId != null &&
+                          friendsProv.incomingRequests.any(
+                            (r) => r.userId == targetId,
+                          );
 
-                      final canAddFriend = !isCurrent &&
+                      final canAddFriend =
+                          !isCurrent &&
                           !isDeleted &&
                           !isBot &&
                           !isGuest &&
@@ -478,7 +524,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           !authProv.isGuest &&
                           !isFriend;
 
-                      final canSendMessage = !isCurrent &&
+                      final canSendMessage =
+                          !isCurrent &&
                           !isDeleted &&
                           !isBot &&
                           !isGuest &&
@@ -487,14 +534,19 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           authProv.isAuthenticated &&
                           !authProv.isGuest;
 
-                      if (isCurrent || isDeleted || (!canSendMessage && !canAddFriend && widget.onInvite == null)) {
+                      if (isCurrent ||
+                          isDeleted ||
+                          (!canSendMessage &&
+                              !canAddFriend &&
+                              widget.onInvite == null)) {
                         return const SizedBox.shrink();
                       }
 
                       final dmProv = Provider.of<DmProvider?>(context);
                       final myId = authProv.currentUser?.id ?? '';
                       final friendTargetId = targetId ?? '';
-                      final convId = (myId.isNotEmpty && friendTargetId.isNotEmpty)
+                      final convId =
+                          (myId.isNotEmpty && friendTargetId.isNotEmpty)
                           ? dmConversationId(myId, friendTargetId)
                           : '';
                       final unreadCount = (convId.isNotEmpty && dmProv != null)
@@ -507,10 +559,12 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             dmProv.clearUnread(convId, userId: friendTargetId);
                             dmProv.setActiveConversation(convId);
                           }
-                          context.read<NotificationProvider>().deleteChatNotifications(
-                            convId,
-                            actorId: friendTargetId,
-                          );
+                          context
+                              .read<NotificationProvider>()
+                              .deleteChatNotifications(
+                                convId,
+                                actorId: friendTargetId,
+                              );
                         }
                         Navigator.of(context).pop();
                         if (widget.onChatPressed != null) {
@@ -532,15 +586,19 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             createdAt: DateTime.now(),
                           ),
                         );
-                        if (myId.isNotEmpty && targetId != null && targetId.isNotEmpty) {
+                        if (myId.isNotEmpty &&
+                            targetId != null &&
+                            targetId.isNotEmpty) {
                           if (dmProv != null) {
                             dmProv.clearUnread(convId, userId: targetId);
                             dmProv.setActiveConversation(convId);
                           }
-                          context.read<NotificationProvider>().deleteChatNotifications(
-                            convId,
-                            actorId: targetId,
-                          );
+                          context
+                              .read<NotificationProvider>()
+                              .deleteChatNotifications(
+                                convId,
+                                actorId: targetId,
+                              );
                         }
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -553,17 +611,25 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                       Future<void> handleAddFriend() async {
                         final messenger = ScaffoldMessenger.of(context);
                         if (isPendingIncoming) {
-                          final req = friendsProv.incomingRequests.firstWhere((r) => r.userId == targetId);
-                          final ok = await friendsProv.acceptRequest(req.friendshipId);
+                          final req = friendsProv.incomingRequests.firstWhere(
+                            (r) => r.userId == targetId,
+                          );
+                          final ok = await friendsProv.acceptRequest(
+                            req.friendshipId,
+                          );
                           if (!mounted) return;
                           messenger.showSnackBar(
                             SnackBar(
                               content: Text(
                                 ok
-                                    ? 'notifications.friendRequestAcceptedTitle'.tr()
-                                    : (friendsProv.errorMessage ?? 'common.error'.tr()),
+                                    ? 'notifications.friendRequestAcceptedTitle'
+                                          .tr()
+                                    : (friendsProv.errorMessage ??
+                                          'common.error'.tr()),
                               ),
-                              backgroundColor: ok ? AppColors.primaryGreen : AppColors.lossRed,
+                              backgroundColor: ok
+                                  ? AppColors.primaryAmber
+                                  : AppColors.lossRed,
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -577,9 +643,12 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                               content: Text(
                                 ok
                                     ? 'profile.friendRequestSent'.tr()
-                                    : (friendsProv.errorMessage ?? 'common.error'.tr()),
+                                    : (friendsProv.errorMessage ??
+                                          'common.error'.tr()),
                               ),
-                              backgroundColor: ok ? AppColors.primaryGreen : AppColors.lossRed,
+                              backgroundColor: ok
+                                  ? AppColors.primaryAmber
+                                  : AppColors.lossRed,
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -592,12 +661,18 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           children: [
                             Text(
                               'profile.sendMessage'.tr(),
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: fontSize,
+                              ),
                             ),
                             if (unreadCount > 0) ...[
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 1.5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(10),
@@ -619,7 +694,10 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
 
                       Widget buildAddFriendButton(double fontSize) {
                         return ElevatedButton.icon(
-                          onPressed: (isPendingOutgoing || _isSendingFriendRequest) ? null : handleAddFriend,
+                          onPressed:
+                              (isPendingOutgoing || _isSendingFriendRequest)
+                              ? null
+                              : handleAddFriend,
                           icon: _isSendingFriendRequest
                               ? const SizedBox(
                                   width: 16,
@@ -633,23 +711,30 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                                   isPendingOutgoing
                                       ? Icons.hourglass_top_rounded
                                       : isPendingIncoming
-                                          ? Icons.check_rounded
-                                          : Icons.person_add_rounded,
+                                      ? Icons.check_rounded
+                                      : Icons.person_add_rounded,
                                   size: 18,
                                 ),
                           label: Text(
                             isPendingOutgoing
                                 ? 'profile.requestPending'.tr()
                                 : isPendingIncoming
-                                    ? 'common.accept'.tr()
-                                    : 'profile.addFriend'.tr(),
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+                                ? 'common.accept'.tr()
+                                : 'profile.addFriend'.tr(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: fontSize,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryGreen,
+                            backgroundColor: AppColors.primaryAmber,
                             foregroundColor: AppColors.darkTextPrimary,
-                            disabledBackgroundColor: AppColors.getSurface(isDark),
-                            disabledForegroundColor: AppColors.getTextMuted(isDark),
+                            disabledBackgroundColor: AppColors.getSurface(
+                              isDark,
+                            ),
+                            disabledForegroundColor: AppColors.getTextMuted(
+                              isDark,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -680,14 +765,24 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                             Navigator.of(context).pop();
                             widget.onInvite!();
                           },
-                          icon: const Icon(Icons.sports_esports_rounded, size: 18),
+                          icon: const Icon(
+                            Icons.sports_esports_rounded,
+                            size: 18,
+                          ),
                           label: Text(
                             'online.sendInvite'.tr(),
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: fontSize,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: canAddFriend ? AppColors.accentSecondary : AppColors.primaryGreen,
-                            foregroundColor: canAddFriend ? Colors.white : AppColors.darkTextPrimary,
+                            backgroundColor: canAddFriend
+                                ? AppColors.accentSecondary
+                                : AppColors.primaryAmber,
+                            foregroundColor: canAddFriend
+                                ? Colors.white
+                                : AppColors.darkTextPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -715,7 +810,8 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                                 child: buildInviteButton(13.5),
                               ),
                             ],
-                          ] else if (canSendMessage && widget.onInvite != null) ...[
+                          ] else if (canSendMessage &&
+                              widget.onInvite != null) ...[
                             Row(
                               children: [
                                 Expanded(child: buildSendMessageButton(13.5)),
@@ -787,7 +883,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                   label,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -800,7 +898,9 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.lightTextPrimary,
             ),
           ),
         ],

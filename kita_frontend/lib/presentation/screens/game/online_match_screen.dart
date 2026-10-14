@@ -99,7 +99,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     final provider = _provider ?? context.read<OnlineGameProvider>();
     final data = provider.gameOverData.value;
     if (data == null) return;
-    if (_isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
+    if (_isGameOverDialogShowing || provider.isGameOverDialogActive.value)
+      return;
 
     _gameOverDialogTimer?.cancel();
     // Delay showing the game over dialog by ~1.8 seconds so players can see
@@ -107,7 +108,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     _gameOverDialogTimer = Timer(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
       final currentProv = _provider ?? context.read<OnlineGameProvider>();
-      if (_isGameOverDialogShowing || currentProv.isGameOverDialogActive.value) return;
+      if (_isGameOverDialogShowing || currentProv.isGameOverDialogActive.value)
+        return;
       if (currentProv.matchState.value != OnlineMatchState.gameOver) return;
       _showGameOverDialog(data);
     });
@@ -116,7 +118,10 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
   void _showGameOverDialog(GameOverPayload data) {
     _gameOverDialogTimer?.cancel();
     final provider = _provider ?? context.read<OnlineGameProvider>();
-    if (!mounted || _isGameOverDialogShowing || provider.isGameOverDialogActive.value) return;
+    if (!mounted ||
+        _isGameOverDialogShowing ||
+        provider.isGameOverDialogActive.value)
+      return;
     _isGameOverDialogShowing = true;
     context.read<AuthProvider>().refreshProfile();
 
@@ -134,7 +139,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
         Navigator.of(context).popUntil((route) => route.isFirst);
       },
       onReviewMatch: () {
-        final matchRecord = provider.lastOnlineMatchRecord ??
+        final matchRecord =
+            provider.lastOnlineMatchRecord ??
             provider.buildCurrentOnlineMatchRecord(data);
         final matchId = provider.matchId ?? data.matchId;
         if (matchRecord != null || matchId.isNotEmpty) {
@@ -166,17 +172,19 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     const isBot = false;
     const String? opponentRatingLabel = null;
 
-    final myDisplayName = (provider.myUsername != null && provider.myUsername!.isNotEmpty)
+    final myDisplayName =
+        (provider.myUsername != null && provider.myUsername!.isNotEmpty)
         ? provider.myUsername!
         : authProv.displayName;
 
-    final myRating = (authProv.isAuthenticated && authProv.currentUser?.rating != null)
+    final myRating =
+        (authProv.isAuthenticated && authProv.currentUser?.rating != null)
         ? authProv.currentUser!.rating
         : provider.myRating;
 
     final canLeaveFreely =
         provider.matchState.value == OnlineMatchState.gameOver ||
-            provider.matchState.value == OnlineMatchState.idle;
+        provider.matchState.value == OnlineMatchState.idle;
 
     // Detect if soft keyboard is currently open
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -190,7 +198,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
           _showLeaveConfirmation(context);
         } else if (didPop &&
             (provider.matchState.value == OnlineMatchState.gameOver ||
-             provider.matchState.value == OnlineMatchState.idle)) {
+                provider.matchState.value == OnlineMatchState.idle)) {
           provider.leaveFinishedMatch();
         }
       },
@@ -203,222 +211,257 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
           child: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Connecting to match banner
-              if (provider.matchState.value == OnlineMatchState.connecting)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+              children: [
+                // Connecting to match banner
+                if (provider.matchState.value == OnlineMatchState.connecting)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    color: AppColors.primaryAmber.withValues(alpha: 0.15),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primaryAmber,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'online.connectingToMatch'.tr(),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryGreen,
+                        const SizedBox(width: 10),
+                        Text(
+                          'online.connectingToMatch'.tr(),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryAmber,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-              // 1. Moves ribbon (hidden when keyboard is open to maximize space)
-              if (!isKeyboardOpen) const MoveHistoryPanel(),
+                // 1. Moves ribbon (hidden when keyboard is open to maximize space)
+                if (!isKeyboardOpen) const MoveHistoryPanel(),
 
-              // Middle dynamic game area: Opponent Card, Board, User Card, Chat Panel
-              // Sized so that Opponent Card, Board, User Card, and Chat stick together without gaps.
-              // When the board orientation flips, board panel and chat panel resize accordingly.
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final gameSettings = context.watch<GameSettingsProvider>();
-                    final isHorizontal = gameSettings.isHorizontal;
-                    final effectiveFlip = gameSettings.shouldFlipBoard(provider.myTeam ?? 'white');
+                // Middle dynamic game area: Opponent Card, Board, User Card, Chat Panel
+                // Sized so that Opponent Card, Board, User Card, and Chat stick together without gaps.
+                // When the board orientation flips, board panel and chat panel resize accordingly.
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final gameSettings = context
+                          .watch<GameSettingsProvider>();
+                      final isHorizontal = gameSettings.isHorizontal;
+                      final effectiveFlip = gameSettings.shouldFlipBoard(
+                        provider.myTeam ?? 'white',
+                      );
 
-                    final totalHeight = constraints.maxHeight;
-                    final totalWidth = constraints.maxWidth;
+                      final totalHeight = constraints.maxHeight;
+                      final totalWidth = constraints.maxWidth;
 
-                    final boardWidget = _BoardSection(
-                      provider: provider,
-                      flipBoard: effectiveFlip,
-                      isHorizontal: isHorizontal,
-                    );
+                      final boardWidget = _BoardSection(
+                        provider: provider,
+                        flipBoard: effectiveFlip,
+                        isHorizontal: isHorizontal,
+                      );
 
-                    // When typing, player cards are hidden to maximize board & chat visibility
-                    if (isKeyboardOpen) {
-                      final double boardHeight = isHorizontal
-                          ? min(totalWidth * (4.0 / 7.0), totalHeight * 0.55)
-                          : min(totalHeight * 0.50, totalWidth * (7.0 / 4.0));
+                      // When typing, player cards are hidden to maximize board & chat visibility
+                      if (isKeyboardOpen) {
+                        final double boardHeight = isHorizontal
+                            ? min(totalWidth * (4.0 / 7.0), totalHeight * 0.55)
+                            : min(totalHeight * 0.50, totalWidth * (7.0 / 4.0));
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
+                              height: boardHeight,
+                              width: totalWidth,
+                              child: boardWidget,
+                            ),
+                            Expanded(
+                              child: ChatPanel(
+                                key: _chatPanelKey,
+                                isKeyboardOpen: true,
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+
+                      final isGameOver =
+                          provider.matchState.value ==
+                          OnlineMatchState.gameOver;
+                      final isOpponentBot =
+                          isBot || provider.opponentInfo?.id == 'bot';
+                      final isOpponentGuest =
+                          (provider.opponentInfo?.id != null &&
+                              provider.opponentInfo!.id.startsWith('guest-')) ||
+                          (opponentName.toLowerCase().startsWith('guest'));
+
+                      final opponentCard = PlayerInfoBar(
+                        isOpponent: true,
+                        name: opponentName,
+                        rating: opponentRating,
+                        isProvisional:
+                            provider.opponentInfo?.isProvisional ?? false,
+                        ratingLabel: opponentRatingLabel,
+                        avatarIndex: provider.opponentInfo?.avatarIndex,
+                        avatarCustom: provider.opponentInfo?.avatarCustom,
+                        isBot: isOpponentBot,
+                        isGuest: isOpponentGuest,
+                        team: isBlack ? 'white' : 'black',
+                        remainingMs: isBlack
+                            ? provider.whiteRemainingMs
+                            : provider.blackRemainingMs,
+                        isActiveTurn: provider.currentTurn,
+                        timeControl: provider.timeControl,
+                        isGameOver: isGameOver,
+                        onTap: () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          final opp = provider.opponentInfo;
+                          const isBot = false;
+                          final isGuest =
+                              (opp?.id != null &&
+                                  opp!.id.startsWith('guest-')) ||
+                              (opponentName.toLowerCase().startsWith('guest'));
+                          UserProfileDialog.show(
+                            context,
+                            userId: opp?.id,
+                            fallbackName: opponentName,
+                            fallbackAvatarIndex: opp?.avatarIndex,
+                            fallbackAvatarCustom: opp?.avatarCustom,
+                            fallbackRating: opponentRating,
+                            fallbackIsProvisional: opp?.isProvisional,
+                            isBot: isBot,
+                            isGuest: isGuest,
+                          );
+                        },
+                      );
+
+                      final userCard = PlayerInfoBar(
+                        isOpponent: false,
+                        name: myDisplayName,
+                        rating: myRating,
+                        isProvisional:
+                            authProv.currentUser?.isProvisional ?? false,
+                        avatarIndex: authProv.avatarIndex,
+                        avatarCustom: authProv.avatarCustom,
+                        isGuest: authProv.isGuest,
+                        team: provider.myTeam ?? 'white',
+                        remainingMs: isBlack
+                            ? provider.blackRemainingMs
+                            : provider.whiteRemainingMs,
+                        isActiveTurn: provider.currentTurn,
+                        timeControl: provider.timeControl,
+                        isGameOver: isGameOver,
+                        onTap: () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          UserProfileDialog.show(context);
+                        },
+                      );
+
+                      const double cardsHeight =
+                          96.0; // Two PlayerInfoBars (~48px each)
+
+                      // Case A: Chat is toggled OFF (cards stick to up/down panels, board centered)
+                      if (!isChatOpen) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            opponentCard,
+                            Expanded(child: Center(child: boardWidget)),
+                            userCard,
+                          ],
+                        );
+                      }
+
+                      // Case B: Chat is toggled ON (default)
+                      const double minChatHeight = 140.0;
+                      final double availableForBoardAndChat = max(
+                        minChatHeight + 60.0,
+                        totalHeight - cardsHeight,
+                      );
+                      final double maxBoardHeight = max(
+                        60.0,
+                        availableForBoardAndChat - minChatHeight,
+                      );
+
+                      final double boardHeight;
+                      if (isHorizontal) {
+                        final double naturalHorizontalHeight =
+                            totalWidth * (4.0 / 7.0);
+                        boardHeight = min(
+                          naturalHorizontalHeight,
+                          maxBoardHeight,
+                        );
+                      } else {
+                        // Vertical orientation (4 cols x 7 rows)
+                        final double targetVerticalHeight =
+                            availableForBoardAndChat * 0.58;
+                        final double naturalVerticalHeight =
+                            totalWidth * (7.0 / 4.0);
+                        boardHeight = min(
+                          min(targetVerticalHeight, maxBoardHeight),
+                          naturalVerticalHeight,
+                        );
+                      }
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          opponentCard,
                           SizedBox(
                             height: boardHeight,
                             width: totalWidth,
                             child: boardWidget,
                           ),
+                          userCard,
                           Expanded(
                             child: ChatPanel(
                               key: _chatPanelKey,
-                              isKeyboardOpen: true,
+                              isKeyboardOpen: false,
                             ),
                           ),
                         ],
                       );
-                    }
+                    },
+                  ),
+                ),
 
-                    final isGameOver = provider.matchState.value == OnlineMatchState.gameOver;
-                    final isOpponentBot = isBot || provider.opponentInfo?.id == 'bot';
-                    final isOpponentGuest = (provider.opponentInfo?.id != null && provider.opponentInfo!.id.startsWith('guest-')) ||
-                        (opponentName.toLowerCase().startsWith('guest'));
-
-                    final opponentCard = PlayerInfoBar(
-                      isOpponent: true,
-                      name: opponentName,
-                      rating: opponentRating,
-                      isProvisional: provider.opponentInfo?.isProvisional ?? false,
-                      ratingLabel: opponentRatingLabel,
-                      avatarIndex: provider.opponentInfo?.avatarIndex,
-                      avatarCustom: provider.opponentInfo?.avatarCustom,
-                      isBot: isOpponentBot,
-                      isGuest: isOpponentGuest,
-                      team: isBlack ? 'white' : 'black',
-                      remainingMs: isBlack
-                          ? provider.whiteRemainingMs
-                          : provider.blackRemainingMs,
-                      isActiveTurn: provider.currentTurn,
-                      timeControl: provider.timeControl,
-                      isGameOver: isGameOver,
-                      onTap: () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        final opp = provider.opponentInfo;
-                        const isBot = false;
-                        final isGuest = (opp?.id != null && opp!.id.startsWith('guest-')) ||
-                            (opponentName.toLowerCase().startsWith('guest'));
-                        UserProfileDialog.show(
-                          context,
-                          userId: opp?.id,
-                          fallbackName: opponentName,
-                          fallbackAvatarIndex: opp?.avatarIndex,
-                          fallbackAvatarCustom: opp?.avatarCustom,
-                          fallbackRating: opponentRating,
-                          fallbackIsProvisional: opp?.isProvisional,
-                          isBot: isBot,
-                          isGuest: isGuest,
-                        );
-                      },
-                    );
-
-                    final userCard = PlayerInfoBar(
-                      isOpponent: false,
-                      name: myDisplayName,
-                      rating: myRating,
-                      isProvisional: authProv.currentUser?.isProvisional ?? false,
-                      avatarIndex: authProv.avatarIndex,
-                      avatarCustom: authProv.avatarCustom,
-                      isGuest: authProv.isGuest,
-                      team: provider.myTeam ?? 'white',
-                      remainingMs: isBlack
-                          ? provider.blackRemainingMs
-                          : provider.whiteRemainingMs,
-                      isActiveTurn: provider.currentTurn,
-                      timeControl: provider.timeControl,
-                      isGameOver: isGameOver,
-                      onTap: () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        UserProfileDialog.show(context);
-                      },
-                    );
-
-                    const double cardsHeight = 96.0; // Two PlayerInfoBars (~48px each)
-
-                    // Case A: Chat is toggled OFF (cards stick to up/down panels, board centered)
-                    if (!isChatOpen) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          opponentCard,
-                          Expanded(
-                            child: Center(
-                              child: boardWidget,
-                            ),
-                          ),
-                          userCard,
-                        ],
-                      );
-                    }
-
-                    // Case B: Chat is toggled ON (default)
-                    const double minChatHeight = 140.0;
-                    final double availableForBoardAndChat = max(minChatHeight + 60.0, totalHeight - cardsHeight);
-                    final double maxBoardHeight = max(60.0, availableForBoardAndChat - minChatHeight);
-
-                    final double boardHeight;
-                    if (isHorizontal) {
-                      final double naturalHorizontalHeight = totalWidth * (4.0 / 7.0);
-                      boardHeight = min(naturalHorizontalHeight, maxBoardHeight);
-                    } else {
-                      // Vertical orientation (4 cols x 7 rows)
-                      final double targetVerticalHeight = availableForBoardAndChat * 0.58;
-                      final double naturalVerticalHeight = totalWidth * (7.0 / 4.0);
-                      boardHeight = min(min(targetVerticalHeight, maxBoardHeight), naturalVerticalHeight);
-                    }
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        opponentCard,
-                        SizedBox(
-                          height: boardHeight,
-                          width: totalWidth,
-                          child: boardWidget,
-                        ),
-                        userCard,
-                        Expanded(
-                          child: ChatPanel(
-                            key: _chatPanelKey,
-                            isKeyboardOpen: false,
-                          ),
-                        ),
-                      ],
+                // Draw offer banner (shown when opponent offers a draw)
+                ValueListenableBuilder<DrawOfferPayload?>(
+                  valueListenable: provider.drawOffer,
+                  builder: (context, drawOffer, _) {
+                    if (drawOffer == null || isKeyboardOpen)
+                      return const SizedBox.shrink();
+                    return _buildDrawOfferBanner(
+                      context,
+                      provider,
+                      isDark,
+                      drawOffer,
                     );
                   },
                 ),
-              ),
 
-              // Draw offer banner (shown when opponent offers a draw)
-              ValueListenableBuilder<DrawOfferPayload?>(
-                valueListenable: provider.drawOffer,
-                builder: (context, drawOffer, _) {
-                  if (drawOffer == null || isKeyboardOpen) return const SizedBox.shrink();
-                  return _buildDrawOfferBanner(context, provider, isDark, drawOffer);
-                },
-              ),
+                // Post-game status & controls banner (shown when dialog is dismissed)
+                if (provider.gameOverData.value != null && !isKeyboardOpen)
+                  _buildGameOverBanner(context, provider, isDark),
 
-              // Post-game status & controls banner (shown when dialog is dismissed)
-              if (provider.gameOverData.value != null && !isKeyboardOpen)
-                _buildGameOverBanner(context, provider, isDark),
-
-              // 6. Bottom Action Bar (Menu, Chat toggle, Centered Timer, Step Back/Forward - hidden when typing)
-              if (!isKeyboardOpen) const MatchBottomBar(),
-            ],
+                // 6. Bottom Action Bar (Menu, Chat toggle, Centered Timer, Step Back/Forward - hidden when typing)
+                if (!isKeyboardOpen) const MatchBottomBar(),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildDrawOfferBanner(
@@ -438,7 +481,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
         color: AppColors.getCard(isDark),
         border: Border(
           top: BorderSide(
-            color: AppColors.primaryGreen.withValues(alpha: 0.5),
+            color: AppColors.primaryAmber.withValues(alpha: 0.5),
             width: 1.5,
           ),
         ),
@@ -449,7 +492,11 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.handshake_rounded, color: AppColors.primaryGreen, size: 20),
+            const Icon(
+              Icons.handshake_rounded,
+              color: AppColors.primaryAmber,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Text(
               'online.drawOfferReceived'.tr(args: [opponentName]),
@@ -463,10 +510,13 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
             ElevatedButton(
               onPressed: () => provider.acceptDrawOffer(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: AppColors.primaryAmber,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 textStyle: const TextStyle(
@@ -513,7 +563,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     if (data == null) return const SizedBox.shrink();
 
     final isDraw = data.isDraw;
-    final isWinner = !isDraw &&
+    final isWinner =
+        !isDraw &&
         ((data.winnerId != null && data.winnerId == provider.myUserId) ||
             (provider.myTeam != null && provider.myTeam == data.winner));
 
@@ -573,8 +624,10 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                   label: Text('online.showResults'.tr()),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.getTextPrimary(isDark),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     textStyle: const TextStyle(
@@ -598,11 +651,13 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                             icon: const Icon(Icons.check_rounded, size: 14),
                             label: Text('common.accept'.tr()),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryGreen,
+                              backgroundColor: AppColors.primaryAmber,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               textStyle: const TextStyle(
@@ -637,7 +692,8 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.primaryGreen),
+                                AppColors.primaryAmber,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -646,7 +702,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                             style: const TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primaryGreen,
+                              color: AppColors.primaryAmber,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -667,11 +723,13 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                       icon: const Icon(Icons.replay_rounded, size: 14),
                       label: Text('online.rematch'.tr()),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
+                        backgroundColor: AppColors.primaryAmber,
                         foregroundColor: AppColors.darkTextPrimary,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         textStyle: const TextStyle(
@@ -723,7 +781,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: AppColors.getCard(isDark),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             'online.returnToMenu'.tr(),
             style: TextStyle(
@@ -780,39 +840,39 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
         return AlertDialog(
           title: Text('online.leaveTitle'.tr()),
           content: Text('online.leaveMessage'.tr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('common.cancel'.tr()),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-            child: Text(
-              'online.returnToMenu'.tr(),
-              style: TextStyle(
-                color: isDark ? AppColors.accentGold : AppColors.primary,
-                fontWeight: FontWeight.bold,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('common.cancel'.tr()),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: Text(
+                'online.returnToMenu'.tr(),
+                style: TextStyle(
+                  color: isDark ? AppColors.accentGold : AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              provider.resignAndClear();
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-            child: Text(
-              'online.resignAndLeave'.tr(),
-              style: const TextStyle(color: AppColors.lossRed),
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                provider.resignAndClear();
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: Text(
+                'online.resignAndLeave'.tr(),
+                style: const TextStyle(color: AppColors.lossRed),
+              ),
             ),
-          ),
-        ],
-      );
-    },
-  );
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -838,8 +898,10 @@ class _BoardSection extends StatelessWidget {
           builder: (c1, engine, _) {
             final displayEngine = provider.displayEngine;
             final isLive = !provider.isViewingHistory;
-            final isMyTurn = provider.myTeam == displayEngine.turn.name && isLive;
-            final canInteract = isLive && displayEngine.getStatus() == GameStatus.ongoing;
+            final isMyTurn =
+                provider.myTeam == displayEngine.turn.name && isLive;
+            final canInteract =
+                isLive && displayEngine.getStatus() == GameStatus.ongoing;
 
             return ValueListenableBuilder<KitaMove?>(
               valueListenable: provider.lastMove,
@@ -884,4 +946,3 @@ class _BoardSection extends StatelessWidget {
     );
   }
 }
-

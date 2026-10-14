@@ -16,12 +16,7 @@ import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../friends/friends_screen.dart';
 
-enum _UserRowPosition {
-  none,
-  above,
-  visible,
-  below,
-}
+enum _UserRowPosition { none, above, visible, below }
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -69,7 +64,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       _errorMessage = null;
       _userRowPosition = _UserRowPosition.none;
     });
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
         try {
@@ -92,7 +87,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
     try {
       final authProv = context.read<AuthProvider>();
-      if (activeFilter == 'friends' && (!authProv.isAuthenticated || authProv.isGuest)) {
+      if (activeFilter == 'friends' &&
+          (!authProv.isAuthenticated || authProv.isGuest)) {
         if (mounted) {
           setState(() {
             _players = [];
@@ -147,7 +143,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final userIndex = _players.indexWhere((p) => p.id == currentUserId);
     final isTop3 = userIndex >= 0 && userIndex < 3;
 
-    final BuildContext? targetContext = isTop3 ? _podiumKey.currentContext : _userRowKey.currentContext;
+    final BuildContext? targetContext = isTop3
+        ? _podiumKey.currentContext
+        : _userRowKey.currentContext;
     final BuildContext? viewportContext = _viewportKey.currentContext;
 
     if (targetContext == null || viewportContext == null) return;
@@ -156,12 +154,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       final targetBox = targetContext.findRenderObject() as RenderBox?;
       final viewportBox = viewportContext.findRenderObject() as RenderBox?;
 
-      if (targetBox == null || !targetBox.hasSize || !targetBox.attached ||
-          viewportBox == null || !viewportBox.hasSize || !viewportBox.attached) {
+      if (targetBox == null ||
+          !targetBox.hasSize ||
+          !targetBox.attached ||
+          viewportBox == null ||
+          !viewportBox.hasSize ||
+          !viewportBox.attached) {
         return;
       }
 
-      final targetTop = targetBox.localToGlobal(Offset.zero, ancestor: viewportBox).dy;
+      final targetTop = targetBox
+          .localToGlobal(Offset.zero, ancestor: viewportBox)
+          .dy;
       final targetBottom = targetTop + targetBox.size.height;
       final viewportHeight = viewportBox.size.height;
 
@@ -185,7 +189,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   void _setUserRowPosition(_UserRowPosition newPosition) {
     if (newPosition == _userRowPosition) return;
-    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && newPosition != _userRowPosition) {
           setState(() {
@@ -239,7 +244,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
     UserProfile? floatingProfile;
     String floatingRank = '';
-    if (currentUserId != null) {
+    if (authProv.isGuest) {
+      floatingProfile = authProv.currentUser;
+      floatingRank = 'guest.badge'.tr();
+    } else if (currentUserId != null) {
       final userIndex = _players.indexWhere((p) => p.id == currentUserId);
       if (userIndex >= 0) {
         floatingProfile = _players[userIndex];
@@ -279,7 +287,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     },
                     child: RefreshIndicator(
                       onRefresh: _loadLeaderboard,
-                      color: AppColors.primaryGreen,
+                      color: AppColors.primaryAmber,
                       child: _buildBody(isDark, currentUserId, authProv),
                     ),
                   ),
@@ -297,10 +305,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         duration: const Duration(milliseconds: 280),
                         curve: Curves.easeOutCubic,
                         child: AnimatedOpacity(
-                          opacity: _userRowPosition == _UserRowPosition.above ? 1.0 : 0.0,
+                          opacity: _userRowPosition == _UserRowPosition.above
+                              ? 1.0
+                              : 0.0,
                           duration: const Duration(milliseconds: 220),
                           child: IgnorePointer(
-                            ignoring: _userRowPosition != _UserRowPosition.above,
+                            ignoring:
+                                _userRowPosition != _UserRowPosition.above,
                             child: _buildFloatingBar(
                               isDark: isDark,
                               isTop: true,
@@ -326,10 +337,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         duration: const Duration(milliseconds: 280),
                         curve: Curves.easeOutCubic,
                         child: AnimatedOpacity(
-                          opacity: _userRowPosition == _UserRowPosition.below ? 1.0 : 0.0,
+                          opacity: _userRowPosition == _UserRowPosition.below
+                              ? 1.0
+                              : 0.0,
                           duration: const Duration(milliseconds: 220),
                           child: IgnorePointer(
-                            ignoring: _userRowPosition != _UserRowPosition.below,
+                            ignoring:
+                                _userRowPosition != _UserRowPosition.below,
                             child: _buildFloatingBar(
                               isDark: isDark,
                               isTop: false,
@@ -403,12 +417,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         curve: Curves.easeInOut,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+          color: isSelected ? AppColors.primaryAmber : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.35),
+                    color: AppColors.primaryAmber.withValues(alpha: 0.35),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -424,7 +438,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               size: 18,
               color: isSelected
                   ? AppColors.darkTextPrimary
-                  : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                  : (isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary),
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -437,7 +453,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                   color: isSelected
                       ? AppColors.darkTextPrimary
-                      : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                      : (isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary),
                 ),
               ),
             ),
@@ -454,9 +472,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         children: [
           SizedBox(height: MediaQuery.of(context).size.height * 0.2),
           const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primaryGreen,
-            ),
+            child: CircularProgressIndicator(color: AppColors.primaryAmber),
           ),
         ],
       );
@@ -482,7 +498,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -501,12 +519,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
 
     // Guest handling for Friends tab
-    if (_selectedFilter == 'friends' && (!authProv.isAuthenticated || authProv.isGuest)) {
+    if (_selectedFilter == 'friends' &&
+        (!authProv.isAuthenticated || authProv.isGuest)) {
       return _buildFriendsGuestPrompt(context, isDark);
     }
 
-    final hasNoFriends = _selectedFilter == 'friends' &&
-        (_players.isEmpty || (_players.length == 1 && _players[0].id == currentUserId));
+    final hasNoFriends =
+        _selectedFilter == 'friends' &&
+        (_players.isEmpty ||
+            (_players.length == 1 && _players[0].id == currentUserId));
 
     if (hasNoFriends) {
       return _buildNoFriendsState(context, isDark);
@@ -524,14 +545,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 Icon(
                   Icons.emoji_events_outlined,
                   size: 60,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                  color: isDark
+                      ? AppColors.darkTextMuted
+                      : AppColors.lightTextMuted,
                 ),
                 const SizedBox(height: 14),
                 Text(
                   'leaderboard.empty'.tr(),
                   style: TextStyle(
                     fontSize: 15,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -551,7 +576,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
     final top3 = _players.take(3).toList();
     final remaining = _players.skip(3).toList();
-    final userIndex = currentUserId != null ? _players.indexWhere((p) => p.id == currentUserId) : -1;
+    final userIndex = currentUserId != null
+        ? _players.indexWhere((p) => p.id == currentUserId)
+        : -1;
     final isUserInTop3 = userIndex >= 0 && userIndex < 3;
     final isUserUnranked = currentUserId != null && userIndex == -1;
 
@@ -574,7 +601,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           // 2. Table Header & Player Cards (Players 4+ only, top-3 excluded)
           if (remaining.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10.0,
+                vertical: 6.0,
+              ),
               child: Row(
                 children: [
                   SizedBox(
@@ -584,7 +614,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                   ),
@@ -594,7 +626,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                       ),
                     ),
                   ),
@@ -603,7 +637,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
                     ),
                   ),
                 ],
@@ -637,7 +673,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 children: [
                   Expanded(
                     child: Divider(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
                       thickness: 1,
                     ),
                   ),
@@ -648,14 +686,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         letterSpacing: 4,
-                        color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   Expanded(
                     child: Divider(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
                       thickness: 1,
                     ),
                   ),
@@ -667,7 +709,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               padding: const EdgeInsets.only(bottom: 8.0),
               child: _buildPlayerRow(
                 rank: 51,
-                rankLabel: 'leaderboard.unrankedRank'.tr(),
+                rankLabel: authProv.isGuest
+                    ? 'guest.badge'.tr()
+                    : 'leaderboard.unrankedRank'.tr(),
                 player: authProv.currentUser!,
                 isDark: isDark,
                 isCurrentUser: true,
@@ -702,13 +746,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                  color: AppColors.primaryAmber.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.people_alt_rounded,
                   size: 42,
-                  color: AppColors.primaryGreen,
+                  color: AppColors.primaryAmber,
                 ),
               ),
               const SizedBox(height: 20),
@@ -717,7 +761,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -726,7 +772,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 'leaderboard.friendsLoginDesc'.tr(),
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -776,7 +824,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -785,7 +835,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 'leaderboard.noFriendsDesc'.tr(),
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -796,9 +848,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   text: 'leaderboard.findFriends'.tr(),
                   icon: Icons.person_search_rounded,
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const FriendsScreen()),
-                    ).then((_) => _loadLeaderboard());
+                    Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(
+                            builder: (_) => const FriendsScreen(),
+                          ),
+                        )
+                        .then((_) => _loadLeaderboard());
                   },
                 ),
               ),
@@ -817,12 +873,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.15),
+              color: AppColors.primaryAmber.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
               Icons.group_add_rounded,
-              color: AppColors.primaryGreen,
+              color: AppColors.primaryAmber,
               size: 20,
             ),
           ),
@@ -832,7 +888,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               'leaderboard.addMoreFriendsHint'.tr(),
               style: TextStyle(
                 fontSize: 12,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
               ),
             ),
           ),
@@ -845,9 +903,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               variant: KitaButtonVariant.outline,
               height: 34,
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const FriendsScreen()),
-                ).then((_) => _loadLeaderboard());
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(builder: (_) => const FriendsScreen()),
+                    )
+                    .then((_) => _loadLeaderboard());
               },
             ),
           ),
@@ -857,7 +917,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   // --- Podium for Top 3 ---
-  Widget _buildPodium(List<UserProfile> top3, bool isDark, String? currentUserId) {
+  Widget _buildPodium(
+    List<UserProfile> top3,
+    bool isDark,
+    String? currentUserId,
+  ) {
     final first = top3[0];
     final second = top3.length > 1 ? top3[1] : null;
     final third = top3.length > 2 ? top3[2] : null;
@@ -869,7 +933,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.emoji_events_rounded, color: AppColors.ratingGold, size: 20),
+              const Icon(
+                Icons.emoji_events_rounded,
+                color: AppColors.ratingGold,
+                size: 20,
+              ),
               const SizedBox(width: 6),
               Text(
                 'leaderboard.topPlayers'.tr(),
@@ -877,7 +945,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.5,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
                 ),
               ),
             ],
@@ -942,7 +1012,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required bool isDark,
     required bool isCurrentUser,
   }) {
-    final avatarItem = AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
+    final avatarItem =
+        AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
     final double avatarSize = rank == 1 ? 52.0 : (rank == 2 ? 44.0 : 40.0);
 
     return InkWell(
@@ -987,7 +1058,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ],
                   ),
                   child: Center(
-                    child: (player.avatarCustom != null && player.avatarCustom!.trim().isNotEmpty)
+                    child:
+                        (player.avatarCustom != null &&
+                            player.avatarCustom!.trim().isNotEmpty)
                         ? Text(
                             player.avatarCustom!.trim(),
                             style: TextStyle(
@@ -1005,7 +1078,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 Positioned(
                   bottom: -6,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1.5,
+                    ),
                     decoration: BoxDecoration(
                       color: medalColor,
                       borderRadius: BorderRadius.circular(10),
@@ -1041,8 +1117,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 fontSize: 12,
                 fontWeight: isCurrentUser ? FontWeight.w900 : FontWeight.bold,
                 color: isCurrentUser
-                    ? AppColors.primaryGreen
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                    ? AppColors.primaryAmber
+                    : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary),
               ),
             ),
 
@@ -1079,18 +1157,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required bool isDark,
     required bool isCurrentUser,
   }) {
-    Color rankColor = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
+    Color rankColor = isDark
+        ? AppColors.darkTextMuted
+        : AppColors.lightTextMuted;
     if (rank == 1) rankColor = AppColors.ratingGold;
     if (rank == 2) rankColor = AppColors.silverMedal;
     if (rank == 3) rankColor = AppColors.bronzeMedal;
-    if (isCurrentUser) rankColor = AppColors.primaryGreen;
+    if (isCurrentUser) rankColor = AppColors.primaryAmber;
 
-    final displayRank = rankLabel ?? '#$rank';
-    final avatarItem = AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
+    final isGuestUser = player.isGuest || player.id.startsWith('guest-');
+    final displayRank = isGuestUser ? 'guest.badge'.tr() : (rankLabel ?? '#$rank');
+    final avatarItem =
+        AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
 
     return KitaCard(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-      borderColor: isCurrentUser ? AppColors.primaryGreen : null,
+      borderColor: isCurrentUser ? AppColors.primaryAmber : null,
       onTap: () {
         UserProfileDialog.show(
           context,
@@ -1104,8 +1186,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       },
       backgroundColor: isCurrentUser
           ? (isDark
-              ? AppColors.primaryGreen.withValues(alpha: 0.08)
-              : AppColors.primaryGreen.withValues(alpha: 0.06))
+                ? AppColors.primaryAmber.withValues(alpha: 0.08)
+                : AppColors.primaryAmber.withValues(alpha: 0.06))
           : null,
       child: Row(
         children: [
@@ -1135,13 +1217,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               ),
             ),
             child: Center(
-              child: (player.avatarCustom != null && player.avatarCustom!.trim().isNotEmpty)
+              child:
+                  (player.avatarCustom != null &&
+                      player.avatarCustom!.trim().isNotEmpty)
                   ? Text(
                       player.avatarCustom!.trim(),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.0,
-                      ),
+                      style: const TextStyle(fontSize: 16, height: 1.0),
                     )
                   : Icon(
                       avatarItem.icon,
@@ -1167,19 +1248,26 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13.5,
-                          fontWeight: isCurrentUser ? FontWeight.w900 : FontWeight.w700,
+                          fontWeight: isCurrentUser
+                              ? FontWeight.w900
+                              : FontWeight.w700,
                           color: isCurrentUser
-                              ? AppColors.primaryGreen
-                              : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+                              ? AppColors.primaryAmber
+                              : (isDark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.lightTextPrimary),
                         ),
                       ),
                     ),
                     if (isCurrentUser) ...[
                       const SizedBox(width: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryGreen,
+                          color: AppColors.primaryAmber,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -1199,7 +1287,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   '${player.wins}${'leaderboard.wins'.tr()} · ${player.losses}${'leaderboard.losses'.tr()} · ${player.draws}${'leaderboard.draws'.tr()} (${player.totalGames} ${'leaderboard.games'.tr()})',
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
                   ),
                 ),
               ],
@@ -1226,7 +1316,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.star_rounded, size: 13, color: AppColors.ratingGold),
+                    const Icon(
+                      Icons.star_rounded,
+                      size: 13,
+                      color: AppColors.ratingGold,
+                    ),
                     const SizedBox(width: 3),
                     Text(
                       player.displayRating,
@@ -1247,7 +1341,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   fontWeight: FontWeight.w600,
                   color: player.winRate >= 50
                       ? AppColors.winStat
-                      : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                      : (isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted),
                 ),
               ),
             ],
@@ -1265,7 +1361,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required String rankDisplay,
     required VoidCallback onTap,
   }) {
-    final avatarItem = AvatarPicker.avatars[userProfile.avatarIndex % AvatarPicker.avatars.length];
+    final avatarItem = AvatarPicker
+        .avatars[userProfile.avatarIndex % AvatarPicker.avatars.length];
 
     return Material(
       color: Colors.transparent,
@@ -1277,13 +1374,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightCard,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.primaryGreen,
-              width: 1.5,
-            ),
+            border: Border.all(color: AppColors.primaryAmber, width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.35 : 0.2),
+                color: AppColors.primaryAmber.withValues(
+                  alpha: isDark ? 0.35 : 0.2,
+                ),
                 blurRadius: 12,
                 offset: const Offset(0, 2),
               ),
@@ -1301,11 +1397,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGreen,
+                  color: AppColors.primaryAmber,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  isTop ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  isTop
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
                   color: AppColors.darkTextPrimary,
                   size: 22,
                 ),
@@ -1320,7 +1418,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.primaryGreen,
+                    color: AppColors.primaryAmber,
                   ),
                 ),
               ),
@@ -1339,13 +1437,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   ),
                 ),
                 child: Center(
-                  child: (userProfile.avatarCustom != null && userProfile.avatarCustom!.trim().isNotEmpty)
+                  child:
+                      (userProfile.avatarCustom != null &&
+                          userProfile.avatarCustom!.trim().isNotEmpty)
                       ? Text(
                           userProfile.avatarCustom!.trim(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            height: 1.0,
-                          ),
+                          style: const TextStyle(fontSize: 16, height: 1.0),
                         )
                       : Icon(
                           avatarItem.icon,
@@ -1372,15 +1469,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             style: const TextStyle(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.primaryGreen,
+                              color: AppColors.primaryAmber,
                             ),
                           ),
                         ),
                         const SizedBox(width: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryGreen,
+                            color: AppColors.primaryAmber,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -1400,7 +1500,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
                       ),
                     ),
                   ],
@@ -1415,7 +1517,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.ratingGold.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
@@ -1427,7 +1532,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star_rounded, size: 12, color: AppColors.ratingGold),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 12,
+                          color: AppColors.ratingGold,
+                        ),
                         const SizedBox(width: 2),
                         Text(
                           userProfile.displayRating,
@@ -1448,7 +1557,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       fontWeight: FontWeight.w600,
                       color: userProfile.winRate >= 50
                           ? AppColors.winStat
-                          : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                          : (isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.lightTextMuted),
                     ),
                   ),
                 ],

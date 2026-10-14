@@ -8,7 +8,6 @@ import '../../providers/online_game_provider.dart';
 import '../common/kita_avatar.dart';
 import 'activity_conflict_dialog.dart';
 
-
 class FriendChallengeDialog extends StatefulWidget {
   final FriendItemModel friend;
   final OnlineGameProvider onlineProv;
@@ -36,10 +35,8 @@ class FriendChallengeDialog extends StatefulWidget {
 
     return showDialog(
       context: context,
-      builder: (ctx) => FriendChallengeDialog(
-        friend: friend,
-        onlineProv: onlineProv,
-      ),
+      builder: (ctx) =>
+          FriendChallengeDialog(friend: friend, onlineProv: onlineProv),
     );
   }
 
@@ -80,7 +77,9 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
           ),
           const SizedBox(height: 10),
           Text(
-            isOffline ? 'online.sendInviteOffline'.tr() : 'online.sendInvite'.tr(),
+            isOffline
+                ? 'online.sendInviteOffline'.tr()
+                : 'online.sendInvite'.tr(),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -103,13 +102,13 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
             ),
             child: Row(
               children: [
-              KitaAvatar(
-                size: 34,
-                avatarIndex: widget.friend.avatarIndex,
-                avatarCustom: widget.friend.avatarCustom,
-                borderWidth: 1.8,
-              ),
-              const SizedBox(width: 10),
+                KitaAvatar(
+                  size: 34,
+                  avatarIndex: widget.friend.avatarIndex,
+                  avatarCustom: widget.friend.avatarCustom,
+                  borderWidth: 1.8,
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +136,9 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                               boxShadow: widget.friend.isOnline
                                   ? [
                                       BoxShadow(
-                                        color: AppColors.online.withValues(alpha: 0.5),
+                                        color: AppColors.online.withValues(
+                                          alpha: 0.5,
+                                        ),
                                         blurRadius: 3,
                                       ),
                                     ]
@@ -151,7 +152,9 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                                 : 'common.offline'.tr(),
                             style: TextStyle(
                               fontSize: 11,
-                              fontWeight: widget.friend.isOnline ? FontWeight.w600 : FontWeight.normal,
+                              fontWeight: widget.friend.isOnline
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                               color: widget.friend.isOnline
                                   ? AppColors.online
                                   : AppColors.getTextSecondary(isDark),
@@ -163,7 +166,10 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.ratingGold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
@@ -249,9 +255,7 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
             'common.cancel'.tr(),
-            style: TextStyle(
-              color: AppColors.getTextSecondary(isDark),
-            ),
+            style: TextStyle(color: AppColors.getTextSecondary(isDark)),
           ),
         ),
         ElevatedButton(
@@ -277,13 +281,17 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
             );
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryGreen,
+            backgroundColor: AppColors.primaryAmber,
             foregroundColor: AppColors.darkTextPrimary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          child: Text(isOffline ? 'online.sendInviteOfflineBtn'.tr() : 'online.sendInvite'.tr()),
+          child: Text(
+            isOffline
+                ? 'online.sendInviteOfflineBtn'.tr()
+                : 'online.sendInvite'.tr(),
+          ),
         ),
       ],
     );
@@ -311,11 +319,13 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppColors.darkTextPrimary : AppColors.getTextPrimary(isDark),
+          color: isSelected
+              ? AppColors.darkTextPrimary
+              : AppColors.getTextPrimary(isDark),
         ),
       ),
       selected: isSelected,
-      selectedColor: AppColors.primaryGreen,
+      selectedColor: AppColors.primaryAmber,
       backgroundColor: AppColors.getSurface(isDark),
       onSelected: (_) => onSelected(),
     );
@@ -329,11 +339,13 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppColors.darkTextPrimary : AppColors.getTextPrimary(isDark),
+          color: isSelected
+              ? AppColors.darkTextPrimary
+              : AppColors.getTextPrimary(isDark),
         ),
       ),
       selected: isSelected,
-      selectedColor: AppColors.primaryGreen,
+      selectedColor: AppColors.primaryAmber,
       backgroundColor: AppColors.getSurface(isDark),
       onSelected: (_) => setState(() => _selectedTimeControl = value),
     );

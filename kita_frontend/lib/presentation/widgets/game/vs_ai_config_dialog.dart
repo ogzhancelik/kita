@@ -60,7 +60,9 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
         changed = true;
       }
       if (savedSide != null &&
-          (savedSide == 'white' || savedSide == 'random' || savedSide == 'black')) {
+          (savedSide == 'white' ||
+              savedSide == 'random' ||
+              savedSide == 'black')) {
         _cachedSide = savedSide;
         _selectedSide = savedSide;
         changed = true;
@@ -103,12 +105,12 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primaryGreen.withValues(alpha: 0.15),
+              color: AppColors.primaryAmber.withValues(alpha: 0.15),
             ),
             child: const Icon(
               Icons.smart_toy_rounded,
               size: 32,
-              color: AppColors.primaryGreen,
+              color: AppColors.primaryAmber,
             ),
           ),
           const SizedBox(height: 10),
@@ -307,7 +309,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
+                  backgroundColor: AppColors.primaryAmber,
                   foregroundColor: AppColors.darkTextPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   elevation: 0,
@@ -331,7 +333,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
     required bool isDark,
   }) {
     final isSelected = _selectedDifficulty == value;
-    final activeColor = AppColors.primaryGreen;
+    final activeColor = AppColors.primaryAmber;
 
     return InkWell(
       onTap: () {
@@ -385,7 +387,9 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
-                  color: isSelected ? activeColor : AppColors.getTextMuted(isDark),
+                  color: isSelected
+                      ? activeColor
+                      : AppColors.getTextMuted(isDark),
                 ),
               ),
             ),
@@ -404,7 +408,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
     required bool isDark,
   }) {
     final isSelected = _selectedSide == sideKey;
-    final activeColor = AppColors.primaryGreen;
+    final activeColor = AppColors.primaryAmber;
 
     return InkWell(
       onTap: _isStarting
@@ -435,7 +439,9 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
                   ? BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
                         width: 1.2,
                       ),
                     )
@@ -478,7 +484,9 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
         context: context,
         builder: (dialogCtx) => AlertDialog(
           backgroundColor: AppColors.getCard(isDark),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             'online.conflictDialogTitle'.tr(),
             style: TextStyle(
@@ -488,9 +496,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
           ),
           content: Text(
             'online.conflictAbandonOfflineDesc'.tr(),
-            style: TextStyle(
-              color: AppColors.getTextSecondary(isDark),
-            ),
+            style: TextStyle(color: AppColors.getTextSecondary(isDark)),
           ),
           actions: [
             TextButton(
@@ -502,9 +508,11 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
+                backgroundColor: AppColors.primaryAmber,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               onPressed: () => Navigator.of(dialogCtx).pop(true),
               child: Text('online.abandonAndProceed'.tr()),
@@ -518,15 +526,18 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
 
     final isGuest = authProv?.isGuest ?? (authProv?.currentUser == null);
     final playerId = authProv?.currentUser?.id;
-    final playerName = authProv?.currentUser?.username ??
+    final playerName =
+        authProv?.currentUser?.username ??
         authProv?.guestProfile?.nickname ??
         'Guest';
     final playerRating = authProv?.currentUser?.rating ?? 1200;
-    final playerAvatarIndex = authProv?.currentUser?.avatarIndex ??
+    final playerAvatarIndex =
+        authProv?.currentUser?.avatarIndex ??
         authProv?.guestProfile?.avatarIndex ??
         0;
 
-    final isExpMode = _selectedSide == 'exp' && IroztelExpMode.isIroztelUser(authProv);
+    final isExpMode =
+        _selectedSide == 'exp' && IroztelExpMode.isIroztelUser(authProv);
 
     PieceTeam team;
     if (_selectedSide == 'random' || isExpMode) {

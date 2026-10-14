@@ -53,17 +53,20 @@ class _DmChatScreenState extends State<DmChatScreen> {
     super.initState();
     _friend = widget.friend;
     if (_friend.username == 'Player' || _friend.username.isEmpty) {
-      UserApiService().getUserProfile(_friend.userId).then((profile) {
-        if (mounted) {
-          setState(() {
-            _friend = _friend.copyWith(
-              username: profile.username,
-              avatarIndex: profile.avatarIndex,
-              rating: profile.rating,
-            );
-          });
-        }
-      }).catchError((_) {});
+      UserApiService()
+          .getUserProfile(_friend.userId)
+          .then((profile) {
+            if (mounted) {
+              setState(() {
+                _friend = _friend.copyWith(
+                  username: profile.username,
+                  avatarIndex: profile.avatarIndex,
+                  rating: profile.rating,
+                );
+              });
+            }
+          })
+          .catchError((_) {});
     }
 
     final auth = context.read<AuthProvider>();
@@ -83,9 +86,9 @@ class _DmChatScreenState extends State<DmChatScreen> {
     dmProv.setActiveConversation(_conversationId);
     dmProv.clearUnread(_conversationId, userId: widget.friend.userId);
     context.read<NotificationProvider>().deleteChatNotifications(
-          _conversationId,
-          actorId: widget.friend.userId,
-        );
+      _conversationId,
+      actorId: widget.friend.userId,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -126,9 +129,9 @@ class _DmChatScreenState extends State<DmChatScreen> {
     _dmProv?.clearUnread(_conversationId, userId: widget.friend.userId);
     try {
       context.read<NotificationProvider>().deleteChatNotifications(
-            _conversationId,
-            actorId: widget.friend.userId,
-          );
+        _conversationId,
+        actorId: widget.friend.userId,
+      );
     } catch (_) {}
     super.deactivate();
   }
@@ -208,20 +211,22 @@ class _DmChatScreenState extends State<DmChatScreen> {
     _controller.clear();
     final auth = context.read<AuthProvider>();
     context.read<DmProvider>().sendDm(
-          recipientId: _friend.userId,
-          content: text,
-          senderId: _myId,
-          senderUsername: _myUsername,
-          senderAvatarIndex: auth.avatarIndex,
-          recipientUsername: _friend.username,
-          recipientAvatarIndex: _friend.avatarIndex,
-        );
+      recipientId: _friend.userId,
+      content: text,
+      senderId: _myId,
+      senderUsername: _myUsername,
+      senderAvatarIndex: auth.avatarIndex,
+      recipientUsername: _friend.username,
+      recipientAvatarIndex: _friend.avatarIndex,
+    );
     _scrollToBottom();
   }
 
   /// Merges DM messages and match cards into a single chronological list.
   List<_TimelineItem> _buildTimeline(
-      List<DmMessage> messages, List<MatchChatCard> matchCards) {
+    List<DmMessage> messages,
+    List<MatchChatCard> matchCards,
+  ) {
     final items = <_TimelineItem>[
       for (final m in messages) _TimelineItem.dm(m),
       for (final c in matchCards) _TimelineItem.match(c),
@@ -337,7 +342,9 @@ class _DmChatScreenState extends State<DmChatScreen> {
                           color: AppColors.online,
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: AppColors.getCard(isDark), width: 1.5),
+                            color: AppColors.getCard(isDark),
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
@@ -360,7 +367,9 @@ class _DmChatScreenState extends State<DmChatScreen> {
                       ),
                     ),
                     Text(
-                      friend.isOnline ? 'common.online'.tr() : 'common.offline'.tr(),
+                      friend.isOnline
+                          ? 'common.online'.tr()
+                          : 'common.offline'.tr(),
                       style: TextStyle(
                         fontSize: 11,
                         color: friend.isOnline
@@ -387,7 +396,8 @@ class _DmChatScreenState extends State<DmChatScreen> {
 
         if (dmProv.isHistoryLoading && messages.isEmpty && matchCards.isEmpty) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryGreen));
+            child: CircularProgressIndicator(color: AppColors.primaryAmber),
+          );
         }
 
         if (timeline.isEmpty) {
@@ -395,12 +405,19 @@ class _DmChatScreenState extends State<DmChatScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.chat_bubble_outline_rounded,
-                    size: 52, color: AppColors.getTextMuted(isDark)),
+                Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  size: 52,
+                  color: AppColors.getTextMuted(isDark),
+                ),
                 const SizedBox(height: 12),
-                Text('dm.startConversation'.tr(),
-                    style: TextStyle(
-                        color: AppColors.getTextMuted(isDark), fontSize: 14)),
+                Text(
+                  'dm.startConversation'.tr(),
+                  style: TextStyle(
+                    color: AppColors.getTextMuted(isDark),
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           );
@@ -411,7 +428,8 @@ class _DmChatScreenState extends State<DmChatScreen> {
           _lastTimelineCount = timeline.length;
           final isMyMsg =
               timeline.isNotEmpty && timeline.last.dm?.senderId == _myId;
-          final isNearBottom = !_scrollController.hasClients ||
+          final isNearBottom =
+              !_scrollController.hasClients ||
               (_scrollController.position.maxScrollExtent -
                       _scrollController.position.pixels <
                   250);
@@ -431,8 +449,8 @@ class _DmChatScreenState extends State<DmChatScreen> {
           itemBuilder: (ctx, index) {
             final item = timeline[index];
             final prevItem = index > 0 ? timeline[index - 1] : null;
-            final showDate = prevItem == null ||
-                !_isSameDay(prevItem.time, item.time);
+            final showDate =
+                prevItem == null || !_isSameDay(prevItem.time, item.time);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -467,16 +485,23 @@ class _DmChatScreenState extends State<DmChatScreen> {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Expanded(child: Divider(color: AppColors.getBorder(isDark), height: 1)),
+          Expanded(
+            child: Divider(color: AppColors.getBorder(isDark), height: 1),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(_formatDate(date),
-                style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.getTextMuted(isDark),
-                    fontWeight: FontWeight.w500)),
+            child: Text(
+              _formatDate(date),
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.getTextMuted(isDark),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
-          Expanded(child: Divider(color: AppColors.getBorder(isDark), height: 1)),
+          Expanded(
+            child: Divider(color: AppColors.getBorder(isDark), height: 1),
+          ),
         ],
       ),
     );
@@ -504,7 +529,11 @@ class _DmChatScreenState extends State<DmChatScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.lossRed),
+              const Icon(
+                Icons.info_outline_rounded,
+                size: 16,
+                color: AppColors.lossRed,
+              ),
               const SizedBox(width: 8),
               Text(
                 'chats.accountDeletedNotice'.tr(),
@@ -524,7 +553,8 @@ class _DmChatScreenState extends State<DmChatScreen> {
       decoration: BoxDecoration(
         color: AppColors.getCard(isDark),
         border: Border(
-            top: BorderSide(color: AppColors.getBorder(isDark), width: 0.5)),
+          top: BorderSide(color: AppColors.getBorder(isDark), width: 0.5),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -546,7 +576,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
                               ? Icons.keyboard_rounded
                               : Icons.emoji_emotions_outlined,
                           color: _showEmojiPicker
-                              ? AppColors.primaryGreen
+                              ? AppColors.primaryAmber
                               : AppColors.getTextMuted(isDark),
                           size: 20,
                         ),
@@ -565,17 +595,21 @@ class _DmChatScreenState extends State<DmChatScreen> {
                           textInputAction: TextInputAction.send,
                           onSubmitted: (_) => _send(),
                           style: TextStyle(
-                              color: AppColors.getTextPrimary(isDark),
-                              fontSize: 14),
+                            color: AppColors.getTextPrimary(isDark),
+                            fontSize: 14,
+                          ),
                           decoration: InputDecoration(
                             hintText: 'dm.messageHint'.tr(),
                             hintStyle: TextStyle(
-                                color: AppColors.getTextMuted(isDark),
-                                fontSize: 14),
+                              color: AppColors.getTextMuted(isDark),
+                              fontSize: 14,
+                            ),
                             counterText: '',
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 10),
+                              horizontal: 6,
+                              vertical: 10,
+                            ),
                           ),
                         ),
                       ),
@@ -590,9 +624,14 @@ class _DmChatScreenState extends State<DmChatScreen> {
                   width: 42,
                   height: 42,
                   decoration: const BoxDecoration(
-                      color: AppColors.primary, shape: BoxShape.circle),
-                  child: const Icon(Icons.send_rounded,
-                      color: AppColors.darkTextPrimary, size: 20),
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.send_rounded,
+                    color: AppColors.darkTextPrimary,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -608,7 +647,9 @@ class _DmChatScreenState extends State<DmChatScreen> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final diff = today.difference(DateTime(date.year, date.month, date.day)).inDays;
+    final diff = today
+        .difference(DateTime(date.year, date.month, date.day))
+        .inDays;
     if (diff == 0) return 'dm.today'.tr();
     if (diff == 1) return 'dm.yesterday'.tr();
     return DateFormat('d MMM y').format(date);
@@ -637,8 +678,9 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
@@ -652,14 +694,18 @@ class _MessageBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment:
-                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 9),
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
                   constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.72),
+                    maxWidth: MediaQuery.of(context).size.width * 0.72,
+                  ),
                   decoration: BoxDecoration(
                     color: isMe
                         ? AppColors.primary
@@ -672,9 +718,10 @@ class _MessageBubble extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black.withAlpha(12),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2))
+                        color: Colors.black.withAlpha(12),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
                     ],
                   ),
                   child: Text(
@@ -689,9 +736,13 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(_formatTime(message.createdAt),
-                    style: TextStyle(
-                        fontSize: 10, color: AppColors.getTextMuted(isDark))),
+                Text(
+                  _formatTime(message.createdAt),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppColors.getTextMuted(isDark),
+                  ),
+                ),
               ],
             ),
           ),
