@@ -942,7 +942,10 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                       // Black/White Advantage Bar placed directly below the player's info panel
                       if (_states.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 6,
+                          ),
                           child: AiAdvantageBar(
                             engine: _activeEngine,
                             ai: _aiReady ? _ai : null,

@@ -189,17 +189,57 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
           ),
           const SizedBox(height: 10),
 
-          // Time control chips
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: TimeControlPreset.defaultPresets.map((preset) {
-              return _buildTimeChip(
-                label: TimeControlPreset.format(preset),
-                value: preset,
-                isDark: isDark,
-              );
-            }).toList(),
+          // Time control 2x2 grid
+          Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTimeOption(
+                      label: TimeControlPreset.format(
+                        TimeControlPreset.defaultPresets[0],
+                      ),
+                      value: TimeControlPreset.defaultPresets[0],
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTimeOption(
+                      label: TimeControlPreset.format(
+                        TimeControlPreset.defaultPresets[1],
+                      ),
+                      value: TimeControlPreset.defaultPresets[1],
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTimeOption(
+                      label: TimeControlPreset.format(
+                        TimeControlPreset.defaultPresets[2],
+                      ),
+                      value: TimeControlPreset.defaultPresets[2],
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTimeOption(
+                      label: TimeControlPreset.format(
+                        TimeControlPreset.defaultPresets[3],
+                      ),
+                      value: TimeControlPreset.defaultPresets[3],
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
 
           const SizedBox(height: 16),
@@ -438,27 +478,43 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
     );
   }
 
-  Widget _buildTimeChip({
+  Widget _buildTimeOption({
     required String label,
     required int value,
     required bool isDark,
   }) {
     final isSelected = _selectedTimeControl == value;
-    return ChoiceChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return InkWell(
+      onTap: () => setState(() => _selectedTimeControl = value),
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.darkTextPrimary
-              : AppColors.getTextPrimary(isDark),
+              ? AppColors.primaryAmber.withValues(alpha: 0.15)
+              : AppColors.getSurface(isDark),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primaryAmber
+                : AppColors.getBorder(isDark),
+            width: 1.5,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                  ? AppColors.primaryAmber
+                  : AppColors.getTextPrimary(isDark),
+            ),
+          ),
         ),
       ),
-      selected: isSelected,
-      selectedColor: AppColors.primaryAmber,
-      backgroundColor: AppColors.getSurface(isDark),
-      onSelected: (_) => setState(() => _selectedTimeControl = value),
     );
   }
 }

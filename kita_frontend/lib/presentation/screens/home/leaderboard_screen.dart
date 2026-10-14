@@ -262,6 +262,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: KitaAppBar(
         title: 'leaderboard.title'.tr(),
+        iconColor: AppColors.accentGold,
+        leadingIcon: Icons.emoji_events_rounded,
         showBack: true,
         showAuthActions: false,
         showLanguageToggle: false,
@@ -1166,7 +1168,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (isCurrentUser) rankColor = AppColors.primaryAmber;
 
     final isGuestUser = player.isGuest || player.id.startsWith('guest-');
-    final displayRank = isGuestUser ? 'guest.badge'.tr() : (rankLabel ?? '#$rank');
+    final displayRank = isGuestUser
+        ? 'guest.badge'.tr()
+        : (rankLabel ?? '#$rank');
     final avatarItem =
         AvatarPicker.avatars[player.avatarIndex % AvatarPicker.avatars.length];
 

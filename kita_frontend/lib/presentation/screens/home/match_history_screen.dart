@@ -698,6 +698,8 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
     return Scaffold(
       appBar: KitaAppBar(
+        leadingIcon: Icons.history_rounded,
+        iconColor: AppColors.accent,
         showAuthActions: false,
         showBack: true,
         showLanguageToggle: false,
@@ -717,6 +719,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
         ],
       ),
       body: ResponsiveLayout(
+        padding: EdgeInsets.zero,
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
@@ -726,7 +729,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10.0,
-                    vertical: 12.0,
+                    vertical: 4.0,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

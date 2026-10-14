@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../../data/models/kita_ai.dart';
@@ -34,7 +35,8 @@ class AiAdvantageBar extends StatelessWidget {
 
   /// Computes absolute evaluation from White's perspective.
   /// Standard range: [-1.0, 1.0] for ongoing games, ±10.0 for terminal wins.
-  double get whiteAdvantageScore => score ?? computeWhiteAdvantageScore(engine, ai, depth);
+  double get whiteAdvantageScore =>
+      score ?? computeWhiteAdvantageScore(engine, ai, depth);
 
   /// Computes absolute evaluation from White's perspective.
   /// Standard range: [-1.0, 1.0] for ongoing games, ±10.0 for terminal wins.
@@ -72,16 +74,18 @@ class AiAdvantageBar extends StatelessWidget {
     if (wk == null && bk == null) return 0.0;
 
     // Pawns count
-    int whitePawns = (eng.positions['WP1'] != null ? 1 : 0) +
+    int whitePawns =
+        (eng.positions['WP1'] != null ? 1 : 0) +
         (eng.positions['WP2'] != null ? 1 : 0);
-    int blackPawns = (eng.positions['BP1'] != null ? 1 : 0) +
+    int blackPawns =
+        (eng.positions['BP1'] != null ? 1 : 0) +
         (eng.positions['BP2'] != null ? 1 : 0);
     score += (whitePawns - blackPawns) * 0.2;
 
     // Mobility
     final legalMoves = eng.getLegalMoves();
-    final mobilityDelta = (eng.turn == PieceTeam.white ? 1.0 : -1.0) *
-        (legalMoves.length * 0.03);
+    final mobilityDelta =
+        (eng.turn == PieceTeam.white ? 1.0 : -1.0) * (legalMoves.length * 0.03);
     score += mobilityDelta;
 
     return score.clamp(-1.0, 1.0);
@@ -125,9 +129,23 @@ class AiAdvantageBar extends StatelessWidget {
       tween: Tween<double>(begin: targetFraction, end: targetFraction),
       builder: (context, fraction, child) {
         if (isVertical) {
-          return _buildVerticalBar(context, fraction, label, isDark, isWhiteAdv, isBlackAdv);
+          return _buildVerticalBar(
+            context,
+            fraction,
+            label,
+            isDark,
+            isWhiteAdv,
+            isBlackAdv,
+          );
         } else {
-          return _buildHorizontalBar(context, fraction, label, isDark, isWhiteAdv, isBlackAdv);
+          return _buildHorizontalBar(
+            context,
+            fraction,
+            label,
+            isDark,
+            isWhiteAdv,
+            isBlackAdv,
+          );
         }
       },
     );
@@ -142,12 +160,14 @@ class AiAdvantageBar extends StatelessWidget {
     bool isBlackAdv,
   ) {
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final barBgColor = isDark ? AppColors.darkBg : AppColors.lightBg;
     final whiteFlex = (fraction * 1000).toInt().clamp(0, 1000);
     final blackFlex = 1000 - whiteFlex;
 
     return Container(
       height: thickness,
       decoration: BoxDecoration(
+        color: barBgColor,
         borderRadius: BorderRadius.circular(thickness / 2),
         boxShadow: [
           BoxShadow(
@@ -169,16 +189,12 @@ class AiAdvantageBar extends StatelessWidget {
                   if (whiteFlex > 0)
                     Expanded(
                       flex: whiteFlex,
-                      child: Container(
-                        color: AppColors.advantageWhite,
-                      ),
+                      child: Container(color: AppColors.advantageWhite),
                     ),
                   if (blackFlex > 0)
                     Expanded(
                       flex: blackFlex,
-                      child: Container(
-                        color: AppColors.advantageBlack,
-                      ),
+                      child: Container(color: barBgColor),
                     ),
                 ],
               ),
@@ -191,10 +207,7 @@ class AiAdvantageBar extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(thickness / 2),
-                  border: Border.all(
-                    color: borderColor,
-                    width: 1.2,
-                  ),
+                  border: Border.all(color: borderColor, width: 1.2),
                 ),
               ),
             ),
@@ -208,13 +221,17 @@ class AiAdvantageBar extends StatelessWidget {
                 color: isWhiteAdv
                     ? AppColors.pieceWhite.withValues(alpha: 0.92)
                     : (isBlackAdv
-                        ? AppColors.advantageBadgeDark.withValues(alpha: 0.92)
-                        : AppColors.darkSurfaceElevated.withValues(alpha: 0.88)),
+                          ? AppColors.advantageBadgeDark.withValues(alpha: 0.92)
+                          : AppColors.darkSurfaceElevated.withValues(
+                              alpha: 0.88,
+                            )),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isWhiteAdv
                       ? AppColors.lightBorder
-                      : (isBlackAdv ? AppColors.darkBorder : Colors.transparent),
+                      : (isBlackAdv
+                            ? AppColors.darkBorder
+                            : Colors.transparent),
                   width: 0.8,
                 ),
                 boxShadow: [
@@ -232,7 +249,9 @@ class AiAdvantageBar extends StatelessWidget {
                     size: 11,
                     color: isWhiteAdv
                         ? AppColors.advantageBadgeTextDark
-                        : (isBlackAdv ? AppColors.darkTextSecondary : AppColors.ratingGold),
+                        : (isBlackAdv
+                              ? AppColors.darkTextSecondary
+                              : AppColors.ratingGold),
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -264,12 +283,14 @@ class AiAdvantageBar extends StatelessWidget {
     bool isBlackAdv,
   ) {
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final barBgColor = isDark ? AppColors.darkBg : AppColors.lightBg;
     final whiteFlex = (fraction * 1000).toInt().clamp(0, 1000);
     final blackFlex = 1000 - whiteFlex;
 
     return Container(
       width: thickness,
       decoration: BoxDecoration(
+        color: barBgColor,
         borderRadius: BorderRadius.circular(thickness / 2),
         boxShadow: [
           BoxShadow(
@@ -292,16 +313,12 @@ class AiAdvantageBar extends StatelessWidget {
                   if (blackFlex > 0)
                     Expanded(
                       flex: blackFlex,
-                      child: Container(
-                        color: AppColors.advantageBlack,
-                      ),
+                      child: Container(color: barBgColor),
                     ),
                   if (whiteFlex > 0)
                     Expanded(
                       flex: whiteFlex,
-                      child: Container(
-                        color: AppColors.advantageWhite,
-                      ),
+                      child: Container(color: AppColors.advantageWhite),
                     ),
                 ],
               ),
@@ -314,10 +331,7 @@ class AiAdvantageBar extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(thickness / 2),
-                  border: Border.all(
-                    color: borderColor,
-                    width: 1.2,
-                  ),
+                  border: Border.all(color: borderColor, width: 1.2),
                 ),
               ),
             ),
@@ -340,7 +354,9 @@ class AiAdvantageBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
-                  color: fraction > 0.5 ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                  color: fraction > 0.5
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
                 ),
               ),
             ),

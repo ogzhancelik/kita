@@ -16,7 +16,8 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showLanguageToggle;
   final bool showThemeToggle;
   final bool showLogoAndTitle;
-
+  final IconData? leadingIcon;
+  final Color? iconColor;
   const KitaAppBar({
     super.key,
     this.title,
@@ -27,6 +28,8 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showLanguageToggle = true,
     this.showThemeToggle = true,
     this.showLogoAndTitle = true,
+    this.leadingIcon,
+    this.iconColor,
   });
 
   @override
@@ -64,7 +67,17 @@ class KitaAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const KitaLogo(size: 26),
+                leadingIcon == null
+                    ? const KitaLogo(size: 26)
+                    : Icon(
+                        leadingIcon,
+                        color:
+                            iconColor ??
+                            (isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary),
+                        size: 26,
+                      ),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(

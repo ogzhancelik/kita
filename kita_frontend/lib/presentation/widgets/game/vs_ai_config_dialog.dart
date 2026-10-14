@@ -350,7 +350,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected ? activeColor : AppColors.getBorder(isDark),
-            width: isSelected ? 1.8 : 1.0,
+            width: 1.5,
           ),
         ),
         child: Column(
@@ -365,7 +365,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
               title,
               style: TextStyle(
                 fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                fontWeight: FontWeight.w600,
                 color: isSelected
                     ? AppColors.getTextPrimary(isDark)
                     : AppColors.getTextSecondary(isDark),
@@ -429,7 +429,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected ? activeColor : AppColors.getBorder(isDark),
-            width: isSelected ? 1.8 : 1.0,
+            width: 1.5,
           ),
         ),
         child: Column(
@@ -454,7 +454,7 @@ class _VsAiConfigDialogState extends State<VsAiConfigDialog> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                fontWeight: FontWeight.w600,
                 color: isSelected
                     ? AppColors.getTextPrimary(isDark)
                     : AppColors.getTextSecondary(isDark),

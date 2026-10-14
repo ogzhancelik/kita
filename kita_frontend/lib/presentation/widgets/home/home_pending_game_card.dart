@@ -11,6 +11,7 @@ import '../../providers/online_game_provider.dart';
 import '../../screens/game/offline_match_screen.dart';
 import '../../screens/game/online_match_screen.dart';
 import '../common/countdown_circle_timer.dart';
+import '../common/kita_avatar.dart';
 import '../room/room_dialog.dart';
 
 /// Single-item priority card displayed directly above the notifications section.
@@ -62,18 +63,21 @@ class HomePendingGameCard extends StatelessWidget {
     final hasActiveOffline = offlineProv.hasActiveMatch;
     final hasBothActive = hasActiveOnline && hasActiveOffline;
 
+    if (hasBothActive) {
+      return _buildBothActiveGamesCard(
+        context,
+        onlineProv,
+        offlineProv,
+        isDark,
+      );
+    }
+
     Widget? onlineSection;
     if (isInOnlineMatch) {
       onlineSection = _buildActiveOnlineGameCard(
         context,
         onlineProv,
         isDark,
-        borderRadius: hasBothActive
-            ? const BorderRadius.vertical(top: Radius.circular(16))
-            : BorderRadius.circular(16),
-        margin: hasBothActive
-            ? EdgeInsets.zero
-            : const EdgeInsets.only(bottom: 12.0),
       );
     } else if (pendingRematch != null) {
       onlineSection = _buildPendingRematchCard(
@@ -108,10 +112,6 @@ class HomePendingGameCard extends StatelessWidget {
         context,
         offlineProv,
         isDark,
-        borderRadius: hasBothActive
-            ? const BorderRadius.vertical(bottom: Radius.circular(16))
-            : BorderRadius.circular(16),
-        margin: const EdgeInsets.only(bottom: 12.0),
       );
     }
 
@@ -130,109 +130,263 @@ class HomePendingGameCard extends StatelessWidget {
     return const SizedBox.shrink();
   }
 
-  // ─── 1. Active Online Game Card ──────────────────────────────────────
+  // ─── Unified & Single Active Match Cards ─────────────────────────────
+
+  Widget _buildBothActiveGamesCard(
+    BuildContext context,
+    OnlineGameProvider onlineProv,
+    OfflineGameProvider offlineProv,
+    bool isDark,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.accent,
+            AppColors.primary,
+          ],
+          stops: [0.5, 0.5],
+        ),
+        boxShadow: [
+          // Top online glow (accent)
+          BoxShadow(
+            color: AppColors.accent.withValues(alpha: isDark ? 0.35 : 0.22),
+            blurRadius: 14,
+            offset: const Offset(0, -3),
+          ),
+          // Bottom offline glow (primary)
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.40 : 0.25),
+            blurRadius: 14,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(1.5),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.getCard(isDark),
+          borderRadius: BorderRadius.circular(14.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14.5),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildActiveOnlineGameRow(context, onlineProv, isDark),
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.getBorder(isDark),
+              ),
+              _buildActiveOfflineGameRow(context, offlineProv, isDark),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildActiveOnlineGameCard(
     BuildContext context,
     OnlineGameProvider onlineProv,
-    bool isDark, {
-    BorderRadiusGeometry borderRadius = const BorderRadius.all(
-      Radius.circular(16),
-    ),
-    EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
-  }) {
+    bool isDark,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.accent.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accent.withValues(alpha: isDark ? 0.2 : 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14.5),
+        child: _buildActiveOnlineGameRow(context, onlineProv, isDark),
+      ),
+    );
+  }
+
+  Widget _buildActiveOfflineGameCard(
+    BuildContext context,
+    OfflineGameProvider offlineProv,
+    bool isDark,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14.5),
+        child: _buildActiveOfflineGameRow(context, offlineProv, isDark),
+      ),
+    );
+  }
+
+  // ─── 1. Active Online Game Row ───────────────────────────────────────
+
+  Widget _buildActiveOnlineGameRow(
+    BuildContext context,
+    OnlineGameProvider onlineProv,
+    bool isDark,
+  ) {
     final opponentName =
         onlineProv.opponentInfo?.name ?? 'online.opponent'.tr();
-    final badgeLabel = '★ ${onlineProv.opponentInfo?.displayRating ?? "1200"}';
-    final tcStr = _formatTimeControl(onlineProv.timeControl);
+    final oppInfo = onlineProv.opponentInfo;
+    final isOpponentGuest = (oppInfo != null &&
+            (oppInfo.id.startsWith('guest_') ||
+                oppInfo.id.startsWith('guest-'))) ||
+        opponentName.toLowerCase().startsWith('guest');
 
-    return _buildDismissibleContainer(
+    return Dismissible(
       key: ValueKey('active_online_game_${onlineProv.matchId ?? "current"}'),
-      dismissLabel: 'dashboard.pendingSection.resign'.tr(),
-      dismissIcon: Icons.flag_rounded,
-      confirmDismiss: () => _confirmResignDialog(context, isDark),
-      onDismissed: () {
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (_) => _confirmResignDialog(context, isDark),
+      onDismissed: (_) {
         onlineProv.resignAndClear();
       },
-      borderRadius: borderRadius,
-      margin: margin,
-      child: InkWell(
-        onTap: () => _rejoinOnlineGame(context),
-        borderRadius: borderRadius is BorderRadius
-            ? borderRadius
-            : BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.getCard(isDark),
-            borderRadius: borderRadius,
-            border: Border.all(
-              color: AppColors.accent.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.accent.withValues(alpha: isDark ? 0.2 : 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+      background: _buildDismissibleBackground(
+        label: 'dashboard.pendingSection.resign'.tr(),
+        icon: Icons.flag_rounded,
+        alignment: Alignment.centerLeft,
+      ),
+      secondaryBackground: _buildDismissibleBackground(
+        label: 'dashboard.pendingSection.resign'.tr(),
+        icon: Icons.flag_rounded,
+        alignment: Alignment.centerRight,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _rejoinOnlineGame(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                // Opponent User Avatar
+                KitaAvatar(
+                  avatarIndex: oppInfo?.avatarIndex ?? 0,
+                  avatarCustom: oppInfo?.avatarCustom,
+                  isGuest: isOpponentGuest,
+                  size: 42,
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.sports_esports_rounded,
-                    color: isDark
-                        ? AppColors.accent
-                        : AppColors.accentSecondary,
-                    size: 24,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
 
-              // Game Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.accent,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'dashboard.pendingSection.activeGameTitle'
-                                .tr()
-                                .toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.turnActiveCardDark,
-                              letterSpacing: 0.5,
+                // Game Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Top Line: NAME / ELO
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              opponentName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.getTextPrimary(isDark),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: ValueListenableBuilder<String>(
-                            valueListenable: onlineProv.currentTurn,
-                            builder: (context, currentTurn, _) {
-                              final isMyTurn = currentTurn == onlineProv.myTeam;
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: (isOpponentGuest
+                                      ? AppColors.guestOrange
+                                      : AppColors.ratingGold)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isOpponentGuest
+                                      ? Icons.person_outline_rounded
+                                      : Icons.emoji_events_rounded,
+                                  size: 11,
+                                  color: isOpponentGuest
+                                      ? AppColors.guestOrange
+                                      : AppColors.ratingGold,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  isOpponentGuest
+                                      ? 'guest.badge'.tr()
+                                      : (oppInfo?.displayRating ?? '1200'),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isOpponentGuest
+                                        ? AppColors.guestOrange
+                                        : AppColors.ratingGold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Bottom Line: TURN / time remaining
+                      ValueListenableBuilder<String>(
+                        valueListenable: onlineProv.currentTurn,
+                        builder: (context, currentTurn, _) {
+                          final isMyTurn = currentTurn == onlineProv.myTeam;
+                          final activeClock = currentTurn == 'white'
+                              ? onlineProv.whiteRemainingMs
+                              : onlineProv.blackRemainingMs;
+
+                          return ValueListenableBuilder<int>(
+                            valueListenable: activeClock,
+                            builder: (context, ms, _) {
+                              final String timeStr;
+                              if (onlineProv.timeControl <= 0) {
+                                timeStr = _formatTimeControl(0);
+                              } else if (ms > 0) {
+                                final totalSec = (ms / 1000).ceil();
+                                final mins = totalSec ~/ 60;
+                                final secs = totalSec % 60;
+                                timeStr = '$mins:${secs.toString().padLeft(2, '0')}';
+                              } else {
+                                timeStr = _formatTimeControl(onlineProv.timeControl);
+                              }
+
                               return Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -274,409 +428,270 @@ class HomePendingGameCard extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '•',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.getTextMuted(isDark),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.schedule_rounded,
+                                    size: 11,
+                                    color: AppColors.getTextSecondary(isDark),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    timeStr,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.getTextSecondary(isDark),
+                                    ),
+                                  ),
                                 ],
                               );
                             },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            opponentName,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.getTextPrimary(isDark),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.ratingGold.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            badgeLabel,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.ratingGold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Right: Time Control badge & Rejoin Button
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.darkSurface
-                          : AppColors.lightSurface,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: AppColors.getBorder(isDark),
-                        width: 0.8,
+                          );
+                        },
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.schedule_rounded,
-                          size: 11,
-                          color: AppColors.getTextSecondary(isDark),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          tcStr,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.getTextSecondary(isDark),
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryAmber,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'dashboard.pendingSection.rejoin'.tr(),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+
+                const SizedBox(width: 10),
+
+                // Right: Play / Join Gamepad button
+                _buildPlayButton(isOnline: true),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // ─── 1.5 Active Offline Game Card ────────────────────────────────────
+  // ─── 1.5 Active Offline Game Row ─────────────────────────────────────
 
-  Widget _buildActiveOfflineGameCard(
+  Widget _buildActiveOfflineGameRow(
     BuildContext context,
     OfflineGameProvider offlineProv,
-    bool isDark, {
-    BorderRadiusGeometry borderRadius = const BorderRadius.all(
-      Radius.circular(16),
-    ),
-    EdgeInsetsGeometry margin = const EdgeInsets.only(bottom: 12.0),
-  }) {
+    bool isDark,
+  ) {
     final isBot = offlineProv.offlinePlayMode == PlayMode.vsAi;
     final isLocalCoop = offlineProv.offlinePlayMode == PlayMode.localCoop;
+    final opponentName = isLocalCoop ? 'game.localCoop'.tr() : 'game.aiBot'.tr();
 
-    final opponentName = isLocalCoop ? 'game.player2'.tr() : 'game.aiBot'.tr();
-
-    final badgeLabel = isBot ? offlineProv.offlineBotDifficultyLabel : '2P';
-
-    return _buildDismissibleContainer(
+    return Dismissible(
       key: ValueKey('active_offline_game_${offlineProv.matchId ?? "current"}'),
-      dismissLabel: 'dashboard.pendingSection.resign'.tr(),
-      dismissIcon: Icons.flag_rounded,
-      confirmDismiss: () => _confirmResignDialog(context, isDark),
-      onDismissed: () {
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (_) => _confirmResignDialog(context, isDark),
+      onDismissed: (_) {
         offlineProv.resignAndClear();
       },
-      borderRadius: borderRadius,
-      margin: margin,
-      child: InkWell(
-        onTap: () => _rejoinOfflineGame(context),
-        borderRadius: borderRadius is BorderRadius
-            ? borderRadius
-            : BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.getCard(isDark),
-            borderRadius: borderRadius,
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Icon(
-                    isBot
-                        ? Icons.smart_toy_rounded
-                        : Icons.people_outline_rounded,
-                    color: AppColors.primaryLight,
-                    size: 24,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Game Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'dashboard.pendingSection.activeGameTitle'
-                                .tr()
-                                .toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: ValueListenableBuilder<String>(
-                            valueListenable: offlineProv.currentTurn,
-                            builder: (context, currentTurn, _) {
-                              final isMyTurn = isLocalCoop
-                                  ? (currentTurn == 'white'
-                                        ? 'common.white'.tr()
-                                        : 'common.black'.tr())
-                                  : (currentTurn == offlineProv.myTeam
-                                        ? 'dashboard.pendingSection.yourTurn'
-                                              .tr()
-                                        : 'dashboard.pendingSection.opponentTurn'
-                                              .tr());
-                              final turnColor = isLocalCoop
-                                  ? AppColors.getTextPrimary(isDark)
-                                  : (currentTurn == offlineProv.myTeam
-                                        ? AppColors.accentGold
-                                        : AppColors.getTextMuted(isDark));
-                              final isHighlighted =
-                                  !isLocalCoop &&
-                                  currentTurn == offlineProv.myTeam;
-
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: turnColor,
-                                      boxShadow: isHighlighted
-                                          ? [
-                                              BoxShadow(
-                                                color: AppColors.accentGold
-                                                    .withValues(alpha: 0.6),
-                                                blurRadius: 4,
-                                                spreadRadius: 0.5,
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Flexible(
-                                    child: Text(
-                                      isMyTurn,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: turnColor,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            opponentName,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.getTextPrimary(isDark),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.ratingGold.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            badgeLabel,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.ratingGold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Right: Offline label & Rejoin Button
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
+      background: _buildDismissibleBackground(
+        label: 'dashboard.pendingSection.resign'.tr(),
+        icon: Icons.flag_rounded,
+        alignment: Alignment.centerLeft,
+      ),
+      secondaryBackground: _buildDismissibleBackground(
+        label: 'dashboard.pendingSection.resign'.tr(),
+        icon: Icons.flag_rounded,
+        alignment: Alignment.centerRight,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _rejoinOfflineGame(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                // Bot / Coop Icon Avatar
+                if (isBot)
+                  const KitaAvatar(
+                    avatarIndex: 0,
+                    isBot: true,
+                    size: 42,
+                  )
+                else
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.darkSurface
-                          : AppColors.lightSurface,
-                      borderRadius: BorderRadius.circular(6),
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.getBorder(isDark),
-                        width: 0.8,
+                        color: AppColors.primaryLight,
+                        width: 2.0,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.devices_rounded,
-                          size: 11,
-                          color: AppColors.getTextSecondary(isDark),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          'dashboard.badgeOffline'.tr(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.getTextSecondary(isDark),
-                          ),
-                        ),
-                      ],
+                    child: const Center(
+                      child: Icon(
+                        Icons.people_alt_rounded,
+                        color: AppColors.primaryLight,
+                        size: 22,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryAmber,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'dashboard.pendingSection.rejoin'.tr(),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                const SizedBox(width: 12),
+
+                // Game Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Top Line: Mode Name & Bot Difficulty (no 2P badge for Local Coop)
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              opponentName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.getTextPrimary(isDark),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 2),
-                        const Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
+                          if (isBot) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryAmber.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                offlineProv.offlineBotDifficultyLabel,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryAmber,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Bottom Line: Elapsed match time (turn removed)
+                      ValueListenableBuilder<int>(
+                        valueListenable: offlineProv.elapsedSeconds,
+                        builder: (context, totalSec, _) {
+                          final mins = totalSec ~/ 60;
+                          final secs = totalSec % 60;
+                          final timeStr = '$mins:${secs.toString().padLeft(2, '0')}';
+
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.schedule_rounded,
+                                size: 11,
+                                color: AppColors.getTextSecondary(isDark),
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                timeStr,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.getTextSecondary(isDark),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
+                ),
+
+                const SizedBox(width: 10),
+
+                // Right: Play / Join Gamepad button
+                _buildPlayButton(),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlayButton({bool isOnline = false}) {
+    final bgColor = isOnline ? AppColors.accent : AppColors.primaryAmber;
+    final iconColor = isOnline ? AppColors.turnActiveCardDark : Colors.white;
+
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withValues(alpha: isOnline ? 0.45 : 0.35),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(
+          Icons.sports_esports_rounded,
+          color: iconColor,
+          size: 22,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDismissibleBackground({
+    required String label,
+    required IconData icon,
+    required Alignment alignment,
+  }) {
+    return Container(
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      color: AppColors.lossRed.withValues(alpha: 0.15),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (alignment == Alignment.centerLeft) ...[
+            Icon(icon, color: AppColors.lossRed, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.lossRed,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ] else ...[
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.lossRed,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(icon, color: AppColors.lossRed, size: 20),
+          ],
+        ],
       ),
     );
   }

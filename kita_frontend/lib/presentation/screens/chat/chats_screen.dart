@@ -11,6 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dm_provider.dart';
 import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/kita_avatar.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../friends/dm_chat_screen.dart';
@@ -249,58 +250,20 @@ class _ChatsScreenState extends State<ChatsScreen> {
             return nameMatch || msgMatch;
           }).toList();
 
+    final hasUnreadChats = dmProv.totalUnread > 0;
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      appBar: AppBar(
-        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: isDark
-                ? AppColors.darkTextPrimary
-                : AppColors.lightTextPrimary,
-            size: 20,
-          ),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        title: Text(
-          'chats.title'.tr(),
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: isDark
-                ? AppColors.darkTextPrimary
-                : AppColors.lightTextPrimary,
-          ),
-        ),
-        actions: [
-          if (!isGuest)
-            IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.darkSurface
-                      : AppColors.lightSurface,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : AppColors.lightBorder,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.edit_note_rounded,
-                  color: AppColors.primaryAmber,
-                  size: 20,
-                ),
-              ),
-              tooltip: 'chats.startNewChat'.tr(),
-              onPressed: () => _showNewChatSheet(context, allFriends),
-            ),
-          const SizedBox(width: 8),
-        ],
+      appBar: KitaAppBar(
+        title: 'chats.title'.tr(),
+        leadingIcon: hasUnreadChats
+            ? Icons.chat_bubble_rounded
+            : Icons.chat_bubble_outline_rounded,
+        iconColor: hasUnreadChats ? AppColors.primaryAmber : null,
+        showBack: true,
+        showAuthActions: false,
+        showLanguageToggle: false,
+        showThemeToggle: false,
       ),
       floatingActionButton: (!isGuest && items.isNotEmpty)
           ? FloatingActionButton.extended(
@@ -321,6 +284,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
             )
           : null,
       body: ResponsiveLayout(
+        padding: EdgeInsets.zero,
         child: isGuest
             ? _buildGuestView(isDark)
             : RefreshIndicator(
@@ -336,8 +300,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     // Search bar
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
+                        horizontal: 10.0,
+                        vertical: 4.0,
                       ),
                       child: Container(
                         decoration: BoxDecoration(
@@ -412,8 +376,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
                           : ListView.separated(
                               physics: const AlwaysScrollableScrollPhysics(),
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
+                                horizontal: 10.0,
+                                vertical: 4.0,
                               ),
                               itemCount: filteredItems.length,
                               separatorBuilder: (_, _) =>

@@ -38,6 +38,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Standardize Draw Outcome Color**: Standardize draw match status badges, chips, and result banners to warning yellow in theme colors.
 - [x] **Custom Emoji Profile Avatars & Accent Color Palette**: Allow players to select custom emojis (free text input or quick popular emoji grid) and customize their avatar's background & border accent color from 8 theme tones, or retain classic icon avatars with real-time preview and cross-platform synchronization (matches, chats, leaderboards, profile dialogs).
 - [ ] **Text Visibility & Overflow Resilience Audit**: Audit labels, chips, and subtitles across small screens; ensure multi-line reflow (Wrap), tooltips for truncated nicknames/rooms, and fallback ellipsis without losing essential context.
+- [x] **Active Matches Dashboard Card Redesign**: Unified glowing container with split dual-tone glow (accent for online half, primary for offline half), Local Co-op direct title without 2P tag, elapsed time display, removal of turn indicator in offline matches, gamepad join icon, trophy icon for ELO rating, and removal of the "Active Match" tag.
 - [x] **Android 12+ Splash Screen Tuning**: Configure native Android splash screen theme to eliminate double-splash flicker on app launch.
 - [x] App logo, branding, and icon design (Android launcher icons, Web icons & Kita Online naming)
 

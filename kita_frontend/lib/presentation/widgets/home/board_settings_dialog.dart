@@ -332,7 +332,7 @@ class BoardSettingsDialog extends StatelessWidget {
                     color: isSelected
                         ? AppColors.primaryAmber
                         : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                    width: isSelected ? 2 : 1,
+                    width: 1.5,
                   ),
                 ),
                 child: Stack(
@@ -444,7 +444,7 @@ class BoardSettingsDialog extends StatelessWidget {
                           : (isDark
                                 ? AppColors.darkBorder
                                 : AppColors.lightBorder),
-                      width: isSelected ? 2 : 1,
+                      width: 1.5,
                     ),
                   ),
                   child: Column(
@@ -464,9 +464,7 @@ class BoardSettingsDialog extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           color: isSelected
                               ? (isDark
                                     ? AppColors.darkTextPrimary
@@ -532,7 +530,7 @@ class BoardSettingsDialog extends StatelessWidget {
                           : (isDark
                                 ? AppColors.darkBorder
                                 : AppColors.lightBorder),
-                      width: isSelected ? 2 : 1,
+                      width: 1.5,
                     ),
                   ),
                   child: Column(
@@ -552,9 +550,7 @@ class BoardSettingsDialog extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           color: isSelected
                               ? (isDark
                                     ? AppColors.darkTextPrimary

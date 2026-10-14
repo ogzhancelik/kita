@@ -198,10 +198,11 @@ class _GameOverDialogState extends State<GameOverDialog>
     return AlertDialog(
       backgroundColor: AppColors.getCard(isDark),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       titlePadding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      actionsOverflowButtonSpacing: 8,
+      actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      actionsAlignment: MainAxisAlignment.center,
       title: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -258,306 +259,385 @@ class _GameOverDialogState extends State<GameOverDialog>
           ),
         ],
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Reason description
-            Text(
-              _getLocalizedReason(
-                widget.gameOverData.reason,
-                isWinner: isWinner,
-                isLocalCoop: isLocalCoop,
-              ),
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.getTextSecondary(isDark),
-              ),
-              textAlign: TextAlign.center,
-            ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: SizedBox(
+          width: double.infinity,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Reason description
+                Text(
+                  _getLocalizedReason(
+                    widget.gameOverData.reason,
+                    isWinner: isWinner,
+                    isLocalCoop: isLocalCoop,
+                  ),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.getTextSecondary(isDark),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
 
-            // Match stats pill: Elapsed time & Total moves
-            Builder(
-              builder: (ctx) {
-                if (widget.isOffline && widget.elapsedSeconds != null) {
-                  final seconds = widget.elapsedSeconds!;
-                  final mins = seconds ~/ 60;
-                  final secs = seconds % 60;
-                  final timeStr =
-                      '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-                  final movesCount = widget.movesCount ?? 0;
-                  return _buildStatsPill(timeStr, movesCount, isDark);
-                }
+                // Match stats pill: Elapsed time & Total moves
+                Builder(
+                  builder: (ctx) {
+                    if (widget.isOffline && widget.elapsedSeconds != null) {
+                      final seconds = widget.elapsedSeconds!;
+                      final mins = seconds ~/ 60;
+                      final secs = seconds % 60;
+                      final timeStr =
+                          '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+                      final movesCount = widget.movesCount ?? 0;
+                      return _buildStatsPill(timeStr, movesCount, isDark);
+                    }
 
-                return ValueListenableBuilder<int>(
-                  valueListenable: provider.elapsedSeconds,
-                  builder: (ctx, seconds, _) {
-                    final effectiveSeconds = widget.elapsedSeconds ?? seconds;
-                    final mins = effectiveSeconds ~/ 60;
-                    final secs = effectiveSeconds % 60;
-                    final timeStr =
-                        '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-                    final movesCount =
-                        widget.movesCount ?? provider.moveHistory.value.length;
-                    return _buildStatsPill(timeStr, movesCount, isDark);
+                    return ValueListenableBuilder<int>(
+                      valueListenable: provider.elapsedSeconds,
+                      builder: (ctx, seconds, _) {
+                        final effectiveSeconds =
+                            widget.elapsedSeconds ?? seconds;
+                        final mins = effectiveSeconds ~/ 60;
+                        final secs = effectiveSeconds % 60;
+                        final timeStr =
+                            '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+                        final movesCount =
+                            widget.movesCount ??
+                            provider.moveHistory.value.length;
+                        return _buildStatsPill(timeStr, movesCount, isDark);
+                      },
+                    );
                   },
-                );
-              },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Rating Changes if any
+                if (widget.gameOverData.ratingChanges != null &&
+                    widget.gameOverData.ratingChanges!.isNotEmpty)
+                  _buildRatingChanges(isDark),
+
+                // Rematch pending notification inside GameOverDialog (Online only)
+                if (!widget.isOffline)
+                  ValueListenableBuilder<RematchOfferedPayload?>(
+                    valueListenable: provider.rematchOffer,
+                    builder: (ctx, offer, _) {
+                      if (offer == null) return const SizedBox.shrink();
+                      return Container(
+                        margin: const EdgeInsets.only(top: 14),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.winBlue.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.winBlue.withValues(alpha: 0.6),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Top: Replay Icon + Text Information
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.winBlue.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.replay_rounded,
+                                    color: AppColors.winBlue,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'online.rematchOfferTitle'.tr(),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.winBlue,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}'
+                                        '${offer.colorPreference == 'white' ? ' • ${'online.invitationSideBlack'.tr()}' : (offer.colorPreference == 'black' ? ' • ${'online.invitationSideWhite'.tr()}' : '')}',
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          color: AppColors.getTextSecondary(
+                                            isDark,
+                                          ),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            // Bottom: Decline & Accept Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                    ),
+                                    label: Text('common.decline'.tr()),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.lossRed,
+                                      side: BorderSide(
+                                        color: AppColors.lossRed.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                      ),
+                                      backgroundColor: AppColors.lossRed
+                                          .withValues(alpha: 0.08),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      minimumSize: const Size(0, 36),
+                                      textStyle: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      provider.declineRematch();
+                                      _safePop();
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                    ),
+                                    label: Text('common.accept'.tr()),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryAmber,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      minimumSize: const Size(0, 36),
+                                      textStyle: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      provider.acceptRematch();
+                                      _safePop();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+              ],
             ),
-
-            const SizedBox(height: 16),
-
-            // Rating Changes if any
-            if (widget.gameOverData.ratingChanges != null &&
-                widget.gameOverData.ratingChanges!.isNotEmpty)
-              _buildRatingChanges(isDark),
-
-            // Rematch pending notification inside GameOverDialog (Online only)
-            if (!widget.isOffline)
-              ValueListenableBuilder<RematchOfferedPayload?>(
-                valueListenable: provider.rematchOffer,
-                builder: (ctx, offer, _) {
-                  if (offer == null) return const SizedBox.shrink();
-                  return Container(
-                    margin: const EdgeInsets.only(top: 14),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.winBlue.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.winBlue.withValues(alpha: 0.6),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Top: Replay Icon + Text Information
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppColors.winBlue.withValues(alpha: 0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.replay_rounded,
-                                color: AppColors.winBlue,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'online.rematchOfferTitle'.tr(),
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.winBlue,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${offer.requesterName} • ${offer.timeControl <= 0 ? 'online.timeUnlimited'.tr() : 'online.minuteShort'.tr(args: ['${offer.timeControl ~/ 60000}'])}'
-                                    '${offer.colorPreference == 'white' ? ' • ${'online.invitationSideBlack'.tr()}' : (offer.colorPreference == 'black' ? ' • ${'online.invitationSideWhite'.tr()}' : '')}',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppColors.getTextSecondary(isDark),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        // Bottom: Decline & Accept Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.close_rounded, size: 16),
-                                label: Text('common.decline'.tr()),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.lossRed,
-                                  side: BorderSide(
-                                    color: AppColors.lossRed.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                  ),
-                                  backgroundColor: AppColors.lossRed.withValues(
-                                    alpha: 0.08,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                  minimumSize: const Size(0, 36),
-                                  textStyle: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  provider.declineRematch();
-                                  _safePop();
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.check_rounded, size: 16),
-                                label: Text('common.accept'.tr()),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryAmber,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                  minimumSize: const Size(0, 36),
-                                  textStyle: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  provider.acceptRematch();
-                                  _safePop();
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-          ],
+          ),
         ),
       ),
       actions: [
-        // Review Match (if vs AI / onReviewMatch provided) or Review Board
-        if (widget.onReviewMatch != null)
-          TextButton.icon(
-            onPressed: widget.onReviewMatch,
-            icon: const Icon(
-              Icons.auto_awesome,
-              size: 16,
-              color: AppColors.ratingGold,
-            ),
-            label: Text('online.reviewMatch'.tr()),
-            style: TextButton.styleFrom(foregroundColor: AppColors.ratingGold),
-          )
-        else
-          TextButton.icon(
-            onPressed: () => _safePop(),
-            icon: const Icon(Icons.grid_view_rounded, size: 16),
-            label: Text('online.viewBoard'.tr()),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.getTextSecondary(isDark),
-            ),
-          ),
-
-        // Back to Menu button
-        TextButton(
-          onPressed: widget.onBackToMenu,
-          child: Text(
-            'online.backToMenu'.tr(),
-            style: TextStyle(color: AppColors.getTextSecondary(isDark)),
-          ),
-        ),
-
-        // Request Rematch button
-        if (widget.isOffline)
-          ElevatedButton.icon(
-            onPressed: () {
-              _safePop();
-              widget.onRematch();
-            },
-            icon: const Icon(Icons.replay, size: 18),
-            label: Text('online.rematch'.tr()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryAmber,
-              foregroundColor: AppColors.darkTextPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          )
-        else
-          ValueListenableBuilder<bool>(
-            valueListenable: provider.isRematchRequested,
-            builder: (ctx, isRequested, _) {
-              if (isRequested) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryAmber.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.primaryAmber.withValues(alpha: 0.4),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. Rematch button (Full width primary action)
+                if (widget.isOffline)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _safePop();
+                      widget.onRematch();
+                    },
+                    icon: const Icon(Icons.replay, size: 18),
+                    label: Text('online.rematch'.tr()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryAmber,
+                      foregroundColor: AppColors.darkTextPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.primaryAmber,
+                  )
+                else
+                  ValueListenableBuilder<bool>(
+                    valueListenable: provider.isRematchRequested,
+                    builder: (ctx, isRequested, _) {
+                      if (isRequested) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryAmber.withValues(
+                              alpha: 0.15,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.primaryAmber.withValues(
+                                alpha: 0.4,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppColors.primaryAmber,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'online.waitingForRematch'.tr(),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryAmber,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return ElevatedButton.icon(
+                        onPressed: widget.onRematch,
+                        icon: const Icon(Icons.replay, size: 18),
+                        label: Text('online.rematch'.tr()),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryAmber,
+                          foregroundColor: AppColors.darkTextPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'online.waitingForRematch'.tr(),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryAmber,
+                      );
+                    },
+                  ),
+
+                const SizedBox(height: 8),
+
+                // 2. Secondary Row: Review Match / View Board (50%) & Back to Menu (50%)
+                Row(
+                  children: [
+                    Expanded(
+                      child: widget.onReviewMatch != null
+                          ? OutlinedButton.icon(
+                              onPressed: widget.onReviewMatch,
+                              icon: const Icon(
+                                Icons.auto_awesome,
+                                size: 15,
+                                color: AppColors.ratingGold,
+                              ),
+                              label: Text('online.reviewMatch'.tr()),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.ratingGold,
+                                side: BorderSide(
+                                  color: AppColors.ratingGold.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            )
+                          : OutlinedButton.icon(
+                              onPressed: () => _safePop(),
+                              icon: const Icon(
+                                Icons.grid_view_rounded,
+                                size: 15,
+                              ),
+                              label: Text('online.viewBoard'.tr()),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.getTextSecondary(
+                                  isDark,
+                                ),
+                                side: BorderSide(
+                                  color: AppColors.getBorder(isDark),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: widget.onBackToMenu,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.getTextSecondary(isDark),
+                          side: BorderSide(color: AppColors.getBorder(isDark)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'online.backToMenu'.tr(),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
-                    ],
-                  ),
-                );
-              }
-
-              return ElevatedButton.icon(
-                onPressed: widget.onRematch,
-                icon: const Icon(Icons.replay, size: 18),
-                label: Text('online.rematch'.tr()),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryAmber,
-                  foregroundColor: AppColors.darkTextPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                    ),
+                  ],
                 ),
-              );
-            },
+              ],
+            ),
           ),
+        ),
       ],
     );
   }

@@ -130,7 +130,9 @@ class _FriendsScreenState extends State<FriendsScreen>
               size: 18,
               color: isSelected
                   ? AppColors.darkTextPrimary
-                  : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                  : (isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary),
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -141,7 +143,9 @@ class _FriendsScreenState extends State<FriendsScreen>
                   fontWeight: FontWeight.bold,
                   color: isSelected
                       ? AppColors.darkTextPrimary
-                      : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                      : (isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -159,7 +163,9 @@ class _FriendsScreenState extends State<FriendsScreen>
                   '$badgeCount',
                   style: TextStyle(
                     fontSize: 10,
-                    color: isSelected ? AppColors.primaryAmberDark : Colors.white,
+                    color: isSelected
+                        ? AppColors.primaryAmberDark
+                        : Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -189,6 +195,8 @@ class _FriendsScreenState extends State<FriendsScreen>
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: KitaAppBar(
         title: 'online.friends'.tr(),
+        iconColor: AppColors.accentGold,
+        leadingIcon: Icons.group,
         showBack: true,
         showAuthActions: false,
         showLanguageToggle: false,
@@ -222,13 +230,20 @@ class _FriendsScreenState extends State<FriendsScreen>
             Expanded(
               child: friendsProv.isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.primaryAmber),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryAmber,
+                      ),
                     )
                   : TabBarView(
                       controller: _tabController,
                       children: [
                         // 1. Friends list
-                        _buildFriendsTab(context, friendsProv, onlineProv, isDark),
+                        _buildFriendsTab(
+                          context,
+                          friendsProv,
+                          onlineProv,
+                          isDark,
+                        ),
 
                         // 2. Friend requests
                         _buildRequestsTab(context, friendsProv, isDark),
@@ -505,11 +520,7 @@ class _FriendsScreenState extends State<FriendsScreen>
   }
 }
 
-enum _FriendAction {
-  challenge,
-  chat,
-  remove,
-}
+enum _FriendAction { challenge, chat, remove }
 
 class _FriendCard extends StatelessWidget {
   final FriendItemModel friend;

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../providers/friends_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../widgets/common/kita_app_bar.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../../widgets/notifications/notification_tile.dart';
 
@@ -31,6 +33,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final notifProv = context.watch<NotificationProvider>();
+    final friendsProv = context.watch<FriendsProvider>();
+    final hasUnreadNotifications =
+        notifProv.hasUnread || friendsProv.pendingIncomingCount > 0;
 
     // Main notifications page:
     // Actionable notifications that have been interacted with (accepted, declined, or ignored)
@@ -44,27 +49,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-      appBar: AppBar(
-        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-            size: 20,
-          ),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        title: Text(
-          'notifications.title'.tr(),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-          ),
-        ),
+      appBar: KitaAppBar(
+        title: 'notifications.title'.tr(),
+        leadingIcon: hasUnreadNotifications
+            ? Icons.notifications_active_rounded
+            : Icons.notifications_none_rounded,
+        iconColor: hasUnreadNotifications ? AppColors.primaryAmber : null,
+        showBack: true,
+        showAuthActions: false,
+        showLanguageToggle: false,
+        showThemeToggle: false,
       ),
       body: ResponsiveLayout(
+        padding: EdgeInsets.zero,
         child: displayList.isEmpty
             ? Center(
                 child: Padding(
@@ -114,7 +111,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
               )
             : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10.0,
+                  vertical: 4.0,
+                ),
                 itemCount: displayList.length,
                 itemBuilder: (context, index) {
                   final notif = displayList[index];

@@ -99,8 +99,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     final provider = _provider ?? context.read<OnlineGameProvider>();
     final data = provider.gameOverData.value;
     if (data == null) return;
-    if (_isGameOverDialogShowing || provider.isGameOverDialogActive.value)
+    if (_isGameOverDialogShowing || provider.isGameOverDialogActive.value) {
       return;
+    }
 
     _gameOverDialogTimer?.cancel();
     // Delay showing the game over dialog by ~1.8 seconds so players can see
@@ -108,8 +109,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     _gameOverDialogTimer = Timer(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
       final currentProv = _provider ?? context.read<OnlineGameProvider>();
-      if (_isGameOverDialogShowing || currentProv.isGameOverDialogActive.value)
+      if (_isGameOverDialogShowing || currentProv.isGameOverDialogActive.value) {
         return;
+      }
       if (currentProv.matchState.value != OnlineMatchState.gameOver) return;
       _showGameOverDialog(data);
     });
@@ -120,8 +122,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     final provider = _provider ?? context.read<OnlineGameProvider>();
     if (!mounted ||
         _isGameOverDialogShowing ||
-        provider.isGameOverDialogActive.value)
+        provider.isGameOverDialogActive.value) {
       return;
+    }
     _isGameOverDialogShowing = true;
     context.read<AuthProvider>().refreshProfile();
 
@@ -280,11 +283,13 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            const SizedBox(height: 8),
                             SizedBox(
                               height: boardHeight,
                               width: totalWidth,
                               child: boardWidget,
                             ),
+                            const SizedBox(height: 8),
                             Expanded(
                               child: ChatPanel(
                                 key: _chatPanelKey,
@@ -368,7 +373,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                       );
 
                       const double cardsHeight =
-                          96.0; // Two PlayerInfoBars (~48px each)
+                          112.0; // Two PlayerInfoBars (~48px each) + 2x 8px padding
 
                       // Case A: Chat is toggled OFF (cards stick to up/down panels, board centered)
                       if (!isChatOpen) {
@@ -376,7 +381,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             opponentCard,
+                            const SizedBox(height: 8),
                             Expanded(child: Center(child: boardWidget)),
+                            const SizedBox(height: 8),
                             userCard,
                           ],
                         );
@@ -417,11 +424,13 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           opponentCard,
+                          const SizedBox(height: 8),
                           SizedBox(
                             height: boardHeight,
                             width: totalWidth,
                             child: boardWidget,
                           ),
+                          const SizedBox(height: 8),
                           userCard,
                           Expanded(
                             child: ChatPanel(
@@ -439,8 +448,9 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                 ValueListenableBuilder<DrawOfferPayload?>(
                   valueListenable: provider.drawOffer,
                   builder: (context, drawOffer, _) {
-                    if (drawOffer == null || isKeyboardOpen)
+                    if (drawOffer == null || isKeyboardOpen) {
                       return const SizedBox.shrink();
+                    }
                     return _buildDrawOfferBanner(
                       context,
                       provider,

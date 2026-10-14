@@ -124,74 +124,33 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
             ),
             const SizedBox(height: 10),
 
-            // Time control options row / wrap
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _availablePresets.map((preset) {
-                final isSelected = _selectedTimeControl == preset;
-                final label = preset <= 0
-                    ? 'online.timeUnlimited'.tr()
-                    : 'online.timeMinutes'.tr(
-                        args: ['${(preset / 60000).round()}'],
-                      );
-
-                final icon = preset <= 0
-                    ? Icons.all_inclusive_rounded
-                    : Icons.timer_outlined;
-
-                return InkWell(
-                  onTap: () {
-                    setState(() => _selectedTimeControl = preset);
-                    _persistPreference(preset);
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
+            // Time control options 2x2 grid
+            Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTimeOption(_availablePresets[0], isDark),
                     ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.accent.withValues(alpha: 0.15)
-                          : AppColors.getSurface(isDark),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.accent
-                            : AppColors.getBorder(isDark),
-                        width: isSelected ? 1.8 : 1.0,
-                      ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTimeOption(_availablePresets[1], isDark),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          icon,
-                          size: 15,
-                          color: isSelected
-                              ? AppColors.accent
-                              : AppColors.getTextMuted(isDark),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: isSelected
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                            color: isSelected
-                                ? AppColors.getTextPrimary(isDark)
-                                : AppColors.getTextSecondary(isDark),
-                          ),
-                        ),
-                      ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTimeOption(_availablePresets[2], isDark),
                     ),
-                  ),
-                );
-              }).toList(),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTimeOption(_availablePresets[3], isDark),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
@@ -329,6 +288,71 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
       MaterialPageRoute(
         builder: (_) => const OfflineMatchScreen(),
         settings: const RouteSettings(name: '/offline_match'),
+      ),
+    );
+  }
+
+  Widget _buildTimeOption(int preset, bool isDark) {
+    final isSelected = _selectedTimeControl == preset;
+    final label = preset <= 0
+        ? 'online.timeUnlimited'.tr()
+        : 'online.timeMinutes'.tr(args: ['${(preset / 60000).round()}']);
+
+    final icon = preset <= 0
+        ? Icons.all_inclusive_rounded
+        : Icons.timer_outlined;
+
+    return InkWell(
+      onTap: () {
+        setState(() => _selectedTimeControl = preset);
+        _persistPreference(preset);
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 9,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.accent.withValues(alpha: 0.15)
+              : AppColors.getSurface(isDark),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.accent
+                : AppColors.getBorder(isDark),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected
+                  ? AppColors.accent
+                  : AppColors.getTextMuted(isDark),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? AppColors.getTextPrimary(isDark)
+                      : AppColors.getTextSecondary(isDark),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

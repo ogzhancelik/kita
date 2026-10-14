@@ -100,6 +100,8 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
         showAuthActions: false,
         showLanguageToggle: false,
         showThemeToggle: false,
+        iconColor: AppColors.winBlue,
+        leadingIcon: Icons.meeting_room,
         extraActions: [
           IconButton(
             tooltip: 'common.refresh'.tr(),
@@ -117,10 +119,7 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
         onPressed: () => CreateRoomDialog.show(context),
         backgroundColor: AppColors.primaryAmber,
         elevation: 4,
-        icon: const Icon(
-          Icons.add_rounded,
-          color: AppColors.darkTextPrimary,
-        ),
+        icon: const Icon(Icons.add_rounded, color: AppColors.darkTextPrimary),
         label: Text(
           'online.createRoom'.tr(),
           style: const TextStyle(
@@ -268,9 +267,7 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
           Icon(
             Icons.arrow_forward_ios_rounded,
             size: 14,
-            color: isDark
-                ? AppColors.darkTextMuted
-                : AppColors.lightTextMuted,
+            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
           ),
         ],
       ),
@@ -343,8 +340,8 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
                 color: _currentPage > 1
                     ? AppColors.primaryAmber
                     : (isDark
-                        ? AppColors.darkTextMuted
-                        : AppColors.lightTextMuted),
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted),
               ),
             ),
           ),
@@ -359,9 +356,7 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
               ),
             ),
             child: Text(
-              'online.pageIndicator'.tr(
-                args: ['$_currentPage', '$totalPages'],
-              ),
+              'online.pageIndicator'.tr(args: ['$_currentPage', '$totalPages']),
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.bold,
@@ -391,8 +386,8 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
                 color: _currentPage < totalPages
                     ? AppColors.primaryAmber
                     : (isDark
-                        ? AppColors.darkTextMuted
-                        : AppColors.lightTextMuted),
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted),
               ),
             ),
           ),

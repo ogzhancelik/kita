@@ -403,7 +403,7 @@ class MatchSettingsDialog extends StatelessWidget {
                             : (isDark
                                 ? AppColors.darkBorder
                                 : AppColors.lightBorder),
-                        width: isSelected ? 2 : 1,
+                        width: 1.5,
                       ),
                     ),
                     child: Column(
@@ -424,9 +424,7 @@ class MatchSettingsDialog extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w600,
+                            fontWeight: FontWeight.w600,
                             color: isSelected
                                 ? (isDark
                                     ? AppColors.darkTextPrimary

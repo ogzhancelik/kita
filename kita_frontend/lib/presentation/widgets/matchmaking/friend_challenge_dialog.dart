@@ -198,36 +198,43 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
+          Row(
             children: [
-              _buildChoiceChip(
-                label: 'common.random'.tr(),
-                icon: Icons.shuffle_rounded,
-                isSelected: _selectedColor == 'random',
-                isDark: isDark,
-                onSelected: () => setState(() => _selectedColor = 'random'),
+              Expanded(
+                child: _buildSideToggleItem(
+                  label: 'common.random'.tr(),
+                  icon: Icons.shuffle_rounded,
+                  isSelected: _selectedColor == 'random',
+                  isDark: isDark,
+                  onTap: () => setState(() => _selectedColor = 'random'),
+                ),
               ),
-              _buildChoiceChip(
-                label: 'common.white'.tr(),
-                icon: Icons.circle,
-                iconColor: AppColors.darkTextPrimary,
-                isSelected: _selectedColor == 'white',
-                isDark: isDark,
-                onSelected: () => setState(() => _selectedColor = 'white'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildSideToggleItem(
+                  label: 'common.white'.tr(),
+                  icon: Icons.circle,
+                  iconColor: AppColors.pieceWhite,
+                  isSelected: _selectedColor == 'white',
+                  isDark: isDark,
+                  onTap: () => setState(() => _selectedColor = 'white'),
+                ),
               ),
-              _buildChoiceChip(
-                label: 'common.black'.tr(),
-                icon: Icons.circle_outlined,
-                isSelected: _selectedColor == 'black',
-                isDark: isDark,
-                onSelected: () => setState(() => _selectedColor = 'black'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildSideToggleItem(
+                  label: 'common.black'.tr(),
+                  icon: Icons.circle_outlined,
+                  isSelected: _selectedColor == 'black',
+                  isDark: isDark,
+                  onTap: () => setState(() => _selectedColor = 'black'),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
 
-          // Time Control
+          // Time Control (2x2 Grid with equal width)
           Text(
             'online.selectTimeControl'.tr(),
             style: TextStyle(
@@ -237,117 +244,227 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
             ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: TimeControlPreset.defaultPresets.map((preset) {
-              return _buildTimeChip(
-                TimeControlPreset.format(preset),
-                preset,
-                isDark,
-              );
-            }).toList(),
+          Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTimeOption(
+                      label: TimeControlPreset.format(
+                        TimeControlPreset.defaultPresets[0],
+                      ),
+                      value: TimeControlPreset.defaultPresets[0],
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTimeOption(
+                      label: TimeControlPreset.format(
+                        TimeControlPreset.defaultPresets[1],
+                      ),
+                      value: TimeControlPreset.defaultPresets[1],
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTimeOption(
+                      label: TimeControlPreset.format(
+                        TimeControlPreset.defaultPresets[2],
+                      ),
+                      value: TimeControlPreset.defaultPresets[2],
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildTimeOption(
+                      label: TimeControlPreset.format(
+                        TimeControlPreset.defaultPresets[3],
+                      ),
+                      value: TimeControlPreset.defaultPresets[3],
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(
-            'common.cancel'.tr(),
-            style: TextStyle(color: AppColors.getTextSecondary(isDark)),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (!isOffline) {
-              final canProceed = await ActivityConflictHelper.checkAndConfirm(
-                context: context,
-                provider: widget.onlineProv,
-                allowOutgoingChallenges: true,
-              );
-              if (!canProceed) return;
-              if (!context.mounted) return;
-            }
-
-            Navigator.of(context).pop();
-            widget.onlineProv.inviteToMatch(
-              widget.friend.userId,
-              friendName: widget.friend.username,
-              friendRating: widget.friend.rating,
-              friendIsProvisional: widget.friend.isProvisional,
-              timeControl: _selectedTimeControl,
-              colorPreference: _selectedColor,
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryAmber,
-            foregroundColor: AppColors.darkTextPrimary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.getTextSecondary(isDark),
+                  side: BorderSide(color: AppColors.getBorder(isDark)),
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'common.cancel'.tr(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
             ),
-          ),
-          child: Text(
-            isOffline
-                ? 'online.sendInviteOfflineBtn'.tr()
-                : 'online.sendInvite'.tr(),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () async {
+                  if (!isOffline) {
+                    final canProceed =
+                        await ActivityConflictHelper.checkAndConfirm(
+                          context: context,
+                          provider: widget.onlineProv,
+                          allowOutgoingChallenges: true,
+                        );
+                    if (!canProceed) return;
+                    if (!context.mounted) return;
+                  }
+
+                  Navigator.of(context).pop();
+                  widget.onlineProv.inviteToMatch(
+                    widget.friend.userId,
+                    friendName: widget.friend.username,
+                    friendRating: widget.friend.rating,
+                    friendIsProvisional: widget.friend.isProvisional,
+                    timeControl: _selectedTimeControl,
+                    colorPreference: _selectedColor,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryAmber,
+                  foregroundColor: AppColors.darkTextPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  isOffline
+                      ? 'online.sendInviteOfflineBtn'.tr()
+                      : 'online.sendInvite'.tr(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildChoiceChip({
+  Widget _buildSideToggleItem({
     required String label,
     required IconData icon,
     Color? iconColor,
     required bool isSelected,
     required bool isDark,
-    required VoidCallback onSelected,
+    required VoidCallback onTap,
   }) {
-    return ChoiceChip(
-      showCheckmark: false,
-      avatar: Icon(
-        icon,
-        size: 16,
-        color: isSelected
-            ? AppColors.darkTextPrimary
-            : (iconColor ?? AppColors.getTextPrimary(isDark)),
-      ),
-      label: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
+        decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.darkTextPrimary
-              : AppColors.getTextPrimary(isDark),
+              ? AppColors.primaryAmber.withValues(alpha: 0.15)
+              : AppColors.getSurface(isDark),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primaryAmber
+                : AppColors.getBorder(isDark),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected
+                  ? AppColors.primaryAmber
+                  : (iconColor ?? AppColors.getTextSecondary(isDark)),
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? AppColors.primaryAmber
+                      : AppColors.getTextPrimary(isDark),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      selected: isSelected,
-      selectedColor: AppColors.primaryAmber,
-      backgroundColor: AppColors.getSurface(isDark),
-      onSelected: (_) => onSelected(),
     );
   }
 
-  Widget _buildTimeChip(String label, int value, bool isDark) {
+  Widget _buildTimeOption({
+    required String label,
+    required int value,
+    required bool isDark,
+  }) {
     final isSelected = _selectedTimeControl == value;
-    return ChoiceChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return InkWell(
+      onTap: () => setState(() => _selectedTimeControl = value),
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.darkTextPrimary
-              : AppColors.getTextPrimary(isDark),
+              ? AppColors.primaryAmber.withValues(alpha: 0.15)
+              : AppColors.getSurface(isDark),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primaryAmber
+                : AppColors.getBorder(isDark),
+            width: 1.5,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                  ? AppColors.primaryAmber
+                  : AppColors.getTextPrimary(isDark),
+            ),
+          ),
         ),
       ),
-      selected: isSelected,
-      selectedColor: AppColors.primaryAmber,
-      backgroundColor: AppColors.getSurface(isDark),
-      onSelected: (_) => setState(() => _selectedTimeControl = value),
     );
   }
 }

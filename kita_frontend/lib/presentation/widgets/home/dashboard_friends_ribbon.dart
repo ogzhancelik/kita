@@ -251,7 +251,7 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                   } else if (hasMoreThanTen && index == displayFriends.length) {
                     return _buildViewAllCard(isDark);
                   } else {
-                    return _buildAddFriendCard(isDark);
+                    return SizedBox.shrink();
                   }
                 },
               ),
@@ -419,10 +419,10 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                           : AppColors.getSurface(isDark),
                       elevation: friend.isOnline ? 1 : 0,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
+                        horizontal: 6,
                         vertical: 5,
                       ),
-                      minimumSize: const Size(0, 25),
+                      minimumSize: const Size(0, 30),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6),
@@ -505,57 +505,6 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                     : AppColors.lightTextPrimary,
               ),
               textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddFriendCard(bool isDark) {
-    return InkWell(
-      onTap: () => AddFriendDialog.show(context),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 96,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkBg : AppColors.lightBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark
-                ? AppColors.primaryLight.withValues(alpha: 0.3)
-                : AppColors.primary.withValues(alpha: 0.25),
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.primaryLight.withValues(alpha: 0.15)
-                    : AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.person_add_alt_1_rounded,
-                color: AppColors.getBrandPrimary(isDark),
-                size: 20,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'dashboard.addFriend'.tr(),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: AppColors.getBrandPrimary(isDark),
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
