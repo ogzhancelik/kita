@@ -1,3 +1,5 @@
 - [ ] lazy pagination for dms
 - [ ] remove room codes next to name in Public Rooms page
 - [ ] leaderboard on the main menu doens't update immediately
+- [ ] "rotate board" option in in-game hamburger menu should only affect the game, not change the default board orientation option
+- [ ] show P2's username in match history for Local 2P Co-op games instead of the "local 2p coop" name

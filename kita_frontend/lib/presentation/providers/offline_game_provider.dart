@@ -30,6 +30,7 @@ class OfflineGameProvider extends ChangeNotifier {
   bool offlineIsGuest = false;
   String? offlineOpponentName;
   int? offlineOpponentAvatarIndex;
+  String? offlineOpponentAvatarCustom;
   bool _offlineMatchSaved = false;
   bool? _localCoopIsHorizontal;
   bool _hasActiveMatch = false;
@@ -144,6 +145,7 @@ class OfflineGameProvider extends ChangeNotifier {
     bool isGuest = false,
     String? opponentName,
     int? opponentAvatarIndex,
+    String? opponentAvatarCustom,
     int timeControl = 0,
     bool? initialIsHorizontal,
     KitaGameEngine? initialEngine,
@@ -161,6 +163,7 @@ class OfflineGameProvider extends ChangeNotifier {
     offlineIsGuest = isGuest;
     offlineOpponentName = opponentName ?? offlineOpponentName;
     offlineOpponentAvatarIndex = opponentAvatarIndex ?? offlineOpponentAvatarIndex;
+    offlineOpponentAvatarCustom = opponentAvatarCustom;
     this.timeControl = timeControl;
     _offlineMatchSaved = false;
     _lastOfflineMatchRecord = null;
@@ -185,13 +188,14 @@ class OfflineGameProvider extends ChangeNotifier {
               ? offlineOpponentName!.trim()
               : defaultP2);
       offlineOpponentName = p2DisplayName;
-      offlineOpponentAvatarIndex = opponentAvatarIndex ?? (offlineOpponentAvatarIndex ?? 1);
+      offlineOpponentAvatarIndex = opponentAvatarIndex ?? (offlineOpponentAvatarIndex ?? 0);
 
       opponentInfo = OpponentInfo(
         id: 'local_p2',
         name: p2DisplayName,
         rating: 1200,
-        avatarIndex: offlineOpponentAvatarIndex ?? 1,
+        avatarIndex: offlineOpponentAvatarIndex ?? 0,
+        avatarCustom: opponentAvatarCustom,
       );
       matchId = 'offline-coop-${DateTime.now().millisecondsSinceEpoch}';
     }
@@ -636,7 +640,8 @@ class OfflineGameProvider extends ChangeNotifier {
         id: 'local_p2',
         username: p2Name,
         rating: 1200,
-        avatarIndex: opponentInfo?.avatarIndex ?? (offlineOpponentAvatarIndex ?? 1),
+        avatarIndex: opponentInfo?.avatarIndex ?? (offlineOpponentAvatarIndex ?? 0),
+        avatarCustom: opponentInfo?.avatarCustom ?? offlineOpponentAvatarCustom,
       );
 
       whitePlayerId = isPlayerWhite ? p1User.id : p2User.id;
@@ -827,7 +832,7 @@ class OfflineGameProvider extends ChangeNotifier {
           id: 'local_p2',
           name: p2Name,
           rating: 1200,
-          avatarIndex: saved.opponentAvatarIndex ?? 1,
+          avatarIndex: saved.opponentAvatarIndex ?? 0,
         );
       }
 

@@ -12,6 +12,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/offline_game_provider.dart';
 import '../../screens/game/offline_match_screen.dart';
+import '../common/avatar_picker.dart';
 import '../common/kita_avatar.dart';
 
 /// Pre-game configuration dialog for "Local Pass & Play" (2P Co-op).
@@ -39,6 +40,8 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
 
   int _selectedTimeControl = _cachedTimeControl;
   late final TextEditingController _p2NameController;
+  int _p2AvatarIndex = 0;
+  String? _p2AvatarCustom;
 
   static const List<int> _availablePresets = [
     TimeControlPreset.oneMin,
@@ -227,9 +230,24 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
                     // Player 2 (Friend / Local Opponent)
                     Row(
                       children: [
-                        const KitaAvatar(
-                          avatarIndex: 1,
+                        KitaAvatar(
+                          avatarIndex: _p2AvatarIndex,
+                          avatarCustom: _p2AvatarCustom,
+                          isGuest: _p2AvatarIndex == 0 && (_p2AvatarCustom == null || _p2AvatarCustom!.isEmpty),
                           size: 38,
+                          onTap: () {
+                            AvatarPicker.showPicker(
+                              context,
+                              initialIndex: _p2AvatarIndex,
+                              initialCustom: _p2AvatarCustom,
+                              onSelected: (idx, custom) {
+                                setState(() {
+                                  _p2AvatarIndex = idx;
+                                  _p2AvatarCustom = custom;
+                                });
+                              },
+                            );
+                          },
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -470,7 +488,8 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
       playerAvatarIndex: playerAvatarIndex,
       isGuest: isGuest,
       opponentName: p2Name.isNotEmpty ? p2Name : null,
-      opponentAvatarIndex: 1,
+      opponentAvatarIndex: _p2AvatarIndex,
+      opponentAvatarCustom: _p2AvatarCustom,
       timeControl: _selectedTimeControl,
       initialIsHorizontal: gameSettings.isLocalCoopBoardHorizontal,
     );

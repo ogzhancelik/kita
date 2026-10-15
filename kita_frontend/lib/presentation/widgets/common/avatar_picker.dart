@@ -210,6 +210,26 @@ class AvatarPicker extends StatelessWidget {
     );
   }
 
+  /// Opens the avatar picker for custom targets (e.g. Local Co-op Player 2)
+  /// without modifying AuthProvider.
+  static Future<void> showPicker(
+    BuildContext context, {
+    required int initialIndex,
+    String? initialCustom,
+    required void Function(int avatarIndex, String? avatarCustom) onSelected,
+  }) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AvatarPickerBottomSheet(
+        initialIndex: initialIndex,
+        initialCustom: initialCustom,
+        onSelected: onSelected,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -293,7 +313,15 @@ class AvatarPicker extends StatelessWidget {
 }
 
 class _AvatarPickerBottomSheet extends StatefulWidget {
-  const _AvatarPickerBottomSheet();
+  final int? initialIndex;
+  final String? initialCustom;
+  final void Function(int avatarIndex, String? avatarCustom)? onSelected;
+
+  const _AvatarPickerBottomSheet({
+    this.initialIndex,
+    this.initialCustom,
+    this.onSelected,
+  });
 
   @override
   State<_AvatarPickerBottomSheet> createState() =>
@@ -308,13 +336,22 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
   @override
   void initState() {
     super.initState();
-    final authProv = context.read<AuthProvider>();
-    final rawIndex = authProv.avatarIndex;
-    _selectedSymbolIndex = AvatarPicker.getSymbolIndex(rawIndex);
-    _selectedColorIndex = AvatarPicker.getColorIndex(rawIndex);
-    _customEmoji = authProv.avatarCustom?.trim().isNotEmpty == true
-        ? authProv.avatarCustom!.trim()
-        : null;
+    if (widget.onSelected != null) {
+      final rawIndex = widget.initialIndex ?? 0;
+      _selectedSymbolIndex = AvatarPicker.getSymbolIndex(rawIndex);
+      _selectedColorIndex = AvatarPicker.getColorIndex(rawIndex);
+      _customEmoji = widget.initialCustom?.trim().isNotEmpty == true
+          ? widget.initialCustom!.trim()
+          : null;
+    } else {
+      final authProv = context.read<AuthProvider>();
+      final rawIndex = authProv.avatarIndex;
+      _selectedSymbolIndex = AvatarPicker.getSymbolIndex(rawIndex);
+      _selectedColorIndex = AvatarPicker.getColorIndex(rawIndex);
+      _customEmoji = authProv.avatarCustom?.trim().isNotEmpty == true
+          ? authProv.avatarCustom!.trim()
+          : null;
+    }
   }
 
   void _applyChange({
@@ -333,7 +370,6 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
       }
     });
 
-    final authProv = context.read<AuthProvider>();
     final effectiveCustom = _customEmoji?.trim().isNotEmpty == true
         ? _customEmoji!.trim()
         : null;
@@ -343,6 +379,12 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
       colorIndex: _selectedColorIndex,
     );
 
+    if (widget.onSelected != null) {
+      widget.onSelected!(encodedIndex, effectiveCustom);
+      return;
+    }
+
+    final authProv = context.read<AuthProvider>();
     authProv.setAvatarIndex(
       encodedIndex,
       custom: effectiveCustom,

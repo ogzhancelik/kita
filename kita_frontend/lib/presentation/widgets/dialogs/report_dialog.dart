@@ -73,7 +73,6 @@ class _ReportDialogState extends State<ReportDialog> {
     }
     return [
       'moderation.reasonBug'.tr(),
-      'moderation.reasonPlayerReport'.tr(),
       'moderation.reasonFeedback'.tr(),
       'moderation.reasonOther'.tr(),
     ];

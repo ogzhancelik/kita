@@ -262,11 +262,15 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
                   avatarIndex: isVsAi
                       ? 7
                       : (isLocalCoop
-                          ? (provider.opponentInfo?.avatarIndex ?? 1)
-                          : 1),
+                          ? (provider.opponentInfo?.avatarIndex ?? 0)
+                          : 0),
+                  avatarCustom: isLocalCoop
+                      ? (provider.opponentInfo?.avatarCustom ??
+                          provider.offlineOpponentAvatarCustom)
+                      : null,
                   isGameOver: provider.isGameOver,
                   isBot: isVsAi,
-                  isGuest: false,
+                  isGuest: isLocalCoop,
                 );
               },
             ),
@@ -335,7 +339,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
                   ? (provider.offlinePlayerAvatarIndex ?? authProv.avatarIndex)
                   : authProv.avatarIndex,
               isGameOver: provider.isGameOver,
-              isGuest: false,
+              isGuest: isLocalCoop ? provider.offlineIsGuest : authProv.isGuest,
             ),
 
             // 5. Offline Match Bottom Bar
