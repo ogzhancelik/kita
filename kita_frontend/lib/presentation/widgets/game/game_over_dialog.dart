@@ -15,6 +15,7 @@ class GameOverDialog extends StatefulWidget {
   final VoidCallback onBackToMenu;
   final VoidCallback? onReviewMatch;
   final bool isLocalCoop;
+  final String? winnerName;
   final String? myTeam;
   final int? elapsedSeconds;
   final int? movesCount;
@@ -28,6 +29,7 @@ class GameOverDialog extends StatefulWidget {
     required this.onBackToMenu,
     this.onReviewMatch,
     this.isLocalCoop = false,
+    this.winnerName,
     this.myTeam,
     this.elapsedSeconds,
     this.movesCount,
@@ -43,6 +45,7 @@ class GameOverDialog extends StatefulWidget {
     required VoidCallback onBackToMenu,
     VoidCallback? onReviewMatch,
     bool isLocalCoop = false,
+    String? winnerName,
     String? myTeam,
     int? elapsedSeconds,
     int? movesCount,
@@ -62,6 +65,7 @@ class GameOverDialog extends StatefulWidget {
           onBackToMenu: onBackToMenu,
           onReviewMatch: onReviewMatch,
           isLocalCoop: isLocalCoop,
+          winnerName: winnerName,
           myTeam: myTeam,
           elapsedSeconds: elapsedSeconds,
           movesCount: movesCount,
@@ -174,6 +178,10 @@ class _GameOverDialogState extends State<GameOverDialog>
         statusColor = AppColors.drawYellow;
         titleKey = 'online.resultDraw';
         statusIcon = Icons.handshake_outlined;
+      } else if (widget.winnerName != null && widget.winnerName!.isNotEmpty) {
+        statusColor = AppColors.victory;
+        titleKey = 'game.playerWins';
+        statusIcon = Icons.emoji_events;
       } else if (widget.gameOverData.winnerTeam == 'white') {
         statusColor = AppColors.victory;
         titleKey = 'game.whiteWins';
@@ -245,7 +253,9 @@ class _GameOverDialogState extends State<GameOverDialog>
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    titleKey.tr(),
+                    titleKey == 'game.playerWins' && widget.winnerName != null
+                        ? titleKey.tr(args: [widget.winnerName!])
+                        : titleKey.tr(),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,

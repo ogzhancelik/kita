@@ -119,11 +119,17 @@
     "aiBot": "Kita Bot",
     "side": "Taraf",
     "you": "Sen",
+    "players": "Oyuncular",
+    "player1": "1. Oyuncu",
+    "player2": "2. Oyuncu",
+    "player2Name": "2. Oyuncu İsmi",
+    "player2Hint": "Arkadaşının adı veya lakabı...",
     "localCoopTitle": "Yerel 2P Co-op",
     "localCoop": "Yerel Co-op",
     "moveCount": "Hamle: {}",
     "whiteWins": "Beyaz Kazandı!",
-    "blackWins": "Siyah Kazandı!"
+    "blackWins": "Siyah Kazandı!",
+    "playerWins": "{} Kazandı!"
   },
   "tutorial": {
     "promptTitle": "Kita'ya Hoş Geldiniz!",

@@ -119,11 +119,17 @@
     "aiBot": "Kita Bot",
     "side": "Side",
     "you": "You",
+    "players": "Players",
+    "player1": "Player 1",
+    "player2": "Player 2",
+    "player2Name": "Player 2 Name",
+    "player2Hint": "Friend's name or nickname...",
     "localCoopTitle": "Local 2P Co-op",
     "localCoop": "Local Co-op",
     "moveCount": "Move: {}",
     "whiteWins": "White Wins!",
-    "blackWins": "Black Wins!"
+    "blackWins": "Black Wins!",
+    "playerWins": "{} Wins!"
   },
   "tutorial": {
     "promptTitle": "Welcome to Kita!",

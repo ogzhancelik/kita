@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,13 +12,15 @@ import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/offline_game_provider.dart';
 import '../../screens/game/offline_match_screen.dart';
+import '../common/kita_avatar.dart';
 
 /// Pre-game configuration dialog for "Local Pass & Play" (2P Co-op).
-/// Allows players to select Time Control (Unlimited, 1m, 3m, 5m, 10m).
+/// Allows players to customize Player 2 name and select Time Control.
 class LocalCoopConfigDialog extends StatefulWidget {
   const LocalCoopConfigDialog({super.key});
 
   static const String prefTimeControlKey = 'kita_local_coop_time_control';
+  static const String prefP2NameKey = 'kita_local_coop_p2_name';
 
   static Future<void> show(BuildContext context) async {
     return showDialog(
@@ -34,6 +38,7 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
   static int _cachedTimeControl = TimeControlPreset.unlimited;
 
   int _selectedTimeControl = _cachedTimeControl;
+  late final TextEditingController _p2NameController;
 
   static const List<int> _availablePresets = [
     TimeControlPreset.oneMin,
@@ -45,35 +50,61 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
   @override
   void initState() {
     super.initState();
+    _p2NameController = TextEditingController();
     _loadSavedPreferences();
+  }
+
+  @override
+  void dispose() {
+    _p2NameController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSavedPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getInt(LocalCoopConfigDialog.prefTimeControlKey);
-      if (saved != null && _availablePresets.contains(saved)) {
-        _cachedTimeControl = saved;
-        if (mounted) {
-          setState(() {
-            _selectedTimeControl = saved;
-          });
-        }
+      final savedTime = prefs.getInt(LocalCoopConfigDialog.prefTimeControlKey);
+      if (savedTime != null && _availablePresets.contains(savedTime)) {
+        _cachedTimeControl = savedTime;
+        _selectedTimeControl = savedTime;
+      }
+      final savedP2 = prefs.getString(LocalCoopConfigDialog.prefP2NameKey);
+      if (savedP2 != null && savedP2.trim().isNotEmpty) {
+        _p2NameController.text = savedP2.trim();
+      }
+      if (mounted) {
+        setState(() {});
       }
     } catch (_) {}
   }
 
-  Future<void> _persistPreference(int timeControl) async {
+  Future<void> _persistPreferences(int timeControl, String p2Name) async {
     _cachedTimeControl = timeControl;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(LocalCoopConfigDialog.prefTimeControlKey, timeControl);
+      if (p2Name.trim().isNotEmpty) {
+        await prefs.setString(LocalCoopConfigDialog.prefP2NameKey, p2Name.trim());
+      }
     } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authProv = context.watch<AuthProvider>();
+    final isGuest = authProv.isGuest || authProv.currentUser == null;
+    final playerName =
+        authProv.currentUser?.username ??
+        authProv.guestProfile?.nickname ??
+        'Guest';
+    final playerAvatarIndex =
+        authProv.currentUser?.avatarIndex ??
+        authProv.guestProfile?.avatarIndex ??
+        0;
+    final playerCustomEmoji =
+        authProv.currentUser?.avatarCustom ??
+        authProv.guestProfile?.avatarCustom;
 
     return AlertDialog(
       backgroundColor: AppColors.getCard(isDark),
@@ -108,51 +139,201 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
       ),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Time control section header
-            Text(
-              'online.selectTimeControl'.tr(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.getTextSecondary(isDark),
-                letterSpacing: 0.5,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Section 1: Players
+              Text(
+                'game.players'.tr(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.getTextSecondary(isDark),
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-            // Time control options 2x2 grid
-            Column(
-              children: [
-                Row(
+              // Player Configuration Card
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.getSurface(isDark),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.getBorder(isDark)),
+                ),
+                child: Column(
                   children: [
-                    Expanded(
-                      child: _buildTimeOption(_availablePresets[0], isDark),
+                    // Player 1 (You)
+                    Row(
+                      children: [
+                        KitaAvatar(
+                          avatarIndex: playerAvatarIndex,
+                          avatarCustom: playerCustomEmoji,
+                          size: 38,
+                          isGuest: isGuest,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                playerName,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.getTextPrimary(isDark),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'game.you'.tr(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.getTextSecondary(isDark),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                          ),
+                          child: const Text(
+                            '1P',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildTimeOption(_availablePresets[1], isDark),
+
+                    const SizedBox(height: 10),
+                    Divider(height: 1, color: AppColors.getBorder(isDark).withValues(alpha: 0.5)),
+                    const SizedBox(height: 10),
+
+                    // Player 2 (Friend / Local Opponent)
+                    Row(
+                      children: [
+                        const KitaAvatar(
+                          avatarIndex: 1,
+                          size: 38,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _p2NameController,
+                            maxLength: 16,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.getTextPrimary(isDark),
+                            ),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              counterText: '',
+                              hintText: 'game.player2Hint'.tr(),
+                              hintStyle: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.getTextMuted(isDark),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              filled: true,
+                              fillColor: AppColors.getCard(isDark),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: AppColors.getBorder(isDark)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: AppColors.getBorder(isDark)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: AppColors.accent),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryAmber.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.primaryAmber.withValues(alpha: 0.3)),
+                          ),
+                          child: const Text(
+                            '2P',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryAmber,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTimeOption(_availablePresets[2], isDark),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildTimeOption(_availablePresets[3], isDark),
-                    ),
-                  ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Section 2: Time control
+              Text(
+                'online.selectTimeControl'.tr(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.getTextSecondary(isDark),
+                  letterSpacing: 0.5,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 10),
+
+              // Time control options 2x2 grid
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTimeOption(_availablePresets[0], isDark),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildTimeOption(_availablePresets[1], isDark),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTimeOption(_availablePresets[2], isDark),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildTimeOption(_availablePresets[3], isDark),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -270,16 +451,26 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
         authProv.guestProfile?.avatarIndex ??
         0;
 
+    final p2Name = _p2NameController.text.trim();
+    _persistPreferences(_selectedTimeControl, p2Name);
+
     if (!mounted) return;
     Navigator.of(context).pop();
+
+    // Random side selection for the first match; swapped upon rematch
+    final random = Random();
+    final p1Team = random.nextBool() ? PieceTeam.white : PieceTeam.black;
 
     final gameSettings = context.read<GameSettingsProvider>();
     offlineProv.startOfflineMatch(
       mode: PlayMode.localCoop,
+      playerTeam: p1Team,
       playerId: playerId,
       playerName: playerName,
       playerAvatarIndex: playerAvatarIndex,
       isGuest: isGuest,
+      opponentName: p2Name.isNotEmpty ? p2Name : null,
+      opponentAvatarIndex: 1,
       timeControl: _selectedTimeControl,
       initialIsHorizontal: gameSettings.isLocalCoopBoardHorizontal,
     );
@@ -305,7 +496,7 @@ class _LocalCoopConfigDialogState extends State<LocalCoopConfigDialog> {
     return InkWell(
       onTap: () {
         setState(() => _selectedTimeControl = preset);
-        _persistPreference(preset);
+        _persistPreferences(preset, _p2NameController.text.trim());
       },
       borderRadius: BorderRadius.circular(10),
       child: AnimatedContainer(

@@ -482,7 +482,9 @@ class HomePendingGameCard extends StatelessWidget {
   ) {
     final isBot = offlineProv.offlinePlayMode == PlayMode.vsAi;
     final isLocalCoop = offlineProv.offlinePlayMode == PlayMode.localCoop;
-    final opponentName = isLocalCoop ? 'game.localCoop'.tr() : 'game.aiBot'.tr();
+    final opponentName = isLocalCoop
+        ? (offlineProv.opponentInfo?.name ?? 'game.localCoop'.tr())
+        : 'game.aiBot'.tr();
 
     return Dismissible(
       key: ValueKey('active_offline_game_${offlineProv.matchId ?? "current"}'),
@@ -575,6 +577,26 @@ class HomePendingGameCard extends StatelessWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.primaryAmber,
+                                ),
+                              ),
+                            ),
+                          ] else if (isLocalCoop) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.accent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'game.localCoop'.tr(),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.accent,
                                 ),
                               ),
                             ),

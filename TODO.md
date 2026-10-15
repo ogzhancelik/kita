@@ -198,6 +198,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] **Local Coop Horizontal Board Flip & Drag Parity**: Auto-flip board in Local Coop mode when default piece orientation is horizontal 90° so the player is positioned at bottom-right, with drag-and-drop feedback offset oriented sideways away from finger in landscape mode.
 - [x] **Board & Background Deselect**: Allow deselecting selected pieces when tapping on background areas, holes/gaps inside the board, or board margins.
 - [x] **Provisional Rating Display ('?')**: Display provisional unrated status (`?`) for new accounts until calibration match count is completed.
+- [x] **Local 2P Co-op Custom Player Names & Random Side Assignment**: Added player profile display for Player 1 (user) and custom name input for Player 2 with SharedPreferences memory in the pre-game dialog, random side assignment on initial launch with rematch side swaps, in-game 1P/2P badges, and personalized match victory announcements.
 
 #### 📜 Match Analysis, Replay & History
 - [x] **Online Post-Match Replay**: Support "Review Match" replay navigation directly from GameOverDialog in online matches.

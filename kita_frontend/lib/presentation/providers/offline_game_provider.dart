@@ -28,6 +28,8 @@ class OfflineGameProvider extends ChangeNotifier {
   int? offlinePlayerRating;
   int? offlinePlayerAvatarIndex;
   bool offlineIsGuest = false;
+  String? offlineOpponentName;
+  int? offlineOpponentAvatarIndex;
   bool _offlineMatchSaved = false;
   bool? _localCoopIsHorizontal;
   bool _hasActiveMatch = false;
@@ -140,6 +142,8 @@ class OfflineGameProvider extends ChangeNotifier {
     int? playerRating,
     int? playerAvatarIndex,
     bool isGuest = false,
+    String? opponentName,
+    int? opponentAvatarIndex,
     int timeControl = 0,
     bool? initialIsHorizontal,
     KitaGameEngine? initialEngine,
@@ -155,6 +159,8 @@ class OfflineGameProvider extends ChangeNotifier {
     offlinePlayerRating = playerRating ?? offlinePlayerRating;
     offlinePlayerAvatarIndex = playerAvatarIndex ?? offlinePlayerAvatarIndex;
     offlineIsGuest = isGuest;
+    offlineOpponentName = opponentName ?? offlineOpponentName;
+    offlineOpponentAvatarIndex = opponentAvatarIndex ?? offlineOpponentAvatarIndex;
     this.timeControl = timeControl;
     _offlineMatchSaved = false;
     _lastOfflineMatchRecord = null;
@@ -172,11 +178,20 @@ class OfflineGameProvider extends ChangeNotifier {
       matchId = 'offline-${DateTime.now().millisecondsSinceEpoch}';
     } else {
       _localCoopIsHorizontal = initialIsHorizontal ?? false;
+      final defaultP2 = 'game.player2'.tr();
+      final p2DisplayName = (opponentName != null && opponentName.trim().isNotEmpty)
+          ? opponentName.trim()
+          : (offlineOpponentName != null && offlineOpponentName!.trim().isNotEmpty
+              ? offlineOpponentName!.trim()
+              : defaultP2);
+      offlineOpponentName = p2DisplayName;
+      offlineOpponentAvatarIndex = opponentAvatarIndex ?? (offlineOpponentAvatarIndex ?? 1);
+
       opponentInfo = OpponentInfo(
-        id: 'local_player',
-        name: playerTeam == PieceTeam.white ? 'common.black'.tr() : 'common.white'.tr(),
+        id: 'local_p2',
+        name: p2DisplayName,
         rating: 1200,
-        avatarIndex: playerTeam == PieceTeam.white ? 1 : 0,
+        avatarIndex: offlineOpponentAvatarIndex ?? 1,
       );
       matchId = 'offline-coop-${DateTime.now().millisecondsSinceEpoch}';
     }
@@ -512,7 +527,10 @@ class OfflineGameProvider extends ChangeNotifier {
       playerRating: offlinePlayerRating,
       playerAvatarIndex: offlinePlayerAvatarIndex,
       isGuest: offlineIsGuest,
+      opponentName: offlineOpponentName,
+      opponentAvatarIndex: offlineOpponentAvatarIndex,
       timeControl: timeControl,
+      initialIsHorizontal: _localCoopIsHorizontal,
     );
   }
 
@@ -605,20 +623,26 @@ class OfflineGameProvider extends ChangeNotifier {
     final String blackPlayerId;
 
     if (isCoop) {
-      whitePlayerId = 'local_white';
-      blackPlayerId = 'local_black';
-      whiteUser = UserProfile(
-        id: 'local_white',
-        username: 'common.white'.tr(),
-        rating: 1200,
-        avatarIndex: 0,
+      final p1Name = offlinePlayerName ?? (offlineIsGuest ? 'Guest' : 'game.player1'.tr());
+      final p2Name = opponentInfo?.name ?? (offlineOpponentName ?? 'game.player2'.tr());
+
+      final p1User = UserProfile(
+        id: offlinePlayerId ?? (offlineIsGuest ? 'guest' : 'local_p1'),
+        username: p1Name,
+        rating: offlinePlayerRating ?? 1200,
+        avatarIndex: offlinePlayerAvatarIndex ?? 0,
       );
-      blackUser = UserProfile(
-        id: 'local_black',
-        username: 'common.black'.tr(),
+      final p2User = UserProfile(
+        id: 'local_p2',
+        username: p2Name,
         rating: 1200,
-        avatarIndex: 1,
+        avatarIndex: opponentInfo?.avatarIndex ?? (offlineOpponentAvatarIndex ?? 1),
       );
+
+      whitePlayerId = isPlayerWhite ? p1User.id : p2User.id;
+      blackPlayerId = isPlayerWhite ? p2User.id : p1User.id;
+      whiteUser = isPlayerWhite ? p1User : p2User;
+      blackUser = isPlayerWhite ? p2User : p1User;
     } else {
       final botRating = AIDifficulty.getRatingForDifficulty(offlineBotDifficulty);
       final botUsername = 'game.aiBot'.tr();
@@ -735,6 +759,8 @@ class OfflineGameProvider extends ChangeNotifier {
         playerRating: offlinePlayerRating,
         playerAvatarIndex: offlinePlayerAvatarIndex,
         isGuest: offlineIsGuest,
+        opponentName: offlineOpponentName,
+        opponentAvatarIndex: offlineOpponentAvatarIndex,
         elapsedSeconds: currentElapsed,
         moveHistory: moveHistory.value.map((m) => m.toJson()).toList(),
         startedAt: _matchStartedAt ?? DateTime.now(),
@@ -780,6 +806,8 @@ class OfflineGameProvider extends ChangeNotifier {
       offlinePlayerRating = saved.playerRating;
       offlinePlayerAvatarIndex = saved.playerAvatarIndex;
       offlineIsGuest = saved.isGuest;
+      offlineOpponentName = saved.opponentName;
+      offlineOpponentAvatarIndex = saved.opponentAvatarIndex;
       _offlineMatchSaved = false;
       _lastOfflineMatchRecord = null;
 
@@ -792,11 +820,14 @@ class OfflineGameProvider extends ChangeNotifier {
           avatarIndex: 7,
         );
       } else {
+        final p2Name = (saved.opponentName != null && saved.opponentName!.trim().isNotEmpty)
+            ? saved.opponentName!.trim()
+            : 'game.player2'.tr();
         opponentInfo = OpponentInfo(
-          id: 'local_player',
-          name: offlinePlayerTeam == PieceTeam.white ? 'common.black'.tr() : 'common.white'.tr(),
+          id: 'local_p2',
+          name: p2Name,
           rating: 1200,
-          avatarIndex: offlinePlayerTeam == PieceTeam.white ? 1 : 0,
+          avatarIndex: saved.opponentAvatarIndex ?? 1,
         );
       }
 

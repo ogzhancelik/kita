@@ -522,6 +522,8 @@ class ActiveOfflineGameData {
   final int? playerRating;
   final int? playerAvatarIndex;
   final bool isGuest;
+  final String? opponentName;
+  final int? opponentAvatarIndex;
   final int elapsedSeconds;
   final List<Map<String, dynamic>> moveHistory;
   final DateTime startedAt;
@@ -540,6 +542,8 @@ class ActiveOfflineGameData {
     this.playerRating,
     this.playerAvatarIndex,
     required this.isGuest,
+    this.opponentName,
+    this.opponentAvatarIndex,
     required this.elapsedSeconds,
     required this.moveHistory,
     required this.startedAt,
@@ -558,6 +562,8 @@ class ActiveOfflineGameData {
     'playerRating': playerRating,
     'playerAvatarIndex': playerAvatarIndex,
     'isGuest': isGuest,
+    'opponentName': opponentName,
+    'opponentAvatarIndex': opponentAvatarIndex,
     'elapsedSeconds': elapsedSeconds,
     'moveHistory': moveHistory,
     'startedAt': startedAt.toIso8601String(),
@@ -577,6 +583,8 @@ class ActiveOfflineGameData {
         playerRating: (json['playerRating'] as num?)?.toInt(),
         playerAvatarIndex: (json['playerAvatarIndex'] as num?)?.toInt(),
         isGuest: json['isGuest'] as bool? ?? false,
+        opponentName: json['opponentName'] as String?,
+        opponentAvatarIndex: (json['opponentAvatarIndex'] as num?)?.toInt(),
         elapsedSeconds: (json['elapsedSeconds'] as num?)?.toInt() ?? 0,
         moveHistory: (json['moveHistory'] as List<dynamic>?)
                 ?.map((e) => Map<String, dynamic>.from(e as Map))

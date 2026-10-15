@@ -61,7 +61,11 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
     // Set in-game and resume clock if this screen is current/visible
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
     if (isCurrent) {
-      _provider?.setInGameScreen(true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _provider?.setInGameScreen(true);
+        }
+      });
     }
   }
 
@@ -137,12 +141,20 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
 
     final isVsAi = provider.offlinePlayMode == PlayMode.vsAi;
     final isCoop = provider.offlinePlayMode == PlayMode.localCoop;
+    final isWhiteWinner = data.winnerTeam == 'white';
+    final isPlayerWhite = provider.myTeam == 'white';
+    final winnerName = isCoop
+        ? (isWhiteWinner == isPlayerWhite
+            ? (provider.offlinePlayerName ?? 'game.player1'.tr())
+            : (provider.opponentInfo?.name ?? 'game.player2'.tr()))
+        : null;
 
     GameOverDialog.show(
       context: context,
       gameOverData: data,
       myUserId: provider.offlinePlayerId ?? 'local',
       isLocalCoop: isCoop,
+      winnerName: winnerName,
       myTeam: provider.myTeam,
       elapsedSeconds: provider.elapsedSeconds.value,
       movesCount: provider.moveHistory.value.length,
@@ -187,7 +199,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
     final isBlack = provider.myTeam == 'black';
 
     final opponentName = isLocalCoop
-        ? (isBlack ? 'common.white'.tr() : 'common.black'.tr())
+        ? (provider.opponentInfo?.name ?? 'game.player2'.tr())
         : 'game.aiBot'.tr();
 
     final opponentRatingLabel = isVsAi
@@ -195,8 +207,10 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
         : (isLocalCoop ? '2P' : null);
 
     final myDisplayName = isLocalCoop
-        ? (isBlack ? 'common.black'.tr() : 'common.white'.tr())
+        ? (provider.offlinePlayerName ?? (authProv.isAuthenticated ? authProv.displayName : 'game.player1'.tr()))
         : (authProv.isAuthenticated ? authProv.displayName : 'game.you'.tr());
+
+    final myRatingLabel = isLocalCoop ? '1P' : null;
 
     final myRating = (authProv.isAuthenticated && authProv.currentUser?.rating != null)
         ? authProv.currentUser!.rating
@@ -248,11 +262,11 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
                   avatarIndex: isVsAi
                       ? 7
                       : (isLocalCoop
-                          ? (provider.opponentInfo?.avatarIndex ?? (isBlack ? 0 : 1))
+                          ? (provider.opponentInfo?.avatarIndex ?? 1)
                           : 1),
                   isGameOver: provider.isGameOver,
                   isBot: isVsAi,
-                  isGuest: isLocalCoop,
+                  isGuest: false,
                 );
               },
             ),
@@ -312,13 +326,16 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
               isOpponent: false,
               name: myDisplayName,
               rating: myRating,
+              ratingLabel: myRatingLabel,
               team: provider.myTeam,
               remainingMs: myRemainingMs,
               isActiveTurn: provider.currentTurn,
               timeControl: provider.timeControl,
-              avatarIndex: isLocalCoop ? (isBlack ? 1 : 0) : authProv.avatarIndex,
+              avatarIndex: isLocalCoop
+                  ? (provider.offlinePlayerAvatarIndex ?? authProv.avatarIndex)
+                  : authProv.avatarIndex,
               isGameOver: provider.isGameOver,
-              isGuest: isLocalCoop ? true : authProv.isGuest,
+              isGuest: false,
             ),
 
             // 5. Offline Match Bottom Bar
