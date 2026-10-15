@@ -1,6 +1,8 @@
 /// Data models for the Direct Message (DM) system.
 library;
 
+import 'dart:convert';
+
 class DmMessage {
   final int id;
   final String conversationId;
@@ -130,5 +132,71 @@ class MatchChatCard {
       winnerId: json['winner_id'] as String?,
       result: json['result'] as String? ?? 'draw',
     );
+  }
+}
+
+/// Represents a structured match replay share payload sent within a direct message.
+class DmReplayPayload {
+  static const String prefix = '[KITA_REPLAY]';
+
+  final String matchId;
+  final String? shareCode;
+  final String? whiteUsername;
+  final String? blackUsername;
+  final String? result; // 'white', 'black', 'draw'
+
+  const DmReplayPayload({
+    required this.matchId,
+    this.shareCode,
+    this.whiteUsername,
+    this.blackUsername,
+    this.result,
+  });
+
+  String encode() {
+    final map = <String, dynamic>{
+      'match_id': matchId,
+      if (shareCode != null && shareCode!.isNotEmpty) 'code': shareCode,
+      if (whiteUsername != null && whiteUsername!.isNotEmpty) 'white': whiteUsername,
+      if (blackUsername != null && blackUsername!.isNotEmpty) 'black': blackUsername,
+      if (result != null && result!.isNotEmpty) 'result': result,
+    };
+    return '$prefix${jsonEncode(map)}';
+  }
+
+  static DmReplayPayload? tryParse(String content) {
+    final trimmed = content.trim();
+    if (trimmed.startsWith(prefix)) {
+      try {
+        final jsonStr = trimmed.substring(prefix.length).trim();
+        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+        final matchId = (map['match_id'] ?? map['id'] ?? map['code'])?.toString();
+        if (matchId == null || matchId.isEmpty) return null;
+        return DmReplayPayload(
+          matchId: matchId,
+          shareCode: map['code']?.toString(),
+          whiteUsername: map['white']?.toString(),
+          blackUsername: map['black']?.toString(),
+          result: map['result']?.toString(),
+        );
+      } catch (_) {
+        return null;
+      }
+    }
+
+    // Bare link fallback: https://kita.app/replay/{code}
+    final uriRegex = RegExp(r'https?://[^\s]+/replay/([A-Za-z0-9_-]+)');
+    final match = uriRegex.firstMatch(trimmed);
+    if (match != null) {
+      final code = match.group(1);
+      if (code != null && code.isNotEmpty) {
+        return DmReplayPayload(
+          matchId: code,
+          shareCode: code,
+        );
+      }
+    }
+
+    return null;
   }
 }

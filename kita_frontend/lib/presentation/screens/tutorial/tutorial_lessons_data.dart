@@ -126,7 +126,7 @@ class TutorialLessonsData {
       interactiveType: InteractiveStepType.freeMove,
       initialEngine: standardEngine,
       tryItKey: 'tutorial.tryIt',
-      successKey: 'tutorial.lesson2Step2Success',
+      successKey: 'tutorial.page3Success',
       cards: [
         TutorialCard(
           textKey: 'tutorial.page3Card1',

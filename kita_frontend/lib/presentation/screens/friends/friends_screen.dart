@@ -35,9 +35,6 @@ class _FriendsScreenState extends State<FriendsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      if (mounted) setState(() {});
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FriendsProvider>().loadAll().then((_) {
         if (mounted) {
@@ -66,112 +63,146 @@ class _FriendsScreenState extends State<FriendsScreen>
           width: 1,
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildFilterTab(
-              label: 'online.friends'.tr(),
-              icon: Icons.people_alt_rounded,
-              isSelected: _tabController.index == 0,
-              onTap: () => _tabController.animateTo(0),
-              isDark: isDark,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: _buildFilterTab(
-              label: 'online.friendRequests'.tr(),
-              icon: Icons.mail_outline_rounded,
-              isSelected: _tabController.index == 1,
-              badgeCount: pendingCount,
-              onTap: () => _tabController.animateTo(1),
-              isDark: isDark,
-            ),
-          ),
-        ],
+      child: AnimatedBuilder(
+        animation: _tabController.animation ?? _tabController,
+        builder: (context, _) {
+          final animValue =
+              _tabController.animation?.value ?? _tabController.index.toDouble();
+          final t = animValue.clamp(0.0, 1.0);
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final tabWidth = constraints.maxWidth / 2;
+
+              return Stack(
+                children: [
+                  // Smooth sliding indicator pill
+                  Positioned(
+                    left: t * tabWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: tabWidth,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryAmber,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                AppColors.primaryAmber.withValues(alpha: 0.35),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Tab interactive labels on top
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildFilterTabItem(
+                          label: 'online.friends'.tr(),
+                          icon: Icons.people_alt_rounded,
+                          activeProgress: 1.0 - t,
+                          onTap: () => _tabController.animateTo(0),
+                          isDark: isDark,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildFilterTabItem(
+                          label: 'online.friendRequests'.tr(),
+                          icon: Icons.mail_outline_rounded,
+                          activeProgress: t,
+                          badgeCount: pendingCount,
+                          onTap: () => _tabController.animateTo(1),
+                          isDark: isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
 
-  Widget _buildFilterTab({
+  Widget _buildFilterTabItem({
     required String label,
     required IconData icon,
-    required bool isSelected,
+    required double activeProgress,
     required VoidCallback onTap,
     required bool isDark,
     int badgeCount = 0,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryAmber : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primaryAmber.withValues(alpha: 0.35),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected
-                  ? AppColors.darkTextPrimary
-                  : (isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary),
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? AppColors.darkTextPrimary
-                      : (isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+    final activeColor = AppColors.darkTextPrimary;
+    final inactiveColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
+    final color = Color.lerp(inactiveColor, activeColor, activeProgress)!;
+    final badgeBg =
+        Color.lerp(AppColors.lossRed, Colors.white, activeProgress)!;
+    final badgeFg =
+        Color.lerp(Colors.white, AppColors.primaryAmberDark, activeProgress)!;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        splashColor: AppColors.primaryAmber.withValues(alpha: 0.12),
+        highlightColor: Colors.transparent,
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: color,
               ),
-            ),
-            if (badgeCount > 0) ...[
               const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : AppColors.lossRed,
-                  borderRadius: BorderRadius.circular(10),
-                ),
+              Flexible(
                 child: Text(
-                  '$badgeCount',
+                  label,
                   style: TextStyle(
-                    fontSize: 10,
-                    color: isSelected
-                        ? AppColors.primaryAmberDark
-                        : Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 12.5,
+                    fontWeight: activeProgress > 0.5
+                        ? FontWeight.bold
+                        : FontWeight.w600,
+                    color: color,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (badgeCount > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: badgeBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$badgeCount',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: badgeFg,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -195,7 +226,7 @@ class _FriendsScreenState extends State<FriendsScreen>
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: KitaAppBar(
         title: 'online.friends'.tr(),
-        iconColor: AppColors.accentGold,
+        iconColor: AppColors.sectionFriends,
         leadingIcon: Icons.group,
         showBack: true,
         showAuthActions: false,

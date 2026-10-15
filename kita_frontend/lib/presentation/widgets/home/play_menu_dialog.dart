@@ -94,7 +94,7 @@ class PlayMenuDialog extends StatelessWidget {
 
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 child: Column(
                   children: [
                     // Offline / Server Down Notice Banner

@@ -256,7 +256,8 @@ class _MatchChatCardWidgetState extends State<MatchChatCardWidget>
   }
 
   String _formatDate(DateTime dt) {
-    return DateFormat('d MMM y • HH:mm').format(dt);
+    return DateFormat('d MMM y • HH:mm', context.locale.toString())
+        .format(dt.toLocal());
   }
 }
 
@@ -274,6 +275,13 @@ class _InGameBubble extends StatelessWidget {
     required this.isDark,
     required this.senderName,
   });
+
+  String _formatTime(DateTime dt) {
+    final local = dt.toLocal();
+    final h = local.hour.toString().padLeft(2, '0');
+    final m = local.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -298,32 +306,51 @@ class _InGameBubble extends StatelessWidget {
               ),
             ),
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.6,
-              ),
-              decoration: BoxDecoration(
-                color: isMe
-                    ? AppColors.primary.withAlpha(200)
-                    : AppColors.getSurface(isDark),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(12),
-                  topRight: const Radius.circular(12),
-                  bottomLeft: Radius.circular(isMe ? 12 : 3),
-                  bottomRight: Radius.circular(isMe ? 3 : 12),
+            child: Column(
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isMe
+                        ? AppColors.primary.withAlpha(200)
+                        : AppColors.getSurface(isDark),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(12),
+                      topRight: const Radius.circular(12),
+                      bottomLeft: Radius.circular(isMe ? 12 : 3),
+                      bottomRight: Radius.circular(isMe ? 3 : 12),
+                    ),
+                  ),
+                  child: Text(
+                    message.content,
+                    style: TextStyle(
+                      color: isMe
+                          ? AppColors.darkTextPrimary
+                          : AppColors.getTextPrimary(isDark),
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                message.content,
-                style: TextStyle(
-                  color: isMe
-                      ? AppColors.darkTextPrimary
-                      : AppColors.getTextPrimary(isDark),
-                  fontSize: 13,
-                  height: 1.4,
+                const SizedBox(height: 2),
+                Text(
+                  _formatTime(message.createdAt),
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: AppColors.getTextMuted(isDark),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
           if (isMe)

@@ -37,6 +37,13 @@ class OfflineGameProvider extends ChangeNotifier {
   String? matchId;
   DateTime? _matchStartedAt;
   Timer? _clockTimer;
+  bool _isClockRunning = false;
+  bool _isInGameScreen = false;
+  int _accumulatedElapsedMs = 0;
+  DateTime? _activeSessionStartedAt;
+
+  bool get isClockRunning => _isClockRunning;
+  bool get isInGameScreen => _isInGameScreen;
 
   // ─── Game Engine & Move History ──────────────────────────────────
   final ValueNotifier<KitaGameEngine> gameEngine = ValueNotifier(KitaGameEngine());
@@ -138,6 +145,7 @@ class OfflineGameProvider extends ChangeNotifier {
     KitaGameEngine? initialEngine,
   }) {
     _stopClockTimer();
+    _isClockRunning = false;
     _hasActiveMatch = true;
     offlinePlayMode = mode;
     offlineBotDifficulty = botDifficulty;
@@ -150,6 +158,8 @@ class OfflineGameProvider extends ChangeNotifier {
     this.timeControl = timeControl;
     _offlineMatchSaved = false;
     _lastOfflineMatchRecord = null;
+    _accumulatedElapsedMs = 0;
+    _activeSessionStartedAt = null;
 
     if (mode == PlayMode.vsAi) {
       final botRating = AIDifficulty.getRatingForDifficulty(botDifficulty);
@@ -189,7 +199,7 @@ class OfflineGameProvider extends ChangeNotifier {
     if (timeControl > 0) {
       whiteRemainingMs.value = timeControl;
       blackRemainingMs.value = timeControl;
-      _turnStartedAt = DateTime.now();
+      _turnStartedAt = null;
       _turnBaseRemainingMs = timeControl;
       _lowTimeAlertPlayed = false;
     } else {
@@ -200,14 +210,13 @@ class OfflineGameProvider extends ChangeNotifier {
       _lowTimeAlertPlayed = false;
     }
 
-    _startClockTimer();
     matchState.value = OnlineMatchState.inMatch;
     _persistActiveOfflineMatch();
-    notifyListeners();
 
-    // If human plays vs Bot and it is bot's turn to move first:
-    if (mode == PlayMode.vsAi && startingEngine.turn != playerTeam) {
-      _triggerBotMove(delay: const Duration(milliseconds: 1000));
+    if (_isInGameScreen) {
+      resumeGameClock();
+    } else {
+      notifyListeners();
     }
   }
 
@@ -262,7 +271,7 @@ class OfflineGameProvider extends ChangeNotifier {
     currentTurn.value = nextEngine.turn.name;
 
     if (timeControl > 0) {
-      _turnStartedAt = DateTime.now();
+      _turnStartedAt = _isClockRunning ? DateTime.now() : null;
       _turnBaseRemainingMs = nextEngine.turn.name == 'white'
           ? whiteRemainingMs.value
           : blackRemainingMs.value;
@@ -314,7 +323,7 @@ class OfflineGameProvider extends ChangeNotifier {
     currentTurn.value = retaliatedEngine.turn.name;
 
     if (timeControl > 0) {
-      _turnStartedAt = DateTime.now();
+      _turnStartedAt = _isClockRunning ? DateTime.now() : null;
       _turnBaseRemainingMs = retaliatedEngine.turn.name == 'white'
           ? whiteRemainingMs.value
           : blackRemainingMs.value;
@@ -356,10 +365,12 @@ class OfflineGameProvider extends ChangeNotifier {
           reason = 'normal';
       }
 
-      if (_matchStartedAt != null) {
-        elapsedSeconds.value =
-            DateTime.now().difference(_matchStartedAt!).inSeconds;
+      if (_activeSessionStartedAt != null) {
+        _accumulatedElapsedMs +=
+            DateTime.now().difference(_activeSessionStartedAt!).inMilliseconds;
+        _activeSessionStartedAt = null;
       }
+      elapsedSeconds.value = _accumulatedElapsedMs ~/ 1000;
 
       final payload = GameOverPayload(
         matchId: matchId ?? 'offline',
@@ -372,6 +383,7 @@ class OfflineGameProvider extends ChangeNotifier {
       gameOverData.value = payload;
       matchState.value = OnlineMatchState.gameOver;
       _stopClockTimer();
+      _isClockRunning = false;
       SoundService.instance.playGameOver();
       HapticService.instance.heavy();
       _saveOfflineGameRecord(payload);
@@ -384,7 +396,9 @@ class OfflineGameProvider extends ChangeNotifier {
     _persistActiveOfflineMatch();
 
     if (offlinePlayMode == PlayMode.vsAi && engine.turn != offlinePlayerTeam) {
-      _triggerBotMove();
+      if (_isInGameScreen && _isClockRunning) {
+        _triggerBotMove();
+      }
     }
   }
 
@@ -402,11 +416,21 @@ class OfflineGameProvider extends ChangeNotifier {
       return;
     }
 
+    if (!_isClockRunning || !_isInGameScreen) {
+      isAiThinking.value = false;
+      notifyListeners();
+      return;
+    }
+
     final ai = KitaAI.instance;
     if (!ai.isInitialized) {
       await ai.initialize();
     }
-    if (_isDisposed) return;
+    if (_isDisposed || !_isClockRunning || !_isInGameScreen) {
+      isAiThinking.value = false;
+      notifyListeners();
+      return;
+    }
 
     final diffIndex = offlineBotDifficulty.clamp(0, AIDifficulty.all.length - 1);
     final diff = AIDifficulty.all[diffIndex];
@@ -419,7 +443,7 @@ class OfflineGameProvider extends ChangeNotifier {
     isAiThinking.value = false;
     notifyListeners();
 
-    if (botMove != null && hasActiveMatch && matchId == currentMatchId) {
+    if (botMove != null && hasActiveMatch && matchId == currentMatchId && _isClockRunning && _isInGameScreen) {
       makeMove(botMove);
     }
   }
@@ -438,13 +462,16 @@ class OfflineGameProvider extends ChangeNotifier {
       reason: 'resignation',
       ratingChanges: {},
     );
-    if (_matchStartedAt != null) {
-      elapsedSeconds.value =
-          DateTime.now().difference(_matchStartedAt!).inSeconds;
+    if (_activeSessionStartedAt != null) {
+      _accumulatedElapsedMs +=
+          DateTime.now().difference(_activeSessionStartedAt!).inMilliseconds;
+      _activeSessionStartedAt = null;
     }
+    elapsedSeconds.value = _accumulatedElapsedMs ~/ 1000;
     gameOverData.value = payload;
     matchState.value = OnlineMatchState.gameOver;
     _stopClockTimer();
+    _isClockRunning = false;
     SoundService.instance.playGameOver();
     HapticService.instance.heavy();
     _saveOfflineGameRecord(payload);
@@ -455,12 +482,16 @@ class OfflineGameProvider extends ChangeNotifier {
   /// Immediately abandons and clears the active offline match.
   void resignAndClear() {
     _stopClockTimer();
+    _isClockRunning = false;
     _clearPersistedActiveOfflineMatch();
     _hasActiveMatch = false;
     matchState.value = OnlineMatchState.idle;
     isAiThinking.value = false;
     _engineSnapshots.clear();
     _matchStartedAt = null;
+    _activeSessionStartedAt = null;
+    _accumulatedElapsedMs = 0;
+    elapsedSeconds.value = 0;
     gameOverData.value = null;
     lastMove.value = null;
     moveHistory.value = [];
@@ -688,6 +719,12 @@ class OfflineGameProvider extends ChangeNotifier {
   Future<void> _persistActiveOfflineMatch() async {
     if (!hasActiveMatch || matchId == null) return;
     try {
+      final currentElapsed = _isClockRunning && _activeSessionStartedAt != null
+          ? (_accumulatedElapsedMs +
+                  DateTime.now().difference(_activeSessionStartedAt!).inMilliseconds) ~/
+              1000
+          : elapsedSeconds.value;
+
       final data = ActiveOfflineGameData(
         matchId: matchId!,
         playMode: offlinePlayMode == PlayMode.localCoop ? 'localCoop' : 'vsAi',
@@ -698,7 +735,7 @@ class OfflineGameProvider extends ChangeNotifier {
         playerRating: offlinePlayerRating,
         playerAvatarIndex: offlinePlayerAvatarIndex,
         isGuest: offlineIsGuest,
-        elapsedSeconds: elapsedSeconds.value,
+        elapsedSeconds: currentElapsed,
         moveHistory: moveHistory.value.map((m) => m.toJson()).toList(),
         startedAt: _matchStartedAt ?? DateTime.now(),
         timeControl: timeControl,
@@ -732,7 +769,7 @@ class OfflineGameProvider extends ChangeNotifier {
         userId: userId ?? offlinePlayerId,
         isGuest: isGuest ?? offlineIsGuest,
       );
-      if (saved == null) return;
+      if (_isDisposed || saved == null) return;
 
       _hasActiveMatch = true;
       offlinePlayMode = saved.playMode == 'localCoop' ? PlayMode.localCoop : PlayMode.vsAi;
@@ -791,12 +828,14 @@ class OfflineGameProvider extends ChangeNotifier {
       isGameOverDialogActive.value = false;
       isAiThinking.value = false;
       currentTurn.value = engine.turn.name;
+      _accumulatedElapsedMs = saved.elapsedSeconds * 1000;
       elapsedSeconds.value = saved.elapsedSeconds;
+      _activeSessionStartedAt = null;
       _matchStartedAt = saved.startedAt;
       timeControl = saved.timeControl;
       whiteRemainingMs.value = saved.whiteRemainingMs;
       blackRemainingMs.value = saved.blackRemainingMs;
-      _turnStartedAt = DateTime.now();
+      _turnStartedAt = null;
       _turnBaseRemainingMs = engine.turn.name == 'white'
           ? saved.whiteRemainingMs
           : saved.blackRemainingMs;
@@ -810,32 +849,98 @@ class OfflineGameProvider extends ChangeNotifier {
 
       legalMoves.value = engine.getLegalMoves();
       matchState.value = OnlineMatchState.inMatch;
-      _startClockTimer();
-      notifyListeners();
 
-      if (offlinePlayMode == PlayMode.vsAi && engine.turn != offlinePlayerTeam) {
-        final isOpeningMove = engine.moveCount == 0;
-        _triggerBotMove(
-          delay: isOpeningMove
-              ? const Duration(milliseconds: 1000)
-              : const Duration(milliseconds: 400),
-        );
+      // Do NOT start timer on restore if the player is not currently in the game screen
+      if (_isInGameScreen) {
+        resumeGameClock();
+      } else {
+        _isClockRunning = false;
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('[OfflineGameProvider] Error restoring active offline match: $e');
     }
   }
 
+  void setInGameScreen(bool inGame) {
+    _isInGameScreen = inGame;
+    if (inGame) {
+      resumeGameClock();
+    } else {
+      pauseGameClock();
+    }
+  }
+
+  void resumeGameClock() {
+    if (!hasActiveMatch || isGameOver || _isDisposed) return;
+    if (_isClockRunning) return;
+
+    _isClockRunning = true;
+    _activeSessionStartedAt = DateTime.now();
+
+    if (timeControl > 0) {
+      _turnStartedAt = DateTime.now();
+      _turnBaseRemainingMs = currentTurn.value == 'white'
+          ? whiteRemainingMs.value
+          : blackRemainingMs.value;
+    }
+
+    _startClockTimer();
+
+    // If human plays vs Bot and it is bot's turn:
+    if (offlinePlayMode == PlayMode.vsAi &&
+        gameEngine.value.turn != offlinePlayerTeam &&
+        !isAiThinking.value) {
+      _triggerBotMove(
+        delay: gameEngine.value.moveCount == 0
+            ? const Duration(milliseconds: 1000)
+            : const Duration(milliseconds: 400),
+      );
+    }
+
+    notifyListeners();
+  }
+
+  void pauseGameClock() {
+    if (!_isClockRunning && _clockTimer == null) return;
+    _isClockRunning = false;
+    _stopClockTimer();
+
+    if (_activeSessionStartedAt != null) {
+      _accumulatedElapsedMs +=
+          DateTime.now().difference(_activeSessionStartedAt!).inMilliseconds;
+      _activeSessionStartedAt = null;
+      elapsedSeconds.value = _accumulatedElapsedMs ~/ 1000;
+    }
+
+    if (timeControl > 0 && _turnStartedAt != null) {
+      final elapsedTurnMs =
+          DateTime.now().difference(_turnStartedAt!).inMilliseconds;
+      final remaining = _turnBaseRemainingMs - elapsedTurnMs;
+      final clampedRemaining = remaining > 0 ? remaining : 0;
+      if (currentTurn.value == 'white') {
+        whiteRemainingMs.value = clampedRemaining;
+      } else {
+        blackRemainingMs.value = clampedRemaining;
+      }
+      _turnStartedAt = null;
+      _turnBaseRemainingMs = clampedRemaining;
+    }
+
+    _persistActiveOfflineMatch();
+    notifyListeners();
+  }
+
   void _startClockTimer() {
     _stopClockTimer();
     _clockTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
-      if (!hasActiveMatch) return;
+      if (!hasActiveMatch || !_isClockRunning) return;
       _tickClock();
     });
   }
 
   void _tickClock() {
-    if (!hasActiveMatch) return;
+    if (!hasActiveMatch || !_isClockRunning) return;
 
     if (timeControl > 0 && _turnStartedAt != null) {
       final elapsedMs =
@@ -867,17 +972,26 @@ class OfflineGameProvider extends ChangeNotifier {
       }
     }
 
-    if (_matchStartedAt != null) {
-      elapsedSeconds.value =
-          DateTime.now().difference(_matchStartedAt!).inSeconds;
+    if (_activeSessionStartedAt != null) {
+      final currentTotalMs = _accumulatedElapsedMs +
+          DateTime.now().difference(_activeSessionStartedAt!).inMilliseconds;
+      elapsedSeconds.value = currentTotalMs ~/ 1000;
     } else {
-      elapsedSeconds.value++;
+      elapsedSeconds.value = _accumulatedElapsedMs ~/ 1000;
     }
   }
 
   void _handleOfflineTimeout(String losingTeam) {
     if (!hasActiveMatch) return;
     _stopClockTimer();
+    _isClockRunning = false;
+
+    if (_activeSessionStartedAt != null) {
+      _accumulatedElapsedMs +=
+          DateTime.now().difference(_activeSessionStartedAt!).inMilliseconds;
+      _activeSessionStartedAt = null;
+    }
+    elapsedSeconds.value = _accumulatedElapsedMs ~/ 1000;
 
     final winnerTeam = losingTeam == 'white' ? 'black' : 'white';
     final payload = GameOverPayload(
@@ -899,7 +1013,7 @@ class OfflineGameProvider extends ChangeNotifier {
 
   /// Call when app resumes from background.
   void syncClocks() {
-    if (hasActiveMatch) {
+    if (hasActiveMatch && _isClockRunning) {
       _tickClock();
     }
   }
@@ -915,6 +1029,7 @@ class OfflineGameProvider extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    _isClockRunning = false;
     _stopClockTimer();
     whiteRemainingMs.dispose();
     blackRemainingMs.dispose();

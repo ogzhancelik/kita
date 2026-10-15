@@ -71,12 +71,15 @@ class KitaEmojiPicker extends StatelessWidget {
         final totalHeight = hasPreview ? 370.0 : 320.0;
 
         return Container(
-          height: totalHeight,
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          child: Column(
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: totalHeight,
+              child: Column(
             children: [
               // Header with Drag Handle & Close button
               Padding(
@@ -234,8 +237,10 @@ class KitaEmojiPicker extends StatelessWidget {
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
+  },
+);
   }
 }

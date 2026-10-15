@@ -215,7 +215,10 @@ class DeepLinkService {
     _whenNavigatorReady((navigator) {
       navigator.push(
         MaterialPageRoute(
-          builder: (_) => MatchReplayScreen(matchId: matchId),
+          builder: (_) => MatchReplayScreen(
+            matchId: matchId,
+            isWatchedReplay: true,
+          ),
         ),
       );
     });
@@ -226,7 +229,10 @@ class DeepLinkService {
     _whenNavigatorReady((navigator) {
       navigator.push(
         MaterialPageRoute(
-          builder: (_) => MatchReplayScreen(match: match),
+          builder: (_) => MatchReplayScreen(
+            match: match,
+            isWatchedReplay: true,
+          ),
         ),
       );
     });

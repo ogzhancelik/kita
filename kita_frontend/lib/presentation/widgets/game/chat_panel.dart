@@ -261,7 +261,7 @@ class _ChatPanelState extends State<ChatPanel> {
                     child: const Icon(
                       Icons.send_rounded,
                       size: 16,
-                      color: Colors.white,
+                      color: AppColors.darkTextPrimary,
                     ),
                   ),
                 ),
@@ -284,6 +284,13 @@ class _ChatMessageBubble extends StatelessWidget {
     required this.isMe,
     required this.isDark,
   });
+
+  String _formatTime(DateTime dt) {
+    final local = dt.toLocal();
+    final h = local.hour.toString().padLeft(2, '0');
+    final m = local.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -329,7 +336,19 @@ class _ChatMessageBubble extends StatelessWidget {
               message.content,
               style: TextStyle(
                 fontSize: 12,
-                color: isMe ? Colors.white : AppColors.getTextPrimary(isDark),
+                color: isMe
+                    ? AppColors.darkTextPrimary
+                    : AppColors.getTextPrimary(isDark),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formatTime(message.createdAt),
+              style: TextStyle(
+                fontSize: 9,
+                color: isMe
+                    ? AppColors.darkTextSecondary
+                    : AppColors.getTextMuted(isDark),
               ),
             ),
           ],

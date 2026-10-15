@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -132,17 +135,34 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
             )
           : <MatchRecordModel>[];
 
+      // Immediately display local offline matches so card does not show a blank loading state
+      if (reset && showOffline && offlineList.isNotEmpty && mounted) {
+        setState(() {
+          _matches = offlineList.take(_pageSize).toList();
+          _isLoading = false;
+        });
+      }
+
       List<MatchRecordModel> onlineList = [];
       if (!isGuest && !isOnlineUnavailable) {
         try {
           onlineList = await _matchApiService
               .getUserMatches(user.id, limit: _pageSize, offset: _offset)
-              .timeout(const Duration(seconds: 4));
+              .timeout(const Duration(seconds: 3));
         } catch (e) {
           debugPrint(
             '[DashboardMatchHistoryCard] Offline or error fetching online matches: $e',
           );
           onlineList = [];
+          if (e is TimeoutException ||
+              (e is DioException &&
+                  (e.type == DioExceptionType.connectionTimeout ||
+                      e.type == DioExceptionType.connectionError ||
+                      e.type == DioExceptionType.receiveTimeout))) {
+            if (mounted) {
+              authProv.setServerDown(true);
+            }
+          }
         }
       }
 
@@ -245,7 +265,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
               children: [
                 const Icon(
                   Icons.history_rounded,
-                  color: AppColors.accent,
+                  color: AppColors.sectionMatches,
                   size: 20,
                 ),
                 const SizedBox(width: 8),

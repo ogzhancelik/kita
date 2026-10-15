@@ -59,7 +59,7 @@ class LastMoveLinePainter extends CustomPainter {
       displayCol = flipBoard ? (6 - pos.col) : pos.col;
       displayRow = flipBoard ? (3 - pos.row) : pos.row;
     } else {
-      displayCol = (flipColumns || flipBoard) ? (3 - pos.row) : pos.row;
+      displayCol = (flipColumns ^ flipBoard) ? (3 - pos.row) : pos.row;
       displayRow = flipBoard ? (6 - pos.col) : pos.col;
     }
 

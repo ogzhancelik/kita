@@ -893,7 +893,7 @@ func (h *Hub) getPublicRoomsDTOLocked(page, limit int) RoomsListDTO {
 
 	total := len(items)
 	if limit <= 0 {
-		limit = 20
+		limit = 10000
 	}
 	totalPages := (total + limit - 1) / limit
 	if totalPages < 1 {
@@ -926,7 +926,7 @@ func (h *Hub) getPublicRoomsDTOLocked(page, limit int) RoomsListDTO {
 }
 
 func (h *Hub) broadcastRoomsListLocked() {
-	dto := h.getPublicRoomsDTOLocked(1, 20)
+	dto := h.getPublicRoomsDTOLocked(1, 10000)
 	for _, c := range h.clients {
 		c.SendJSON(TypeRoomsList, dto)
 	}
@@ -946,8 +946,10 @@ func (h *Hub) handleListRooms(client *Client, rawPayload json.RawMessage) {
 	if dto.Page < 1 {
 		dto.Page = 1
 	}
-	if dto.Limit < 1 || dto.Limit > 50 {
-		dto.Limit = 20
+	if dto.Limit < 1 {
+		dto.Limit = 10000
+	} else if dto.Limit > 10000 {
+		dto.Limit = 10000
 	}
 
 	h.mu.RLock()

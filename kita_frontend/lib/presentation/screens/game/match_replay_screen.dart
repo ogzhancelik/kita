@@ -17,17 +17,23 @@ import '../../../data/models/kita_ai.dart';
 import '../../../data/models/match_model.dart';
 import '../../../data/models/move_evaluation.dart';
 import '../../../data/models/user_model.dart';
+import '../../../data/models/dm_models.dart';
 import '../../../data/services/match_api_service.dart';
 import '../../../data/services/replay_file_service.dart';
+import '../../../data/services/watched_replay_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/dm_provider.dart';
+import '../../providers/friends_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../widgets/common/avatar_picker.dart';
 import '../../widgets/common/kita_avatar.dart';
+import '../../widgets/friends/friend_picker_sheet.dart';
 import '../../widgets/game/ai_advantage_bar.dart';
 import '../../widgets/game/kita_board_theme.dart';
 import '../../widgets/game/kita_board_widget.dart';
 import '../../widgets/home/settings_dialog.dart';
 import '../../widgets/home/user_profile_dialog.dart';
+import '../friends/dm_chat_screen.dart';
 
 /// Redesigned Match Review / Replay screen adhering strictly to the
 /// online/offline in-game screen template.
@@ -43,12 +49,17 @@ import '../../widgets/home/user_profile_dialog.dart';
 class MatchReplayScreen extends StatefulWidget {
   final MatchRecordModel? match;
   final String? matchId;
+  final bool isWatchedReplay;
 
-  const MatchReplayScreen({super.key, this.match, this.matchId})
-    : assert(
-        match != null || matchId != null,
-        'Either match or matchId must be provided',
-      );
+  const MatchReplayScreen({
+    super.key,
+    this.match,
+    this.matchId,
+    this.isWatchedReplay = false,
+  }) : assert(
+          match != null || matchId != null,
+          'Either match or matchId must be provided',
+        );
 
   @override
   State<MatchReplayScreen> createState() => _MatchReplayScreenState();
@@ -66,6 +77,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
 
   // Replay Sharing
   String? _shareCode;
+  String? _shareMatchId;
   String? _shareUrl;
   bool _isUploadingShare = false;
   String? _shareError;
@@ -139,9 +151,23 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       _match = widget.match;
       _isLoading = false;
       _computeEngineStates();
+      _recordWatchedReplayIfApplicable();
     }
     _initAI();
     _loadMatchData();
+  }
+
+  void _recordWatchedReplayIfApplicable() {
+    if (_match != null && widget.isWatchedReplay) {
+      final authProv = context.read<AuthProvider>();
+      final user = authProv.currentUser;
+      final isGuest = authProv.isGuest || user == null;
+      WatchedReplayService.instance.saveWatchedReplay(
+        _match!,
+        userId: user?.id,
+        isGuest: isGuest,
+      );
+    }
   }
 
   @override
@@ -174,8 +200,30 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       return;
     }
 
+    final id = widget.matchId;
+    if (id == null || id.isEmpty) return;
+
+    // Check local WatchedReplayService first for instant offline/cached playback
     try {
-      final loaded = await _matchApiService.getMatchDetails(widget.matchId!);
+      final localWatched = await WatchedReplayService.instance.getWatchedReplays();
+      final found = localWatched.where((m) =>
+          m.id.toLowerCase() == id.toLowerCase() ||
+          (m.id.contains('-') && m.id.split('-').first.toLowerCase() == id.toLowerCase())
+      ).firstOrNull;
+      if (found != null && mounted) {
+        setState(() {
+          _match = found;
+          _isLoading = false;
+        });
+        _computeEngineStates();
+        _initPlayerPerspective();
+        _recordWatchedReplayIfApplicable();
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      final loaded = await _matchApiService.getMatchDetails(id);
       if (!mounted) return;
       setState(() {
         _match = loaded;
@@ -183,6 +231,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
       });
       _computeEngineStates();
       _initPlayerPerspective();
+      _recordWatchedReplayIfApplicable();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -2145,7 +2194,15 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
   Future<void> _prepareShareLink([
     void Function(void Function())? setModalState,
   ]) async {
-    if (_match == null || _shareCode != null) return;
+    if (_match == null) return;
+    final isOffline = _match!.isOffline ||
+        _match!.id.startsWith('offline') ||
+        _match!.id.startsWith('local') ||
+        _match!.id.startsWith('bot') ||
+        _match!.id.startsWith('guest');
+
+    if (!isOffline && _shareCode != null) return;
+    if (isOffline && _shareMatchId != null) return;
 
     if (setModalState != null) {
       setModalState(() {
@@ -2162,18 +2219,21 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     try {
       final res = await _matchApiService.shareReplay(_match!);
       final code = (res['code'] ?? res['match_id'])?.toString();
+      final serverId = (res['match_id'] ?? res['code'])?.toString();
       final url =
           res['share_url']?.toString() ?? 'https://kita.app/replay/$code';
       if (mounted) {
         if (setModalState != null) {
           setModalState(() {
             _shareCode = code;
+            _shareMatchId = serverId;
             _shareUrl = url;
             _isUploadingShare = false;
           });
         }
         setState(() {
           _shareCode = code;
+          _shareMatchId = serverId;
           _shareUrl = url;
           _isUploadingShare = false;
         });
@@ -2194,19 +2254,112 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     }
   }
 
+  Future<void> _sendReplayToFriend([
+    void Function(void Function())? setModalState,
+  ]) async {
+    if (_match == null) return;
+
+    final authProv = context.read<AuthProvider>();
+    if (!authProv.isAuthenticated || authProv.isGuest) {
+      KitaToast.warning('chats.guestNotice'.tr());
+      return;
+    }
+
+    final match = _match!;
+    final bool isOfflineMatch = match.isOffline ||
+        match.id.startsWith('offline') ||
+        match.id.startsWith('local') ||
+        match.id.startsWith('bot') ||
+        match.id.startsWith('guest');
+
+    if (_shareCode == null || (isOfflineMatch && _shareMatchId == null)) {
+      await _prepareShareLink(setModalState);
+    }
+    if (!mounted) return;
+    if (_shareError != null || _shareCode == null || (isOfflineMatch && _shareMatchId == null)) {
+      KitaToast.error('replay.shareError'.tr());
+      return;
+    }
+
+    final friendsProv = context.read<FriendsProvider>();
+    if (friendsProv.friends.isEmpty) {
+      await friendsProv.loadAll();
+    }
+    if (!mounted) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final selectedFriend = await FriendPickerSheet.show(
+      context: context,
+      friends: friendsProv.friends,
+      isDark: isDark,
+    );
+
+    if (selectedFriend == null || !mounted) return;
+
+    final matchIdToSend = isOfflineMatch
+        ? (_shareMatchId ?? _shareCode ?? match.id)
+        : match.id;
+    final whiteName = match.whitePlayer?.username ??
+        (match.whitePlayerId.isNotEmpty ? match.whitePlayerId : 'common.white'.tr());
+    final blackName = match.blackPlayer?.username ??
+        (match.blackPlayerId.isNotEmpty ? match.blackPlayerId : 'common.black'.tr());
+
+    String? resultStr;
+    if (match.isDraw) {
+      resultStr = 'draw';
+    } else if (match.winnerId != null && match.winnerId == match.whitePlayerId) {
+      resultStr = 'white';
+    } else if (match.winnerId != null && match.winnerId == match.blackPlayerId) {
+      resultStr = 'black';
+    }
+
+    final payload = DmReplayPayload(
+      matchId: matchIdToSend,
+      shareCode: _shareCode ?? matchIdToSend,
+      whiteUsername: whiteName,
+      blackUsername: blackName,
+      result: resultStr,
+    );
+
+    final dmProv = context.read<DmProvider>();
+    dmProv.sendDm(
+      recipientId: selectedFriend.userId,
+      content: payload.encode(),
+      senderId: authProv.currentUser?.id,
+      senderUsername: authProv.currentUser?.username,
+      recipientUsername: selectedFriend.username,
+      senderAvatarIndex: authProv.avatarIndex,
+      recipientAvatarIndex: selectedFriend.avatarIndex,
+    );
+
+    if (mounted) {
+      final successMsg = 'replay.sentToFriendSuccess'.tr(args: [selectedFriend.username]);
+      KitaToast.show(
+        message: successMsg,
+        type: ToastType.success,
+        duration: const Duration(seconds: 3),
+        actionLabel: 'chats.openChat'.tr(),
+        onAction: () {
+          if (mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => DmChatScreen(friend: selectedFriend),
+              ),
+            );
+          }
+        },
+      );
+    }
+  }
+
   Future<void> _copyToClipboard(String text, String successMessage) async {
     try {
       await Clipboard.setData(ClipboardData(text: text));
       if (mounted) {
-        KitaToast.show(message: successMessage, type: ToastType.success);
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(successMessage),
-            backgroundColor: AppColors.primaryAmber,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
+        KitaToast.show(
+          message: successMessage,
+          type: ToastType.success,
+          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
@@ -2218,11 +2371,18 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
     if (_match == null) return;
     final match = _match!;
 
-    if (_shareCode == null && !match.id.startsWith('offline')) {
+    final bool isOffline = match.isOffline ||
+        match.id.startsWith('offline') ||
+        match.id.startsWith('local') ||
+        match.id.startsWith('bot') ||
+        match.id.startsWith('guest');
+
+    if (_shareCode == null && !isOffline) {
       final cleanId = (match.id.contains('-') && !match.id.startsWith('KITA-'))
           ? match.id.split('-').first.toUpperCase()
           : match.id;
       _shareCode = cleanId;
+      _shareMatchId = match.id;
       _shareUrl = 'https://kita.app/replay/$cleanId';
     }
 
@@ -2250,7 +2410,7 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'replay.shareTitle'.tr(),
+                  'replay.shareReplay'.tr(),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -2264,6 +2424,32 @@ class _MatchReplayScreenState extends State<MatchReplayScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // 0. Send to Friend Button
+                  ElevatedButton.icon(
+                    onPressed: _isUploadingShare
+                        ? null
+                        : () async {
+                            Navigator.of(ctx).pop();
+                            await _sendReplayToFriend();
+                          },
+                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+                    label: Text('replay.sendToFriend'.tr()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryAmber,
+                      foregroundColor: AppColors.darkTextPrimary,
+                      elevation: 0,
+                      minimumSize: const Size(double.infinity, 38),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
                   // 1. Replay Code Box
                   Text(
                     'replay.replayCode'.tr(),

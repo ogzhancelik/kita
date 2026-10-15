@@ -13,6 +13,7 @@ import '../../providers/notification_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../widgets/common/kita_avatar.dart';
 import '../../widgets/common/kita_emoji_picker.dart';
+import '../../widgets/dm/dm_replay_card_widget.dart';
 import '../../widgets/dm/match_chat_card_widget.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 import '../../widgets/matchmaking/friend_challenge_dialog.dart';
@@ -92,7 +93,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      dmProv.loadHistory(_conversationId);
+      dmProv.loadHistory(_conversationId, refresh: true);
       dmProv.loadSharedMatches(
         _conversationId,
         _myId,
@@ -641,18 +642,25 @@ class _DmChatScreenState extends State<DmChatScreen> {
     );
   }
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
+  bool _isSameDay(DateTime a, DateTime b) {
+    final la = a.toLocal();
+    final lb = b.toLocal();
+    return la.year == lb.year && la.month == lb.month && la.day == lb.day;
+  }
 
   String _formatDate(DateTime date) {
+    final local = date.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final diff = today
-        .difference(DateTime(date.year, date.month, date.day))
-        .inDays;
-    if (diff == 0) return 'dm.today'.tr();
-    if (diff == 1) return 'dm.yesterday'.tr();
-    return DateFormat('d MMM y').format(date);
+    final target = DateTime(local.year, local.month, local.day);
+    if (_isSameDay(today, target)) {
+      return 'dm.today'.tr();
+    }
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (_isSameDay(yesterday, target)) {
+      return 'dm.yesterday'.tr();
+    }
+    return DateFormat('d MMM y', context.locale.toString()).format(local);
   }
 }
 
@@ -675,6 +683,8 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final replayPayload = DmReplayPayload.tryParse(message.content);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -698,51 +708,60 @@ class _MessageBubble extends StatelessWidget {
                   ? CrossAxisAlignment.end
                   : CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
-                  ),
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.72,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isMe
-                        ? AppColors.primary
-                        : AppColors.getSurface(isDark),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(18),
-                      topRight: const Radius.circular(18),
-                      bottomLeft: Radius.circular(isMe ? 18 : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : 18),
+                if (replayPayload != null)
+                  DmReplayCardWidget(
+                    payload: replayPayload,
+                    isMe: isMe,
+                    isDark: isDark,
+                    timestamp: message.createdAt,
+                  )
+                else ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(12),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    message.content,
-                    style: TextStyle(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.72,
+                    ),
+                    decoration: BoxDecoration(
                       color: isMe
-                          ? AppColors.darkTextPrimary
-                          : AppColors.getTextPrimary(isDark),
-                      fontSize: 14,
-                      height: 1.4,
+                          ? AppColors.primary
+                          : AppColors.getSurface(isDark),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(18),
+                        topRight: const Radius.circular(18),
+                        bottomLeft: Radius.circular(isMe ? 18 : 4),
+                        bottomRight: Radius.circular(isMe ? 4 : 18),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(12),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      message.content,
+                      style: TextStyle(
+                        color: isMe
+                            ? AppColors.darkTextPrimary
+                            : AppColors.getTextPrimary(isDark),
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _formatTime(message.createdAt),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.getTextMuted(isDark),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatTime(message.createdAt),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.getTextMuted(isDark),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -753,8 +772,9 @@ class _MessageBubble extends StatelessWidget {
   }
 
   String _formatTime(DateTime dt) {
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
+    final local = dt.toLocal();
+    final h = local.hour.toString().padLeft(2, '0');
+    final m = local.minute.toString().padLeft(2, '0');
     return '$h:$m';
   }
 }

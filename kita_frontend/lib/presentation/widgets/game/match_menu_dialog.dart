@@ -238,7 +238,7 @@ class MatchMenuDialog extends StatelessWidget {
                 icon: Icons.settings_rounded,
                 iconColor: AppColors.primaryAmber,
                 title: 'settings.title'.tr(),
-                subtitle: 'settings.generalSection'.tr(),
+                subtitle: 'settings.general'.tr(),
                 textColor: AppColors.getTextPrimary(isDark),
                 onTap: () {
                   Navigator.of(context).pop();
@@ -445,7 +445,7 @@ class MatchMenuDialog extends StatelessWidget {
         backgroundColor: AppColors.getCard(isDark),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'online.drawOfferTitle'.tr(),
+          'online.drawOffer'.tr(),
           style: TextStyle(
             color: AppColors.getTextPrimary(isDark),
             fontWeight: FontWeight.bold,

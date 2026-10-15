@@ -185,7 +185,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
       }
       if (!authProv.isOnlineUnavailable) {
         _onlineProv?.requestOnlineCount();
-        _onlineProv?.requestRoomsList(page: 1, limit: 10);
+        _onlineProv?.requestRoomsList(page: 1, limit: 10000);
       }
     }
   }

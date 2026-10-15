@@ -93,6 +93,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
       final dmProv = context.read<DmProvider>();
       dmProv.clearUnread(convId, userId: targetFriend.userId);
       dmProv.setActiveConversation(convId);
+      dmProv.loadHistory(convId, refresh: true);
       context.read<NotificationProvider>().deleteChatNotifications(
         convId,
         actorId: targetFriend.userId,
@@ -221,9 +222,13 @@ class _ChatsScreenState extends State<ChatsScreen> {
       }
 
       final isMe = preview.senderId == myId;
-      final snippet = isMe
-          ? '${'chats.you'.tr()}${preview.content}'
+      final replayPayload = DmReplayPayload.tryParse(preview.content);
+      final rawContent = replayPayload != null
+          ? '🎬 ${'replay.matchReplay'.tr()}'
           : preview.content;
+      final snippet = isMe
+          ? '${'chats.you'.tr()}$rawContent'
+          : rawContent;
 
       items.add(
         _ChatItemData(
@@ -250,16 +255,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
             return nameMatch || msgMatch;
           }).toList();
 
-    final hasUnreadChats = dmProv.totalUnread > 0;
-
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: KitaAppBar(
         title: 'chats.title'.tr(),
-        leadingIcon: hasUnreadChats
-            ? Icons.chat_bubble_rounded
-            : Icons.chat_bubble_outline_rounded,
-        iconColor: hasUnreadChats ? AppColors.primaryAmber : null,
+        leadingIcon: Icons.chat_bubble_rounded,
+        iconColor: AppColors.accentGold,
         showBack: true,
         showAuthActions: false,
         showLanguageToggle: false,
@@ -284,6 +285,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
             )
           : null,
       body: ResponsiveLayout(
+        maxWidth: 640,
         padding: EdgeInsets.zero,
         child: isGuest
             ? _buildGuestView(isDark)
@@ -299,20 +301,19 @@ class _ChatsScreenState extends State<ChatsScreen> {
                   children: [
                     // Search bar
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10.0,
-                        vertical: 4.0,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                       child: Container(
+                        height: 44,
                         decoration: BoxDecoration(
                           color: isDark
-                              ? AppColors.darkSurface
-                              : AppColors.lightSurface,
+                              ? AppColors.darkCard
+                              : AppColors.lightCard,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isDark
                                 ? AppColors.darkBorder
                                 : AppColors.lightBorder,
+                            width: 1,
                           ),
                         ),
                         child: TextField(
@@ -331,7 +332,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                           decoration: InputDecoration(
                             hintText: 'chats.search'.tr(),
                             hintStyle: TextStyle(
-                              fontSize: 14,
+                              fontSize: 13.5,
                               color: AppColors.getTextMuted(isDark),
                             ),
                             prefixIcon: Icon(
@@ -357,7 +358,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14,
-                              vertical: 12,
+                              vertical: 10,
                             ),
                           ),
                         ),
@@ -375,10 +376,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                             )
                           : ListView.separated(
                               physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10.0,
-                                vertical: 4.0,
-                              ),
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                               itemCount: filteredItems.length,
                               separatorBuilder: (_, _) =>
                                   const SizedBox(height: 8),
@@ -559,7 +557,7 @@ class _ChatTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            color: isDark ? AppColors.darkCard : AppColors.lightCard,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: hasUnread
@@ -593,8 +591,8 @@ class _ChatTile extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isDark
-                              ? AppColors.darkSurface
-                              : AppColors.lightSurface,
+                              ? AppColors.darkCard
+                              : AppColors.lightCard,
                           width: 2,
                         ),
                         boxShadow: item.friend.isOnline
@@ -771,16 +769,20 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.7,
+        maxWidth: 520,
       ),
       decoration: BoxDecoration(
-        color: widget.isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        color: widget.isDark ? AppColors.darkCard : AppColors.lightCard,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border.all(
           color: widget.isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -900,8 +902,8 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: widget.isDark
-                                        ? AppColors.darkSurface
-                                        : AppColors.lightSurface,
+                                        ? AppColors.darkCard
+                                        : AppColors.lightCard,
                                     width: 1.5,
                                   ),
                                 ),
@@ -938,6 +940,8 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 }

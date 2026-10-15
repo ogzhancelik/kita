@@ -80,7 +80,7 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
                   children: [
                     const Icon(
                       Icons.emoji_events_rounded,
-                      color: AppColors.ratingGold,
+                      color: AppColors.sectionLeaderboard,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -128,7 +128,7 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
                     ),
                     _buildFilterChip(
                       'friends',
-                      'dashboard.friendsTab'.tr(),
+                      'dashboard.friends'.tr(),
                       isDark,
                     ),
                   ],

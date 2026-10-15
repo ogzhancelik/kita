@@ -10,16 +10,28 @@ import 'settings_dialog.dart';
 /// - Board Orientation (Horizontal vs Vertical segmented toggle)
 /// - Piece Rotation / Angle (Fixed 0° vs Auto segmented toggle)
 /// - Flip Viewpoint (Auto, White, Black uniform height buttons)
+/// - 2P Local Co-op (Auto Rotate Pieces on turn switch)
 class MatchSettingsDialog extends StatelessWidget {
-  const MatchSettingsDialog({super.key});
+  final void Function(BuildContext context)? onBack;
 
-  static Future<void> show(BuildContext context) {
+  const MatchSettingsDialog({super.key, this.onBack});
+
+  static Future<void> show(BuildContext context, {void Function(BuildContext context)? onBack}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const MatchSettingsDialog(),
+      builder: (_) => MatchSettingsDialog(onBack: onBack),
     );
+  }
+
+  void _handleBack(BuildContext context) {
+    Navigator.of(context).pop();
+    if (onBack != null) {
+      onBack!(context);
+    } else {
+      SettingsDialog.show(context);
+    }
   }
 
   @override
@@ -27,7 +39,13 @@ class MatchSettingsDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final gameSettings = context.watch<GameSettingsProvider>();
 
-    return Container(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.90,
         maxWidth: 520,
@@ -72,10 +90,7 @@ class MatchSettingsDialog extends StatelessWidget {
                           : AppColors.lightTextPrimary,
                     ),
                     tooltip: 'common.back'.tr(),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      SettingsDialog.show(context);
-                    },
+                    onPressed: () => _handleBack(context),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
@@ -197,6 +212,26 @@ class MatchSettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     _buildFlipSelector(context, gameSettings, isDark),
+                    const SizedBox(height: 24),
+
+                    // Section 3: 2P Local Co-op
+                    _buildSectionHeader(
+                      context: context,
+                      isDark: isDark,
+                      title: 'settings.localCoopSection'.tr(),
+                      icon: Icons.people_outline_rounded,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildToggleTile(
+                      isDark: isDark,
+                      icon: Icons.screen_rotation_alt_rounded,
+                      iconColor: AppColors.primaryAmber,
+                      title: 'settings.localCoopAutoRotate'.tr(),
+                      subtitle: 'settings.localCoopAutoRotateDesc'.tr(),
+                      value: gameSettings.localCoopAutoRotate,
+                      onChanged: (val) =>
+                          gameSettings.setLocalCoopAutoRotate(val),
+                    ),
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -204,6 +239,78 @@ class MatchSettingsDialog extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildToggleTile({
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBg : AppColors.lightBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
+                  ),
+                ),
+                if (subtitle != null && subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.lightTextMuted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            activeThumbColor: AppColors.primaryAmber,
+            activeTrackColor: AppColors.primaryAmber.withValues(alpha: 0.4),
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }

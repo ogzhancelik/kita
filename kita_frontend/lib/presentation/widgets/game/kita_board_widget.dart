@@ -302,7 +302,7 @@ class KitaBoardWidget extends StatelessWidget {
       canonicalRow = flipBoard ? (3 - displayRow) : displayRow;
     } else {
       canonicalCol = flipBoard ? (6 - displayRow) : displayRow;
-      canonicalRow = (flipColumns || flipBoard) ? (3 - displayCol) : displayCol;
+      canonicalRow = (flipColumns ^ flipBoard) ? (3 - displayCol) : displayCol;
     }
 
     return KitaPos(canonicalCol, canonicalRow);

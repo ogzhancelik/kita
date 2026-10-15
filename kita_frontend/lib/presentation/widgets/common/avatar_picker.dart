@@ -370,54 +370,82 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
     );
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+        maxWidth: 520,
+      ),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
       ),
-      padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
-      child: SingleChildScrollView(
+      child: SafeArea(
+        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Modal Top Bar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'avatar.title'.tr(),
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.lightTextPrimary,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Icon(
-                    Icons.close_rounded,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary,
-                  ),
-                  tooltip: 'dialog.close'.tr(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Live Preview Card
+            // Handle bar
             Center(
-              child: KitaAvatar(
-                size: 88,
-                avatarIndex: previewIndex,
-                avatarCustom: _customEmoji,
-                borderWidth: 3.5,
+              child: Container(
+                margin: const EdgeInsets.only(top: 10, bottom: 4),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            // Modal Top Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 12, 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'avatar.title'.tr(),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                    tooltip: 'common.close'.tr(),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 24 + bottomInset),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Live Preview Card
+                    Center(
+                      child: KitaAvatar(
+                        size: 88,
+                        avatarIndex: previewIndex,
+                        avatarCustom: _customEmoji,
+                        borderWidth: 3.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
             // Section: Color Theme (Border & Glow Accent)
             Text(
@@ -709,6 +737,10 @@ class _AvatarPickerBottomSheetState extends State<_AvatarPickerBottomSheet> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  ],
+),
+),
+);
+}
 }

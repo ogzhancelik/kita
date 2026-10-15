@@ -10,17 +10,29 @@ import '../common/avatar_picker.dart';
 import '../common/kita_avatar.dart';
 import '../common/kita_card.dart';
 import '../../screens/auth/register_screen.dart';
+import 'settings_dialog.dart';
 
 class AccountSettingsDialog extends StatelessWidget {
-  const AccountSettingsDialog({super.key});
+  final void Function(BuildContext context)? onBack;
 
-  static Future<void> show(BuildContext context) {
+  const AccountSettingsDialog({super.key, this.onBack});
+
+  static Future<void> show(BuildContext context, {void Function(BuildContext context)? onBack}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const AccountSettingsDialog(),
+      builder: (_) => AccountSettingsDialog(onBack: onBack),
     );
+  }
+
+  void _handleBack(BuildContext context) {
+    Navigator.of(context).pop();
+    if (onBack != null) {
+      onBack!(context);
+    } else {
+      SettingsDialog.show(context);
+    }
   }
 
   @override
@@ -28,7 +40,13 @@ class AccountSettingsDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProv = context.watch<AuthProvider>();
 
-    return Container(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.88,
         maxWidth: 520,
@@ -71,7 +89,8 @@ class AccountSettingsDialog extends StatelessWidget {
                           ? AppColors.darkTextPrimary
                           : AppColors.lightTextPrimary,
                     ),
-                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'common.back'.tr(),
+                    onPressed: () => _handleBack(context),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
@@ -500,8 +519,9 @@ class AccountSettingsDialog extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTile({
     required bool isDark,
@@ -1111,7 +1131,7 @@ class AccountSettingsDialog extends StatelessWidget {
               authProv.logout();
             },
             child: Text(
-              'settings.confirm'.tr(),
+              'common.confirm'.tr(),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

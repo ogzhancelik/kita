@@ -362,7 +362,7 @@ class OnlineGameProvider extends ChangeNotifier {
 
   // ─── Room Browser ─────────────────────────────────────────────────
 
-  void requestRoomsList({int page = 1, int limit = 20}) {
+  void requestRoomsList({int page = 1, int limit = 10000}) {
     _ws.send(WsClientType.listRooms, {'page': page, 'limit': limit});
   }
 
@@ -763,7 +763,7 @@ class OnlineGameProvider extends ChangeNotifier {
             resetToIdle();
           }
         }
-        requestRoomsList(page: 1, limit: 10);
+        requestRoomsList(page: 1, limit: 10000);
         notifyListeners();
 
       case WsServerType.queueJoined:

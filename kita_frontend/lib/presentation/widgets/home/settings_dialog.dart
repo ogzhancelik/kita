@@ -545,7 +545,7 @@ class SettingsDialog extends StatelessWidget {
               authProv.logout();
             },
             child: Text(
-              'settings.confirm'.tr(),
+              'common.confirm'.tr(),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

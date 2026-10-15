@@ -339,7 +339,23 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                           InkWell(
                             onTap: () {
                               Navigator.of(context).pop();
-                              AccountSettingsDialog.show(context);
+                              AccountSettingsDialog.show(
+                                context,
+                                onBack: (ctx) => UserProfileDialog.show(
+                                  ctx,
+                                  userId: widget.userId,
+                                  profile: widget.profile,
+                                  fallbackName: widget.fallbackName,
+                                  fallbackAvatarIndex: widget.fallbackAvatarIndex,
+                                  fallbackAvatarCustom: widget.fallbackAvatarCustom,
+                                  fallbackRating: widget.fallbackRating,
+                                  fallbackIsProvisional: widget.fallbackIsProvisional,
+                                  isGuest: widget.isGuest,
+                                  isBot: widget.isBot,
+                                  onInvite: widget.onInvite,
+                                  onChatPressed: widget.onChatPressed,
+                                ),
+                              );
                             },
                             borderRadius: BorderRadius.circular(6),
                             child: Padding(

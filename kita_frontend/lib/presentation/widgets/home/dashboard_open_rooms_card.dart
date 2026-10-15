@@ -23,7 +23,7 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<OnlineGameProvider>().requestRoomsList(page: 1, limit: 5);
+        context.read<OnlineGameProvider>().requestRoomsList(page: 1, limit: 10000);
       }
     });
   }
@@ -54,7 +54,7 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                   children: [
                     const Icon(
                       Icons.meeting_room_rounded,
-                      color: AppColors.winBlue,
+                      color: AppColors.sectionOpenRooms,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -119,7 +119,8 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
           ValueListenableBuilder<RoomsListPayload?>(
             valueListenable: onlineProv.roomsList,
             builder: (ctx, roomsPayload, _) {
-              final rooms = onlineProv.joinableRooms.take(5).toList();
+              final joinableRooms = onlineProv.joinableRooms;
+              final rooms = joinableRooms.take(5).toList();
 
               if (rooms.isEmpty) {
                 return Padding(
@@ -150,14 +151,80 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
                 );
               }
 
+              final remainingCount = joinableRooms.length - 5;
+              final hasMore = remainingCount > 0;
+
               return Column(
-                children: rooms
-                    .map((room) => _buildRoomTile(room, onlineProv, isDark))
-                    .toList(),
+                children: [
+                  ...rooms.map((room) => _buildRoomTile(room, onlineProv, isDark)),
+                  if (hasMore)
+                    _buildViewAllTile(context, remainingCount, isDark),
+                ],
               );
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildViewAllTile(
+    BuildContext context,
+    int remainingCount,
+    bool isDark,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const RoomBrowserScreen()),
+          ),
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkBg : AppColors.lightBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.primaryAmber.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryAmber.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.more_horiz_rounded,
+                    size: 15,
+                    color: AppColors.primaryAmber,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'dashboard.viewAllRooms'.tr(args: ['$remainingCount']),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryAmber,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 13,
+                  color: AppColors.primaryAmber,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

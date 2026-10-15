@@ -262,7 +262,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: KitaAppBar(
         title: 'leaderboard.title'.tr(),
-        iconColor: AppColors.accentGold,
+        iconColor: AppColors.sectionLeaderboard,
         leadingIcon: Icons.emoji_events_rounded,
         showBack: true,
         showAuthActions: false,
@@ -367,6 +367,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Widget _buildFilterSelector(bool isDark) {
+    final target = _selectedFilter == 'friends' ? 1.0 : 0.0;
+
     return Container(
       height: 44,
       padding: const EdgeInsets.all(4),
@@ -378,90 +380,119 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           width: 1,
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildFilterTab(
-              label: 'leaderboard.filterGlobal'.tr(),
-              icon: Icons.public_rounded,
-              isSelected: _selectedFilter == 'global',
-              onTap: () => _onFilterChanged('global'),
-              isDark: isDark,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: _buildFilterTab(
-              label: 'leaderboard.filterFriends'.tr(),
-              icon: Icons.people_alt_rounded,
-              isSelected: _selectedFilter == 'friends',
-              onTap: () => _onFilterChanged('friends'),
-              isDark: isDark,
-            ),
-          ),
-        ],
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: target),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOutCubic,
+        builder: (context, t, _) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final tabWidth = constraints.maxWidth / 2;
+
+              return Stack(
+                children: [
+                  // Smooth sliding indicator pill
+                  Positioned(
+                    left: t * tabWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: tabWidth,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryAmber,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                AppColors.primaryAmber.withValues(alpha: 0.35),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Tab interactive labels on top
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildFilterTabItem(
+                          label: 'leaderboard.filterGlobal'.tr(),
+                          icon: Icons.public_rounded,
+                          activeProgress: 1.0 - t,
+                          onTap: () => _onFilterChanged('global'),
+                          isDark: isDark,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildFilterTabItem(
+                          label: 'leaderboard.filterFriends'.tr(),
+                          icon: Icons.people_alt_rounded,
+                          activeProgress: t,
+                          onTap: () => _onFilterChanged('friends'),
+                          isDark: isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
 
-  Widget _buildFilterTab({
+  Widget _buildFilterTabItem({
     required String label,
     required IconData icon,
-    required bool isSelected,
+    required double activeProgress,
     required VoidCallback onTap,
     required bool isDark,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryAmber : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primaryAmber.withValues(alpha: 0.35),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+    final activeColor = AppColors.darkTextPrimary;
+    final inactiveColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
+    final color = Color.lerp(inactiveColor, activeColor, activeProgress)!;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        splashColor: AppColors.primaryAmber.withValues(alpha: 0.12),
+        highlightColor: Colors.transparent,
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: color,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: activeProgress > 0.5
+                        ? FontWeight.bold
+                        : FontWeight.w600,
+                    color: color,
                   ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected
-                  ? AppColors.darkTextPrimary
-                  : (isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary),
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: isSelected
-                      ? AppColors.darkTextPrimary
-                      : (isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

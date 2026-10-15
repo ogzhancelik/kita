@@ -65,6 +65,7 @@ class _NotificationTileState extends State<NotificationTile> {
     if (dmProv != null && convId.isNotEmpty) {
       dmProv.clearUnread(convId, userId: targetId);
       dmProv.setActiveConversation(convId);
+      dmProv.loadHistory(convId, refresh: true);
     }
 
     notifProv.deleteChatNotifications(
@@ -177,7 +178,10 @@ class _NotificationTileState extends State<NotificationTile> {
         subtitleText = 'notifications.friendRequestSubtitle'.tr(args: [sender]);
         break;
       case KitaNotificationType.chat:
-        subtitleText = notification.subtitle;
+        final replayPayload = DmReplayPayload.tryParse(notification.subtitle);
+        subtitleText = replayPayload != null
+            ? '🎬 ${'replay.matchReplay'.tr()}'
+            : notification.subtitle;
         break;
       case KitaNotificationType.info:
         if (notification.subtitle.startsWith('notifications.')) {

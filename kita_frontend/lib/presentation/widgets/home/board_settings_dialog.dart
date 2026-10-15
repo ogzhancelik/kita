@@ -12,15 +12,26 @@ import 'settings_dialog.dart';
 /// - Board Tile Style (rounded vs flat)
 /// - Last Move Indicator (highlight, line, off)
 class BoardSettingsDialog extends StatelessWidget {
-  const BoardSettingsDialog({super.key});
+  final void Function(BuildContext context)? onBack;
 
-  static Future<void> show(BuildContext context) {
+  const BoardSettingsDialog({super.key, this.onBack});
+
+  static Future<void> show(BuildContext context, {void Function(BuildContext context)? onBack}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const BoardSettingsDialog(),
+      builder: (_) => BoardSettingsDialog(onBack: onBack),
     );
+  }
+
+  void _handleBack(BuildContext context) {
+    Navigator.of(context).pop();
+    if (onBack != null) {
+      onBack!(context);
+    } else {
+      SettingsDialog.show(context);
+    }
   }
 
   @override
@@ -28,7 +39,13 @@ class BoardSettingsDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final gameSettings = context.watch<GameSettingsProvider>();
 
-    return Container(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.90,
         maxWidth: 520,
@@ -73,10 +90,7 @@ class BoardSettingsDialog extends StatelessWidget {
                           : AppColors.lightTextPrimary,
                     ),
                     tooltip: 'common.back'.tr(),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      SettingsDialog.show(context);
-                    },
+                    onPressed: () => _handleBack(context),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
@@ -182,8 +196,9 @@ class BoardSettingsDialog extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSectionHeader({
     required BuildContext context,

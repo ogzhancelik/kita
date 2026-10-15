@@ -23,32 +23,77 @@ class RoomBrowserScreen extends StatefulWidget {
 }
 
 class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
-  int _currentPage = 1;
-  final int _limit = 10;
+  final ScrollController _scrollController = ScrollController();
+  static const int _pageSize = 10;
+  int _displayedCount = 10;
+  bool _isLoadingMore = false;
   String? _joiningRoomCode;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _fetchRooms();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 200) {
+      _loadMore();
+    }
   }
 
   void _fetchRooms() {
     final provider = context.read<OnlineGameProvider>();
-    provider.requestRoomsList(page: _currentPage, limit: _limit);
+    setState(() {
+      _displayedCount = _pageSize;
+    });
+    provider.requestRoomsList(page: 1, limit: 10000);
   }
 
-  void _onNextPage(int totalPages) {
-    if (_currentPage < totalPages) {
-      setState(() => _currentPage++);
-      _fetchRooms();
-    }
-  }
+  void _loadMore() {
+    final provider = context.read<OnlineGameProvider>();
+    final allRooms = provider.roomsList.value?.rooms ?? [];
+    final availableCount = allRooms.where((r) {
+      if (provider.myUserId != null &&
+          provider.myUserId!.isNotEmpty &&
+          r.hostId == provider.myUserId) {
+        return false;
+      }
+      if (provider.myUsername != null &&
+          provider.myUsername!.isNotEmpty &&
+          r.hostName == provider.myUsername) {
+        return false;
+      }
+      if (provider.currentRoomCode != null &&
+          provider.currentRoomCode!.isNotEmpty &&
+          r.roomCode == provider.currentRoomCode) {
+        return false;
+      }
+      return true;
+    }).length;
 
-  void _onPrevPage() {
-    if (_currentPage > 1) {
-      setState(() => _currentPage--);
-      _fetchRooms();
+    if (_displayedCount < availableCount && !_isLoadingMore) {
+      setState(() {
+        _isLoadingMore = true;
+      });
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (mounted) {
+          setState(() {
+            _displayedCount = (_displayedCount + _pageSize).clamp(0, availableCount);
+            _isLoadingMore = false;
+          });
+        }
+      });
     }
   }
 
@@ -100,7 +145,7 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
         showAuthActions: false,
         showLanguageToggle: false,
         showThemeToggle: false,
-        iconColor: AppColors.winBlue,
+        iconColor: AppColors.sectionOpenRooms,
         leadingIcon: Icons.meeting_room,
         extraActions: [
           IconButton(
@@ -158,58 +203,65 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
               }
               return true;
             }).toList();
-            final totalPages = (payload.total / _limit).ceil().clamp(1, 999);
+
+            final visibleRooms = rooms.take(_displayedCount).toList();
 
             return RefreshIndicator(
               color: AppColors.primaryAmber,
               onRefresh: () async => _fetchRooms(),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14.0,
-                        vertical: 12.0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // 1. Join with code quick banner
-                          _buildJoinWithCodeBanner(isDark),
-                          const SizedBox(height: 14),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14.0,
+                  vertical: 12.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1. Join with code quick banner
+                    _buildJoinWithCodeBanner(isDark),
+                    const SizedBox(height: 14),
 
-                          // 2. Section Header
-                          _buildSectionHeader(payload.total, isDark),
-                          const SizedBox(height: 10),
+                    // 2. Section Header
+                    _buildSectionHeader(rooms.length, isDark),
+                    const SizedBox(height: 10),
 
-                          // 3. Rooms List or Empty State
-                          if (rooms.isEmpty)
-                            _buildEmptyState(isDark)
-                          else
-                            ...rooms.map((room) {
-                              final isJoining =
-                                  _joiningRoomCode == room.roomCode;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10.0),
-                                child: _RoomCard(
-                                  room: room,
-                                  isDark: isDark,
-                                  isJoining: isJoining,
-                                  onJoin: () => _handleJoin(room.roomCode),
-                                ),
-                              );
-                            }),
-                          const SizedBox(height: 70), // Padding for FAB
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // 4. Pagination Bar
-                  if (payload.total > _limit)
-                    _buildPaginationBar(totalPages, isDark),
-                ],
+                    // 3. Rooms List or Empty State
+                    if (rooms.isEmpty)
+                      _buildEmptyState(isDark)
+                    else ...[
+                      ...visibleRooms.map((room) {
+                        final isJoining =
+                            _joiningRoomCode == room.roomCode;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10.0),
+                          child: _RoomCard(
+                            room: room,
+                            isDark: isDark,
+                            isJoining: isJoining,
+                            onJoin: () => _handleJoin(room.roomCode),
+                          ),
+                        );
+                      }),
+                      if (_isLoadingMore) ...[
+                        const SizedBox(height: 8),
+                        const Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              color: AppColors.primaryAmber,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
+                    const SizedBox(height: 70), // Padding for FAB
+                  ],
+                ),
               ),
             );
           },
@@ -278,17 +330,22 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'online.roomBrowserTitle'.tr(),
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: isDark
-                ? AppColors.darkTextPrimary
-                : AppColors.lightTextPrimary,
+        Expanded(
+          child: Text(
+            'online.roomBrowserTitle'.tr(),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.lightTextPrimary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (totalCount > 0)
+        if (totalCount > 0) ...[
+          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
@@ -304,95 +361,8 @@ class _RoomBrowserScreenState extends State<RoomBrowserScreen> {
               ),
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildPaginationBar(int totalPages, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          InkWell(
-            onTap: _currentPage > 1 ? _onPrevPage : null,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: _currentPage > 1
-                    ? AppColors.primaryAmber.withValues(alpha: 0.15)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.chevron_left_rounded,
-                size: 22,
-                color: _currentPage > 1
-                    ? AppColors.primaryAmber
-                    : (isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.lightTextMuted),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkCard : AppColors.lightCard,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-              ),
-            ),
-            child: Text(
-              'online.pageIndicator'.tr(args: ['$_currentPage', '$totalPages']),
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.bold,
-                color: isDark
-                    ? AppColors.darkTextPrimary
-                    : AppColors.lightTextPrimary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          InkWell(
-            onTap: _currentPage < totalPages
-                ? () => _onNextPage(totalPages)
-                : null,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: _currentPage < totalPages
-                    ? AppColors.primaryAmber.withValues(alpha: 0.15)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.chevron_right_rounded,
-                size: 22,
-                color: _currentPage < totalPages
-                    ? AppColors.primaryAmber
-                    : (isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.lightTextMuted),
-              ),
-            ),
-          ),
         ],
-      ),
+      ],
     );
   }
 

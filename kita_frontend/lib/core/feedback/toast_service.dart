@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -13,6 +14,7 @@ class KitaToast {
   static ToastType? _lastToastType;
   static DateTime? _lastToastTime;
   static const Duration _duplicateDebounceWindow = Duration(seconds: 4);
+  static Timer? _autoDismissTimer;
 
   static void show({
     required String message,
@@ -40,6 +42,7 @@ class KitaToast {
     }
     if (state == null) return;
 
+    _autoDismissTimer?.cancel();
     state.removeCurrentSnackBar();
 
     Color bgColor;
@@ -81,33 +84,55 @@ class KitaToast {
           borderRadius: BorderRadius.circular(10),
           side: BorderSide(color: borderColor, width: 1.2),
         ),
-        content: Row(
-          children: [
-            Icon(icon, color: borderColor, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13.5,
+        content: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            try {
+              messengerKey.currentState?.removeCurrentSnackBar();
+            } catch (_) {}
+          },
+          child: Row(
+            children: [
+              Icon(icon, color: borderColor, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         action: (actionLabel != null && onAction != null)
             ? SnackBarAction(
                 label: actionLabel,
                 textColor: borderColor,
-                onPressed: onAction,
+                onPressed: () {
+                  try {
+                    messengerKey.currentState?.removeCurrentSnackBar();
+                  } catch (_) {}
+                  onAction();
+                },
               )
             : null,
       ),
     );
+
+    // Guaranteed dismiss: On desktop or web, hovering the pointer over a SnackBar
+    // pauses Flutter's internal timer indefinitely. This timer guarantees that
+    // regardless of hover or touch, the toast will cleanly dismiss after duration.
+    _autoDismissTimer = Timer(duration + const Duration(milliseconds: 150), () {
+      try {
+        messengerKey.currentState?.removeCurrentSnackBar();
+      } catch (_) {}
+    });
   }
 
   static void success(String message) =>

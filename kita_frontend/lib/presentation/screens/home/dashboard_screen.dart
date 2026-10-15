@@ -130,7 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       await currentAuth.retryConnection();
                     }
                     if (!currentAuth.isOnlineUnavailable) {
-                      onlineProv.requestRoomsList(page: 1, limit: 10);
+                      onlineProv.requestRoomsList(page: 1, limit: 10000);
                       await currentAuth.refreshProfile();
                     }
                     LocalMatchHistoryService.instance.notifyMatchesChanged();

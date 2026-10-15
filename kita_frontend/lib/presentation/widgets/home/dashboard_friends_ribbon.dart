@@ -94,12 +94,12 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                   children: [
                     const Icon(
                       Icons.people_alt_rounded,
-                      color: AppColors.accentGold,
+                      color: AppColors.sectionFriends,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'dashboard.friendsQuick'.tr(),
+                      'dashboard.friends'.tr(),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,

@@ -71,7 +71,7 @@ class HomeNotificationSummaryCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'notifications.summaryTitle'.tr(),
+                    'notifications.title'.tr(),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

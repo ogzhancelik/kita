@@ -536,7 +536,7 @@ class _PlayerSearchTile extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'online.statusFriends'.tr(),
+                'online.friends'.tr(),
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.bold,
@@ -596,7 +596,7 @@ class _PlayerSearchTile extends StatelessWidget {
                   )
                 : const Icon(Icons.check_rounded, size: 15),
             label: Text(
-              'online.statusAccept'.tr(),
+              'common.accept'.tr(),
               style: const TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.bold,
@@ -631,7 +631,7 @@ class _PlayerSearchTile extends StatelessWidget {
                   )
                 : const Icon(Icons.person_add_alt_1_rounded, size: 15),
             label: Text(
-              'online.addFriendAction'.tr(),
+              'online.addFriend'.tr(),
               style: const TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.bold,

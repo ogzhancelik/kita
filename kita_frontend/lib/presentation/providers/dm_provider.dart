@@ -25,6 +25,12 @@ class DmProvider extends ChangeNotifier {
   /// Full message list per conversationId.
   final Map<String, List<DmMessage>> _history = {};
 
+  /// Set of conversationIds whose full history has been fetched from the API.
+  final Set<String> _historyLoaded = {};
+
+  /// Set of conversationIds currently fetching history from the API.
+  final Set<String> _loadingConversations = {};
+
   /// Loading state for history fetch.
   bool _historyLoading = false;
 
@@ -177,6 +183,8 @@ class DmProvider extends ChangeNotifier {
   void clear() {
     _previews.clear();
     _history.clear();
+    _historyLoaded.clear();
+    _loadingConversations.clear();
     _unread.clear();
     _matchCards.clear();
     _inGameMessages.clear();
@@ -208,27 +216,43 @@ class DmProvider extends ChangeNotifier {
     }
   }
 
+  bool isHistoryLoaded(String conversationId) =>
+      _historyLoaded.contains(conversationId);
+
+  bool isHistoryLoadingFor(String conversationId) =>
+      _loadingConversations.contains(conversationId);
+
   /// Loads (or paginates) history for a given conversation.
   Future<void> loadHistory(String conversationId, {bool refresh = false}) async {
-    final existing = _history[conversationId];
-    if (existing != null && !refresh) return;
+    if (conversationId.isEmpty) return;
+    if (_loadingConversations.contains(conversationId)) return;
+    if (_historyLoaded.contains(conversationId) && !refresh) return;
 
+    _loadingConversations.add(conversationId);
     _historyLoading = true;
     notifyListeners();
 
     try {
       final msgs = await _apiService.getHistory(conversationId);
       final current = _history[conversationId] ?? [];
-      final pending = current.where((m) => m.id < 0).toList();
-      _history[conversationId] = [...msgs, ...pending];
+      final apiIds = msgs.map((m) => m.id).toSet();
+      // Keep any message in current that wasn't returned by the API
+      // (e.g. pending optimistic messages m.id < 0, or messages received via WebSocket while fetch was in flight)
+      final extra = current.where((m) => !apiIds.contains(m.id)).toList();
+      final combined = [...msgs, ...extra]
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      _history[conversationId] = combined;
+      _historyLoaded.add(conversationId);
+
       // Seed preview if missing
-      if (msgs.isNotEmpty && !_previews.containsKey(conversationId)) {
-        _previews[conversationId] = msgs.last;
+      if (combined.isNotEmpty && !_previews.containsKey(conversationId)) {
+        _previews[conversationId] = combined.last;
       }
     } catch (e) {
       debugPrint('[DmProvider] Failed to load history: $e');
     } finally {
-      _historyLoading = false;
+      _loadingConversations.remove(conversationId);
+      _historyLoading = _loadingConversations.isNotEmpty;
       notifyListeners();
     }
   }

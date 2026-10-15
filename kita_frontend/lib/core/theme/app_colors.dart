@@ -33,6 +33,19 @@ class AppColors {
     0xFF4C856F,
   ); // 3D bevel shadow for accent buttons
 
+  // --- Dashboard Section Header Icon Colors (Refined, desaturated tactical palette) ---
+  static const Color sectionLeaderboard = Color(
+    0xFFF4CB72,
+  ); // Soft Champagne Gold (Top Players / Leaderboard)
+  static const Color sectionOpenRooms = Color(
+    0xFF7BB6EB,
+  ); // Soft Slate Cerulean (Open Rooms)
+  static const Color sectionFriends = Color(
+    0xFFB488E6,
+  ); // Soft Lavender Wisteria (Friends - differentiated from gold)
+  static const Color sectionMatches =
+      accent; // #A8D8C6: Soft Mint Seafoam (Recent Matches)
+
   // --- App Logo & Icon Quadrant Colors ---
   static const Color logoGridTopLeft = Color(0xFFBF5377);
   static const Color logoGridTopRight = Color(0xFF863653);

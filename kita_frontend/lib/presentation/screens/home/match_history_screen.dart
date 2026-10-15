@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +12,7 @@ import '../../../data/models/user_model.dart';
 import '../../../data/services/local_match_history_service.dart';
 import '../../../data/services/match_api_service.dart';
 import '../../../data/services/replay_file_service.dart';
+import '../../../data/services/watched_replay_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/kita_avatar.dart';
 import '../../widgets/common/kita_app_bar.dart';
@@ -16,6 +20,7 @@ import '../../widgets/common/kita_button.dart';
 import '../../widgets/common/kita_card.dart';
 import '../../widgets/common/responsive_layout.dart';
 import '../game/match_replay_screen.dart';
+import 'watched_replays_screen.dart';
 
 class MatchHistoryScreen extends StatefulWidget {
   const MatchHistoryScreen({super.key});
@@ -47,10 +52,15 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
   bool _hasMore = false;
   int _totalOnlineMatches = 0;
 
+  String? _lastUserId;
+  bool? _lastIsGuest;
+  bool? _lastIsOnlineUnavailable;
+
   int get _totalMatchCount {
     final authProv = context.read<AuthProvider>();
     final isGuest = authProv.isGuest || authProv.currentUser == null;
-    final onlineCount = isGuest
+    final isOnlineUnavailable = authProv.isOnlineUnavailable;
+    final onlineCount = (isGuest || isOnlineUnavailable)
         ? 0
         : (_totalOnlineMatches > _onlineMatches.length
               ? _totalOnlineMatches
@@ -67,6 +77,30 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       _onRevisionChanged,
     );
     _fetchMatches();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final authProv = context.read<AuthProvider>();
+    final currentUserId = authProv.currentUser?.id;
+    final currentIsGuest = authProv.isGuest;
+    final currentIsOnlineUnavailable = authProv.isOnlineUnavailable;
+    if (_lastUserId != null &&
+        (_lastUserId != currentUserId ||
+            _lastIsGuest != currentIsGuest ||
+            _lastIsOnlineUnavailable != currentIsOnlineUnavailable)) {
+      _lastUserId = currentUserId;
+      _lastIsGuest = currentIsGuest;
+      _lastIsOnlineUnavailable = currentIsOnlineUnavailable;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fetchMatches();
+      });
+    } else {
+      _lastUserId = currentUserId;
+      _lastIsGuest = currentIsGuest;
+      _lastIsOnlineUnavailable = currentIsOnlineUnavailable;
+    }
   }
 
   @override
@@ -100,6 +134,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     final authProv = context.read<AuthProvider>();
     final user = authProv.currentUser;
     final isGuest = authProv.isGuest || user == null;
+    final isOnlineUnavailable = authProv.isOnlineUnavailable;
 
     setState(() {
       _isLoading = true;
@@ -121,31 +156,60 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
         isGuest: isGuest,
       );
 
-      // 3. Fetch online matches from backend API if not guest
-      if (!mounted) return;
-      if (!isGuest) {
-        try {
-          context.read<AuthProvider>().refreshProfile();
-          final result = await _matchApiService
-              .getUserMatchesWithTotal(user.id, limit: _pageSize, offset: 0)
-              .timeout(const Duration(seconds: 6));
-          _onlineMatches = result.matches;
-          _onlineOffset = result.matches.length;
-          _hasMoreOnline = result.matches.length == _pageSize;
-          _totalOnlineMatches = result.totalCount > 0
-              ? result.totalCount
-              : (user.totalGames > 0 ? user.totalGames : result.matches.length);
-        } catch (e) {
-          if (_offlineMatches.isEmpty) {
-            _errorMessage = e.toString();
-          }
-          _totalOnlineMatches = user.totalGames > 0 ? user.totalGames : 0;
-        }
-      } else {
+      // Pre-compute visible matches from local storage so offline games appear immediately
+      _recomputeVisibleMatches();
+
+      // If guest or online is unavailable (backend down or device offline), show immediately with zero delay
+      if (isGuest || isOnlineUnavailable) {
         _onlineMatches = [];
         _hasMoreOnline = false;
         _onlineOffset = 0;
         _totalOnlineMatches = 0;
+        _recomputeVisibleMatches();
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // If we already have offline matches to show, release full-screen loading spinner
+      // so user immediately views matches while online records sync in the background
+      if (_visibleMatches.isNotEmpty && mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+
+      // 3. Fetch online matches from backend API if not guest and online available
+      if (!mounted) return;
+      try {
+        context.read<AuthProvider>().refreshProfile();
+        final result = await _matchApiService
+            .getUserMatchesWithTotal(user.id, limit: _pageSize, offset: 0)
+            .timeout(const Duration(seconds: 3));
+        _onlineMatches = result.matches;
+        _onlineOffset = result.matches.length;
+        _hasMoreOnline = result.matches.length == _pageSize;
+        _totalOnlineMatches = result.totalCount > 0
+            ? result.totalCount
+            : (user.totalGames > 0 ? user.totalGames : result.matches.length);
+      } catch (e) {
+        debugPrint('[MatchHistoryScreen] Error fetching online matches: $e');
+        _onlineMatches = [];
+        _hasMoreOnline = false;
+        _onlineOffset = 0;
+        _totalOnlineMatches = user.totalGames > 0 ? user.totalGames : 0;
+        if (e is TimeoutException ||
+            (e is DioException &&
+                (e.type == DioExceptionType.connectionTimeout ||
+                    e.type == DioExceptionType.connectionError ||
+                    e.type == DioExceptionType.receiveTimeout))) {
+          if (mounted) {
+            context.read<AuthProvider>().setServerDown(true);
+          }
+        }
       }
 
       _recomputeVisibleMatches();
@@ -172,6 +236,15 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     final authProv = context.read<AuthProvider>();
     final user = authProv.currentUser;
     final isGuest = authProv.isGuest || user == null;
+    final isOnlineUnavailable = authProv.isOnlineUnavailable;
+
+    if (isGuest || isOnlineUnavailable) {
+      setState(() {
+        _displayLimit += _pageSize;
+        _recomputeVisibleMatches();
+      });
+      return;
+    }
 
     setState(() {
       _isLoadingMore = true;
@@ -186,7 +259,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
               limit: _pageSize,
               offset: _onlineOffset,
             )
-            .timeout(const Duration(seconds: 6));
+            .timeout(const Duration(seconds: 4));
 
         if (result.matches.isNotEmpty) {
           _onlineMatches.addAll(result.matches);
@@ -212,10 +285,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       debugPrint('[MatchHistoryScreen] Error loading more matches: $e');
       if (mounted) {
         setState(() {
+          _hasMoreOnline = false;
           _displayLimit += _pageSize;
           _recomputeVisibleMatches();
           _isLoadingMore = false;
-          _loadMoreError = 'history.loadMoreError'.tr();
         });
       }
     }
@@ -287,7 +360,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
       final authProv = context.read<AuthProvider>();
       final user = authProv.currentUser;
       final isGuest = authProv.isGuest || user == null;
-      await LocalMatchHistoryService.instance.saveMatch(
+      await WatchedReplayService.instance.saveWatchedReplay(
         loadedMatch,
         userId: user?.id,
         isGuest: isGuest,
@@ -323,7 +396,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => MatchReplayScreen(match: loadedMatch),
+          builder: (_) => MatchReplayScreen(
+            match: loadedMatch,
+            isWatchedReplay: true,
+          ),
         ),
       );
 
@@ -466,7 +542,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
               // 2. Fetch from backend
               final loaded = await _matchApiService.getMatchDetails(code);
-              await LocalMatchHistoryService.instance.saveMatch(
+              await WatchedReplayService.instance.saveWatchedReplay(
                 loaded,
                 userId: user?.id,
                 isGuest: isGuest,
@@ -476,10 +552,12 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
               if (mounted) {
                 await Navigator.of(this.context).push(
                   MaterialPageRoute(
-                    builder: (_) => MatchReplayScreen(match: loaded),
+                    builder: (_) => MatchReplayScreen(
+                      match: loaded,
+                      isWatchedReplay: true,
+                    ),
                   ),
                 );
-                if (mounted) _fetchMatches();
               }
             } catch (_) {
               if (dialogCtx.mounted) {
@@ -699,13 +777,29 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
     return Scaffold(
       appBar: KitaAppBar(
         leadingIcon: Icons.history_rounded,
-        iconColor: AppColors.accent,
+        iconColor: AppColors.sectionMatches,
         showAuthActions: false,
         showBack: true,
         showLanguageToggle: false,
         showThemeToggle: false,
         title: 'history.title'.tr(),
         extraActions: [
+          IconButton(
+            tooltip: 'replay.watchedReplays'.tr(),
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(
+              Icons.video_library_rounded,
+              color: AppColors.primaryAmber,
+              size: 20,
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const WatchedReplaysScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             tooltip: 'replay.loadReplay'.tr(),
             visualDensity: VisualDensity.compact,
@@ -734,6 +828,12 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Connection Notice Banner (when offline or server unreachable)
+                      if (authProv.isOffline || authProv.isServerDown) ...[
+                        _buildConnectionNoticeBanner(context, authProv),
+                        const SizedBox(height: 10),
+                      ],
+
                       // Offline Games Toggle Filter Bar
                       _buildOfflineFilterToggle(isDark),
                       const SizedBox(height: 14),
@@ -969,6 +1069,97 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             value: _showOfflineMatches,
             activeThumbColor: AppColors.primaryAmber,
             onChanged: _toggleOfflineFilter,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectionNoticeBanner(
+    BuildContext context,
+    AuthProvider authProv,
+  ) {
+    final isServerDown = !authProv.isOffline && authProv.isServerDown;
+    final bannerColor = isServerDown ? AppColors.error : AppColors.warning;
+    final bannerIcon = isServerDown ? Icons.cloud_off_rounded : Icons.wifi_off_rounded;
+    final bannerText = isServerDown
+        ? 'dashboard.serverDownNotice'.tr()
+        : 'dashboard.offlineNotice'.tr();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 9,
+      ),
+      decoration: BoxDecoration(
+        color: bannerColor.withValues(
+          alpha: 0.12,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: bannerColor.withValues(
+            alpha: 0.3,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            bannerIcon,
+            color: bannerColor,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              bannerText,
+              style: TextStyle(
+                fontSize: 12,
+                color: bannerColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: authProv.isRetryingConnection
+                ? null
+                : () async {
+                    final success = await authProv.retryConnection();
+                    if (success && mounted) {
+                      _fetchMatches();
+                    }
+                  },
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: bannerColor.withValues(
+                  alpha: 0.2,
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: authProv.isRetryingConnection
+                  ? SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(bannerColor),
+                      ),
+                    )
+                  : Text(
+                      'common.retry'.tr(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: bannerColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
           ),
         ],
       ),

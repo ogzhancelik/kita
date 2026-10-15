@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/navigation/app_route_observer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/game_models.dart';
 import '../../../data/models/ws_message_models.dart';
@@ -28,10 +29,11 @@ class OfflineMatchScreen extends StatefulWidget {
 }
 
 class _OfflineMatchScreenState extends State<OfflineMatchScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   OfflineGameProvider? _provider;
   bool _isGameOverDialogShowing = false;
   Timer? _gameOverDialogTimer;
+  bool _routeSubscribed = false;
 
   @override
   void initState() {
@@ -43,27 +45,70 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (!_routeSubscribed) {
+      final modalRoute = ModalRoute.of(context);
+      if (modalRoute != null) {
+        appRouteObserver.subscribe(this, modalRoute);
+        _routeSubscribed = true;
+      }
+    }
     final prov = context.read<OfflineGameProvider>();
     if (_provider != prov) {
       _provider?.gameOverData.removeListener(_onGameOver);
       _provider = prov;
       _provider?.gameOverData.addListener(_onGameOver);
     }
+    // Set in-game and resume clock if this screen is current/visible
+    final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    if (isCurrent) {
+      _provider?.setInGameScreen(true);
+    }
   }
 
   @override
   void dispose() {
+    if (_routeSubscribed) {
+      appRouteObserver.unsubscribe(this);
+    }
     WidgetsBinding.instance.removeObserver(this);
     OfflineMatchScreen.isMatchScreenOpen = false;
     _gameOverDialogTimer?.cancel();
     _provider?.gameOverData.removeListener(_onGameOver);
+    _provider?.setInGameScreen(false);
     super.dispose();
+  }
+
+  @override
+  void didPush() {
+    _provider?.resumeGameClock();
+  }
+
+  @override
+  void didPopNext() {
+    _provider?.resumeGameClock();
+  }
+
+  @override
+  void didPushNext() {
+    _provider?.pauseGameClock();
+  }
+
+  @override
+  void didPop() {
+    _provider?.pauseGameClock();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      _provider?.syncClocks();
+      final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+      if (isCurrent) {
+        _provider?.resumeGameClock();
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _provider?.pauseGameClock();
     }
   }
 

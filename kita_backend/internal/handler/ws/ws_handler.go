@@ -74,6 +74,18 @@ func (h *WSHandler) HandleConnection(c *gin.Context) {
 		}
 	}
 
+	if rStr := c.Query("rating"); rStr != "" {
+		if r, err := strconv.Atoi(rStr); err == nil && r > 0 {
+			rating = r
+			isProvisional = false
+		}
+	}
+	if provStr := c.Query("is_provisional"); provStr != "" {
+		if prov, err := strconv.ParseBool(provStr); err == nil {
+			isProvisional = prov
+		}
+	}
+
 	if token != "" {
 		if uid, err := h.authService.ValidateToken(token); err == nil {
 			userID = uid

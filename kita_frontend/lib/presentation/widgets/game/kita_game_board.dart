@@ -438,7 +438,8 @@ class _KitaGameBoardState extends State<KitaGameBoard> {
     } else {
       if (shouldRotatePieces) {
         // In Online / AI with auto piece angle and vertical board:
-        effectiveRotation = widget.flipBoard ? -0.25 : 0.25;
+        // Pieces always orient towards the player at the bottom (+0.25 / +90°)
+        effectiveRotation = 0.25;
       } else {
         // Fixed 0° (or when board is horizontal):
         effectiveRotation = 0.0;
