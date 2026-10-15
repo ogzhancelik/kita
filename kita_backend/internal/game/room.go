@@ -57,6 +57,13 @@ type Room struct {
 	disconnectPlayerID string
 	disconnectTimer    *time.Timer
 
+	// Timed match ready confirmation
+	RequiresReadyConfirmation bool
+	IsClockStarted            bool
+	WhiteReady                bool
+	BlackReady                bool
+	readySafetyTimer          *time.Timer
+
 	StartedAt    time.Time
 	ChatHistory  []ChatBroadcastDTO
 	mu           sync.RWMutex
@@ -85,6 +92,7 @@ func NewRoomWithTimeControl(id string, white, black *Client, timeControl int64, 
 		BlackRemainingMs: timeControl,
 		turnStartedAt:    now,
 		StartedAt:        now,
+		IsClockStarted:   true,
 		ChatHistory:      make([]ChatBroadcastDTO, 0, 16),
 		matchService:     matchService,
 		hub:              hub,
@@ -114,13 +122,15 @@ func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, timeContro
 		Game:             kitagame.NewGame(),
 		MovesBuffer:      make([]domain.MoveRecord, 0, 64),
 		lastMoveTime:     now,
-		TimeControl:      timeControl,
-		WhiteRemainingMs: timeControl,
-		BlackRemainingMs: timeControl,
-		StartedAt:        now,
-		ChatHistory:      make([]ChatBroadcastDTO, 0, 16),
-		matchService:     matchService,
-		hub:              hub,
+		TimeControl:               timeControl,
+		WhiteRemainingMs:          timeControl,
+		BlackRemainingMs:          timeControl,
+		StartedAt:                 now,
+		ChatHistory:               make([]ChatBroadcastDTO, 0, 16),
+		matchService:              matchService,
+		hub:                       hub,
+		RequiresReadyConfirmation: timeControl > 0,
+		IsClockStarted:            timeControl == 0,
 	}
 
 	host.CurrentMatchID = id
@@ -175,35 +185,54 @@ func (r *Room) startLocked() {
 
 	// 1. Oyunculara maç bulundu ve takımları bildirilir
 	r.WhitePlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
-		MatchID:               r.ID,
-		YourTeam:              "white",
-		OpponentID:            r.BlackPlayer.UserID,
-		OpponentName:          r.BlackPlayer.Username,
-		OpponentRating:        r.BlackPlayer.Rating,
-		OpponentIsProvisional: r.BlackPlayer.IsProvisional,
-		OpponentAvatarIndex:   r.BlackPlayer.AvatarIndex,
-		OpponentAvatarCustom:  r.BlackPlayer.AvatarCustom,
-		TimeControl:           r.TimeControl,
-		StartedAt:             &r.StartedAt,
-		ElapsedSeconds:        0,
+		MatchID:                   r.ID,
+		YourTeam:                  "white",
+		OpponentID:                r.BlackPlayer.UserID,
+		OpponentName:              r.BlackPlayer.Username,
+		OpponentRating:            r.BlackPlayer.Rating,
+		OpponentIsProvisional:     r.BlackPlayer.IsProvisional,
+		OpponentAvatarIndex:       r.BlackPlayer.AvatarIndex,
+		OpponentAvatarCustom:      r.BlackPlayer.AvatarCustom,
+		TimeControl:               r.TimeControl,
+		StartedAt:                 &r.StartedAt,
+		ElapsedSeconds:            0,
+		RequiresReadyConfirmation: r.RequiresReadyConfirmation,
+		IsClockStarted:            r.IsClockStarted,
+		WhiteReady:                r.WhiteReady,
+		BlackReady:                r.BlackReady,
 	})
 
 	r.BlackPlayer.SendJSON(TypeMatchFound, MatchFoundDTO{
-		MatchID:               r.ID,
-		YourTeam:              "black",
-		OpponentID:            r.WhitePlayer.UserID,
-		OpponentName:          r.WhitePlayer.Username,
-		OpponentRating:        r.WhitePlayer.Rating,
-		OpponentIsProvisional: r.WhitePlayer.IsProvisional,
-		OpponentAvatarIndex:   r.WhitePlayer.AvatarIndex,
-		OpponentAvatarCustom:  r.WhitePlayer.AvatarCustom,
-		TimeControl:           r.TimeControl,
-		StartedAt:             &r.StartedAt,
-		ElapsedSeconds:        0,
+		MatchID:                   r.ID,
+		YourTeam:                  "black",
+		OpponentID:                r.WhitePlayer.UserID,
+		OpponentName:              r.WhitePlayer.Username,
+		OpponentRating:            r.WhitePlayer.Rating,
+		OpponentIsProvisional:     r.WhitePlayer.IsProvisional,
+		OpponentAvatarIndex:       r.WhitePlayer.AvatarIndex,
+		OpponentAvatarCustom:      r.WhitePlayer.AvatarCustom,
+		TimeControl:               r.TimeControl,
+		StartedAt:                 &r.StartedAt,
+		ElapsedSeconds:            0,
+		RequiresReadyConfirmation: r.RequiresReadyConfirmation,
+		IsClockStarted:            r.IsClockStarted,
+		WhiteReady:                r.WhiteReady,
+		BlackReady:                r.BlackReady,
 	})
 
-	// 2. İlk chess clock timeout'u başlatılır (beyazın sırası)
-	r.startTimeoutTimerLocked()
+	// 2. İlk chess clock timeout'u veya hazır olma süresi başlatılır
+	if r.IsClockStarted {
+		r.startTimeoutTimerLocked()
+	} else {
+		// Fallback auto-start safety timer (15 seconds) so match clock begins even if player is AFK
+		r.readySafetyTimer = time.AfterFunc(15*time.Second, func() {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			if !r.IsClockStarted && !r.isFinished && r.Status == "in_game" {
+				r.startClockLocked()
+			}
+		})
+	}
 
 	// 3. Tahtanın ilk hali gönderilir
 	r.broadcastStateLocked()
@@ -234,6 +263,75 @@ func (r *Room) deductCurrentPlayerTimeLocked() int64 {
 		r.BlackRemainingMs = 0
 	}
 	return r.BlackRemainingMs
+}
+
+func (r *Room) SetPlayerReady(userID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.isFinished || r.Status != "in_game" || r.IsClockStarted {
+		return
+	}
+
+	if r.WhitePlayer != nil && r.WhitePlayer.UserID == userID {
+		r.WhiteReady = true
+	} else if r.BlackPlayer != nil && r.BlackPlayer.UserID == userID {
+		r.BlackReady = true
+	} else {
+		return
+	}
+
+	r.broadcastReadyStateLocked()
+
+	if r.WhiteReady && r.BlackReady {
+		r.startClockLocked()
+	}
+}
+
+func (r *Room) broadcastReadyStateLocked() {
+	dto := ReadyStateDTO{
+		MatchID:        r.ID,
+		WhiteReady:     r.WhiteReady,
+		BlackReady:     r.BlackReady,
+		IsClockStarted: r.IsClockStarted,
+	}
+	if r.WhitePlayer != nil {
+		r.WhitePlayer.SendJSON(TypeReadyState, dto)
+	}
+	if r.BlackPlayer != nil {
+		r.BlackPlayer.SendJSON(TypeReadyState, dto)
+	}
+}
+
+func (r *Room) startClockLocked() {
+	if r.IsClockStarted {
+		return
+	}
+	r.IsClockStarted = true
+	now := time.Now()
+	r.turnStartedAt = now
+	r.StartedAt = now
+	r.lastMoveTime = now
+
+	if r.readySafetyTimer != nil {
+		r.readySafetyTimer.Stop()
+		r.readySafetyTimer = nil
+	}
+
+	r.startTimeoutTimerLocked()
+
+	clockDTO := ClockStartedDTO{
+		MatchID:   r.ID,
+		StartedAt: now,
+	}
+	if r.WhitePlayer != nil {
+		r.WhitePlayer.SendJSON(TypeClockStarted, clockDTO)
+	}
+	if r.BlackPlayer != nil {
+		r.BlackPlayer.SendJSON(TypeClockStarted, clockDTO)
+	}
+
+	r.broadcastStateLocked()
 }
 
 // startTimeoutTimerLocked starts a timer that fires when the current player runs out of time.
@@ -335,6 +433,11 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 
 	if !isLegal {
 		return ErrIllegalMove
+	}
+
+	// If clock wasn't started yet (e.g. ready check pending and White moves), start clock immediately
+	if !r.IsClockStarted {
+		r.startClockLocked()
 	}
 
 	// 3. Chess clock: Deduct time for the player who just moved
@@ -840,6 +943,12 @@ func (r *Room) finishWithExplicitWinnerLocked(winnerID *string, winnerTeam, resu
 		r.timeoutTimer = nil
 	}
 
+	// Stop ready safety timer
+	if r.readySafetyTimer != nil {
+		r.readySafetyTimer.Stop()
+		r.readySafetyTimer = nil
+	}
+
 	// Stop disconnect grace timer
 	if r.disconnectTimer != nil {
 		r.disconnectTimer.Stop()
@@ -984,7 +1093,7 @@ func (r *Room) sendStateToClientLocked(client *Client) {
 	whiteRemaining := r.WhiteRemainingMs
 	blackRemaining := r.BlackRemainingMs
 
-	if r.TimeControl > 0 {
+	if r.TimeControl > 0 && r.IsClockStarted {
 		elapsed := time.Since(r.turnStartedAt).Milliseconds()
 		if r.Game.Turn == "white" {
 			whiteRemaining -= elapsed
@@ -1016,6 +1125,7 @@ func (r *Room) sendStateToClientLocked(client *Client) {
 		WhiteRemainingMs: whiteRemaining,
 		BlackRemainingMs: blackRemaining,
 		TimeControl:      r.TimeControl,
+		IsClockStarted:   r.IsClockStarted,
 		LastMove:         r.LastMoveDTO,
 		StartedAt:        &r.StartedAt,
 		ElapsedSeconds:   elapsedSeconds,

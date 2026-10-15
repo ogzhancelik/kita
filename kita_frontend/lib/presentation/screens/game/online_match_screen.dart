@@ -18,6 +18,7 @@ import '../../widgets/game/kita_game_board.dart';
 import '../../widgets/game/match_bottom_bar.dart';
 import '../../widgets/game/move_history_panel.dart';
 import '../../widgets/game/player_info_bar.dart';
+import '../../widgets/game/timed_match_ready_overlay.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 
 /// Online match screen (Portrait/Default) with space-efficient layout.
@@ -269,10 +270,16 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                       final totalHeight = constraints.maxHeight;
                       final totalWidth = constraints.maxWidth;
 
-                      final boardWidget = _BoardSection(
-                        provider: provider,
-                        flipBoard: effectiveFlip,
-                        isHorizontal: isHorizontal,
+                      final boardWidget = Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _BoardSection(
+                            provider: provider,
+                            flipBoard: effectiveFlip,
+                            isHorizontal: isHorizontal,
+                          ),
+                          TimedMatchReadyOverlay(provider: provider),
+                        ],
                       );
 
                       // When typing, player cards are hidden to maximize board & chat visibility
@@ -821,7 +828,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
               child: Text(
                 'online.returnToMenu'.tr(),
                 style: TextStyle(
-                  color: isDark ? AppColors.accentGold : AppColors.primary,
+                  color: isDark ? AppColors.getAccentGold(isDark) : AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -863,7 +870,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
               child: Text(
                 'online.returnToMenu'.tr(),
                 style: TextStyle(
-                  color: isDark ? AppColors.accentGold : AppColors.primary,
+                  color: isDark ? AppColors.getAccentGold(isDark) : AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),

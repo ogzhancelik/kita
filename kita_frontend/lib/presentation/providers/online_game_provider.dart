@@ -201,6 +201,14 @@ class OnlineGameProvider extends ChangeNotifier {
   final ValueNotifier<Map<String, dynamic>?> onWsNotificationEvent = ValueNotifier(null);
   final ValueNotifier<Map<String, dynamic>?> onWsFriendPresence = ValueNotifier(null);
 
+  // ─── Timed Match Ready Confirmation ─────────────────────────────
+  final ValueNotifier<bool> isClockStarted = ValueNotifier(true);
+  final ValueNotifier<bool> isReadyConfirmationRequired = ValueNotifier(false);
+  final ValueNotifier<bool> myReadyState = ValueNotifier(false);
+  final ValueNotifier<bool> opponentReadyState = ValueNotifier(false);
+  final ValueNotifier<int> readyCountdownSeconds = ValueNotifier(15);
+  Timer? _readyCountdownTimer;
+
   // ─── Elapsed Time ─────────────────────────────────────────────────
 
   final ValueNotifier<int> elapsedSeconds = ValueNotifier(0);
@@ -810,6 +818,12 @@ class OnlineGameProvider extends ChangeNotifier {
       case WsServerType.matchFound:
         _handleMatchFound(msg.payload);
 
+      case WsServerType.readyState:
+        _handleReadyState(msg.payload);
+
+      case WsServerType.clockStarted:
+        _handleClockStarted(msg.payload);
+
       case WsServerType.gameState:
         _handleGameState(msg.payload);
 
@@ -1160,19 +1174,86 @@ class OnlineGameProvider extends ChangeNotifier {
     blackRemainingMs.value = timeControl;
     currentTurn.value = 'white';
 
+    // Ready confirmation state
+    isReadyConfirmationRequired.value = data.requiresReadyConfirmation;
+    isClockStarted.value = data.isClockStarted;
+    final isWhite = data.yourTeam == 'white';
+    myReadyState.value = isWhite ? data.whiteReady : data.blackReady;
+    opponentReadyState.value = isWhite ? data.blackReady : data.whiteReady;
+
     matchState.value = OnlineMatchState.inMatch;
     _matchStartedAt ??= DateTime.now();
     _turnStartedAt = _matchStartedAt;
     _turnBaseRemainingMs = timeControl;
     _stopQueueTimer();
-    _startClockTimer();
 
+    if (data.requiresReadyConfirmation && !data.isClockStarted) {
+      readyCountdownSeconds.value = 15;
+      _readyCountdownTimer?.cancel();
+      _readyCountdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (readyCountdownSeconds.value > 1) {
+          readyCountdownSeconds.value--;
+        } else {
+          t.cancel();
+          _readyCountdownTimer = null;
+          if (!myReadyState.value) {
+            confirmReady();
+          }
+        }
+      });
+      _stopClockTimer();
+    } else {
+      _readyCountdownTimer?.cancel();
+      _readyCountdownTimer = null;
+      _startClockTimer();
+    }
+
+    notifyListeners();
+  }
+
+  void _handleReadyState(Map<String, dynamic>? payload) {
+    if (payload == null) return;
+    final data = ReadyStatePayload.fromJson(payload);
+    final isWhite = myTeam == 'white';
+    myReadyState.value = isWhite ? data.whiteReady : data.blackReady;
+    opponentReadyState.value = isWhite ? data.blackReady : data.whiteReady;
+    if (data.isClockStarted && !isClockStarted.value) {
+      _onClockStarted();
+    }
+    notifyListeners();
+  }
+
+  void _handleClockStarted(Map<String, dynamic>? payload) {
+    _onClockStarted();
+  }
+
+  void _onClockStarted() {
+    if (isClockStarted.value) return;
+    isClockStarted.value = true;
+    _readyCountdownTimer?.cancel();
+    _readyCountdownTimer = null;
+    _turnStartedAt = DateTime.now();
+    _startClockTimer();
+    SoundService.instance.playGameStart();
+    HapticService.instance.medium();
+    notifyListeners();
+  }
+
+  void confirmReady() {
+    if (myReadyState.value || isClockStarted.value) return;
+    myReadyState.value = true;
+    _ws.send(WsClientType.matchReady, {});
+    HapticService.instance.light();
     notifyListeners();
   }
 
   void _handleGameState(Map<String, dynamic>? payload) {
     if (payload == null) return;
     final data = GameStatePayload.fromJson(payload);
+
+    if (data.isClockStarted && !isClockStarted.value) {
+      _onClockStarted();
+    }
 
     // Update clock from backend (authoritative sync)
     whiteRemainingMs.value = data.whiteRemainingMs;
@@ -1579,6 +1660,7 @@ class OnlineGameProvider extends ChangeNotifier {
 
   void _tickClock() {
     if (matchState.value != OnlineMatchState.inMatch) return;
+    if (!isClockStarted.value) return; // Frozen until mutual ready check finishes
 
     // Client-side interpolation: deduct real elapsed milliseconds from active player's clock
     if (timeControl > 0 && _turnStartedAt != null) {
@@ -1687,6 +1769,13 @@ class OnlineGameProvider extends ChangeNotifier {
     blackRemainingMs.value = 0;
     _engineSnapshots.clear();
     _matchStartedAt = null;
+    isClockStarted.value = true;
+    isReadyConfirmationRequired.value = false;
+    myReadyState.value = false;
+    opponentReadyState.value = false;
+    readyCountdownSeconds.value = 15;
+    _readyCountdownTimer?.cancel();
+    _readyCountdownTimer = null;
     _stopClockTimer();
     _stopQueueTimer();
     LocalMatchHistoryService.instance.notifyMatchesChanged();
@@ -1728,6 +1817,13 @@ class OnlineGameProvider extends ChangeNotifier {
     blackRemainingMs.value = 0;
     _engineSnapshots.clear();
     _matchStartedAt = null;
+    isClockStarted.value = true;
+    isReadyConfirmationRequired.value = false;
+    myReadyState.value = false;
+    opponentReadyState.value = false;
+    readyCountdownSeconds.value = 15;
+    _readyCountdownTimer?.cancel();
+    _readyCountdownTimer = null;
     _stopClockTimer();
     _stopQueueTimer();
     LocalMatchHistoryService.instance.notifyMatchesChanged();
@@ -1801,6 +1897,12 @@ class OnlineGameProvider extends ChangeNotifier {
     matchInvitation.dispose();
     incomingMatchRequest.dispose();
     isGameOverDialogActive.dispose();
+    isClockStarted.dispose();
+    isReadyConfirmationRequired.dispose();
+    myReadyState.dispose();
+    opponentReadyState.dispose();
+    readyCountdownSeconds.dispose();
+    _readyCountdownTimer?.cancel();
     elapsedSeconds.dispose();
     queueElapsedSeconds.dispose();
     super.dispose();

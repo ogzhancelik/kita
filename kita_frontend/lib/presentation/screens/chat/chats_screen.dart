@@ -79,11 +79,13 @@ class _ChatsScreenState extends State<ChatsScreen> {
   void _openChat(FriendItemModel friend) {
     var targetFriend = friend;
     final cached = _profileCache[friend.userId];
-    if (cached != null &&
-        (targetFriend.username == 'Player' || targetFriend.username.isEmpty)) {
+    if (cached != null) {
       targetFriend = targetFriend.copyWith(
-        username: cached.username,
+        username: (targetFriend.username == 'Player' || targetFriend.username.isEmpty)
+            ? cached.username
+            : targetFriend.username,
         avatarIndex: cached.avatarIndex,
+        avatarCustom: cached.avatarCustom ?? targetFriend.avatarCustom,
         rating: cached.rating,
       );
     }
@@ -183,6 +185,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
       if (friend == null) {
         String name = '';
         int avatarIndex = 0;
+        String? avatarCustom;
         int rating = 1200;
 
         if (preview.senderId == otherUserId) {
@@ -191,18 +194,21 @@ class _ChatsScreenState extends State<ChatsScreen> {
             name = preview.senderUsername;
           }
           avatarIndex = preview.senderAvatarIndex;
+          avatarCustom = preview.senderAvatarCustom;
         } else if (preview.recipientId == otherUserId) {
           if (preview.recipientUsername.isNotEmpty &&
               preview.recipientUsername != 'Player') {
             name = preview.recipientUsername;
           }
           avatarIndex = preview.recipientAvatarIndex;
+          avatarCustom = preview.recipientAvatarCustom;
         }
 
         final cached = _profileCache[otherUserId];
         if (cached != null) {
           name = cached.username;
           avatarIndex = cached.avatarIndex;
+          avatarCustom = cached.avatarCustom ?? avatarCustom;
           rating = cached.rating;
         } else if (name.isEmpty) {
           _fetchProfileIfNeeded(otherUserId);
@@ -213,6 +219,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
           userId: otherUserId,
           username: name.isNotEmpty ? name : 'Player',
           avatarIndex: avatarIndex,
+          avatarCustom: avatarCustom,
           rating: rating,
           status: 'accepted',
           direction: 'friend',
@@ -643,15 +650,16 @@ class _ChatTile extends StatelessWidget {
                             vertical: 1.5,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.ratingGold.withValues(alpha: 0.15),
+                            color: AppColors.getRatingGold(isDark)
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '${item.friend.rating}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.ratingGold,
+                              color: AppColors.getRatingGold(isDark),
                             ),
                           ),
                         ),
@@ -923,9 +931,9 @@ class _NewChatBottomSheetState extends State<_NewChatBottomSheet> {
                         ),
                         subtitle: Text(
                           '${friend.rating} ELO',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.ratingGold,
+                            color: AppColors.getRatingGold(widget.isDark),
                             fontWeight: FontWeight.w600,
                           ),
                         ),

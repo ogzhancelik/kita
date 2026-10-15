@@ -82,7 +82,7 @@ class DashboardTopBar extends StatelessWidget {
                                 size: 13,
                                 color: isGuest
                                     ? AppColors.guestOrange
-                                    : AppColors.ratingGold,
+                                    : AppColors.getRatingGold(isDark),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -94,7 +94,7 @@ class DashboardTopBar extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                   color: isGuest
                                       ? AppColors.guestOrange
-                                      : AppColors.ratingGold,
+                                      : AppColors.getRatingGold(isDark),
                                 ),
                               ),
                             ],

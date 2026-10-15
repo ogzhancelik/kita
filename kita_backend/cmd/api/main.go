@@ -91,6 +91,7 @@ func main() {
 	friendH := httpHandler.NewFriendHandler(friendService, userService, notificationService, hub)
 	notifH := httpHandler.NewNotificationHandler(notificationService)
 	dmH := httpHandler.NewDirectMessageHandler(dmService, friendService)
+	reportH := httpHandler.NewReportHandler(db, dmService, notificationService, hub)
 	wsH := wsHandler.NewWSHandler(hub, authService, userService)
 
 
@@ -183,6 +184,11 @@ func main() {
 		{
 			dmRoutes.GET("/conversations", dmH.ListConversations)
 			dmRoutes.GET("/conversations/:conversationId", dmH.GetHistory)
+		}
+
+		reportRoutes := api.Group("/reports", middleware.OptionalAuthMiddleware(authService))
+		{
+			reportRoutes.POST("", reportH.CreateReport)
 		}
 
 

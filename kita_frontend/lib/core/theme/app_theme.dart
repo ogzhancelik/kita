@@ -143,5 +143,14 @@ class AppTheme {
 
   static Color getBoardTileGrayTint(Color baseColor, bool isDark) =>
       AppColors.getBoardTileGrayTint(baseColor, isDark);
+
+  static Color getRatingGold(bool isDark) =>
+      AppColors.getRatingGold(isDark);
+
+  static Color getAccentGold(bool isDark) =>
+      AppColors.getAccentGold(isDark);
+
+  static Color getSectionLeaderboard(bool isDark) =>
+      AppColors.getSectionLeaderboard(isDark);
 }
 

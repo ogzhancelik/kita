@@ -34,9 +34,13 @@ class AppColors {
   ); // 3D bevel shadow for accent buttons
 
   // --- Dashboard Section Header Icon Colors (Refined, desaturated tactical palette) ---
-  static const Color sectionLeaderboard = Color(
+  static const Color sectionLeaderboardDark = Color(
     0xFFF4CB72,
   ); // Soft Champagne Gold (Top Players / Leaderboard)
+  static const Color sectionLeaderboardLight = Color(
+    0xFFC87A00,
+  ); // Deep Honey Gold for light mode (4.2:1 contrast)
+  static const Color sectionLeaderboard = sectionLeaderboardDark;
   static const Color sectionOpenRooms = Color(
     0xFF7BB6EB,
   ); // Soft Slate Cerulean (Open Rooms)
@@ -100,8 +104,16 @@ class AppColors {
   static const Color advantageBadgeTextDark = Color(0xFF1B263B);
 
   // --- Rating & Badges ---
-  static const Color ratingGold = Color(0xFFFFC83B);
-  static const Color accentGold = Color(0xFFFFC83B);
+  static const Color ratingGoldDark = Color(0xFFFFC83B); // Luminous gold for dark mode
+  static const Color ratingGoldLight = Color(
+    0xFFC87A00,
+  ); // Deep Honey Gold for light mode (4.2:1 contrast against light surfaces)
+  static const Color ratingGold = ratingGoldDark;
+
+  static const Color accentGoldDark = Color(0xFFFFC83B);
+  static const Color accentGoldLight = Color(0xFFC87A00);
+  static const Color accentGold = accentGoldDark;
+
   static const Color silverMedal = Color(0xFFC0C0C0);
   static const Color bronzeMedal = Color(0xFFCD7F32);
   static const Color guestOrange = Color(0xFFF39C12);
@@ -110,9 +122,9 @@ class AppColors {
   ); // Vibrant Emerald Green for wins
   static const Color winBlue = Color(0xFF3498DB);
   static const Color lossRed = Color(0xFFE74C3C);
-  static const Color drawYellow = Color(
-    0xFFFFC83B,
-  ); // Standard warning yellow for draw outcomes
+  static const Color drawYellowDark = Color(0xFFFFC83B);
+  static const Color drawYellowLight = Color(0xFFC87A00);
+  static const Color drawYellow = drawYellowDark;
   static const Color draw = drawYellow;
   static const Color drawGray = drawYellow; // Backward-compatibility alias
   static const Color deletedUser = Color(
@@ -133,7 +145,13 @@ class AppColors {
 
   static Color getVictory(bool isDark) => victory;
   static Color getOnline(bool isDark) => isDark ? accent : accentSecondary;
-  static Color getDraw(bool isDark) => drawYellow;
+  static Color getDraw(bool isDark) => isDark ? drawYellowDark : drawYellowLight;
+  static Color getRatingGold(bool isDark) =>
+      isDark ? ratingGoldDark : ratingGoldLight;
+  static Color getAccentGold(bool isDark) =>
+      isDark ? accentGoldDark : accentGoldLight;
+  static Color getSectionLeaderboard(bool isDark) =>
+      isDark ? sectionLeaderboardDark : sectionLeaderboardLight;
 
   // --- Active Turn Profile Panel Colors (Mint theme) ---
   static const Color turnActiveCardDark = Color(

@@ -78,9 +78,9 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.emoji_events_rounded,
-                      color: AppColors.sectionLeaderboard,
+                      color: AppColors.getSectionLeaderboard(isDark),
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -230,7 +230,7 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
 
     switch (rank) {
       case 1:
-        medalColor = AppColors.ratingGold;
+        medalColor = AppColors.getRatingGold(isDark);
         avatarSize = 52.0;
         break;
       case 2:
@@ -318,10 +318,10 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
         Text(
           player.displayRating,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: AppColors.ratingGold,
+            color: AppColors.getRatingGold(isDark),
           ),
         ),
       ],

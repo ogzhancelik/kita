@@ -36,6 +36,7 @@ const (
 	TypeDrawAccept      = "draw_accept"
 	TypeDrawDecline     = "draw_decline"
 	TypeDmSend          = "dm_send"
+	TypeMatchReady      = "match_ready"
 
 
 	// Server -> Client
@@ -71,6 +72,8 @@ const (
 	TypeDrawOffered          = "draw_offered"
 	TypeDrawDeclined         = "draw_declined"
 	TypeDmBroadcast          = "dm_broadcast"
+	TypeReadyState           = "ready_state"
+	TypeClockStarted         = "clock_started"
 )
 
 
@@ -130,6 +133,7 @@ type GameStateDTO struct {
 	WhiteRemainingMs int64                    `json:"white_remaining_ms"`
 	BlackRemainingMs int64                    `json:"black_remaining_ms"`
 	TimeControl      int64                    `json:"time_control"`
+	IsClockStarted   bool                     `json:"is_clock_started"`
 	// Last move for highlighting
 	LastMove         *MoveDTO                 `json:"last_move,omitempty"`
 	StartedAt        *time.Time               `json:"started_at,omitempty"`
@@ -151,20 +155,40 @@ type MoveRecordDTO struct {
 // ─── Match Found DTO ──────────────────────────────────────────────────
 
 type MatchFoundDTO struct {
-	MatchID             string             `json:"match_id"`
-	YourTeam            string             `json:"your_team"` // "white" or "black"
-	OpponentID          string             `json:"opponent_id"`
-	OpponentName        string             `json:"opponent_name"`
-	OpponentRating         int                `json:"opponent_rating"`
-	OpponentIsProvisional  bool               `json:"opponent_is_provisional"`
-	OpponentAvatarIndex    int                `json:"opponent_avatar_index"`
-	OpponentAvatarCustom   string             `json:"opponent_avatar_custom,omitempty"`
-	TimeControl         int64              `json:"time_control"`
-	IsReconnect         bool               `json:"is_reconnect,omitempty"`
-	StartedAt           *time.Time         `json:"started_at,omitempty"`
-	ElapsedSeconds      int                `json:"elapsed_seconds,omitempty"`
-	MoveHistory         []MoveRecordDTO    `json:"move_history,omitempty"`
-	ChatHistory         []ChatBroadcastDTO `json:"chat_history,omitempty"`
+	MatchID                   string             `json:"match_id"`
+	YourTeam                  string             `json:"your_team"` // "white" or "black"
+	OpponentID                string             `json:"opponent_id"`
+	OpponentName              string             `json:"opponent_name"`
+	OpponentRating            int                `json:"opponent_rating"`
+	OpponentIsProvisional     bool               `json:"opponent_is_provisional"`
+	OpponentAvatarIndex       int                `json:"opponent_avatar_index"`
+	OpponentAvatarCustom      string             `json:"opponent_avatar_custom,omitempty"`
+	TimeControl               int64              `json:"time_control"`
+	IsReconnect               bool               `json:"is_reconnect,omitempty"`
+	StartedAt                 *time.Time         `json:"started_at,omitempty"`
+	ElapsedSeconds            int                `json:"elapsed_seconds,omitempty"`
+	RequiresReadyConfirmation bool               `json:"requires_ready_confirmation,omitempty"`
+	IsClockStarted            bool               `json:"is_clock_started"`
+	WhiteReady                bool               `json:"white_ready,omitempty"`
+	BlackReady                bool               `json:"black_ready,omitempty"`
+	MoveHistory               []MoveRecordDTO    `json:"move_history,omitempty"`
+	ChatHistory               []ChatBroadcastDTO `json:"chat_history,omitempty"`
+}
+
+// ─── Ready State DTO ──────────────────────────────────────────────────
+
+type ReadyStateDTO struct {
+	MatchID        string `json:"match_id"`
+	WhiteReady     bool   `json:"white_ready"`
+	BlackReady     bool   `json:"black_ready"`
+	IsClockStarted bool   `json:"is_clock_started"`
+}
+
+// ─── Clock Started DTO ────────────────────────────────────────────────
+
+type ClockStartedDTO struct {
+	MatchID   string    `json:"match_id"`
+	StartedAt time.Time `json:"started_at"`
 }
 
 // ─── Game Over DTO ────────────────────────────────────────────────────

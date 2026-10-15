@@ -6,20 +6,35 @@ if ($proc) {
     exit 0
 }
 
-$binPath = Join-Path $PSScriptRoot "kita_backend\bin\ghost_rooms.exe"
-$srcPath = Join-Path $PSScriptRoot "kita_backend\cmd\ghost_rooms\main.go"
+$projectRoot = $PSScriptRoot
+if (-not (Test-Path (Join-Path $projectRoot "kita_backend"))) {
+    $parent = Split-Path -Parent $projectRoot
+    if (Test-Path (Join-Path $parent "kita_backend")) {
+        $projectRoot = $parent
+    }
+}
+
+$backendDir = Join-Path $projectRoot "kita_backend"
+$binPath = Join-Path $backendDir "bin\ghost_rooms.exe"
+$srcPath = Join-Path $backendDir "cmd\ghost_rooms\main.go"
 
 $needsBuild = (-not (Test-Path $binPath)) -or ((Test-Path $srcPath) -and (Get-Item $srcPath).LastWriteTime -gt (Get-Item $binPath).LastWriteTime)
 if ($needsBuild) {
     Write-Host "Compiling ghost_rooms.exe with latest changes..." -ForegroundColor Cyan
-    Set-Location (Join-Path $PSScriptRoot "kita_backend")
+    $origLoc = Get-Location
+    Set-Location $backendDir
     go build -o bin/ghost_rooms.exe ./cmd/ghost_rooms
-    Set-Location $PSScriptRoot
+    Set-Location $origLoc
 }
 
 
+$runDir = Join-Path $projectRoot ".kita_run"
+if (-not (Test-Path $runDir)) { New-Item -ItemType Directory -Path $runDir -Force | Out-Null }
+$outLog = Join-Path $runDir "ghost_rooms.log"
+$errLog = Join-Path $runDir "ghost_rooms_err.log"
+
 Write-Host "Starting ghost rooms..." -ForegroundColor Green
-Start-Process -FilePath $binPath -WorkingDirectory (Join-Path $PSScriptRoot "kita_backend") -WindowStyle Hidden
+Start-Process -FilePath $binPath -WorkingDirectory $backendDir -RedirectStandardOutput $outLog -RedirectStandardError $errLog -WindowStyle Hidden
 
 Start-Sleep -Seconds 2
 $newProc = Get-Process ghost_rooms -ErrorAction SilentlyContinue
@@ -28,4 +43,7 @@ if ($newProc) {
     Write-Host "To stop them anytime, run: .\stop_ghost_rooms.ps1" -ForegroundColor Cyan
 } else {
     Write-Host "Failed to start ghost rooms. Check if backend is running on :8080." -ForegroundColor Red
+    if (Test-Path $errLog) {
+        Get-Content $errLog -Tail 10
+    }
 }

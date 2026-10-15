@@ -121,7 +121,7 @@ class _NotificationTileState extends State<NotificationTile> {
         iconData = Icons.replay_rounded;
         break;
       case KitaNotificationType.challenge:
-        accentColor = AppColors.ratingGold;
+        accentColor = AppColors.getRatingGold(isDark);
         iconData = Icons.sports_esports_rounded;
         break;
       case KitaNotificationType.friendRequest:
@@ -137,7 +137,7 @@ class _NotificationTileState extends State<NotificationTile> {
           accentColor = AppColors.winBlue;
           iconData = Icons.replay_rounded;
         } else if (notification.title.contains('challenge') || notification.id.startsWith('challenge')) {
-          accentColor = AppColors.ratingGold;
+          accentColor = AppColors.getRatingGold(isDark);
           iconData = Icons.sports_esports_rounded;
         } else if (notification.title.contains('friendRequest') || notification.id.startsWith('friend_request')) {
           accentColor = AppColors.accentSecondary;
@@ -317,10 +317,10 @@ class _NotificationTileState extends State<NotificationTile> {
                                 ),
                                 child: Text(
                                   '★ ${notification.senderRating}${notification.senderIsProvisional == true ? '?' : ''}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.ratingGold,
+                                    color: AppColors.getRatingGold(isDark),
                                   ),
                                 ),
                               ),

@@ -53,7 +53,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
   void initState() {
     super.initState();
     _friend = widget.friend;
-    if (_friend.username == 'Player' || _friend.username.isEmpty) {
+    if (_friend.username == 'Player' || _friend.username.isEmpty || _friend.avatarCustom == null || _friend.avatarCustom!.isEmpty) {
       UserApiService()
           .getUserProfile(_friend.userId)
           .then((profile) {
@@ -62,6 +62,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
                 _friend = _friend.copyWith(
                   username: profile.username,
                   avatarIndex: profile.avatarIndex,
+                  avatarCustom: profile.avatarCustom,
                   rating: profile.rating,
                 );
               });
@@ -102,6 +103,8 @@ class _DmChatScreenState extends State<DmChatScreen> {
       );
     });
 
+    _scrollController.addListener(_onScroll);
+
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         if (_showEmojiPicker) {
@@ -114,6 +117,18 @@ class _DmChatScreenState extends State<DmChatScreen> {
         });
       }
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.pixels <= 100) {
+      final dmProv = context.read<DmProvider>();
+      if (dmProv.hasMoreHistoryFor(_conversationId) &&
+          !dmProv.isLoadingMoreFor(_conversationId) &&
+          !dmProv.isHistoryLoadingFor(_conversationId)) {
+        dmProv.loadMoreHistory(_conversationId);
+      }
+    }
   }
 
   DmProvider? _dmProv;
@@ -139,6 +154,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _dmProv?.setActiveConversation(null);
     _dmProv?.clearUnread(_conversationId, userId: widget.friend.userId);
     _controller.dispose();
@@ -307,6 +323,19 @@ class _DmChatScreenState extends State<DmChatScreen> {
       (f) => f.userId == _friend.userId,
       orElse: () => _friend,
     );
+    final dmProv = context.watch<DmProvider>();
+    final messages = dmProv.messagesFor(_conversationId);
+    String? effectiveAvatarCustom = friend.avatarCustom ?? _friend.avatarCustom;
+    if (effectiveAvatarCustom == null || effectiveAvatarCustom.isEmpty) {
+      for (final m in messages) {
+        if (m.senderId == _friend.userId &&
+            m.senderAvatarCustom != null &&
+            m.senderAvatarCustom!.isNotEmpty) {
+          effectiveAvatarCustom = m.senderAvatarCustom;
+          break;
+        }
+      }
+    }
     return AppBar(
       backgroundColor: AppColors.getCard(isDark),
       elevation: 0,
@@ -329,7 +358,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
                   KitaAvatar(
                     size: 36,
                     avatarIndex: friend.avatarIndex,
-                    avatarCustom: friend.avatarCustom,
+                    avatarCustom: effectiveAvatarCustom,
                     borderWidth: 1.5,
                   ),
                   if (friend.isOnline)
@@ -424,8 +453,11 @@ class _DmChatScreenState extends State<DmChatScreen> {
           );
         }
 
+        final isLoadingMore = dmProv.isLoadingMoreFor(_conversationId);
+
         if (timeline.length != _lastTimelineCount) {
           final isInitial = _lastTimelineCount == 0;
+          final wasLoadingMore = isLoadingMore;
           _lastTimelineCount = timeline.length;
           final isMyMsg =
               timeline.isNotEmpty && timeline.last.dm?.senderId == _myId;
@@ -437,7 +469,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
 
           if (isInitial) {
             _scrollToBottom(immediate: true);
-          } else if (isMyMsg || isNearBottom) {
+          } else if (!wasLoadingMore && (isMyMsg || isNearBottom)) {
             _scrollToBottom(immediate: false);
           }
         }
@@ -446,8 +478,26 @@ class _DmChatScreenState extends State<DmChatScreen> {
           controller: _scrollController,
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          itemCount: timeline.length,
+          itemCount: timeline.length + (isLoadingMore ? 1 : 0),
           itemBuilder: (ctx, index) {
+            if (isLoadingMore) {
+              if (index == 0) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primaryAmber,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              index = index - 1;
+            }
             final item = timeline[index];
             final prevItem = index > 0 ? timeline[index - 1] : null;
             final showDate =

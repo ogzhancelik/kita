@@ -327,7 +327,7 @@ class HomePendingGameCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: (isOpponentGuest
                                       ? AppColors.guestOrange
-                                      : AppColors.ratingGold)
+                                      : AppColors.getRatingGold(isDark))
                                   .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
@@ -341,7 +341,7 @@ class HomePendingGameCard extends StatelessWidget {
                                   size: 11,
                                   color: isOpponentGuest
                                       ? AppColors.guestOrange
-                                      : AppColors.ratingGold,
+                                      : AppColors.getRatingGold(isDark),
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
@@ -353,7 +353,7 @@ class HomePendingGameCard extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                     color: isOpponentGuest
                                         ? AppColors.guestOrange
-                                        : AppColors.ratingGold,
+                                        : AppColors.getRatingGold(isDark),
                                   ),
                                 ),
                               ],
@@ -396,12 +396,13 @@ class HomePendingGameCard extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: isMyTurn
-                                          ? AppColors.accentGold
+                                          ? AppColors.getAccentGold(isDark)
                                           : AppColors.getTextMuted(isDark),
                                       boxShadow: isMyTurn
                                           ? [
                                               BoxShadow(
-                                                color: AppColors.accentGold
+                                                color: AppColors.getAccentGold(
+                                                        isDark)
                                                     .withValues(alpha: 0.6),
                                                 blurRadius: 4,
                                                 spreadRadius: 0.5,
@@ -422,7 +423,7 @@ class HomePendingGameCard extends StatelessWidget {
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
                                         color: isMyTurn
-                                            ? AppColors.accentGold
+                                            ? AppColors.getAccentGold(isDark)
                                             : AppColors.getTextMuted(isDark),
                                       ),
                                       overflow: TextOverflow.ellipsis,
@@ -747,7 +748,7 @@ class HomePendingGameCard extends StatelessWidget {
             color: AppColors.getCard(isDark),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.accentGold.withValues(alpha: 0.5),
+              color: AppColors.getAccentGold(isDark).withValues(alpha: 0.5),
               width: 1.5,
             ),
             boxShadow: [
@@ -765,13 +766,13 @@ class HomePendingGameCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.accentGold.withValues(alpha: 0.15),
+                  color: AppColors.getAccentGold(isDark).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.meeting_room_rounded,
-                    color: AppColors.accentGold,
+                    color: AppColors.getAccentGold(isDark),
                     size: 22,
                   ),
                 ),
@@ -791,22 +792,40 @@ class HomePendingGameCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.accentGold.withValues(alpha: 0.2),
+                            color: AppColors.getAccentGold(isDark)
+                                .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             'dashboard.pendingSection.openRoomTitle'
                                 .tr()
                                 .toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.accentGold,
+                              color: AppColors.getAccentGold(isDark),
                               letterSpacing: 0.5,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.getAccentGold(isDark),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.getAccentGold(isDark)
+                                    .withValues(alpha: 0.5),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
                         Text(
                           'dashboard.pendingSection.waitingForOpponent'.tr(),
                           style: TextStyle(
@@ -861,7 +880,7 @@ class HomePendingGameCard extends StatelessWidget {
               // Copy Code Quick Action
               IconButton(
                 icon: const Icon(Icons.copy_rounded, size: 20),
-                color: AppColors.accentGold,
+                color: AppColors.getAccentGold(isDark),
                 tooltip: 'online.codeCopied'.tr(),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: code));
@@ -987,15 +1006,16 @@ class HomePendingGameCard extends StatelessWidget {
                             vertical: 1,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.ratingGold.withValues(alpha: 0.15),
+                            color: AppColors.getRatingGold(isDark)
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '★ ${rematch.opponentRating}${rematch.opponentIsProvisional == true ? "?" : ""}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.ratingGold,
+                              color: AppColors.getRatingGold(isDark),
                             ),
                           ),
                         ),
@@ -1149,15 +1169,16 @@ class HomePendingGameCard extends StatelessWidget {
                             vertical: 1,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.ratingGold.withValues(alpha: 0.15),
+                            color: AppColors.getRatingGold(isDark)
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '★ ${challenge.friendRating}${challenge.friendIsProvisional == true ? "?" : ""}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.ratingGold,
+                              color: AppColors.getRatingGold(isDark),
                             ),
                           ),
                         ),

@@ -110,6 +110,9 @@ class ApiConstants {
   static String dmConversationHistory(String conversationId) =>
       '/api/dm/conversations/$conversationId';
 
+  // Reports
+  static const String reports = '/api/reports';
+
 
   // WebSocket
   static String get wsUrl {

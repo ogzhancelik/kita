@@ -11,6 +11,7 @@ import '../../providers/offline_game_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/match_replay_screen.dart';
 import '../../../main.dart';
+import '../dialogs/report_dialog.dart';
 import '../home/settings_dialog.dart';
 import 'game_over_dialog.dart';
 
@@ -265,6 +266,28 @@ class MatchMenuDialog extends StatelessWidget {
                   }
                 },
               ),
+
+              if (!isOffline)
+                _MenuTile(
+                  icon: Icons.flag_outlined,
+                  iconColor: AppColors.lossRed,
+                  title: 'moderation.report'.tr(),
+                  subtitle: 'moderation.reportInGameSubtitle'.tr(),
+                  textColor: AppColors.getTextPrimary(isDark),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    final dialogContext =
+                        appNavigatorKey.currentContext ?? context;
+                    final matchId = onlineProv.matchId ??
+                        onlineProv.gameOverData.value?.matchId;
+                    final opponentName = onlineProv.opponentInfo?.name;
+                    ReportDialog.show(
+                      dialogContext,
+                      matchId: matchId,
+                      reportedUsername: opponentName,
+                    );
+                  },
+                ),
 
               // ─── Divider 2: settings, rotate board | resign, offer draw
               if (!isGameOver) ...[

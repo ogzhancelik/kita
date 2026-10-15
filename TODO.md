@@ -15,13 +15,13 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Desktop In-Match Chat Focus**: Auto-focus the match chat input upon typing on desktop/web without requiring an initial mouse click.
 
 ### 🚪 Lobby, Rooms & Matchmaking
-- [ ] **Room Waiting State Animation**: Add dynamic loading/searching visual indicator while waiting for opponent in rooms.
+- [x] **Room Waiting State Animation**: Add dynamic loading/searching visual indicator while waiting for opponent in rooms.
 - [ ] **Room Code Share Sheet**: Add one-tap "Share Room Code" action invoking native share sheet (WhatsApp, clipboard, etc.).
-- [ ] **Room Join Alert & Timed Match Start Confirmation**: Notify the host immediately upon an opponent joining, and introduce a mutual "Ready" confirmation before starting the countdown clock in timed rooms.
+- [ ] **Room Join Alert & Timed Match Start Confirmation**: Notify the host immediately upon an opponent joining (pending OS push notification infrastructure), and [x] introduce a mutual "Ready" confirmation before starting the countdown clock in timed rooms.
 
 ### 🛡️ Moderation & Support
-- [ ] In-game player reporting system
-- [ ] In-app bug report submission system
+- [x] In-game player reporting system
+- [x] In-app bug report submission system
 
 ### 💡 Under Review / Exploratory (To Be Decided)
 - [ ] Spectator mode (live match viewing)

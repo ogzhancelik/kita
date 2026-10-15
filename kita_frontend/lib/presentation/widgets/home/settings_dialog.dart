@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/game_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../common/kita_card.dart';
+import '../dialogs/report_dialog.dart';
 import '../../screens/tutorial/tutorial_screen.dart';
 import 'account_settings_dialog.dart';
 import 'board_settings_dialog.dart';
@@ -220,6 +221,27 @@ class SettingsDialog extends StatelessWidget {
                       onTap: () {
                         Navigator.of(context).pop();
                         TutorialScreen.launch(context);
+                      },
+                      trailing: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- Moderation & Support / Report ---
+                    _buildSettingsTile(
+                      isDark: isDark,
+                      icon: Icons.flag_outlined,
+                      iconColor: AppColors.lossRed,
+                      title: 'moderation.reportTitle'.tr(),
+                      subtitle: 'moderation.reportSubtitle'.tr(),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        ReportDialog.show(context);
                       },
                       trailing: Icon(
                         Icons.arrow_forward_ios_rounded,

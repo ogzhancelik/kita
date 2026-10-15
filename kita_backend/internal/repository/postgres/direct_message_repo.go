@@ -37,12 +37,16 @@ func (r *directMessageRepo) GetConversation(ctx context.Context, conversationID 
 	var msgs []domain.DirectMessage
 	err := r.db.WithContext(ctx).
 		Where("conversation_id = ?", conversationID).
-		Order("created_at ASC").
+		Order("created_at DESC, id DESC").
 		Limit(limit).
 		Offset(offset).
 		Find(&msgs).Error
 	if err != nil {
 		return nil, err
+	}
+	// Reverse to return them in chronological order (oldest to newest)
+	for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
+		msgs[i], msgs[j] = msgs[j], msgs[i]
 	}
 	r.populateUserMetadata(ctx, msgs)
 	return msgs, nil

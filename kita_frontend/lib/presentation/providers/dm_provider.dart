@@ -31,6 +31,12 @@ class DmProvider extends ChangeNotifier {
   /// Set of conversationIds currently fetching history from the API.
   final Set<String> _loadingConversations = {};
 
+  /// Set of conversationIds currently fetching older paginated history.
+  final Set<String> _loadingMoreConversations = {};
+
+  /// Tracks whether more older history exists for a conversation.
+  final Map<String, bool> _hasMoreHistory = {};
+
   /// Loading state for history fetch.
   bool _historyLoading = false;
 
@@ -185,6 +191,8 @@ class DmProvider extends ChangeNotifier {
     _history.clear();
     _historyLoaded.clear();
     _loadingConversations.clear();
+    _loadingMoreConversations.clear();
+    _hasMoreHistory.clear();
     _unread.clear();
     _matchCards.clear();
     _inGameMessages.clear();
@@ -222,7 +230,13 @@ class DmProvider extends ChangeNotifier {
   bool isHistoryLoadingFor(String conversationId) =>
       _loadingConversations.contains(conversationId);
 
-  /// Loads (or paginates) history for a given conversation.
+  bool hasMoreHistoryFor(String conversationId) =>
+      _hasMoreHistory[conversationId] ?? true;
+
+  bool isLoadingMoreFor(String conversationId) =>
+      _loadingMoreConversations.contains(conversationId);
+
+  /// Loads (or refreshes) the latest history batch for a given conversation.
   Future<void> loadHistory(String conversationId, {bool refresh = false}) async {
     if (conversationId.isEmpty) return;
     if (_loadingConversations.contains(conversationId)) return;
@@ -237,12 +251,13 @@ class DmProvider extends ChangeNotifier {
       final current = _history[conversationId] ?? [];
       final apiIds = msgs.map((m) => m.id).toSet();
       // Keep any message in current that wasn't returned by the API
-      // (e.g. pending optimistic messages m.id < 0, or messages received via WebSocket while fetch was in flight)
+      // (e.g. pending optimistic messages m.id < 0, or older messages already loaded)
       final extra = current.where((m) => !apiIds.contains(m.id)).toList();
       final combined = [...msgs, ...extra]
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       _history[conversationId] = combined;
       _historyLoaded.add(conversationId);
+      _hasMoreHistory[conversationId] = msgs.length >= 50;
 
       // Seed preview if missing
       if (combined.isNotEmpty && !_previews.containsKey(conversationId)) {
@@ -253,6 +268,45 @@ class DmProvider extends ChangeNotifier {
     } finally {
       _loadingConversations.remove(conversationId);
       _historyLoading = _loadingConversations.isNotEmpty;
+      notifyListeners();
+    }
+  }
+
+  /// Fetches older paginated history when scrolling up.
+  Future<void> loadMoreHistory(String conversationId) async {
+    if (conversationId.isEmpty) return;
+    if (_loadingMoreConversations.contains(conversationId)) return;
+    if (_hasMoreHistory[conversationId] == false) return;
+
+    final current = _history[conversationId] ?? [];
+    final apiCount = current.where((m) => m.id > 0).length;
+    if (apiCount == 0) return;
+
+    _loadingMoreConversations.add(conversationId);
+    notifyListeners();
+
+    try {
+      final older = await _apiService.getHistory(
+        conversationId,
+        offset: apiCount,
+        limit: 50,
+      );
+      if (older.isEmpty || older.length < 50) {
+        _hasMoreHistory[conversationId] = false;
+      }
+      if (older.isNotEmpty) {
+        final map = {for (final m in current) m.id: m};
+        for (final m in older) {
+          map[m.id] = m;
+        }
+        final combined = map.values.toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        _history[conversationId] = combined;
+      }
+    } catch (e) {
+      debugPrint('[DmProvider] Failed to load more history: $e');
+    } finally {
+      _loadingMoreConversations.remove(conversationId);
       notifyListeners();
     }
   }

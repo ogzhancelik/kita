@@ -39,8 +39,10 @@ func (s *directMessageService) Send(ctx context.Context, senderID, recipientID, 
 }
 
 func (s *directMessageService) GetConversation(ctx context.Context, conversationID string, limit, offset int) ([]domain.DirectMessage, error) {
-	if limit <= 0 || limit > 100 {
+	if limit <= 0 {
 		limit = 50
+	} else if limit > 100 {
+		limit = 100
 	}
 	return s.repo.GetConversation(ctx, conversationID, limit, offset)
 }

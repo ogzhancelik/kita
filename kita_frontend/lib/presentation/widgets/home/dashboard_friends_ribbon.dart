@@ -398,10 +398,10 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                         // Rating
                         Text(
                           '${friend.rating}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.ratingGold,
+                            color: AppColors.getRatingGold(isDark),
                           ),
                         ),
                       ],

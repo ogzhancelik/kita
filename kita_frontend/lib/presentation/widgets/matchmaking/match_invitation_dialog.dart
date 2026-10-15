@@ -112,10 +112,10 @@ class MatchInvitationDialog extends StatelessWidget {
                   children: [
                     Text(
                       invitation.displayRating,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: AppColors.ratingGold,
+                        color: AppColors.getRatingGold(isDark),
                       ),
                     ),
                     Text(

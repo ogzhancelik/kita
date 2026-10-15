@@ -1,6 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -8,6 +7,7 @@ import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/online_match_screen.dart';
 import '../matchmaking/activity_conflict_dialog.dart';
+import 'room_waiting_visualizer.dart';
 
 /// Dialog to create a custom game room with time control and private options.
 class CreateRoomDialog extends StatefulWidget {
@@ -353,128 +353,15 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
     bool isDark,
     String code,
   ) {
-    return Container(
-      key: const ValueKey('room_waiting_content'),
-      padding: const EdgeInsets.all(24),
-      constraints: const BoxConstraints(maxWidth: 420),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'online.roomCreatedTitle'.tr(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.getTextPrimary(isDark),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'online.shareRoomCode'.tr(),
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.getTextSecondary(isDark),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-
-          // Room Code Card with copy
-          InkWell(
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: code));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('online.codeCopied'.tr()),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppColors.getSurface(isDark),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primaryAmber, width: 1.5),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    code,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                      color: AppColors.primaryAmber,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  const Icon(
-                    Icons.copy_rounded,
-                    size: 22,
-                    color: AppColors.primaryAmber,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-          const CircularProgressIndicator(color: AppColors.primaryAmber),
-          const SizedBox(height: 16),
-
-          Text(
-            'online.waitingForOpponent'.tr(),
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.getTextMuted(isDark),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Action Buttons: Close (keep in background) & Cancel Room
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back_rounded, size: 16),
-              label: Text('online.keepRoomInBackground'.tr()),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.getTextPrimary(isDark),
-                side: BorderSide(color: AppColors.getBorder(isDark)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton.icon(
-              onPressed: () {
-                provider.leaveRoom();
-                Navigator.of(context).pop();
-              },
-              icon: const Icon(
-                Icons.close_rounded,
-                size: 16,
-                color: AppColors.lossRed,
-              ),
-              label: Text('online.cancelRoom'.tr()),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.lossRed,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                textStyle: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return RoomWaitingVisualizer(
+      roomCode: code,
+      timeControl: provider.roomTimeControl,
+      isPrivate: provider.isRoomPrivate,
+      onKeepInBackground: () => Navigator.of(context).pop(),
+      onCancelRoom: () {
+        provider.leaveRoom();
+        Navigator.of(context).pop();
+      },
     );
   }
 

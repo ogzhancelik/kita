@@ -166,7 +166,8 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
         ? '${'online.rematchOfferSubtitle'.tr(args: [req.senderName, timeStr])} • $sideInfo'
         : '${'online.friendInviteSubtitle'.tr(args: [req.senderName, timeStr])} • $sideInfo';
 
-    final accentColor = isRematch ? AppColors.winBlue : AppColors.ratingGold;
+    final accentColor =
+        isRematch ? AppColors.winBlue : AppColors.getRatingGold(isDark);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 480),
@@ -245,10 +246,10 @@ class _TopMatchInviteDialogState extends State<TopMatchInviteDialog> {
                                 ),
                                 child: Text(
                                   '★ ${req.displayRating}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.ratingGold,
+                                    color: AppColors.getRatingGold(isDark),
                                   ),
                                 ),
                               ),

@@ -966,9 +966,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.emoji_events_rounded,
-                color: AppColors.ratingGold,
+                color: AppColors.getRatingGold(isDark),
                 size: 20,
               ),
               const SizedBox(width: 6),
@@ -1010,7 +1010,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 child: _buildPodiumColumn(
                   player: first,
                   rank: 1,
-                  medalColor: AppColors.ratingGold, // Gold
+                  medalColor: AppColors.getRatingGold(isDark), // Gold
                   isDark: isDark,
                   isCurrentUser: first.id == currentUserId,
                 ),
@@ -1193,7 +1193,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     Color rankColor = isDark
         ? AppColors.darkTextMuted
         : AppColors.lightTextMuted;
-    if (rank == 1) rankColor = AppColors.ratingGold;
+    if (rank == 1) rankColor = AppColors.getRatingGold(isDark);
     if (rank == 2) rankColor = AppColors.silverMedal;
     if (rank == 3) rankColor = AppColors.bronzeMedal;
     if (isCurrentUser) rankColor = AppColors.primaryAmber;
@@ -1341,28 +1341,28 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.ratingGold.withValues(alpha: 0.15),
+                  color: AppColors.getRatingGold(isDark).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: AppColors.ratingGold.withValues(alpha: 0.5),
+                    color: AppColors.getRatingGold(isDark).withValues(alpha: 0.5),
                     width: 0.8,
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.star_rounded,
                       size: 13,
-                      color: AppColors.ratingGold,
+                      color: AppColors.getRatingGold(isDark),
                     ),
                     const SizedBox(width: 3),
                     Text(
                       player.displayRating,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w900,
-                        color: AppColors.ratingGold,
+                        color: AppColors.getRatingGold(isDark),
                       ),
                     ),
                   ],
@@ -1557,28 +1557,28 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.ratingGold.withValues(alpha: 0.15),
+                      color: AppColors.getRatingGold(isDark).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: AppColors.ratingGold.withValues(alpha: 0.5),
+                        color: AppColors.getRatingGold(isDark).withValues(alpha: 0.5),
                         width: 0.8,
                       ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.star_rounded,
                           size: 12,
-                          color: AppColors.ratingGold,
+                          color: AppColors.getRatingGold(isDark),
                         ),
                         const SizedBox(width: 2),
                         Text(
                           userProfile.displayRating,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
-                            color: AppColors.ratingGold,
+                            color: AppColors.getRatingGold(isDark),
                           ),
                         ),
                       ],

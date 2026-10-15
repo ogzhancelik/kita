@@ -82,6 +82,9 @@ class SoundService {
   /// Play the normal piece-move sound.
   Future<void> playMove() => _playPooled('sounds/move.mp3');
 
+  /// Play the game-start sound when a match countdown begins.
+  Future<void> playGameStart() => _playPooled('sounds/move.mp3');
+
   /// Play the king-capture sound.
   Future<void> playCapture() => _playPooled('sounds/capture.mp3');
 

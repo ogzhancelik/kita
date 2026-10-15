@@ -43,22 +43,25 @@ class StatBadge extends StatelessWidget {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final goldColor = AppColors.getRatingGold(isDark);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.ratingGold.withValues(alpha: 0.15),
+        color: goldColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.ratingGold, width: 1.2),
+        border: Border.all(color: goldColor, width: 1.2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.emoji_events_rounded, size: 14, color: AppColors.ratingGold),
+          Icon(Icons.emoji_events_rounded, size: 14, color: goldColor),
           const SizedBox(width: 4),
           Text(
             isProvisional ? '$rating?' : '$rating',
-            style: const TextStyle(
-              color: AppColors.ratingGold,
+            style: TextStyle(
+              color: goldColor,
               fontSize: 12.5,
               fontWeight: FontWeight.w800,
             ),
@@ -100,7 +103,7 @@ class RecordChip extends StatelessWidget {
         children: [
           _buildItem('${wins}W', AppColors.winStat),
           _buildDivider(isDark),
-          _buildItem('${draws}D', AppColors.drawYellow),
+          _buildItem('${draws}D', AppColors.getDraw(isDark)),
           _buildDivider(isDark),
           _buildItem('${losses}L', AppColors.lossRed),
         ],

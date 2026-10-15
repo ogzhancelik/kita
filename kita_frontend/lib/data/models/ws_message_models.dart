@@ -33,6 +33,7 @@ class WsClientType {
   static const String drawAccept = 'draw_accept';
   static const String drawDecline = 'draw_decline';
   static const String dmSend = 'dm_send';
+  static const String matchReady = 'match_ready';
 }
 
 
@@ -69,6 +70,8 @@ class WsServerType {
   static const String drawDeclined = 'draw_declined';
   static const String dmBroadcast = 'dm_broadcast';
   static const String sentChallenges = 'sent_challenges';
+  static const String readyState = 'ready_state';
+  static const String clockStarted = 'clock_started';
 }
 
 
@@ -257,6 +260,10 @@ class MatchFoundPayload {
   final bool isReconnect;
   final DateTime? startedAt;
   final int elapsedSeconds;
+  final bool requiresReadyConfirmation;
+  final bool isClockStarted;
+  final bool whiteReady;
+  final bool blackReady;
   final List<OnlineMoveRecord> moveHistory;
   final List<ChatMessage> chatHistory;
 
@@ -273,6 +280,10 @@ class MatchFoundPayload {
     this.isReconnect = false,
     this.startedAt,
     this.elapsedSeconds = 0,
+    this.requiresReadyConfirmation = false,
+    this.isClockStarted = true,
+    this.whiteReady = false,
+    this.blackReady = false,
     this.moveHistory = const [],
     this.chatHistory = const [],
   });
@@ -321,6 +332,11 @@ class MatchFoundPayload {
       isReconnect: json['is_reconnect'] as bool? ?? false,
       startedAt: started,
       elapsedSeconds: (json['elapsed_seconds'] as num?)?.toInt() ?? 0,
+      requiresReadyConfirmation:
+          json['requires_ready_confirmation'] as bool? ?? false,
+      isClockStarted: json['is_clock_started'] as bool? ?? true,
+      whiteReady: json['white_ready'] as bool? ?? false,
+      blackReady: json['black_ready'] as bool? ?? false,
       moveHistory: moves,
       chatHistory: chat,
     );
@@ -434,6 +450,7 @@ class GameStatePayload {
   final int whiteRemainingMs;
   final int blackRemainingMs;
   final int timeControl;
+  final bool isClockStarted;
   final MoveDtoPayload? lastMove;
   final DateTime? startedAt;
   final int elapsedSeconds;
@@ -449,6 +466,7 @@ class GameStatePayload {
     required this.whiteRemainingMs,
     required this.blackRemainingMs,
     required this.timeControl,
+    this.isClockStarted = true,
     this.lastMove,
     this.startedAt,
     this.elapsedSeconds = 0,
@@ -475,9 +493,58 @@ class GameStatePayload {
       whiteRemainingMs: (json['white_remaining_ms'] as num?)?.toInt() ?? 0,
       blackRemainingMs: (json['black_remaining_ms'] as num?)?.toInt() ?? 0,
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
+      isClockStarted: json['is_clock_started'] as bool? ?? true,
       lastMove: lmJson != null ? MoveDtoPayload.fromJson(lmJson) : null,
       startedAt: started,
       elapsedSeconds: (json['elapsed_seconds'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+// ─── Ready State Payload ──────────────────────────────────────────────
+
+class ReadyStatePayload {
+  final String matchId;
+  final bool whiteReady;
+  final bool blackReady;
+  final bool isClockStarted;
+
+  const ReadyStatePayload({
+    required this.matchId,
+    required this.whiteReady,
+    required this.blackReady,
+    required this.isClockStarted,
+  });
+
+  factory ReadyStatePayload.fromJson(Map<String, dynamic> json) {
+    return ReadyStatePayload(
+      matchId: json['match_id'] as String? ?? '',
+      whiteReady: json['white_ready'] as bool? ?? false,
+      blackReady: json['black_ready'] as bool? ?? false,
+      isClockStarted: json['is_clock_started'] as bool? ?? false,
+    );
+  }
+}
+
+// ─── Clock Started Payload ────────────────────────────────────────────
+
+class ClockStartedPayload {
+  final String matchId;
+  final DateTime startedAt;
+
+  const ClockStartedPayload({
+    required this.matchId,
+    required this.startedAt,
+  });
+
+  factory ClockStartedPayload.fromJson(Map<String, dynamic> json) {
+    DateTime started = DateTime.now();
+    if (json['started_at'] != null) {
+      started = DateTime.tryParse(json['started_at'].toString()) ?? DateTime.now();
+    }
+    return ClockStartedPayload(
+      matchId: json['match_id'] as String? ?? '',
+      startedAt: started,
     );
   }
 }

@@ -648,10 +648,10 @@ class _FriendCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '★ ${friend.rating}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.ratingGold,
+                          color: AppColors.getRatingGold(isDark),
                         ),
                       ),
                     ],
@@ -900,10 +900,10 @@ class _IncomingRequestCard extends StatelessWidget {
                       ),
                       Text(
                         '★ ${request.rating}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.ratingGold,
+                          color: AppColors.getRatingGold(isDark),
                         ),
                       ),
                     ],
@@ -981,10 +981,10 @@ class _OutgoingRequestCard extends StatelessWidget {
                       ),
                       Text(
                         '★ ${request.rating}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.ratingGold,
+                          color: AppColors.getRatingGold(isDark),
                         ),
                       ),
                     ],

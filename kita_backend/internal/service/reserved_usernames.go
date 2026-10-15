@@ -17,6 +17,7 @@ kita
 bot
 moderator
 support
+report
 `
 
 var (

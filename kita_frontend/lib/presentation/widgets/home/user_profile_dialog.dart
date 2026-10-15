@@ -191,7 +191,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
       badgeColor = AppColors.lossRed;
     } else if (isBot) {
       badgeText = 'profile.botPlayer'.tr();
-      badgeColor = AppColors.accentGold;
+      badgeColor = AppColors.getAccentGold(isDark);
     } else if (isGuest) {
       badgeText = 'profile.guestPlayer'.tr();
       badgeColor = AppColors.guestOrange;
@@ -487,7 +487,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                                             ? '$rating?'
                                             : '$rating'),
                                   icon: Icons.military_tech_rounded,
-                                  color: AppColors.ratingGold,
+                                  color: AppColors.getRatingGold(isDark),
                                   isDark: isDark,
                                 ),
                               ),

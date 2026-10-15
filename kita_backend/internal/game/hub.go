@@ -293,9 +293,25 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 	case TypeDmSend:
 		h.handleDmSend(client, msg.Payload)
 
+	case TypeMatchReady:
+		h.handleMatchReady(client)
+
 	default:
 		client.SendError(errors.ErrUnknownMessage, "Unknown message type: "+msg.Type)
 	}
+}
+
+func (h *Hub) handleMatchReady(client *Client) {
+	h.mu.RLock()
+	matchID := client.CurrentMatchID
+	room, exists := h.rooms[matchID]
+	h.mu.RUnlock()
+
+	if !exists || room == nil {
+		return
+	}
+
+	room.SetPlayerReady(client.UserID)
 }
 
 

@@ -137,15 +137,15 @@ class PlayerInfoBar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
-              color: AppColors.ratingGold.withValues(alpha: 0.15),
+              color: AppColors.getRatingGold(isDark).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               ratingLabel ?? (isProvisional ? '$rating?' : '$rating'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
-                color: AppColors.ratingGold,
+                color: AppColors.getRatingGold(isDark),
               ),
             ),
           ),

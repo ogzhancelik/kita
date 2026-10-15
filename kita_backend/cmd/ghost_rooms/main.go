@@ -51,7 +51,7 @@ var bots = []GhostBot{
 }
 
 func main() {
-	serverURL := "ws://localhost:8080/ws"
+	serverURL := "ws://127.0.0.1:8080/ws"
 	if len(os.Args) > 1 {
 		serverURL = os.Args[1]
 	}
@@ -83,8 +83,15 @@ func main() {
 			}
 			u.RawQuery = q.Encode()
 
-			c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-			if err != nil {
+			var c *websocket.Conn
+			for attempt := 0; attempt < 3; attempt++ {
+				c, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
+				if err == nil {
+					break
+				}
+				time.Sleep(300 * time.Millisecond)
+			}
+			if err != nil || c == nil {
 				log.Printf("[%s] Connection failed: %v", b.Nickname, err)
 				return
 			}
