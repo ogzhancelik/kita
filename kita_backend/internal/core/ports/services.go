@@ -71,4 +71,19 @@ type NotificationService interface {
 	GetPendingChallengesByActor(ctx context.Context, actorID string) ([]domain.Notification, error)
 }
 
+type PushNotificationPayload struct {
+	TitleKey      string            `json:"title_key"`
+	TitleFallback string            `json:"title_fallback"`
+	BodyKey       string            `json:"body_key"`
+	BodyFallback  string            `json:"body_fallback"`
+	Data          map[string]string `json:"data,omitempty"`
+	Tag           string            `json:"tag,omitempty"`
+}
+
+type PushNotificationService interface {
+	RegisterToken(ctx context.Context, userID, token, platform string) error
+	RemoveToken(ctx context.Context, token string) error
+	SendToUser(ctx context.Context, userID string, payload PushNotificationPayload) error
+}
+
 

@@ -6,6 +6,7 @@ import 'core/constants/api_constants.dart';
 import 'core/feedback/sound_service.dart';
 import 'core/feedback/toast_service.dart';
 import 'core/navigation/app_route_observer.dart';
+import 'core/services/push_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/dm_provider.dart';
@@ -40,6 +41,7 @@ void main() async {
   await EasyLocalization.ensureInitialized();
   await ApiConstants.initializeBaseUrl();
   SoundService.instance.initialize(); // fire-and-forget pre-warm
+  unawaited(PushNotificationService.instance.initialize());
 
   runApp(
     EasyLocalization(

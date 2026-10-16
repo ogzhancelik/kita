@@ -133,8 +133,9 @@ class KitaBoardTheme {
   /// Computes the effective coordinate label font size scaled dynamically to the given [cellSize]
   /// and clamped to [maxCoordinateLabelFontSize] (with phone baseline as floor for max).
   double effectiveCoordinateLabelFontSize(double cellSize) {
-    if (fixedCoordinateLabelFontSize != null)
+    if (fixedCoordinateLabelFontSize != null) {
       return fixedCoordinateLabelFontSize!;
+    }
     final double phoneBaseline = 55.0 * coordinateLabelFontSizeRatio;
     final double ceiling = max(maxCoordinateLabelFontSize, phoneBaseline);
     return min(cellSize * coordinateLabelFontSizeRatio, ceiling);

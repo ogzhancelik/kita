@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"sort"
@@ -22,14 +23,20 @@ type FriendHandler struct {
 	userService         ports.UserService
 	notificationService ports.NotificationService
 	notifier            WsNotifier
+	pushService         ports.PushNotificationService
 }
 
-func NewFriendHandler(friendService ports.FriendService, userService ports.UserService, notificationService ports.NotificationService, notifier WsNotifier) *FriendHandler {
+func NewFriendHandler(friendService ports.FriendService, userService ports.UserService, notificationService ports.NotificationService, notifier WsNotifier, pushService ...ports.PushNotificationService) *FriendHandler {
+	var ps ports.PushNotificationService
+	if len(pushService) > 0 {
+		ps = pushService[0]
+	}
 	return &FriendHandler{
 		friendService:       friendService,
 		userService:         userService,
 		notificationService: notificationService,
 		notifier:            notifier,
+		pushService:         ps,
 	}
 }
 
@@ -157,6 +164,30 @@ func (h *FriendHandler) SendRequest(c *gin.Context) {
 				"created_at":    friendship.CreatedAt,
 			})
 		}
+
+		if h.pushService != nil {
+			isOnline := h.notifier != nil && h.notifier.IsUserOnline(friendship.AddresseeID)
+			if !isOnline {
+				addresseeID := friendship.AddresseeID
+				sName := senderName
+				fID := friendship.ID
+				uID := userID
+				go func() {
+					_ = h.pushService.SendToUser(context.Background(), addresseeID, ports.PushNotificationPayload{
+						TitleKey:      "notification.friend_request_title",
+						TitleFallback: "New Friend Request",
+						BodyKey:       "notification.friend_request_body",
+						BodyFallback:  sName + " sent you a friend request.",
+						Tag:           "friend_request_" + fID,
+						Data: map[string]string{
+							"type":          "friend_request",
+							"friendship_id": fID,
+							"user_id":       uID,
+						},
+					})
+				}()
+			}
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"friendship": friendship})
@@ -230,6 +261,30 @@ func (h *FriendHandler) AcceptRequest(c *gin.Context) {
 				"friendship_id": id,
 				"accepter_name": accepterName,
 			})
+		}
+
+		if h.pushService != nil {
+			isOnline := h.notifier != nil && h.notifier.IsUserOnline(requesterID)
+			if !isOnline {
+				rID := requesterID
+				aName := accepterName
+				fID := id
+				uID := userID
+				go func() {
+					_ = h.pushService.SendToUser(context.Background(), rID, ports.PushNotificationPayload{
+						TitleKey:      "notification.friend_accepted_title",
+						TitleFallback: "Friend Request Accepted",
+						BodyKey:       "notification.friend_accepted_body",
+						BodyFallback:  aName + " accepted your friend request.",
+						Tag:           "friend_accepted_" + fID,
+						Data: map[string]string{
+							"type":          "friend_accepted",
+							"friendship_id": fID,
+							"user_id":       uID,
+						},
+					})
+				}()
+			}
 		}
 	}
 

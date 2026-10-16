@@ -69,3 +69,11 @@ type NotificationRepository interface {
 	GetPendingChallengesByActor(ctx context.Context, actorID string) ([]domain.Notification, error)
 }
 
+type DeviceTokenRepository interface {
+	Upsert(ctx context.Context, token *domain.DeviceToken) error
+	FindByToken(ctx context.Context, token string) (*domain.DeviceToken, error)
+	ListByUserID(ctx context.Context, userID string) ([]domain.DeviceToken, error)
+	DeleteByToken(ctx context.Context, token string) error
+	DeleteByUserID(ctx context.Context, userID string) error
+}
+

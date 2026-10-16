@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
@@ -42,7 +43,7 @@ func TestSaveFinishedMatch_ZeroOrOneMoveIgnored(t *testing.T) {
 		TotalMoves: 0,
 		Moves:      []domain.MoveRecord{},
 	}
-	res0, err0 := svc.SaveFinishedMatch(nil, match0)
+	res0, err0 := svc.SaveFinishedMatch(context.TODO(), match0)
 	if err0 != nil {
 		t.Fatalf("expected nil error, got %v", err0)
 	}
@@ -56,7 +57,7 @@ func TestSaveFinishedMatch_ZeroOrOneMoveIgnored(t *testing.T) {
 		TotalMoves: 1,
 		Moves:      []domain.MoveRecord{{PlyIndex: 0}},
 	}
-	res1, err1 := svc.SaveFinishedMatch(nil, match1)
+	res1, err1 := svc.SaveFinishedMatch(context.TODO(), match1)
 	if err1 != nil {
 		t.Fatalf("expected nil error, got %v", err1)
 	}

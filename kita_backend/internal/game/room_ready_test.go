@@ -1,9 +1,12 @@
 package game
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/oguzhancelik/kita/internal/core/ports"
 )
 
 func TestTimedRoom_MutualReadyConfirmation(t *testing.T) {
@@ -558,4 +561,72 @@ func TestFriendChallenge_InviterOnlineAfk_EntersReadyPhase(t *testing.T) {
 		t.Fatalf("Expected room status to be ready_phase when inviter is AFK, got %s", room.Status)
 	}
 }
+
+type mockTestPushService struct {
+	sentUserIDs  []string
+	sentPayloads []ports.PushNotificationPayload
+}
+
+func (m *mockTestPushService) RegisterToken(ctx context.Context, userID, token, platform string) error {
+	return nil
+}
+
+func (m *mockTestPushService) RemoveToken(ctx context.Context, token string) error {
+	return nil
+}
+
+func (m *mockTestPushService) SendToUser(ctx context.Context, userID string, payload ports.PushNotificationPayload) error {
+	m.sentUserIDs = append(m.sentUserIDs, userID)
+	m.sentPayloads = append(m.sentPayloads, payload)
+	return nil
+}
+
+func TestRoom_OpponentJoin_TriggersPushNotificationWhenHostOffline(t *testing.T) {
+	s1, c1 := setupTestWS(t)
+	s2, c2 := setupTestWS(t)
+	_ = c1
+	_ = c2
+
+	mockService := &mockMatchService{}
+	hub := NewHub(mockService, nil, nil)
+	mockPush := &mockTestPushService{}
+	hub.SetPushService(mockPush)
+
+	clientHost := NewClient(hub, s1, "user-host-offline", "HostPlayer", 1200)
+	clientGuest := NewClient(hub, s2, "user-guest-join", "GuestPlayer", 1200)
+
+	hub.clients[clientHost.UserID] = clientHost
+	hub.clients[clientGuest.UserID] = clientGuest
+
+	go clientHost.WritePump()
+	go clientGuest.WritePump()
+
+	// 1. Host creates timed custom room
+	room := NewCustomRoom("match-push-test", "PUSH01", clientHost, false, TimeControl3Min, mockService, hub)
+
+	// 2. Host closes app / disconnects
+	room.HostOnline = false
+
+	// 3. Guest joins room
+	if err := room.Join(clientGuest); err != nil {
+		t.Fatalf("unexpected error on room.Join: %v", err)
+	}
+
+	// Allow goroutine to deliver notification
+	time.Sleep(50 * time.Millisecond)
+
+	if len(mockPush.sentUserIDs) != 1 {
+		t.Fatalf("expected 1 push notification sent, got %d", len(mockPush.sentUserIDs))
+	}
+	if mockPush.sentUserIDs[0] != "user-host-offline" {
+		t.Errorf("expected push sent to user-host-offline, got %s", mockPush.sentUserIDs[0])
+	}
+	if mockPush.sentPayloads[0].Data["type"] != "room_joined" {
+		t.Errorf("expected payload type room_joined, got %v", mockPush.sentPayloads[0].Data["type"])
+	}
+	if mockPush.sentPayloads[0].Data["room_code"] != "PUSH01" {
+		t.Errorf("expected payload room_code PUSH01, got %v", mockPush.sentPayloads[0].Data["room_code"])
+	}
+}
+
 

@@ -63,7 +63,7 @@ func main() {
 	friendRepo := postgres.NewFriendRepository(db)
 	notifRepo := postgres.NewNotificationRepository(db)
 	dmRepo := postgres.NewDirectMessageRepository(db)
-
+	deviceTokenRepo := postgres.NewDeviceTokenRepository(db)
 
 	// 4. Services
 	authService := service.NewAuthService(userRepo)
@@ -75,12 +75,39 @@ func main() {
 	notificationService := service.NewNotificationService(notifRepo)
 	dmService := service.NewDirectMessageService(dmRepo)
 
+	// Unified Push Notification Pipeline with graceful NoOp fallback for local dev
+	var pushProvider service.PushProvider = service.NewNoOpPushProvider()
+	firebaseKeyPath := os.Getenv("FIREBASE_CREDENTIALS_PATH")
+	if firebaseKeyPath == "" {
+		for _, candidate := range []string{
+			"./configs/firebase-key.json",
+			"../configs/firebase-key.json",
+			"configs/firebase-key.json",
+		} {
+			if _, err := os.Stat(candidate); err == nil {
+				firebaseKeyPath = candidate
+				break
+			}
+		}
+	}
+
+	if firebaseKeyPath != "" {
+		if fbp, err := service.NewFirebasePushProvider(firebaseKeyPath); err != nil {
+			log.Printf("[Push Warning] Failed to initialize Firebase (%v), falling back to NoOp", err)
+		} else {
+			pushProvider = fbp
+			log.Printf("[Push] Firebase Push Provider active using: %s", firebaseKeyPath)
+		}
+	} else {
+		log.Println("[Push] No Firebase credentials found. Running in NoOp simulation mode.")
+	}
+	pushService := service.NewPushNotificationService(deviceTokenRepo, pushProvider)
 
 	// 5. Realtime Game Hub & Goroutine
 	hub := game.NewHub(matchService, messageService, notificationService, friendService)
 	hub.SetDmService(dmService)
+	hub.SetPushService(pushService)
 	go hub.Run()
-
 
 	// 6. Handlers
 	authH := httpHandler.NewAuthHandler(authService, userService)
@@ -88,12 +115,12 @@ func main() {
 	matchH := httpHandler.NewMatchHandler(matchService, messageService)
 
 	settingsH := httpHandler.NewSettingsHandler(settingsService)
-	friendH := httpHandler.NewFriendHandler(friendService, userService, notificationService, hub)
+	friendH := httpHandler.NewFriendHandler(friendService, userService, notificationService, hub, pushService)
 	notifH := httpHandler.NewNotificationHandler(notificationService)
 	dmH := httpHandler.NewDirectMessageHandler(dmService, friendService)
 	reportH := httpHandler.NewReportHandler(db, dmService, notificationService, hub)
+	deviceTokenH := httpHandler.NewDeviceTokenHandler(pushService)
 	wsH := wsHandler.NewWSHandler(hub, authService, userService)
-
 
 	// 7. Gin HTTP Engine
 	router := gin.Default()
@@ -140,6 +167,8 @@ func main() {
 			userRoutes.PUT("/me/settings", middleware.AuthMiddleware(authService), settingsH.UpdateSettings)
 			userRoutes.PUT("/:id/roles", middleware.AuthMiddleware(authService), userH.UpdateRoles)
 			userRoutes.PATCH("/:id/roles", middleware.AuthMiddleware(authService), userH.UpdateRoles)
+			userRoutes.POST("/device-token", middleware.AuthMiddleware(authService), deviceTokenH.RegisterToken)
+			userRoutes.DELETE("/device-token", middleware.AuthMiddleware(authService), deviceTokenH.RemoveToken)
 		}
 
 		settingsRoutes := api.Group("/settings")

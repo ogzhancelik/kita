@@ -31,6 +31,7 @@ type Hub struct {
 	notificationService ports.NotificationService
 	friendService       ports.FriendService
 	dmService           ports.DirectMessageService
+	pushService         ports.PushNotificationService
 
 	mu sync.RWMutex
 }
@@ -61,6 +62,20 @@ func (h *Hub) SetDmService(svc ports.DirectMessageService) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.dmService = svc
+}
+
+// SetPushService wires the PushNotification service after construction.
+func (h *Hub) SetPushService(svc ports.PushNotificationService) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.pushService = svc
+}
+
+// GetPushService returns the current PushNotificationService safely.
+func (h *Hub) GetPushService() ports.PushNotificationService {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.pushService
 }
 
 
@@ -95,10 +110,11 @@ func (h *Hub) Run() {
 			activeRoomCode := ""
 			if matchedRoom != nil {
 				matchedRoom.mu.RLock()
-				if matchedRoom.Status == "in_game" || matchedRoom.Status == "ready_phase" {
+				switch matchedRoom.Status {
+				case "in_game", "ready_phase":
 					activeMatchID = matchedRoom.ID
 					activeRoomCode = matchedRoom.RoomCode
-				} else if matchedRoom.Status == "waiting" {
+				case "waiting":
 					activeRoomCode = matchedRoom.RoomCode
 				}
 				matchedRoom.mu.RUnlock()
@@ -116,11 +132,12 @@ func (h *Hub) Run() {
 			log.Printf("[Hub] Client connected: %s (%s, avatar: %d, activeMatch: %s)", client.Username, client.UserID, client.AvatarIndex, activeMatchID)
 
 			if matchedRoom != nil {
-				if matchedRoom.Status == "in_game" {
+				switch matchedRoom.Status {
+				case "in_game":
 					matchedRoom.HandleReconnect(client)
-				} else if matchedRoom.Status == "ready_phase" {
+				case "ready_phase":
 					matchedRoom.HandleReadyPhaseReconnect(client)
-				} else if matchedRoom.Status == "waiting" {
+				case "waiting":
 					matchedRoom.mu.Lock()
 					matchedRoom.Host = client
 					matchedRoom.HostOnline = true
@@ -1495,6 +1512,24 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 				_, _ = h.notificationService.CreateNotification(context.Background(), notif)
 			}(dto.FriendID, client.UserID, client.Username, client.Rating, client.AvatarIndex, timeControl, colorPref, inviteID, expiresAt)
 		}
+		if h.pushService != nil {
+			friendID := dto.FriendID
+			inviterName := client.Username
+			go func() {
+				_ = h.pushService.SendToUser(context.Background(), friendID, ports.PushNotificationPayload{
+					TitleKey:      "notification.challenge_title",
+					TitleFallback: "Match Challenge",
+					BodyKey:       "notification.challenge_body",
+					BodyFallback:  fmt.Sprintf("%s challenged you to a match!", inviterName),
+					Tag:           "challenge_" + inviteID,
+					Data: map[string]string{
+						"type":       "challenge",
+						"invite_id":  inviteID,
+						"inviter_id": client.UserID,
+					},
+				})
+			}()
+		}
 		log.Printf("[Hub] Match invite stored for offline friend %s from %s (invite: %s)", dto.FriendID, client.Username, inviteID)
 		return
 	}
@@ -1545,6 +1580,27 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 			_, _ = h.notificationService.CreateNotification(context.Background(), notif)
 		}(dto.FriendID, client.UserID, client.Username, client.Rating, client.AvatarIndex, timeControl, colorPref, inviteID, expiresAt)
 	}
+
+	// If friend is online but AFK, send push notification as well
+	if friend.IsAfk() && h.pushService != nil {
+		friendID := dto.FriendID
+		inviterName := client.Username
+		go func() {
+			_ = h.pushService.SendToUser(context.Background(), friendID, ports.PushNotificationPayload{
+				TitleKey:      "notification.challenge_title",
+				TitleFallback: "Match Challenge",
+				BodyKey:       "notification.challenge_body",
+				BodyFallback:  fmt.Sprintf("%s challenged you to a match!", inviterName),
+				Tag:           "challenge_" + inviteID,
+				Data: map[string]string{
+					"type":       "challenge",
+					"invite_id":  inviteID,
+					"inviter_id": client.UserID,
+				},
+			})
+		}()
+	}
+
 
 	log.Printf("[Hub] Match invite sent from %s to %s (invite: %s, pref: %s)", client.Username, friend.Username, inviteID, colorPref)
 }
@@ -2207,6 +2263,31 @@ func (h *Hub) handleDmSend(client *Client, rawPayload json.RawMessage) {
 				UpdatedAt: time.Now(),
 			}
 			_, _ = h.notificationService.UpsertNotification(context.Background(), notif)
+
+			// Send Push Notification if recipient is offline or AFK
+			isRecipientOfflineOrAfk := recipientClient == nil || recipientClient.IsAfk()
+			if isRecipientOfflineOrAfk && h.pushService != nil {
+				senderName := client.Username
+				msgContent := saved.Content
+				convID := saved.ConversationID
+				senderID := client.UserID
+				recipientID := dto.RecipientID
+				go func() {
+					_ = h.pushService.SendToUser(context.Background(), recipientID, ports.PushNotificationPayload{
+						TitleKey:      "notification.chat_title",
+						TitleFallback: senderName,
+						BodyKey:       "notification.chat_body",
+						BodyFallback:  msgContent,
+						Tag:           "dm_" + senderID,
+						Data: map[string]string{
+							"type":            "direct_message",
+							"conversation_id": convID,
+							"sender_id":       senderID,
+							"sender_username": senderName,
+						},
+					})
+				}()
+			}
 		}
 	}
 }

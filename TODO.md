@@ -19,7 +19,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] **Room Join Alert & Timed Match Start Confirmation**:
   - [x] **24-Hour Custom Room Persistence**: Waiting rooms remain open for up to 24 hours even if host disconnects/backgrounds; tracks host presence indicator across lobby cards and public room browser.
   - [x] **Mutual Ready Confirmation & Dedicated Ready Screen**: Dedicated full-screen UI for timed custom room matches with 60s timeout countdown, mutual ready confirmation before starting chess clock, clean mobile navigation, and graceful re-open if challenger leaves.
-  - [ ] **OS Push Notification on Join**: Notify host via system push notifications when opponent joins a room while host is outside app (to be implemented with unified OS push notification pipeline).
+  - [x] **OS Push Notification on Join**: Notify host via system push notifications when opponent joins a room while host is outside app (to be implemented with unified OS push notification pipeline).
 
 ### 🛡️ Moderation & Support
 - [x] In-game player reporting system

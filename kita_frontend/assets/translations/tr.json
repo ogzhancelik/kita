@@ -649,5 +649,19 @@
     "reportSuccess": "Bildiriniz başarıyla iletildi. Teşekkür ederiz!",
     "reportError": "Bildiri gönderilemedi. Lütfen tekrar deneyin.",
     "reasonRequired": "Lütfen bir sebep seçin."
+  },
+  "notification": {
+    "room_joined_title": "Odaya Rakip Katıldı",
+    "room_joined_body": "Odanıza bir rakip katıldı. Hazırlanın!",
+    "match_started_title": "Maç Başladı",
+    "match_started_body": "Maçınız başladı!",
+    "chat_title": "Yeni Mesaj",
+    "chat_body": "Yeni bir mesaj aldınız.",
+    "challenge_title": "Maç Meydan Okuması",
+    "challenge_body": "Yeni bir maç davetiniz var!",
+    "friend_request_title": "Yeni Arkadaşlık İsteği",
+    "friend_request_body": "Yeni bir arkadaşlık isteği aldınız.",
+    "friend_accepted_title": "Arkadaşlık İsteği Kabul Edildi",
+    "friend_accepted_body": "Arkadaşlık isteğiniz kabul edildi."
   }
 }

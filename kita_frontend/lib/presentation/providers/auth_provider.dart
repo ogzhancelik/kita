@@ -10,6 +10,7 @@ import '../../data/services/auth_api_service.dart';
 import '../../data/services/local_match_history_service.dart';
 import '../../data/services/user_api_service.dart';
 import '../../data/services/websocket_service.dart';
+import '../../core/services/push_notification_service.dart';
 import '../widgets/common/guest_guard_dialog.dart';
 
 enum AuthState {
@@ -359,6 +360,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
           await _storage.saveUser(profile);
           _state = AuthState.authenticated;
           _isServerDown = false;
+          unawaited(PushNotificationService.instance.registerDeviceToken());
           LocalMatchHistoryService.instance.notifyMatchesChanged();
           notifyListeners();
           return;
@@ -372,6 +374,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
             if (cached != null) {
               _currentUser = cached;
               _state = AuthState.authenticated;
+              unawaited(PushNotificationService.instance.registerDeviceToken());
               LocalMatchHistoryService.instance.notifyMatchesChanged();
               notifyListeners();
               return;
@@ -537,6 +540,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       await _storage.deleteGuestProfile();
 
       _state = AuthState.authenticated;
+      unawaited(PushNotificationService.instance.registerDeviceToken());
       _setLoading(false);
       LocalMatchHistoryService.instance.notifyMatchesChanged();
       return true;
@@ -564,6 +568,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       await _storage.deleteGuestProfile();
 
       _state = AuthState.authenticated;
+      unawaited(PushNotificationService.instance.registerDeviceToken());
       _setLoading(false);
       LocalMatchHistoryService.instance.notifyMatchesChanged();
       return true;
@@ -596,6 +601,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   // --- Logout ---
   Future<void> logout() async {
     _setLoading(true);
+    unawaited(PushNotificationService.instance.unregisterDeviceToken());
     WebSocketService.instance.disconnect();
     ApiClient.currentToken = null;
     await _storage.deleteToken();

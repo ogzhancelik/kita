@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"math/rand"
 	"sync"
@@ -253,6 +254,9 @@ func (r *Room) Join(client *Client) error {
 		r.StartedAt = now
 		r.turnStartedAt = now
 		r.startLocked()
+		if !r.HostOnline || isHostAfk {
+			r.notifyHostOpponentJoined(client.Username, false)
+		}
 		return nil
 	}
 
@@ -293,7 +297,50 @@ func (r *Room) Join(client *Client) error {
 	})
 
 	r.sendReadyPhaseStartedLocked()
+	if !r.HostOnline || isHostAfk {
+		r.notifyHostOpponentJoined(client.Username, true)
+	}
 	return nil
+}
+
+func (r *Room) notifyHostOpponentJoined(opponentName string, inReadyPhase bool) {
+	if r.Host == nil || r.Host.UserID == "" || r.hub == nil {
+		return
+	}
+	pushSvc := r.hub.GetPushService()
+	if pushSvc == nil {
+		return
+	}
+
+	hostID := r.Host.UserID
+	roomCode := r.RoomCode
+	matchID := r.ID
+
+	titleKey := "notification.room_joined_title"
+	titleFallback := "Opponent Joined Room"
+	bodyKey := "notification.room_joined_body"
+	bodyFallback := fmt.Sprintf("%s joined your room %s. Get ready!", opponentName, roomCode)
+	if !inReadyPhase {
+		titleKey = "notification.match_started_title"
+		titleFallback = "Match Started"
+		bodyKey = "notification.match_started_body"
+		bodyFallback = fmt.Sprintf("%s joined your room %s. Match is live!", opponentName, roomCode)
+	}
+
+	go func() {
+		_ = pushSvc.SendToUser(context.Background(), hostID, ports.PushNotificationPayload{
+			TitleKey:      titleKey,
+			TitleFallback: titleFallback,
+			BodyKey:       bodyKey,
+			BodyFallback:  bodyFallback,
+			Tag:           "room_" + roomCode,
+			Data: map[string]string{
+				"type":      "room_joined",
+				"room_code": roomCode,
+				"match_id":  matchID,
+			},
+		})
+	}()
 }
 
 func (r *Room) Start() {
@@ -1372,13 +1419,14 @@ func (r *Room) finishGameLocked(status, reason string) {
 	var winnerID *string
 	var winnerTeam string
 
-	if status == "white_wins" {
+	switch status {
+	case "white_wins":
 		winnerID = &r.WhitePlayer.UserID
 		winnerTeam = "white"
-	} else if status == "black_wins" {
+	case "black_wins":
 		winnerID = &r.BlackPlayer.UserID
 		winnerTeam = "black"
-	} else {
+	default:
 		winnerTeam = "draw"
 	}
 

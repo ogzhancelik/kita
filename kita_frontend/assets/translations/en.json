@@ -649,5 +649,19 @@
     "reportSuccess": "Report submitted successfully. Thank you!",
     "reportError": "Failed to submit report. Please try again.",
     "reasonRequired": "Please select a reason."
+  },
+  "notification": {
+    "room_joined_title": "Opponent Joined Room",
+    "room_joined_body": "Opponent joined your room. Get ready!",
+    "match_started_title": "Match Started",
+    "match_started_body": "Your match is live!",
+    "chat_title": "New Message",
+    "chat_body": "You received a new message.",
+    "challenge_title": "Match Challenge",
+    "challenge_body": "You have a new match challenge!",
+    "friend_request_title": "New Friend Request",
+    "friend_request_body": "You have received a new friend request.",
+    "friend_accepted_title": "Friend Request Accepted",
+    "friend_accepted_body": "Your friend request was accepted."
   }
 }
