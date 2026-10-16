@@ -44,6 +44,7 @@ class UserApiService {
 
     return list
         .map((item) => UserProfile.fromJson(item as Map<String, dynamic>))
+        .where((user) => !user.isSystem)
         .toList();
   }
 

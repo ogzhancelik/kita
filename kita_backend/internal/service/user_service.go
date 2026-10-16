@@ -85,9 +85,12 @@ func (s *userService) GetLeaderboard(ctx context.Context, limit int, filter stri
 		return nil, err
 	}
 
-	profiles := make([]domain.UserProfile, len(users))
-	for i, u := range users {
-		profiles[i] = u.ToProfile()
+	profiles := make([]domain.UserProfile, 0, len(users))
+	for _, u := range users {
+		if u.IsSystem() {
+			continue
+		}
+		profiles = append(profiles, u.ToProfile())
 	}
 	return profiles, nil
 }
@@ -218,8 +221,11 @@ func (s *userService) SearchUsers(ctx context.Context, query string, currentUser
 		}
 	}
 
-	results := make([]domain.UserSearchResult, len(users))
-	for i, u := range users {
+	results := make([]domain.UserSearchResult, 0, len(users))
+	for _, u := range users {
+		if u.IsSystem() {
+			continue
+		}
 		prof := u.ToProfile()
 		status := "none"
 		fID := ""
@@ -229,7 +235,7 @@ func (s *userService) SearchUsers(ctx context.Context, query string, currentUser
 			fID = friendshipIDMap[u.ID]
 		}
 
-		results[i] = domain.UserSearchResult{
+		results = append(results, domain.UserSearchResult{
 			ID:               prof.ID,
 			Username:         prof.Username,
 			AvatarIndex:      prof.AvatarIndex,
@@ -243,7 +249,7 @@ func (s *userService) SearchUsers(ctx context.Context, query string, currentUser
 			Roles:            prof.Roles,
 			FriendshipStatus: status,
 			FriendshipID:     fID,
-		}
+		})
 	}
 
 	return results, nil

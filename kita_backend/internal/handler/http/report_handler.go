@@ -80,9 +80,15 @@ func (h *ReportHandler) CreateReport(c *gin.Context) {
 		if err := h.db.WithContext(ctx).Create(&reportBot).Error; err != nil {
 			_ = h.db.WithContext(ctx).Where("LOWER(username) = ?", "report").First(&reportBot).Error
 		}
-	} else if reportBot.AvatarCustom != "🚨" {
+	} else if reportBot.AvatarCustom != "🚨" || !reportBot.HasRole("system") {
 		reportBot.AvatarCustom = "🚨"
-		_ = h.db.WithContext(ctx).Model(&reportBot).Update("avatar_custom", "🚨").Error
+		if !reportBot.HasRole("system") {
+			reportBot.AddRole("system")
+		}
+		_ = h.db.WithContext(ctx).Model(&reportBot).Updates(map[string]interface{}{
+			"avatar_custom": "🚨",
+			"roles":         reportBot.Roles,
+		}).Error
 	}
 
 	// 3. Find all users with admin role

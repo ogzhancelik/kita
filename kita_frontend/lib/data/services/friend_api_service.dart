@@ -50,6 +50,7 @@ class FriendApiService {
 
     return list
         .map((item) => PlayerSearchResultModel.fromJson(item as Map<String, dynamic>))
+        .where((p) => !p.isSystem)
         .toList();
   }
 

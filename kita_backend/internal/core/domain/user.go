@@ -33,6 +33,7 @@ type User struct {
 const (
 	RoleAdmin   = "admin"
 	RolePremium = "premium"
+	RoleSystem  = "system"
 )
 
 func (u *User) HasRole(role string) bool {
@@ -50,6 +51,10 @@ func (u *User) IsAdmin() bool {
 
 func (u *User) IsPremium() bool {
 	return u.HasRole(RolePremium)
+}
+
+func (u *User) IsSystem() bool {
+	return u.HasRole(RoleSystem) || strings.EqualFold(u.Username, "report")
 }
 
 func (u *User) AddRole(role string) {
@@ -115,6 +120,10 @@ func (p *UserProfile) IsAdmin() bool {
 
 func (p *UserProfile) IsPremium() bool {
 	return p.HasRole(RolePremium)
+}
+
+func (p *UserProfile) IsSystem() bool {
+	return p.HasRole(RoleSystem) || strings.EqualFold(p.Username, "report")
 }
 
 func (u *User) ToProfile() UserProfile {

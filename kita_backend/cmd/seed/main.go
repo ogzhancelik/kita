@@ -190,8 +190,11 @@ func main() {
 		}
 	}
 
-	// Ensure system Report bot has 🚨 avatar
-	db.Model(&domain.User{}).Where("LOWER(username) = ?", "report").Update("avatar_custom", "🚨")
+	// Ensure system Report bot has 🚨 avatar and system role
+	db.Model(&domain.User{}).Where("LOWER(username) = ?", "report").Updates(map[string]interface{}{
+		"avatar_custom": "🚨",
+		"roles":         []string{"system"},
+	})
 
 	fmt.Println("=== Seeding & Friendship Setup Complete! ===")
 }

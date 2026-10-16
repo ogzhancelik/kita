@@ -126,6 +126,7 @@ class PlayerSearchResultModel {
   String get displayRating => isProvisional ? '$rating?' : '$rating';
   bool get isAdmin => roles.any((r) => r.toLowerCase() == 'admin');
   bool get isPremium => roles.any((r) => r.toLowerCase() == 'premium');
+  bool get isSystem => hasRole('system') || username.toLowerCase() == 'report';
   bool hasRole(String role) => roles.any((r) => r.toLowerCase() == role.toLowerCase());
 
   factory PlayerSearchResultModel.fromJson(Map<String, dynamic> json) {

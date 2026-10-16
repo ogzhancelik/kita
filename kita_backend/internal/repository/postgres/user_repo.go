@@ -77,7 +77,9 @@ func (r *userRepo) Delete(ctx context.Context, id string) error {
 
 func (r *userRepo) GetLeaderboard(ctx context.Context, limit int, userIDs []string) ([]domain.User, error) {
 	var users []domain.User
-	query := r.db.WithContext(ctx)
+	query := r.db.WithContext(ctx).
+		Where("LOWER(username) != ?", "report").
+		Where("roles IS NULL OR roles::text NOT ILIKE ?", `%"system"%`)
 	if len(userIDs) > 0 {
 		query = query.Where("id IN ?", userIDs)
 	}
@@ -98,7 +100,10 @@ func (r *userRepo) Search(ctx context.Context, query string, excludeUserID strin
 
 	searchPattern := "%" + strings.ToLower(trimmed) + "%"
 	var users []domain.User
-	q := r.db.WithContext(ctx).Where("LOWER(username) LIKE ?", searchPattern)
+	q := r.db.WithContext(ctx).
+		Where("LOWER(username) != ?", "report").
+		Where("roles IS NULL OR roles::text NOT ILIKE ?", `%"system"%`).
+		Where("LOWER(username) LIKE ?", searchPattern)
 	if excludeUserID != "" {
 		q = q.Where("id != ?", excludeUserID)
 	}

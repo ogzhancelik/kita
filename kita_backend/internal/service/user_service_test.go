@@ -152,6 +152,32 @@ func TestUserService_GetLeaderboard_Global(t *testing.T) {
 	}
 }
 
+func TestUserService_GetLeaderboard_ExcludesReportAndSystemBot(t *testing.T) {
+	userRepo := &mockUserRepoForUserService{
+		users: []domain.User{
+			{ID: "u1", Username: "Alice", Rating: 1600, Wins: 10},
+			{ID: "u2", Username: "Report", Rating: 1900, Wins: 50, Roles: []string{"system"}},
+			{ID: "u3", Username: "SystemBot", Rating: 1800, Wins: 40, Roles: []string{"system"}},
+			{ID: "u4", Username: "Bob", Rating: 1550, Wins: 8},
+		},
+	}
+	friendRepo := &mockFriendRepoForUserService{}
+	svc := NewUserService(userRepo, friendRepo)
+
+	profiles, err := svc.GetLeaderboard(context.Background(), 10, "global", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(profiles) != 2 {
+		t.Fatalf("expected 2 profiles (Report and SystemBot excluded), got %d", len(profiles))
+	}
+	for _, p := range profiles {
+		if strings.EqualFold(p.Username, "report") || p.HasRole("system") {
+			t.Errorf("found unexpected system/report user in leaderboard: %s", p.Username)
+		}
+	}
+}
+
 func TestUserService_GetLeaderboard_Friends(t *testing.T) {
 	userRepo := &mockUserRepoForUserService{
 		users: []domain.User{

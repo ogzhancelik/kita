@@ -114,7 +114,7 @@ This document tracks planned features, active backlog items, and completed miles
 ### 🏆 Phase 5: Competitive & Leaderboards
 
 - [x] **Rating System**: Post-match rating adjustments with rules for draws, resignations, and timeouts
-- [x] **Leaderboards**: Global rankings with podium display and friend-filtered leaderboards
+- [x] **Leaderboards**: Global rankings with podium display and friend-filtered leaderboards (system/report bot accounts excluded)
 - [x] **Viewport Tracking**: Floating rank indicator for quick navigation to the user's position
 
 ---
