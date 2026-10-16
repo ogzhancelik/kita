@@ -71,10 +71,8 @@ func (h *Hub) SetPushService(svc ports.PushNotificationService) {
 	h.pushService = svc
 }
 
-// GetPushService returns the current PushNotificationService safely.
+// GetPushService returns the current PushNotificationService.
 func (h *Hub) GetPushService() ports.PushNotificationService {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
 	return h.pushService
 }
 

@@ -273,10 +273,15 @@ func (c *Client) ReadPump() {
 }
 
 func (c *Client) WritePump() {
+	if c.Conn == nil {
+		return
+	}
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close()
+		if c.Conn != nil {
+			c.Conn.Close()
+		}
 	}()
 
 	for {

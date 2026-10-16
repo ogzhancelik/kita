@@ -756,7 +756,9 @@ func (r *Room) handleReadyPhaseTimeout() {
 			}
 		})
 
-		r.hub.BroadcastRoomsList()
+		if r.hub != nil {
+			go r.hub.BroadcastRoomsList()
+		}
 	} else {
 		// Both somehow timed out
 		r.isFinished = true

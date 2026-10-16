@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/oguzhancelik/kita/internal/core/domain"
 	"github.com/oguzhancelik/kita/internal/core/ports"
@@ -55,6 +56,12 @@ func (s *pushNotificationService) RemoveToken(ctx context.Context, token string)
 func (s *pushNotificationService) SendToUser(ctx context.Context, userID string, payload ports.PushNotificationPayload) error {
 	if userID == "" {
 		return nil
+	}
+
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
 	}
 
 	tokens, err := s.tokenRepo.ListByUserID(ctx, userID)
