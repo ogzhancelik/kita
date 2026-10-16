@@ -67,12 +67,20 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
               shape: BoxShape.circle,
               color: isOffline
                   ? AppColors.warning.withValues(alpha: 0.15)
-                  : AppColors.onlineLight.withValues(alpha: 0.2),
+                  : (widget.friend.isAfk
+                      ? AppColors.afk.withValues(alpha: 0.18)
+                      : AppColors.onlineLight.withValues(alpha: 0.2)),
             ),
             child: Icon(
-              isOffline ? Icons.schedule_rounded : Icons.sports_esports_rounded,
+              isOffline
+                  ? Icons.schedule_rounded
+                  : (widget.friend.isAfk
+                      ? Icons.access_time_filled_rounded
+                      : Icons.sports_esports_rounded),
               size: 32,
-              color: isOffline ? AppColors.warning : AppColors.online,
+              color: isOffline
+                  ? AppColors.warning
+                  : (widget.friend.isAfk ? AppColors.getAfk(isDark) : AppColors.online),
             ),
           ),
           const SizedBox(height: 10),
@@ -123,44 +131,53 @@ class _FriendChallengeDialogState extends State<FriendChallengeDialog> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Container(
-                            width: 9,
-                            height: 9,
-                            decoration: BoxDecoration(
-                              color: widget.friend.isOnline
-                                  ? AppColors.online
-                                  : AppColors.offline,
-                              shape: BoxShape.circle,
-                              boxShadow: widget.friend.isOnline
-                                  ? [
-                                      BoxShadow(
-                                        color: AppColors.online.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        blurRadius: 3,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.friend.isOnline
-                                ? 'common.online'.tr()
-                                : 'common.offline'.tr(),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: widget.friend.isOnline
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              color: widget.friend.isOnline
-                                  ? AppColors.online
-                                  : AppColors.getTextSecondary(isDark),
-                            ),
-                          ),
-                        ],
+                      Builder(
+                        builder: (context) {
+                          final statusColor = isOffline
+                              ? AppColors.offline
+                              : (widget.friend.isAfk ? AppColors.afk : AppColors.online);
+                          final statusText = isOffline
+                              ? 'common.offline'.tr()
+                              : (widget.friend.isAfk ? 'common.afk'.tr() : 'common.online'.tr());
+
+                          return Row(
+                            children: [
+                              Container(
+                                width: 9,
+                                height: 9,
+                                decoration: BoxDecoration(
+                                  color: statusColor,
+                                  shape: BoxShape.circle,
+                                  boxShadow: widget.friend.isOnline
+                                      ? [
+                                          BoxShadow(
+                                            color: statusColor.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                            blurRadius: 3,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                statusText,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: widget.friend.isOnline
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  color: isOffline
+                                      ? AppColors.getTextSecondary(isDark)
+                                      : (widget.friend.isAfk
+                                          ? AppColors.getAfk(isDark)
+                                          : AppColors.online),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),

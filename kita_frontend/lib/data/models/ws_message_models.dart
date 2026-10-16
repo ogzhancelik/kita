@@ -34,6 +34,7 @@ class WsClientType {
   static const String drawDecline = 'draw_decline';
   static const String dmSend = 'dm_send';
   static const String matchReady = 'match_ready';
+  static const String presenceUpdate = 'presence_update';
 }
 
 
@@ -72,6 +73,8 @@ class WsServerType {
   static const String sentChallenges = 'sent_challenges';
   static const String readyState = 'ready_state';
   static const String clockStarted = 'clock_started';
+  static const String readyPhaseStarted = 'ready_phase_started';
+  static const String readyTimedOut = 'ready_timed_out';
 }
 
 
@@ -508,12 +511,14 @@ class ReadyStatePayload {
   final bool whiteReady;
   final bool blackReady;
   final bool isClockStarted;
+  final bool hostOnline;
 
   const ReadyStatePayload({
     required this.matchId,
     required this.whiteReady,
     required this.blackReady,
     required this.isClockStarted,
+    this.hostOnline = true,
   });
 
   factory ReadyStatePayload.fromJson(Map<String, dynamic> json) {
@@ -522,6 +527,87 @@ class ReadyStatePayload {
       whiteReady: json['white_ready'] as bool? ?? false,
       blackReady: json['black_ready'] as bool? ?? false,
       isClockStarted: json['is_clock_started'] as bool? ?? false,
+      hostOnline: json['host_online'] as bool? ?? true,
+    );
+  }
+}
+
+// ─── Ready Phase Started Payload ──────────────────────────────────────
+
+class ReadyPhaseStartedPayload {
+  final String matchId;
+  final String roomCode;
+  final int timeControl;
+  final String hostId;
+  final String yourTeam;
+  final String opponentId;
+  final String opponentName;
+  final int opponentRating;
+  final bool opponentIsProvisional;
+  final int opponentAvatarIndex;
+  final String? opponentAvatarCustom;
+  final bool whiteReady;
+  final bool blackReady;
+  final int countdownSeconds;
+  final bool hostOnline;
+
+  const ReadyPhaseStartedPayload({
+    required this.matchId,
+    required this.roomCode,
+    required this.timeControl,
+    required this.hostId,
+    required this.yourTeam,
+    required this.opponentId,
+    required this.opponentName,
+    required this.opponentRating,
+    this.opponentIsProvisional = false,
+    this.opponentAvatarIndex = 0,
+    this.opponentAvatarCustom,
+    this.whiteReady = false,
+    this.blackReady = false,
+    this.countdownSeconds = 60,
+    this.hostOnline = true,
+  });
+
+  factory ReadyPhaseStartedPayload.fromJson(Map<String, dynamic> json) {
+    return ReadyPhaseStartedPayload(
+      matchId: json['match_id'] as String? ?? '',
+      roomCode: json['room_code'] as String? ?? '',
+      timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
+      hostId: json['host_id'] as String? ?? '',
+      yourTeam: json['your_team'] as String? ?? 'white',
+      opponentId: json['opponent_id'] as String? ?? '',
+      opponentName: json['opponent_name'] as String? ?? 'Challenger',
+      opponentRating: (json['opponent_rating'] as num?)?.toInt() ?? 1200,
+      opponentIsProvisional: json['opponent_is_provisional'] as bool? ?? false,
+      opponentAvatarIndex: (json['opponent_avatar_index'] as num?)?.toInt() ?? 0,
+      opponentAvatarCustom: json['opponent_avatar_custom'] as String?,
+      whiteReady: json['white_ready'] as bool? ?? false,
+      blackReady: json['black_ready'] as bool? ?? false,
+      countdownSeconds: (json['countdown_seconds'] as num?)?.toInt() ?? 60,
+      hostOnline: json['host_online'] as bool? ?? true,
+    );
+  }
+}
+
+// ─── Ready Timed Out Payload ──────────────────────────────────────────
+
+class ReadyTimedOutPayload {
+  final String matchId;
+  final String reason;
+  final String message;
+
+  const ReadyTimedOutPayload({
+    required this.matchId,
+    required this.reason,
+    required this.message,
+  });
+
+  factory ReadyTimedOutPayload.fromJson(Map<String, dynamic> json) {
+    return ReadyTimedOutPayload(
+      matchId: json['match_id'] as String? ?? '',
+      reason: json['reason'] as String? ?? 'timeout',
+      message: json['message'] as String? ?? '',
     );
   }
 }
@@ -724,6 +810,7 @@ class RoomInfoPayload {
   final String? hostAvatarCustom;
   final int timeControl;
   final bool isPrivate;
+  final bool hostOnline;
 
   const RoomInfoPayload({
     required this.roomCode,
@@ -735,6 +822,7 @@ class RoomInfoPayload {
     this.hostAvatarCustom,
     required this.timeControl,
     required this.isPrivate,
+    this.hostOnline = true,
   });
 
   String get displayRating =>
@@ -751,6 +839,7 @@ class RoomInfoPayload {
       hostAvatarCustom: (json['host_avatar_custom'] as String?) ?? (json['hostAvatarCustom'] as String?),
       timeControl: (json['time_control'] as num?)?.toInt() ?? 0,
       isPrivate: json['is_private'] as bool? ?? false,
+      hostOnline: json['host_online'] as bool? ?? true,
     );
   }
 }

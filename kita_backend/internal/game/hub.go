@@ -78,7 +78,7 @@ func (h *Hub) Run() {
 			var matchedRoom *Room
 			for _, r := range h.rooms {
 				r.mu.RLock()
-				if !r.isFinished && r.Status == "in_game" {
+				if !r.isFinished && (r.Status == "in_game" || r.Status == "ready_phase") {
 					if (r.WhitePlayer != nil && r.WhitePlayer.UserID == client.UserID) ||
 						(r.BlackPlayer != nil && r.BlackPlayer.UserID == client.UserID) {
 						matchedRoom = r
@@ -95,8 +95,9 @@ func (h *Hub) Run() {
 			activeRoomCode := ""
 			if matchedRoom != nil {
 				matchedRoom.mu.RLock()
-				if matchedRoom.Status == "in_game" {
+				if matchedRoom.Status == "in_game" || matchedRoom.Status == "ready_phase" {
 					activeMatchID = matchedRoom.ID
+					activeRoomCode = matchedRoom.RoomCode
 				} else if matchedRoom.Status == "waiting" {
 					activeRoomCode = matchedRoom.RoomCode
 				}
@@ -117,9 +118,12 @@ func (h *Hub) Run() {
 			if matchedRoom != nil {
 				if matchedRoom.Status == "in_game" {
 					matchedRoom.HandleReconnect(client)
+				} else if matchedRoom.Status == "ready_phase" {
+					matchedRoom.HandleReadyPhaseReconnect(client)
 				} else if matchedRoom.Status == "waiting" {
 					matchedRoom.mu.Lock()
 					matchedRoom.Host = client
+					matchedRoom.HostOnline = true
 					client.CurrentMatchID = matchedRoom.ID
 					client.mu.Lock()
 					client.Activity = ActivityInWaitingRoom
@@ -180,15 +184,20 @@ func (h *Hub) handleDisconnect(client *Client) {
 	delete(h.clients, client.UserID)
 	h.removeFromQueueLocked(client)
 
-	// Clean up any unstarted waiting room & rematch requests hosted by this client.
-	// Sent challenge invitations remain active so they persist across app restarts.
-	h.cleanupWaitingRoomLocked(client)
+	// Rematch requests are cleaned up on disconnect.
+	// Waiting rooms persist across app restarts (24-hour TTL) just like sent challenges.
 	h.cleanupPendingRematchLocked(client)
 
-	// Eğer oyuncu aktif bir maçtaysa, odanın disconnect mantığını çalıştır
+	// If player is in a room (waiting, ready phase, or active match), run room's disconnect logic
 	if client.CurrentMatchID != "" {
 		if room, exists := h.rooms[client.CurrentMatchID]; exists {
 			go room.HandleDisconnect(client.UserID)
+		}
+	} else {
+		for _, room := range h.rooms {
+			if room.Status == "waiting" && room.Host != nil && room.Host.UserID == client.UserID {
+				go room.HandleDisconnect(client.UserID)
+			}
 		}
 	}
 
@@ -296,9 +305,48 @@ func (h *Hub) RouteClientMessage(client *Client, msg WSMessage) {
 	case TypeMatchReady:
 		h.handleMatchReady(client)
 
+	case TypePresenceUpdate:
+		h.handlePresenceUpdate(client, msg.Payload)
+
 	default:
 		client.SendError(errors.ErrUnknownMessage, "Unknown message type: "+msg.Type)
 	}
+}
+
+func (h *Hub) handlePresenceUpdate(client *Client, rawPayload json.RawMessage) {
+	if client == nil {
+		return
+	}
+	var dto PresenceUpdateDTO
+	if err := json.Unmarshal(rawPayload, &dto); err != nil {
+		return
+	}
+	newStatus := strings.ToLower(strings.TrimSpace(dto.Status))
+	if newStatus != "online" && newStatus != "afk" {
+		return
+	}
+
+	client.mu.Lock()
+	if client.PresenceStatus == newStatus {
+		client.mu.Unlock()
+		return
+	}
+	client.PresenceStatus = newStatus
+	client.mu.Unlock()
+
+	log.Printf("[Hub] User %s (%s) presence updated to: %s", client.Username, client.UserID, newStatus)
+
+	if newStatus == "afk" {
+		h.mu.Lock()
+		if client.Activity == ActivityInQueue {
+			h.removeFromQueueLocked(client)
+			client.SendJSON("queue_left", map[string]string{"status": "idle", "reason": "afk"})
+			log.Printf("[Hub] User %s automatically removed from matchmaking queue due to inactivity", client.Username)
+		}
+		h.mu.Unlock()
+	}
+
+	go h.notifyFriendsPresence(client.UserID, true, newStatus)
 }
 
 func (h *Hub) handleMatchReady(client *Client) {
@@ -349,7 +397,7 @@ func (h *Hub) handleJoinQueue(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.Activity == ActivityInMatch {
+	if client.Activity == ActivityInMatch || client.Activity == ActivityInReadyPhase {
 		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 		return
 	}
@@ -549,11 +597,13 @@ func (h *Hub) enterActivityLocked(client *Client, newActivity PlayerActivity) {
 	case ActivityInQueue:
 		h.removeFromQueueLocked(client)
 	case ActivityInWaitingRoom:
-		h.cleanupWaitingRoomLocked(client)
+		if newActivity != ActivityInReadyPhase {
+			h.cleanupWaitingRoomLocked(client)
+		}
 	}
 
-	// Clean pending outgoing invites when entering an active match, waiting room, or queue
-	if newActivity == ActivityInMatch || newActivity == ActivityInWaitingRoom || newActivity == ActivityInQueue {
+	// Clean pending outgoing invites when entering an active match, waiting room, ready phase, or queue
+	if newActivity == ActivityInMatch || newActivity == ActivityInWaitingRoom || newActivity == ActivityInQueue || newActivity == ActivityInReadyPhase {
 		h.cleanupPendingInviteLocked(client)
 	}
 	if newActivity != ActivityPostGame {
@@ -573,8 +623,8 @@ func (h *Hub) handleCreateRoom(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	// Reject if already in an active match
-	if client.Activity == ActivityInMatch {
+	// Reject if already in an active match or ready phase
+	if client.Activity == ActivityInMatch || client.Activity == ActivityInReadyPhase {
 		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 		return
 	}
@@ -623,8 +673,8 @@ func (h *Hub) handleJoinRoom(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	// Reject if already in an active match
-	if client.Activity == ActivityInMatch {
+	// Reject if already in an active match or ready phase
+	if client.Activity == ActivityInMatch || client.Activity == ActivityInReadyPhase {
 		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 		return
 	}
@@ -669,6 +719,87 @@ func (h *Hub) handleJoinRoom(client *Client, rawPayload json.RawMessage) {
 func (h *Hub) handleLeaveRoom(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
+	matchID := client.CurrentMatchID
+	if room, exists := h.rooms[matchID]; exists {
+		room.mu.Lock()
+		if room.Status == "ready_phase" {
+			if room.readyPhaseTimer != nil {
+				room.readyPhaseTimer.Stop()
+				room.readyPhaseTimer = nil
+			}
+
+			isHost := room.Host != nil && room.Host.UserID == client.UserID
+			timedOutDTO := ReadyTimedOutDTO{
+				MatchID: room.ID,
+				Reason:  "cancelled",
+				Message: "Player left the ready phase",
+			}
+
+			if isHost {
+				var guest *Client
+				if room.WhitePlayer != nil && room.WhitePlayer.UserID != client.UserID {
+					guest = room.WhitePlayer
+				} else if room.BlackPlayer != nil && room.BlackPlayer.UserID != client.UserID {
+					guest = room.BlackPlayer
+				}
+				if guest != nil {
+					guest.SendJSON(TypeReadyTimedOut, timedOutDTO)
+					guest.mu.Lock()
+					guest.Activity = ActivityIdle
+					guest.CurrentMatchID = ""
+					guest.mu.Unlock()
+				}
+				room.isFinished = true
+				room.mu.Unlock()
+				h.closeRoomLocked(room.ID)
+			} else {
+				client.SendJSON(TypeRoomLeft, map[string]string{"status": "idle"})
+				client.CurrentMatchID = ""
+				h.enterActivityLocked(client, ActivityIdle)
+
+				if room.RoomCode == "" {
+					room.isFinished = true
+					room.mu.Unlock()
+					h.closeRoomLocked(room.ID)
+					return
+				}
+
+				room.Status = "waiting"
+				room.WhitePlayer = nil
+				room.BlackPlayer = nil
+				room.WhiteReady = false
+				room.BlackReady = false
+
+				if room.Host != nil && h.isUserOnlineLocked(room.Host.UserID) {
+					room.Host.SendJSON(TypeReadyTimedOut, timedOutDTO)
+					room.Host.mu.Lock()
+					room.Host.Activity = ActivityInWaitingRoom
+					room.Host.mu.Unlock()
+
+					room.Host.SendJSON(TypeRoomCreated, RoomCreatedDTO{
+						RoomCode:    room.RoomCode,
+						TimeControl: room.TimeControl,
+					})
+				}
+
+				if room.expiryTimer != nil {
+					room.expiryTimer.Stop()
+				}
+				room.expiryTimer = time.AfterFunc(24*time.Hour, func() {
+					room.mu.Lock()
+					defer room.mu.Unlock()
+					if room.Status == "waiting" && !room.isFinished {
+						go room.hub.CloseRoom(room.ID)
+					}
+				})
+				room.mu.Unlock()
+				h.broadcastRoomsListLocked()
+			}
+			return
+		}
+		room.mu.Unlock()
+	}
 
 	h.enterActivityLocked(client, ActivityIdle)
 	client.SendJSON(TypeRoomLeft, map[string]string{"status": "idle"})
@@ -896,6 +1027,7 @@ func (h *Hub) getPublicRoomsDTOLocked(page, limit int) RoomsListDTO {
 					HostAvatarCustom:  hostAvatarCustom,
 					TimeControl:       room.TimeControl,
 					IsPrivate:         room.IsPrivate,
+					HostOnline:        room.HostOnline,
 				},
 				startedAt: room.StartedAt,
 			})
@@ -1105,7 +1237,7 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.Activity == ActivityInMatch {
+	if client.Activity == ActivityInMatch || client.Activity == ActivityInReadyPhase {
 		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 		return
 	}
@@ -1124,7 +1256,7 @@ func (h *Hub) handleRematchAccept(client *Client, rawPayload json.RawMessage) {
 		}
 	}
 
-	if requester == nil || requester.Activity == ActivityInMatch {
+	if requester == nil || requester.Activity == ActivityInMatch || requester.Activity == ActivityInReadyPhase {
 		client.SendError(errors.ErrMatchNotFound, "Rematch requester not available")
 		return
 	}
@@ -1275,7 +1407,7 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.Activity == ActivityInMatch {
+	if client.Activity == ActivityInMatch || client.Activity == ActivityInReadyPhase {
 		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 		return
 	}
@@ -1367,7 +1499,7 @@ func (h *Hub) handleInviteToMatch(client *Client, rawPayload json.RawMessage) {
 		return
 	}
 
-	if friend.Activity == ActivityInMatch {
+	if friend.Activity == ActivityInMatch || friend.Activity == ActivityInReadyPhase {
 		client.SendError(errors.ErrAlreadyInMatch, "Friend is already in a match")
 		return
 	}
@@ -1427,7 +1559,7 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if client.Activity == ActivityInMatch {
+	if client.Activity == ActivityInMatch || client.Activity == ActivityInReadyPhase {
 		client.SendError(errors.ErrAlreadyInMatch, "You are already in an active match")
 		return
 	}
@@ -1455,10 +1587,41 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		}
 	}
 
+	isInviterOnline := true
 	if inviter == nil {
-		// Fallback: persistent (offline) challenge — inviter may now be online
+		// Fallback: persistent (offline) challenge — if inviter info is missing from dto, query notification service
+		if (dto.InviterID == "" || dto.TimeControl == 0) && h.notificationService != nil && dto.InviteID != "" {
+			notifs, _, err := h.notificationService.GetUserNotifications(context.Background(), client.UserID, 50, 0)
+			if err == nil {
+				targetID := "challenge_" + dto.InviteID
+				for _, n := range notifs {
+					if n.ID == targetID || strings.HasSuffix(n.ID, dto.InviteID) {
+						if dto.InviterID == "" {
+							dto.InviterID = n.ActorID
+						}
+						if dto.InviterName == "" {
+							dto.InviterName = n.ActorName
+						}
+						var pMap map[string]any
+						if err := json.Unmarshal([]byte(n.Payload), &pMap); err == nil {
+							if tc, ok := pMap["time_control"].(float64); ok && dto.TimeControl == 0 {
+								dto.TimeControl = int64(tc)
+							}
+							if pref, ok := pMap["color_preference"].(string); ok && dto.ColorPref == "" {
+								dto.ColorPref = pref
+							}
+							if r, ok := pMap["sender_rating"].(float64); ok && dto.InviterRating == 0 {
+								dto.InviterRating = int(r)
+							}
+						}
+						break
+					}
+				}
+			}
+		}
+
 		if dto.InviterID != "" {
-			if onlineInviter, ok := h.clients[dto.InviterID]; ok && onlineInviter != nil && onlineInviter.Activity != ActivityInMatch {
+			if onlineInviter, ok := h.clients[dto.InviterID]; ok && onlineInviter != nil && onlineInviter.Activity != ActivityInMatch && onlineInviter.Activity != ActivityInReadyPhase {
 				inviter = onlineInviter
 				if dto.TimeControl > 0 {
 					timeControl = dto.TimeControl
@@ -1473,17 +1636,37 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 			}
 		}
 		if inviter == nil {
-			client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
-			if h.notificationService != nil && dto.InviteID != "" {
-				go func(invID string, uID string) {
-					_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, uID)
-				}(dto.InviteID, client.UserID)
+			if dto.InviterID != "" && dto.InviterID != client.UserID {
+				isInviterOnline = false
+				inviterName := dto.InviterName
+				if inviterName == "" {
+					inviterName = "Friend"
+				}
+				inviter = NewClient(h, nil, dto.InviterID, inviterName, dto.InviterRating)
+				inviter.isClosed = true
+				if dto.TimeControl > 0 {
+					timeControl = dto.TimeControl
+				} else {
+					timeControl = TimeControl3Min
+				}
+				colorPref = dto.ColorPref
+				if colorPref != "white" && colorPref != "black" {
+					colorPref = "random"
+				}
+				log.Printf("[Hub] Persistent challenge accepted: inviter %s (%s) is offline. Entering ready phase.", inviter.Username, inviter.UserID)
+			} else {
+				client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
+				if h.notificationService != nil && dto.InviteID != "" {
+					go func(invID string, uID string) {
+						_ = h.notificationService.DeleteNotification(context.Background(), "challenge_"+invID, uID)
+					}(dto.InviteID, client.UserID)
+				}
+				return
 			}
-			return
 		}
 	}
 
-	if inviter.Activity == ActivityInMatch {
+	if isInviterOnline && (inviter.Activity == ActivityInMatch || inviter.Activity == ActivityInReadyPhase) {
 		client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
 		if h.notificationService != nil && dto.InviteID != "" {
 			go func(invID string, uID string) {
@@ -1574,17 +1757,36 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		}
 	}
 
-	// Transition both players
-	h.enterActivityLocked(inviter, ActivityIdle)
-	h.enterActivityLocked(client, ActivityIdle)
-
-	// Create match
 	matchID := uuid.New().String()
-	room := NewRoomWithTimeControl(matchID, white, black, timeControl, h.matchService, h)
-	h.rooms[matchID] = room
 
-	log.Printf("[Hub] Friend match created: %s between %s (white) and %s (black) (TC: %dms, pref: %s)", matchID, white.Username, black.Username, timeControl, colorPref)
-	go room.Start()
+	isInviterAfk := inviter != nil && inviter.IsAfk()
+	isClientAfk := client != nil && client.IsAfk()
+
+	if isInviterOnline && !isInviterAfk && !isClientAfk {
+		// Transition both players
+		h.enterActivityLocked(inviter, ActivityIdle)
+		h.enterActivityLocked(client, ActivityIdle)
+
+		// Create match directly (both online and active)
+		room := NewRoomWithTimeControl(matchID, white, black, timeControl, h.matchService, h)
+		h.rooms[matchID] = room
+
+		log.Printf("[Hub] Friend match created: %s between %s (white) and %s (black) (TC: %dms, pref: %s)", matchID, white.Username, black.Username, timeControl, colorPref)
+		go room.Start()
+	} else {
+		// Either inviter is offline OR at least one player is AFK: start ready confirmation phase for friend challenge
+		h.enterActivityLocked(client, ActivityInReadyPhase)
+		if isInviterOnline {
+			h.enterActivityLocked(inviter, ActivityInReadyPhase)
+		}
+
+		room := NewFriendChallengeReadyRoom(matchID, inviter, white, black, timeControl, h.matchService, h)
+		room.HostOnline = isInviterOnline
+		h.rooms[matchID] = room
+		log.Printf("[Hub] Friend challenge ready phase created: %s between %s (host online=%v, afk=%v) and %s (client afk=%v) (TC: %dms)",
+			matchID, inviter.Username, isInviterOnline, isInviterAfk, client.Username, isClientAfk, timeControl)
+		room.sendReadyPhaseStartedLocked()
+	}
 }
 
 func (h *Hub) handleDeclineInvite(client *Client, rawPayload json.RawMessage) {
@@ -1742,7 +1944,10 @@ func (h *Hub) cleanupPendingRematchLocked(client *Client) {
 func (h *Hub) CloseRoom(matchID string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	h.closeRoomLocked(matchID)
+}
 
+func (h *Hub) closeRoomLocked(matchID string) {
 	if room, exists := h.rooms[matchID]; exists {
 		if !room.isFinished {
 			if room.WhitePlayer != nil {
@@ -1834,11 +2039,32 @@ func (h *Hub) SendToUser(userID string, msgType string, payload any) {
 func (h *Hub) IsUserOnline(userID string) bool {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	return h.isUserOnlineLocked(userID)
+}
+
+func (h *Hub) isUserOnlineLocked(userID string) bool {
 	_, exists := h.clients[userID]
 	return exists
 }
 
-func (h *Hub) notifyFriendsPresence(userID string, isOnline bool) {
+// GetUserPresence returns whether a user is currently connected to the Hub and their presence status ("online", "afk", "offline").
+func (h *Hub) GetUserPresence(userID string) (bool, string) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	client, exists := h.clients[userID]
+	if !exists {
+		return false, "offline"
+	}
+	client.mu.RLock()
+	defer client.mu.RUnlock()
+	st := client.PresenceStatus
+	if st == "" {
+		st = "online"
+	}
+	return true, st
+}
+
+func (h *Hub) notifyFriendsPresence(userID string, isOnline bool, status ...string) {
 	if h.friendService == nil || strings.HasPrefix(userID, "guest-") {
 		return
 	}
@@ -1850,9 +2076,18 @@ func (h *Hub) notifyFriendsPresence(userID string, isOnline bool) {
 		return
 	}
 
+	st := "offline"
+	if isOnline {
+		st = "online"
+		if len(status) > 0 && status[0] != "" {
+			st = status[0]
+		}
+	}
+
 	dto := FriendPresenceDTO{
 		UserID:   userID,
 		IsOnline: isOnline,
+		Status:   st,
 	}
 
 	for _, f := range friends {

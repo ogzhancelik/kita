@@ -549,12 +549,14 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
         ? 'game.aiBot'.tr()
         : ((rawOpponentName != null &&
                   rawOpponentName.isNotEmpty &&
+                  rawOpponentName != 'game.localCoopTitle' &&
+                  rawOpponentName != 'game.localCoop' &&
                   !isNameUuid)
               ? rawOpponentName
               : (isOpponentDeleted
                     ? '[Deleted]'
                     : (isOffline
-                          ? 'game.aiBot'.tr()
+                          ? (isCoop ? 'game.player2'.tr() : 'game.aiBot'.tr())
                           : (isWhite
                                 ? 'history.blackTeam'.tr()
                                 : 'history.whiteTeam'.tr()))));
@@ -626,7 +628,7 @@ class _DashboardMatchHistoryCardState extends State<DashboardMatchHistoryCard>
                     if (isCoop) ...[
                       Flexible(
                         child: Text(
-                          'game.localCoopTitle'.tr(),
+                          opponentName,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,

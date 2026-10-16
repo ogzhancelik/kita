@@ -159,7 +159,17 @@ class MatchRecordModel {
 
   /// Returns true if the user played as White.
   bool isUserWhite(String? currentUserId) {
-    if (isLocalCoop) return true;
+    if (isLocalCoop) {
+      if (currentUserId != null && currentUserId.isNotEmpty) {
+        if (blackPlayerId == currentUserId || blackPlayer?.id == currentUserId) {
+          return false;
+        }
+        if (whitePlayerId == currentUserId || whitePlayer?.id == currentUserId) {
+          return true;
+        }
+      }
+      return whitePlayerId != 'local_p2' && whitePlayer?.id != 'local_p2';
+    }
     if (isVsAi) {
       if (whitePlayerId == 'bot' ||
           whitePlayer?.id == 'bot' ||

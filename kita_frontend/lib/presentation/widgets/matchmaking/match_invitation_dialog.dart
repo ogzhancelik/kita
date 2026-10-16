@@ -206,7 +206,14 @@ class MatchInvitationDialog extends StatelessWidget {
               isTransitioningToNewMatch: true,
             );
             if (!canProceed) return;
-            provider.acceptInvitation(invitation.inviteId);
+            provider.acceptInvitation(
+              invitation.inviteId,
+              inviterId: invitation.inviterId,
+              inviterName: invitation.inviterName,
+              inviterRating: invitation.inviterRating,
+              timeControl: invitation.timeControl,
+              colorPref: invitation.colorPreference,
+            );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accentSecondary,

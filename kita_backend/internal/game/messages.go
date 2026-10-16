@@ -37,6 +37,7 @@ const (
 	TypeDrawDecline     = "draw_decline"
 	TypeDmSend          = "dm_send"
 	TypeMatchReady      = "match_ready"
+	TypePresenceUpdate  = "presence_update"
 
 
 	// Server -> Client
@@ -74,6 +75,8 @@ const (
 	TypeDmBroadcast          = "dm_broadcast"
 	TypeReadyState           = "ready_state"
 	TypeClockStarted         = "clock_started"
+	TypeReadyPhaseStarted    = "ready_phase_started"
+	TypeReadyTimedOut        = "ready_timed_out"
 )
 
 
@@ -182,6 +185,35 @@ type ReadyStateDTO struct {
 	WhiteReady     bool   `json:"white_ready"`
 	BlackReady     bool   `json:"black_ready"`
 	IsClockStarted bool   `json:"is_clock_started"`
+	HostOnline     bool   `json:"host_online"`
+}
+
+// ─── Ready Phase Started DTO ──────────────────────────────────────────
+
+type ReadyPhaseStartedDTO struct {
+	MatchID               string `json:"match_id"`
+	RoomCode              string `json:"room_code"`
+	TimeControl           int64  `json:"time_control"`
+	HostID                string `json:"host_id"`
+	YourTeam              string `json:"your_team"` // "white" or "black"
+	OpponentID            string `json:"opponent_id"`
+	OpponentName          string `json:"opponent_name"`
+	OpponentRating        int    `json:"opponent_rating"`
+	OpponentIsProvisional bool   `json:"opponent_is_provisional"`
+	OpponentAvatarIndex   int    `json:"opponent_avatar_index"`
+	OpponentAvatarCustom  string `json:"opponent_avatar_custom,omitempty"`
+	WhiteReady            bool   `json:"white_ready"`
+	BlackReady            bool   `json:"black_ready"`
+	CountdownSeconds      int    `json:"countdown_seconds"`
+	HostOnline            bool   `json:"host_online"`
+}
+
+// ─── Ready Timed Out DTO ──────────────────────────────────────────────
+
+type ReadyTimedOutDTO struct {
+	MatchID string `json:"match_id"`
+	Reason  string `json:"reason"` // "host_not_ready", "guest_not_ready", "cancelled"
+	Message string `json:"message"`
 }
 
 // ─── Clock Started DTO ────────────────────────────────────────────────
@@ -251,15 +283,16 @@ type ListRoomsDTO struct {
 }
 
 type RoomInfoDTO struct {
-	RoomCode        string `json:"room_code"`
-	HostID          string `json:"host_id,omitempty"`
-	HostName        string `json:"host_name"`
+	RoomCode          string `json:"room_code"`
+	HostID            string `json:"host_id,omitempty"`
+	HostName          string `json:"host_name"`
 	HostRating        int    `json:"host_rating"`
 	HostIsProvisional bool   `json:"host_is_provisional"`
 	HostAvatarIndex   int    `json:"host_avatar_index"`
 	HostAvatarCustom  string `json:"host_avatar_custom,omitempty"`
-	TimeControl     int64  `json:"time_control"`
-	IsPrivate       bool   `json:"is_private"`
+	TimeControl       int64  `json:"time_control"`
+	IsPrivate         bool   `json:"is_private"`
+	HostOnline        bool   `json:"host_online"`
 }
 
 type RoomsListDTO struct {
@@ -307,10 +340,12 @@ type MatchInvitationDTO struct {
 }
 
 type AcceptInviteDTO struct {
-	InviteID    string `json:"invite_id"`
-	InviterID   string `json:"inviter_id,omitempty"`
-	TimeControl int64  `json:"time_control,omitempty"`
-	ColorPref   string `json:"color_preference,omitempty"`
+	InviteID      string `json:"invite_id"`
+	InviterID     string `json:"inviter_id,omitempty"`
+	InviterName   string `json:"inviter_name,omitempty"`
+	InviterRating int    `json:"inviter_rating,omitempty"`
+	TimeControl   int64  `json:"time_control,omitempty"`
+	ColorPref     string `json:"color_preference,omitempty"`
 }
 
 type CancelInviteDTO struct {
@@ -344,6 +379,11 @@ type DrawDeclinedDTO struct {
 type FriendPresenceDTO struct {
 	UserID   string `json:"user_id"`
 	IsOnline bool   `json:"is_online"`
+	Status   string `json:"status,omitempty"` // "online", "afk", "offline"
+}
+
+type PresenceUpdateDTO struct {
+	Status string `json:"status"` // "online" or "afk"
 }
 
 // ─── Direct Message DTOs ─────────────────────────────────────────────

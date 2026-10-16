@@ -16,8 +16,10 @@ This document tracks planned features, active backlog items, and completed miles
 
 ### 🚪 Lobby, Rooms & Matchmaking
 - [x] **Room Waiting State Animation**: Add dynamic loading/searching visual indicator while waiting for opponent in rooms.
-- [ ] **Room Code Share Sheet**: Add one-tap "Share Room Code" action invoking native share sheet (WhatsApp, clipboard, etc.).
-- [ ] **Room Join Alert & Timed Match Start Confirmation**: Notify the host immediately upon an opponent joining (pending OS push notification infrastructure), and [x] introduce a mutual "Ready" confirmation before starting the countdown clock in timed rooms.
+- [ ] **Room Join Alert & Timed Match Start Confirmation**:
+  - [x] **24-Hour Custom Room Persistence**: Waiting rooms remain open for up to 24 hours even if host disconnects/backgrounds; tracks host presence indicator across lobby cards and public room browser.
+  - [x] **Mutual Ready Confirmation & Dedicated Ready Screen**: Dedicated full-screen UI for timed custom room matches with 60s timeout countdown, mutual ready confirmation before starting chess clock, clean mobile navigation, and graceful re-open if challenger leaves.
+  - [ ] **OS Push Notification on Join**: Notify host via system push notifications when opponent joins a room while host is outside app (to be implemented with unified OS push notification pipeline).
 
 ### 🛡️ Moderation & Support
 - [x] In-game player reporting system
@@ -28,6 +30,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [ ] Achievements & progression badges (for milestones like "First Win", "Undefeated Streak (5/10)", "Defeat Grandmaster AI" etc.)
 - [ ] **Connection & Lifecycle Pipeline**: Unified offline/online state pipeline, web vs. mobile disconnect handling, and dynamic visibility/disabled guards across menu widgets.
   - [x] **Match History Offline & Server Down Resilience**: Instantly load local offline matches when backend is unreachable or offline, skipping hanging network timeouts and showing server unreachable notice with retry option.
+  - [x] **AFK (Away) Inactivity Presence Pipeline**: Tracks 3-minute user idle inactivity in frontend, broadcasts real-time presence transition over WebSocket, automatically evicts idle players from matchmaking queues, and highlights friends with dedicated amber AFK badges and challenge notices.
 - [ ] **Web Tab Switch Re-render Investigation**: Analyze why switching browser tabs on web triggers a full menu re-render while game view remains unaffected.
 - [ ] **Connection Retry Resiliency**: Validate retry connection edge cases after hot restart or browser cache drops.
 - [ ] **System Push Notifications**: OS notifications for opponent moves when app is backgrounded or terminated.
@@ -89,6 +92,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] Public room browser with live synchronization and 6-character room codes
 - [x] Friend invite system with color preference, real-time presence checks, and expiry timers
 - [x] Dashboard active/pending match widget with instant rejoin, cancellation, and activity guards
+- [x] Persistent custom room & friend challenge ready confirmation system (24h room TTL, offline host wait, auto-ready, 2.5s match start countdown, automatic match bypass if both players online)
 
 #### Matchmaking
 - [x] Real-time matchmaking queue with rating-based pairing

@@ -136,6 +136,8 @@ class AppColors {
       accent; // #A8D8C6: Açık mint yeşili (çevrimiçi göstergesi)
   static const Color onlineLight =
       accent; // #A8D8C6: Mint online glow/badge background
+  static const Color afk = drawYellowDark; // #FFC83B: Luminous amber for AFK/Away
+  static const Color afkLight = Color(0xFFF39C12); // Warm Amber for AFK badge background
   static const Color offline = Color(0xFF7E7E7E); // Gri çevrimdışı göstergesi
   static const Color victory =
       winGreen; // #90F0CC: Vibrant saturated green (Galibiyet rozeti & metni)
@@ -145,6 +147,7 @@ class AppColors {
 
   static Color getVictory(bool isDark) => victory;
   static Color getOnline(bool isDark) => isDark ? accent : accentSecondary;
+  static Color getAfk(bool isDark) => isDark ? drawYellowDark : drawYellowLight;
   static Color getDraw(bool isDark) => isDark ? drawYellowDark : drawYellowLight;
   static Color getRatingGold(bool isDark) =>
       isDark ? ratingGoldDark : ratingGoldLight;

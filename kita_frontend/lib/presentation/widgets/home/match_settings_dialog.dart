@@ -152,13 +152,13 @@ class MatchSettingsDialog extends StatelessWidget {
                       leftLabel: 'common.orientationHorizontalShort'.tr(),
                       leftIcon: Icons.stay_current_landscape_rounded,
                       isLeftSelected:
-                          gameSettings.boardOrientation == 'horizontal',
+                          gameSettings.defaultBoardOrientation == 'horizontal',
                       onSelectLeft: () =>
                           gameSettings.setBoardOrientation('horizontal'),
                       rightLabel: 'common.orientationVerticalShort'.tr(),
                       rightIcon: Icons.stay_current_portrait_rounded,
                       isRightSelected:
-                          gameSettings.boardOrientation == 'vertical',
+                          gameSettings.defaultBoardOrientation == 'vertical',
                       onSelectRight: () =>
                           gameSettings.setBoardOrientation('vertical'),
                     ),

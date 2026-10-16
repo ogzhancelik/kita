@@ -124,11 +124,14 @@ class FriendsProvider extends ChangeNotifier {
     }
   }
 
-  /// Sorts friends: online first, then by last interaction recency (match/chat).
+  /// Sorts friends: active online first, then AFK, then offline, then by last interaction recency (match/chat).
   void _sortFriends() {
     _friends.sort((a, b) {
       if (a.isOnline != b.isOnline) {
         return a.isOnline ? -1 : 1;
+      }
+      if (a.isOnline && b.isOnline && a.isAfk != b.isAfk) {
+        return a.isAfk ? 1 : -1;
       }
       return b.lastInteractionAt.compareTo(a.lastInteractionAt);
     });
@@ -154,12 +157,16 @@ class FriendsProvider extends ChangeNotifier {
   }
 
   /// Updates online/offline presence for a specific friend in real time via WebSocket.
-  void updateFriendPresence(String userId, bool isOnline) {
+  void updateFriendPresence(String userId, bool isOnline, [String? presenceStatus]) {
     bool changed = false;
+    final status = presenceStatus ?? (isOnline ? 'online' : 'offline');
     for (int i = 0; i < _friends.length; i++) {
       if (_friends[i].userId == userId) {
-        if (_friends[i].isOnline != isOnline) {
-          _friends[i] = _friends[i].copyWith(isOnline: isOnline);
+        if (_friends[i].isOnline != isOnline || _friends[i].presenceStatus != status) {
+          _friends[i] = _friends[i].copyWith(
+            isOnline: isOnline,
+            presenceStatus: status,
+          );
           changed = true;
         }
         break;

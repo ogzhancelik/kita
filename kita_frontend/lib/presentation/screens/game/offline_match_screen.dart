@@ -31,6 +31,7 @@ class OfflineMatchScreen extends StatefulWidget {
 class _OfflineMatchScreenState extends State<OfflineMatchScreen>
     with WidgetsBindingObserver, RouteAware {
   OfflineGameProvider? _provider;
+  GameSettingsProvider? _gameSettings;
   bool _isGameOverDialogShowing = false;
   Timer? _gameOverDialogTimer;
   bool _routeSubscribed = false;
@@ -40,11 +41,17 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
     super.initState();
     OfflineMatchScreen.isMatchScreenOpen = true;
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<GameSettingsProvider>().resetInGameOrientation();
+      }
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _gameSettings ??= context.read<GameSettingsProvider>();
     if (!_routeSubscribed) {
       final modalRoute = ModalRoute.of(context);
       if (modalRoute != null) {
@@ -79,6 +86,7 @@ class _OfflineMatchScreenState extends State<OfflineMatchScreen>
     _gameOverDialogTimer?.cancel();
     _provider?.gameOverData.removeListener(_onGameOver);
     _provider?.setInGameScreen(false);
+    _gameSettings?.resetInGameOrientation();
     super.dispose();
   }
 

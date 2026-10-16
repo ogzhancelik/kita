@@ -23,6 +23,7 @@ enum OnlineMatchState {
   connecting, // Connecting to WebSocket
   inQueue, // Waiting in matchmaking queue
   inRoom, // Waiting in a room for opponent
+  readyPhase, // Waiting for both players to confirm ready before match starts
   inMatch, // Active game in progress
   gameOver, // Game has ended
 }
@@ -206,7 +207,9 @@ class OnlineGameProvider extends ChangeNotifier {
   final ValueNotifier<bool> isReadyConfirmationRequired = ValueNotifier(false);
   final ValueNotifier<bool> myReadyState = ValueNotifier(false);
   final ValueNotifier<bool> opponentReadyState = ValueNotifier(false);
-  final ValueNotifier<int> readyCountdownSeconds = ValueNotifier(15);
+  final ValueNotifier<int> readyCountdownSeconds = ValueNotifier(60);
+  final ValueNotifier<ReadyPhaseStartedPayload?> readyPhaseData = ValueNotifier(null);
+  final ValueNotifier<bool> isHostOnline = ValueNotifier(true);
   Timer? _readyCountdownTimer;
 
   // ─── Elapsed Time ─────────────────────────────────────────────────
@@ -581,9 +584,18 @@ class OnlineGameProvider extends ChangeNotifier {
     }
   }
 
-  void acceptInvitation(String inviteId, {String? inviterId, int? timeControl, String? colorPref}) {
+  void acceptInvitation(
+    String inviteId, {
+    String? inviterId,
+    String? inviterName,
+    int? inviterRating,
+    int? timeControl,
+    String? colorPref,
+  }) {
     final payload = <String, dynamic>{'invite_id': inviteId};
     if (inviterId != null && inviterId.isNotEmpty) payload['inviter_id'] = inviterId;
+    if (inviterName != null && inviterName.isNotEmpty) payload['inviter_name'] = inviterName;
+    if (inviterRating != null) payload['inviter_rating'] = inviterRating;
     if (timeControl != null) payload['time_control'] = timeControl;
     if (colorPref != null && colorPref.isNotEmpty) payload['color_preference'] = colorPref;
     _ws.send(WsClientType.acceptInvitation, payload);
@@ -610,7 +622,14 @@ class OnlineGameProvider extends ChangeNotifier {
     final req = incomingMatchRequest.value;
     if (req == null) return;
     if (req.type == IncomingMatchRequestType.friendInvite) {
-      acceptInvitation(req.id);
+      acceptInvitation(
+        req.id,
+        inviterId: req.senderId,
+        inviterName: req.senderName,
+        inviterRating: req.senderRating,
+        timeControl: req.timeControl,
+        colorPref: req.colorPreference,
+      );
     } else {
       acceptRematch();
     }
@@ -817,6 +836,12 @@ class OnlineGameProvider extends ChangeNotifier {
 
       case WsServerType.matchFound:
         _handleMatchFound(msg.payload);
+
+      case WsServerType.readyPhaseStarted:
+        _handleReadyPhaseStarted(msg.payload);
+
+      case WsServerType.readyTimedOut:
+        _handleReadyTimedOut(msg.payload);
 
       case WsServerType.readyState:
         _handleReadyState(msg.payload);
@@ -1211,12 +1236,103 @@ class OnlineGameProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _handleReadyPhaseStarted(Map<String, dynamic>? payload) {
+    if (payload == null) return;
+    final data = ReadyPhaseStartedPayload.fromJson(payload);
+    readyPhaseData.value = data;
+    myTeam = data.yourTeam;
+    roomCode.value = data.roomCode;
+    matchId = data.matchId;
+    isHostOnline.value = data.hostOnline;
+
+    opponentInfo = OpponentInfo(
+      id: data.opponentId,
+      name: data.opponentName,
+      rating: data.opponentRating,
+      isProvisional: data.opponentIsProvisional,
+      avatarIndex: data.opponentAvatarIndex,
+      avatarCustom: data.opponentAvatarCustom,
+    );
+
+    timeControl = data.timeControl;
+    isReadyConfirmationRequired.value = true;
+    isClockStarted.value = false;
+
+    final isWhite = data.yourTeam == 'white';
+    myReadyState.value = isWhite ? data.whiteReady : data.blackReady;
+    opponentReadyState.value = isWhite ? data.blackReady : data.whiteReady;
+
+    final totalSeconds = data.countdownSeconds > 0 ? data.countdownSeconds : 60;
+    readyCountdownSeconds.value = totalSeconds;
+    _readyCountdownTimer?.cancel();
+    final deadline = DateTime.now().add(Duration(seconds: totalSeconds));
+
+    _readyCountdownTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
+      if (myReadyState.value && opponentReadyState.value) {
+        t.cancel();
+        _readyCountdownTimer = null;
+        return;
+      }
+      final remaining = deadline.difference(DateTime.now()).inSeconds;
+      if (remaining > 0) {
+        if (readyCountdownSeconds.value != remaining) {
+          readyCountdownSeconds.value = remaining;
+          notifyListeners();
+        }
+      } else {
+        readyCountdownSeconds.value = 0;
+        notifyListeners();
+        t.cancel();
+        _readyCountdownTimer = null;
+      }
+    });
+
+    matchState.value = OnlineMatchState.readyPhase;
+    _stopQueueTimer();
+    _stopClockTimer();
+    SoundService.instance.playGameStart();
+    HapticService.instance.medium();
+    notifyListeners();
+  }
+
+  void _handleReadyTimedOut(Map<String, dynamic>? payload) {
+    _readyCountdownTimer?.cancel();
+    _readyCountdownTimer = null;
+    readyCountdownSeconds.value = 0;
+
+    final reason = payload?['reason'] as String? ?? 'timeout';
+    final msg = payload?['message'] as String? ?? '';
+    final wasHost = readyPhaseData.value?.hostId == myUserId;
+    readyPhaseData.value = null;
+
+    if (reason == 'guest_not_ready' && wasHost) {
+      // Host returns to waiting room
+      matchState.value = OnlineMatchState.inRoom;
+      KitaToast.info('online.readyTimedOutGuest'.tr());
+    } else if (reason == 'host_not_ready') {
+      resetToIdle();
+      KitaToast.warning('online.readyTimedOutHost'.tr());
+    } else if (reason == 'cancelled') {
+      resetToIdle();
+      KitaToast.info(msg.isNotEmpty ? msg : 'online.readyTimedOutGeneral'.tr());
+    } else {
+      resetToIdle();
+      KitaToast.info('online.readyTimedOutGeneral'.tr());
+    }
+    notifyListeners();
+  }
+
   void _handleReadyState(Map<String, dynamic>? payload) {
     if (payload == null) return;
     final data = ReadyStatePayload.fromJson(payload);
     final isWhite = myTeam == 'white';
     myReadyState.value = isWhite ? data.whiteReady : data.blackReady;
     opponentReadyState.value = isWhite ? data.blackReady : data.whiteReady;
+    isHostOnline.value = data.hostOnline;
+    if (myReadyState.value && opponentReadyState.value) {
+      _readyCountdownTimer?.cancel();
+      _readyCountdownTimer = null;
+    }
     if (data.isClockStarted && !isClockStarted.value) {
       _onClockStarted();
     }
@@ -1240,7 +1356,7 @@ class OnlineGameProvider extends ChangeNotifier {
   }
 
   void confirmReady() {
-    if (myReadyState.value || isClockStarted.value) return;
+    if (myReadyState.value) return;
     myReadyState.value = true;
     _ws.send(WsClientType.matchReady, {});
     HapticService.instance.light();
@@ -1821,7 +1937,9 @@ class OnlineGameProvider extends ChangeNotifier {
     isReadyConfirmationRequired.value = false;
     myReadyState.value = false;
     opponentReadyState.value = false;
-    readyCountdownSeconds.value = 15;
+    readyCountdownSeconds.value = 60;
+    readyPhaseData.value = null;
+    isHostOnline.value = true;
     _readyCountdownTimer?.cancel();
     _readyCountdownTimer = null;
     _stopClockTimer();

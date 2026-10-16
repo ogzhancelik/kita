@@ -18,6 +18,7 @@ class GameSettingsProvider extends ChangeNotifier {
 
   String _boardTheme = 'amber_sunset';
   String _boardOrientation = 'horizontal';
+  String? _inGameOrientation;
   String _pieceAngleMode = 'fixed'; // 'fixed' = Sabit 0°, 'auto' = Otomatik
   String _localCoopBoardOrientation = 'vertical'; // 'vertical' = Dikey, 'horizontal' = Yatay
   String _localCoopPieceAngleMode = 'auto'; // 'auto' = Otomatik, 'fixed' = Sabit 0°
@@ -50,7 +51,9 @@ class GameSettingsProvider extends ChangeNotifier {
   }
 
   String get boardTheme => _boardTheme;
+  String get defaultBoardOrientation => _boardOrientation;
   String get boardOrientation => _boardOrientation;
+  String? get inGameOrientation => _inGameOrientation;
   String get pieceAngleMode => _pieceAngleMode;
   bool get isPieceAngleAuto => _pieceAngleMode == 'auto';
   String get localCoopBoardOrientation => _localCoopBoardOrientation;
@@ -71,7 +74,7 @@ class GameSettingsProvider extends ChangeNotifier {
   String get boardTileStyle => _boardTileStyle;
   bool get isFlatTiles => _boardTileStyle == 'flat';
 
-  bool get isHorizontal => _boardOrientation == 'horizontal';
+  bool get isHorizontal => (_inGameOrientation ?? _boardOrientation) == 'horizontal';
 
   Future<void> _loadSettings() async {
     try {
@@ -184,16 +187,34 @@ class GameSettingsProvider extends ChangeNotifier {
   }
 
   Future<void> setBoardOrientation(String orientation) async {
-    if (_boardOrientation == orientation) return;
+    if (_boardOrientation == orientation && _inGameOrientation == null) return;
     _boardOrientation = orientation;
+    _inGameOrientation = null;
     notifyListeners();
     await _storage.writeString(_orientationStorageKey, orientation);
   }
 
-  Future<void> toggleOrientation() async {
-    _boardOrientation = _boardOrientation == 'horizontal' ? 'vertical' : 'horizontal';
+  /// Toggles orientation during an active match session without overwriting
+  /// the persistent default board orientation setting.
+  void toggleInGameOrientation() {
+    final current = _inGameOrientation ?? _boardOrientation;
+    _inGameOrientation = current == 'horizontal' ? 'vertical' : 'horizontal';
     notifyListeners();
-    await _storage.writeString(_orientationStorageKey, _boardOrientation);
+  }
+
+  /// Resets the temporary in-game orientation override so subsequent games
+  /// or menu screens revert to the persistent default orientation.
+  void resetInGameOrientation() {
+    if (_inGameOrientation != null) {
+      _inGameOrientation = null;
+      notifyListeners();
+    }
+  }
+
+  /// In-game orientation toggle (delegates to [toggleInGameOrientation] so
+  /// default settings are never modified during gameplay).
+  Future<void> toggleOrientation() async {
+    toggleInGameOrientation();
   }
 
   Future<void> setPieceAngleMode(String mode) async {

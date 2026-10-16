@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -48,6 +50,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
   late FriendItemModel _friend;
   int _lastTimelineCount = 0;
   bool _showEmojiPicker = false;
+  Timer? _focusScrollTimer;
 
   @override
   void initState() {
@@ -112,7 +115,8 @@ class _DmChatScreenState extends State<DmChatScreen> {
             _showEmojiPicker = false;
           });
         }
-        Future.delayed(const Duration(milliseconds: 300), () {
+        _focusScrollTimer?.cancel();
+        _focusScrollTimer = Timer(const Duration(milliseconds: 300), () {
           if (mounted) _scrollToBottom();
         });
       }
@@ -120,8 +124,10 @@ class _DmChatScreenState extends State<DmChatScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.hasClients &&
-        _scrollController.position.pixels <= 100) {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    // In reverse: true list, older messages are towards maxScrollExtent
+    if (pos.maxScrollExtent > 0 && pos.pixels >= pos.maxScrollExtent - 200) {
       final dmProv = context.read<DmProvider>();
       if (dmProv.hasMoreHistoryFor(_conversationId) &&
           !dmProv.isLoadingMoreFor(_conversationId) &&
@@ -154,6 +160,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
 
   @override
   void dispose() {
+    _focusScrollTimer?.cancel();
     _scrollController.removeListener(_onScroll);
     _dmProv?.setActiveConversation(null);
     _dmProv?.clearUnread(_conversationId, userId: widget.friend.userId);
@@ -166,12 +173,11 @@ class _DmChatScreenState extends State<DmChatScreen> {
   void _scrollToBottom({bool immediate = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      final target = _scrollController.position.maxScrollExtent;
       if (immediate) {
-        _scrollController.jumpTo(target);
+        _scrollController.jumpTo(0);
       } else {
         _scrollController.animateTo(
-          target,
+          0,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
@@ -239,7 +245,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
     _scrollToBottom();
   }
 
-  /// Merges DM messages and match cards into a single chronological list.
+  /// Merges DM messages and match cards into a single list (newest first for reverse list).
   List<_TimelineItem> _buildTimeline(
     List<DmMessage> messages,
     List<MatchChatCard> matchCards,
@@ -247,7 +253,7 @@ class _DmChatScreenState extends State<DmChatScreen> {
     final items = <_TimelineItem>[
       for (final m in messages) _TimelineItem.dm(m),
       for (final c in matchCards) _TimelineItem.match(c),
-    ]..sort((a, b) => a.time.compareTo(b.time));
+    ]..sort((a, b) => b.time.compareTo(a.time));
     return items;
   }
 
@@ -460,48 +466,43 @@ class _DmChatScreenState extends State<DmChatScreen> {
           final wasLoadingMore = isLoadingMore;
           _lastTimelineCount = timeline.length;
           final isMyMsg =
-              timeline.isNotEmpty && timeline.last.dm?.senderId == _myId;
+              timeline.isNotEmpty && timeline.first.dm?.senderId == _myId;
           final isNearBottom =
               !_scrollController.hasClients ||
-              (_scrollController.position.maxScrollExtent -
-                      _scrollController.position.pixels <
-                  250);
+              _scrollController.position.pixels < 250;
 
-          if (isInitial) {
-            _scrollToBottom(immediate: true);
-          } else if (!wasLoadingMore && (isMyMsg || isNearBottom)) {
+          if (!isInitial && !wasLoadingMore && (isMyMsg || isNearBottom)) {
             _scrollToBottom(immediate: false);
           }
         }
 
         return ListView.builder(
           controller: _scrollController,
+          reverse: true,
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           itemCount: timeline.length + (isLoadingMore ? 1 : 0),
           itemBuilder: (ctx, index) {
-            if (isLoadingMore) {
-              if (index == 0) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Center(
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.primaryAmber,
-                      ),
+            if (isLoadingMore && index == timeline.length) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primaryAmber,
                     ),
                   ),
-                );
-              }
-              index = index - 1;
+                ),
+              );
             }
             final item = timeline[index];
-            final prevItem = index > 0 ? timeline[index - 1] : null;
+            final olderItem =
+                index + 1 < timeline.length ? timeline[index + 1] : null;
             final showDate =
-                prevItem == null || !_isSameDay(prevItem.time, item.time);
+                olderItem == null || !_isSameDay(item.time, olderItem.time);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

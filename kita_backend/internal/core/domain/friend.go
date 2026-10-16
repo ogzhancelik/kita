@@ -33,6 +33,7 @@ type FriendItem struct {
 	Status            string    `json:"status"`
 	Direction    string    `json:"direction"` // "friend", "incoming", "outgoing"
 	IsOnline          bool      `json:"is_online"`
+	PresenceStatus    string    `json:"presence_status,omitempty"` // "online", "afk", "offline"
 	CreatedAt         time.Time `json:"created_at"`
 	LastInteractionAt time.Time `json:"last_interaction_at"`
 }

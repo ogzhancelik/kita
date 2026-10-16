@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/storage/secure_storage_service.dart';
 import '../models/match_model.dart';
 
+import 'user_api_service.dart';
+
 /// Local service responsible for persisting and managing offline games
 /// (such as "Play vs Computer") in account-scoped device storage.
 class LocalMatchHistoryService {
@@ -30,6 +32,7 @@ class LocalMatchHistoryService {
   /// Notifies listeners that match history has been updated.
   void notifyMatchesChanged() {
     matchHistoryRevision.value++;
+    UserApiService.notifyLeaderboardChanged();
   }
 
   /// Resolves the SharedPreferences key for offline match list scoped to account or guest.

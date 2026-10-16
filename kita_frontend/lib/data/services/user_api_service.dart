@@ -1,10 +1,18 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
 import '../models/user_model.dart';
 
 class UserApiService {
   final ApiClient _client;
+
+  /// Global revision notifier to signal leaderboard changes across widgets and screens
+  static final ValueNotifier<int> leaderboardRevision = ValueNotifier<int>(0);
+
+  static void notifyLeaderboardChanged() {
+    leaderboardRevision.value++;
+  }
 
   UserApiService([ApiClient? client]) : _client = client ?? ApiClient();
 

@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/ws_message_models.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/online_match_screen.dart';
+import '../../screens/game/ready_phase_screen.dart';
 import '../matchmaking/activity_conflict_dialog.dart';
 import 'room_waiting_visualizer.dart';
 
@@ -32,8 +33,16 @@ class CreateRoomDialog extends StatefulWidget {
       builder: (_) => const CreateRoomDialog(),
     );
 
-    // If dialog was closed because match started, ensure we navigate to OnlineMatchScreen
-    if (provider.matchState.value == OnlineMatchState.inMatch &&
+    // If dialog was closed because ready phase or match started, navigate accordingly
+    if (provider.matchState.value == OnlineMatchState.readyPhase &&
+        context.mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const ReadyPhaseScreen(),
+          settings: const RouteSettings(name: '/ready_phase'),
+        ),
+      );
+    } else if (provider.matchState.value == OnlineMatchState.inMatch &&
         context.mounted &&
         !OnlineMatchScreen.isMatchScreenOpen) {
       await Navigator.of(context).push(
@@ -84,7 +93,8 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
 
   void _onMatchStateChanged() {
     if (!mounted) return;
-    if (_provider?.matchState.value == OnlineMatchState.inMatch) {
+    if (_provider?.matchState.value == OnlineMatchState.inMatch ||
+        _provider?.matchState.value == OnlineMatchState.readyPhase) {
       final route = ModalRoute.of(context);
       if (route != null && route.isActive) {
         Navigator.of(context).removeRoute(route);
@@ -97,8 +107,9 @@ class _CreateRoomDialogState extends State<CreateRoomDialog> {
     final provider = context.watch<OnlineGameProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Safety fallback: ensure dialog route is removed when match starts
-    if (provider.matchState.value == OnlineMatchState.inMatch) {
+    // Safety fallback: ensure dialog route is removed when match or ready phase begins
+    if (provider.matchState.value == OnlineMatchState.inMatch ||
+        provider.matchState.value == OnlineMatchState.readyPhase) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           final route = ModalRoute.of(context);
@@ -421,8 +432,16 @@ class JoinRoomDialog extends StatefulWidget {
     if (!context.mounted) return;
     await showDialog(context: context, builder: (_) => const JoinRoomDialog());
 
-    // If dialog was closed because match started, ensure we navigate to OnlineMatchScreen
-    if (provider.matchState.value == OnlineMatchState.inMatch &&
+    // If dialog was closed because ready phase or match started, navigate accordingly
+    if (provider.matchState.value == OnlineMatchState.readyPhase &&
+        context.mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const ReadyPhaseScreen(),
+          settings: const RouteSettings(name: '/ready_phase'),
+        ),
+      );
+    } else if (provider.matchState.value == OnlineMatchState.inMatch &&
         context.mounted &&
         !OnlineMatchScreen.isMatchScreenOpen) {
       await Navigator.of(context).push(
@@ -473,7 +492,8 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
 
   void _onMatchStateChanged() {
     if (!mounted) return;
-    if (_provider?.matchState.value == OnlineMatchState.inMatch) {
+    if (_provider?.matchState.value == OnlineMatchState.inMatch ||
+        _provider?.matchState.value == OnlineMatchState.readyPhase) {
       final route = ModalRoute.of(context);
       if (route != null && route.isActive) {
         Navigator.of(context).removeRoute(route);
@@ -493,8 +513,9 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
       _isSubmitting = false;
     }
 
-    // Safety fallback: ensure dialog route is removed when match starts
-    if (provider.matchState.value == OnlineMatchState.inMatch) {
+    // Safety fallback: ensure dialog route is removed when match or ready phase begins
+    if (provider.matchState.value == OnlineMatchState.inMatch ||
+        provider.matchState.value == OnlineMatchState.readyPhase) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           final route = ModalRoute.of(context);

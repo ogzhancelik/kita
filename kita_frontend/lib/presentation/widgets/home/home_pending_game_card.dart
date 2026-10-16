@@ -10,6 +10,7 @@ import '../../providers/offline_game_provider.dart';
 import '../../providers/online_game_provider.dart';
 import '../../screens/game/offline_match_screen.dart';
 import '../../screens/game/online_match_screen.dart';
+import '../../screens/game/ready_phase_screen.dart';
 import '../common/countdown_circle_timer.dart';
 import '../common/kita_avatar.dart';
 import '../room/room_dialog.dart';
@@ -59,6 +60,7 @@ class HomePendingGameCard extends StatelessWidget {
     final pendingChallenges = onlineProv.pendingOutgoingChallenges.value;
     final pendingRematch = onlineProv.pendingOutgoingRematch.value;
     final isInOnlineMatch = matchState == OnlineMatchState.inMatch;
+    final isReadyPhase = matchState == OnlineMatchState.readyPhase;
     final hasActiveOnline = isInOnlineMatch;
     final hasActiveOffline = offlineProv.hasActiveMatch;
     final hasBothActive = hasActiveOnline && hasActiveOffline;
@@ -75,6 +77,12 @@ class HomePendingGameCard extends StatelessWidget {
     Widget? onlineSection;
     if (isInOnlineMatch) {
       onlineSection = _buildActiveOnlineGameCard(
+        context,
+        onlineProv,
+        isDark,
+      );
+    } else if (isReadyPhase) {
+      onlineSection = _buildReadyPhaseCard(
         context,
         onlineProv,
         isDark,
@@ -216,6 +224,111 @@ class HomePendingGameCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14.5),
         child: _buildActiveOnlineGameRow(context, onlineProv, isDark),
+      ),
+    );
+  }
+
+  Widget _buildReadyPhaseCard(
+    BuildContext context,
+    OnlineGameProvider onlineProv,
+    bool isDark,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      decoration: BoxDecoration(
+        color: AppColors.getCard(isDark),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primaryAmber.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryAmber.withValues(alpha: isDark ? 0.2 : 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const ReadyPhaseScreen(),
+                settings: const RouteSettings(name: '/ready_phase'),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryAmber.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.timer_outlined,
+                    color: AppColors.primaryAmber,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'online.readyPhaseTitle'.tr(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.getTextPrimary(isDark),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'online.readyPhaseSubtitle'.tr(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.getTextSecondary(isDark),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ValueListenableBuilder<int>(
+                  valueListenable: onlineProv.readyCountdownSeconds,
+                  builder: (context, countdown, _) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryAmber,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${countdown}s',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

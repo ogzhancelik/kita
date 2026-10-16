@@ -10,6 +10,7 @@ class FriendItemModel {
   final String status;
   final String direction; // "friend", "incoming", "outgoing"
   final bool isOnline;
+  final String presenceStatus; // "online", "afk", "offline"
   final DateTime createdAt;
   final DateTime lastInteractionAt;
 
@@ -24,16 +25,22 @@ class FriendItemModel {
     required this.status,
     required this.direction,
     required this.isOnline,
+    this.presenceStatus = 'online',
     required this.createdAt,
     DateTime? lastInteractionAt,
   }) : lastInteractionAt = lastInteractionAt ?? createdAt;
 
   String get displayRating => isProvisional ? '$rating?' : '$rating';
 
+  bool get isAfk => isOnline && presenceStatus == 'afk';
+
   factory FriendItemModel.fromJson(Map<String, dynamic> json) {
     final created = DateTime.tryParse(json['created_at']?.toString() ?? '') ??
         DateTime.now();
     final lastInter = DateTime.tryParse(json['last_interaction_at']?.toString() ?? '') ?? created;
+    final isOnlineVal = json['is_online'] as bool? ?? false;
+    final presence = json['presence_status'] as String? ?? (isOnlineVal ? 'online' : 'offline');
+
     return FriendItemModel(
       friendshipId: json['friendship_id'] as String? ?? '',
       userId: json['user_id'] as String? ?? '',
@@ -44,7 +51,8 @@ class FriendItemModel {
       isProvisional: json['is_provisional'] as bool? ?? false,
       status: json['status'] as String? ?? 'pending',
       direction: json['direction'] as String? ?? 'friend',
-      isOnline: json['is_online'] as bool? ?? false,
+      isOnline: isOnlineVal,
+      presenceStatus: presence,
       createdAt: created,
       lastInteractionAt: lastInter,
     );
@@ -61,6 +69,7 @@ class FriendItemModel {
     String? status,
     String? direction,
     bool? isOnline,
+    String? presenceStatus,
     DateTime? createdAt,
     DateTime? lastInteractionAt,
   }) {
@@ -75,6 +84,7 @@ class FriendItemModel {
       status: status ?? this.status,
       direction: direction ?? this.direction,
       isOnline: isOnline ?? this.isOnline,
+      presenceStatus: presenceStatus ?? this.presenceStatus,
       createdAt: createdAt ?? this.createdAt,
       lastInteractionAt: lastInteractionAt ?? this.lastInteractionAt,
     );

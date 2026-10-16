@@ -27,6 +27,7 @@ const (
 	ActivityIdle          PlayerActivity = iota // Not in any game activity
 	ActivityInQueue                             // Waiting in matchmaking queue
 	ActivityInWaitingRoom                       // Hosting a waiting room
+	ActivityInReadyPhase                        // Waiting for players to confirm ready before match starts
 	ActivityInMatch                             // Active game in progress
 	ActivityPostGame                            // Game finished, rematch window
 )
@@ -39,6 +40,8 @@ func (a PlayerActivity) String() string {
 		return "InQueue"
 	case ActivityInWaitingRoom:
 		return "InWaitingRoom"
+	case ActivityInReadyPhase:
+		return "InReadyPhase"
 	case ActivityInMatch:
 		return "InMatch"
 	case ActivityPostGame:
@@ -60,6 +63,7 @@ type Client struct {
 	AvatarIndex    int
 	AvatarCustom   string
 	Activity       PlayerActivity // Explicit state machine — set via Hub.enterActivityLocked
+	PresenceStatus string         // "online" or "afk"
 
 	// Rematch and invite tracking
 	LastFinishedMatchID      string
@@ -103,8 +107,18 @@ func NewClient(hub *Hub, conn *websocket.Conn, userID, username string, rating i
 		Username:       username,
 		Rating:         rating,
 		AvatarIndex:    av,
+		PresenceStatus: "online",
 		PendingInvites: make(map[string]*OutgoingInvite),
 	}
+}
+
+func (c *Client) IsAfk() bool {
+	if c == nil {
+		return false
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.PresenceStatus == "afk"
 }
 
 func (c *Client) AddPendingInvite(inv *OutgoingInvite) {

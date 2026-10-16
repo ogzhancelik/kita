@@ -63,6 +63,13 @@ type Room struct {
 	WhiteReady                bool
 	BlackReady                bool
 	readySafetyTimer          *time.Timer
+	readyPhaseTimer           *time.Timer
+	readyDeadline             time.Time
+	readyStartDelay           time.Duration
+
+	// Waiting room persistence
+	HostOnline  bool
+	expiryTimer *time.Timer
 
 	StartedAt    time.Time
 	ChatHistory  []ChatBroadcastDTO
@@ -110,18 +117,61 @@ func NewRoomWithTimeControl(id string, white, black *Client, timeControl int64, 
 	return r
 }
 
+func NewFriendChallengeReadyRoom(id string, host *Client, white, black *Client, timeControl int64, matchService ports.MatchService, hub *Hub) *Room {
+	now := time.Now()
+	r := &Room{
+		ID:                        id,
+		RoomCode:                  "", // direct friend challenge (no public room code)
+		Host:                      host,
+		HostOnline:                false,
+		Status:                    "ready_phase",
+		WhitePlayer:               white,
+		BlackPlayer:               black,
+		Spectators:                make(map[string]*Client),
+		Game:                      kitagame.NewGame(),
+		MovesBuffer:               make([]domain.MoveRecord, 0, 64),
+		lastMoveTime:              now,
+		TimeControl:               timeControl,
+		WhiteRemainingMs:          timeControl,
+		BlackRemainingMs:          timeControl,
+		turnStartedAt:             now,
+		StartedAt:                 now,
+		IsClockStarted:            timeControl == 0,
+		ChatHistory:               make([]ChatBroadcastDTO, 0, 16),
+		matchService:              matchService,
+		hub:                       hub,
+		RequiresReadyConfirmation: true,
+		readyStartDelay:           2500 * time.Millisecond,
+		readyDeadline:             time.Now().Add(60 * time.Second),
+	}
+
+	if white != nil {
+		white.CurrentMatchID = id
+	}
+	if black != nil {
+		black.CurrentMatchID = id
+	}
+
+	r.readyPhaseTimer = time.AfterFunc(60*time.Second, func() {
+		r.handleReadyPhaseTimeout()
+	})
+
+	return r
+}
+
 func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, timeControl int64, matchService ports.MatchService, hub *Hub) *Room {
 	now := time.Now()
 	r := &Room{
-		ID:               id,
-		RoomCode:         roomCode,
-		IsPrivate:        isPrivate,
-		Host:             host,
-		Status:           "waiting",
-		Spectators:       make(map[string]*Client),
-		Game:             kitagame.NewGame(),
-		MovesBuffer:      make([]domain.MoveRecord, 0, 64),
-		lastMoveTime:     now,
+		ID:                        id,
+		RoomCode:                  roomCode,
+		IsPrivate:                 isPrivate,
+		Host:                      host,
+		HostOnline:                true,
+		Status:                    "waiting",
+		Spectators:                make(map[string]*Client),
+		Game:                      kitagame.NewGame(),
+		MovesBuffer:               make([]domain.MoveRecord, 0, 64),
+		lastMoveTime:              now,
 		TimeControl:               timeControl,
 		WhiteRemainingMs:          timeControl,
 		BlackRemainingMs:          timeControl,
@@ -131,12 +181,28 @@ func NewCustomRoom(id, roomCode string, host *Client, isPrivate bool, timeContro
 		hub:                       hub,
 		RequiresReadyConfirmation: timeControl > 0,
 		IsClockStarted:            timeControl == 0,
+		readyStartDelay:           2500 * time.Millisecond,
 	}
 
-	host.CurrentMatchID = id
-	host.mu.Lock()
-	host.Activity = ActivityInWaitingRoom
-	host.mu.Unlock()
+	// 24-hour TTL timer for waiting room
+	r.expiryTimer = time.AfterFunc(24*time.Hour, func() {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		if r.Status == "waiting" && !r.isFinished {
+			log.Printf("[Room %s] 24-hour TTL expired. Closing room.", r.ID)
+			if r.Host != nil {
+				r.Host.SendJSON(TypeMatchClosed, map[string]string{"reason": "room_expired"})
+			}
+			go r.hub.CloseRoom(r.ID)
+		}
+	})
+
+	if host != nil {
+		host.CurrentMatchID = id
+		host.mu.Lock()
+		host.Activity = ActivityInWaitingRoom
+		host.mu.Unlock()
+	}
 	return r
 }
 
@@ -146,6 +212,11 @@ func (r *Room) Join(client *Client) error {
 
 	if r.Status != "waiting" {
 		return errors.New("room is not waiting for players")
+	}
+
+	if r.expiryTimer != nil {
+		r.expiryTimer.Stop()
+		r.expiryTimer = nil
 	}
 
 	client.CurrentMatchID = r.ID
@@ -158,20 +229,70 @@ func (r *Room) Join(client *Client) error {
 		r.BlackPlayer = r.Host
 	}
 
-	// Transition both players to active match
-	r.WhitePlayer.mu.Lock()
-	r.WhitePlayer.Activity = ActivityInMatch
-	r.WhitePlayer.mu.Unlock()
-	r.BlackPlayer.mu.Lock()
-	r.BlackPlayer.Activity = ActivityInMatch
-	r.BlackPlayer.mu.Unlock()
+	isHostAfk := r.Host != nil && r.Host.IsAfk()
+	isGuestAfk := client != nil && client.IsAfk()
 
-	r.Status = "in_game"
-	now := time.Now()
-	r.lastMoveTime = now
-	r.StartedAt = now
-	r.turnStartedAt = now
-	r.startLocked()
+	if !r.RequiresReadyConfirmation || (r.HostOnline && !isHostAfk && !isGuestAfk) {
+		// Both players are on the app already and active (neither is AFK) OR untimed match:
+		// Bypass ready confirmation and navigate both players straight into the match!
+		r.RequiresReadyConfirmation = false
+		r.IsClockStarted = true
+		r.WhiteReady = true
+		r.BlackReady = true
+
+		r.WhitePlayer.mu.Lock()
+		r.WhitePlayer.Activity = ActivityInMatch
+		r.WhitePlayer.mu.Unlock()
+		r.BlackPlayer.mu.Lock()
+		r.BlackPlayer.Activity = ActivityInMatch
+		r.BlackPlayer.mu.Unlock()
+
+		r.Status = "in_game"
+		now := time.Now()
+		r.lastMoveTime = now
+		r.StartedAt = now
+		r.turnStartedAt = now
+		r.startLocked()
+		return nil
+	}
+
+	// Timed match: enter ready_phase
+	r.Status = "ready_phase"
+	r.WhiteReady = false
+	r.BlackReady = false
+
+	if r.WhitePlayer != nil {
+		r.WhitePlayer.mu.Lock()
+		isOnline := !r.WhitePlayer.isClosed
+		if r.Host != nil && r.WhitePlayer.UserID == r.Host.UserID {
+			isOnline = r.HostOnline
+		}
+		if isOnline {
+			r.WhitePlayer.Activity = ActivityInReadyPhase
+		}
+		r.WhitePlayer.mu.Unlock()
+	}
+	if r.BlackPlayer != nil {
+		r.BlackPlayer.mu.Lock()
+		isOnline := !r.BlackPlayer.isClosed
+		if r.Host != nil && r.BlackPlayer.UserID == r.Host.UserID {
+			isOnline = r.HostOnline
+		}
+		if isOnline {
+			r.BlackPlayer.Activity = ActivityInReadyPhase
+		}
+		r.BlackPlayer.mu.Unlock()
+	}
+
+	r.readyDeadline = time.Now().Add(60 * time.Second)
+	if r.readyPhaseTimer != nil {
+		r.readyPhaseTimer.Stop()
+	}
+	r.readyPhaseTimer = time.AfterFunc(60*time.Second, func() {
+		r.handleReadyPhaseTimeout()
+	})
+
+	r.sendReadyPhaseStartedLocked()
 	return nil
 }
 
@@ -265,11 +386,99 @@ func (r *Room) deductCurrentPlayerTimeLocked() int64 {
 	return r.BlackRemainingMs
 }
 
+func (r *Room) isClientOnlineLocked(c *Client) bool {
+	if c == nil {
+		return false
+	}
+	if r.Host != nil && c.UserID == r.Host.UserID {
+		return r.HostOnline
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return !c.isClosed
+}
+
+func (r *Room) sendReadyPhaseStartedLocked() {
+	remSeconds := int(time.Until(r.readyDeadline).Seconds())
+	if remSeconds < 0 {
+		remSeconds = 0
+	}
+
+	hostID := ""
+	if r.Host != nil {
+		hostID = r.Host.UserID
+	}
+
+	if r.WhitePlayer != nil && r.isClientOnlineLocked(r.WhitePlayer) {
+		oppID, oppName, oppAvatarCustom := "", "", ""
+		oppRating, oppAvatarIndex := 1200, 0
+		oppIsProvisional := false
+		if r.BlackPlayer != nil {
+			oppID = r.BlackPlayer.UserID
+			oppName = r.BlackPlayer.Username
+			oppRating = r.BlackPlayer.Rating
+			oppIsProvisional = r.BlackPlayer.IsProvisional
+			oppAvatarIndex = r.BlackPlayer.AvatarIndex
+			oppAvatarCustom = r.BlackPlayer.AvatarCustom
+		}
+
+		r.WhitePlayer.SendJSON(TypeReadyPhaseStarted, ReadyPhaseStartedDTO{
+			MatchID:               r.ID,
+			RoomCode:              r.RoomCode,
+			TimeControl:           r.TimeControl,
+			HostID:                hostID,
+			YourTeam:              "white",
+			OpponentID:            oppID,
+			OpponentName:          oppName,
+			OpponentRating:        oppRating,
+			OpponentIsProvisional: oppIsProvisional,
+			OpponentAvatarIndex:   oppAvatarIndex,
+			OpponentAvatarCustom:  oppAvatarCustom,
+			WhiteReady:            r.WhiteReady,
+			BlackReady:            r.BlackReady,
+			CountdownSeconds:      remSeconds,
+			HostOnline:            r.HostOnline,
+		})
+	}
+
+	if r.BlackPlayer != nil && r.isClientOnlineLocked(r.BlackPlayer) {
+		oppID, oppName, oppAvatarCustom := "", "", ""
+		oppRating, oppAvatarIndex := 1200, 0
+		oppIsProvisional := false
+		if r.WhitePlayer != nil {
+			oppID = r.WhitePlayer.UserID
+			oppName = r.WhitePlayer.Username
+			oppRating = r.WhitePlayer.Rating
+			oppIsProvisional = r.WhitePlayer.IsProvisional
+			oppAvatarIndex = r.WhitePlayer.AvatarIndex
+			oppAvatarCustom = r.WhitePlayer.AvatarCustom
+		}
+
+		r.BlackPlayer.SendJSON(TypeReadyPhaseStarted, ReadyPhaseStartedDTO{
+			MatchID:               r.ID,
+			RoomCode:              r.RoomCode,
+			TimeControl:           r.TimeControl,
+			HostID:                hostID,
+			YourTeam:              "black",
+			OpponentID:            oppID,
+			OpponentName:          oppName,
+			OpponentRating:        oppRating,
+			OpponentIsProvisional: oppIsProvisional,
+			OpponentAvatarIndex:   oppAvatarIndex,
+			OpponentAvatarCustom:  oppAvatarCustom,
+			WhiteReady:            r.WhiteReady,
+			BlackReady:            r.BlackReady,
+			CountdownSeconds:      remSeconds,
+			HostOnline:            r.HostOnline,
+		})
+	}
+}
+
 func (r *Room) SetPlayerReady(userID string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if r.isFinished || r.Status != "in_game" || r.IsClockStarted {
+	if r.isFinished || r.Status != "ready_phase" {
 		return
 	}
 
@@ -284,7 +493,45 @@ func (r *Room) SetPlayerReady(userID string) {
 	r.broadcastReadyStateLocked()
 
 	if r.WhiteReady && r.BlackReady {
-		r.startClockLocked()
+		if r.readyPhaseTimer != nil {
+			r.readyPhaseTimer.Stop()
+			r.readyPhaseTimer = nil
+		}
+
+		delay := r.readyStartDelay
+		if delay <= 0 {
+			delay = 2500 * time.Millisecond
+		}
+
+		// Wait a few seconds after both players are ready before starting the game
+		r.readyPhaseTimer = time.AfterFunc(delay, func() {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+
+			if r.isFinished || r.Status != "ready_phase" {
+				return
+			}
+
+			r.Status = "in_game"
+			r.IsClockStarted = true
+			now := time.Now()
+			r.lastMoveTime = now
+			r.StartedAt = now
+			r.turnStartedAt = now
+
+			if r.WhitePlayer != nil {
+				r.WhitePlayer.mu.Lock()
+				r.WhitePlayer.Activity = ActivityInMatch
+				r.WhitePlayer.mu.Unlock()
+			}
+			if r.BlackPlayer != nil {
+				r.BlackPlayer.mu.Lock()
+				r.BlackPlayer.Activity = ActivityInMatch
+				r.BlackPlayer.mu.Unlock()
+			}
+
+			r.startLocked()
+		})
 	}
 }
 
@@ -294,12 +541,179 @@ func (r *Room) broadcastReadyStateLocked() {
 		WhiteReady:     r.WhiteReady,
 		BlackReady:     r.BlackReady,
 		IsClockStarted: r.IsClockStarted,
+		HostOnline:     r.HostOnline,
 	}
-	if r.WhitePlayer != nil {
+	if r.WhitePlayer != nil && r.isClientOnlineLocked(r.WhitePlayer) {
 		r.WhitePlayer.SendJSON(TypeReadyState, dto)
 	}
-	if r.BlackPlayer != nil {
+	if r.BlackPlayer != nil && r.isClientOnlineLocked(r.BlackPlayer) {
 		r.BlackPlayer.SendJSON(TypeReadyState, dto)
+	}
+}
+
+func (r *Room) handleReadyPhaseTimeout() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.Status != "ready_phase" || r.isFinished {
+		return
+	}
+
+	hostIsWhite := r.Host != nil && r.WhitePlayer != nil && r.Host.UserID == r.WhitePlayer.UserID
+	hostReady := (hostIsWhite && r.WhiteReady) || (!hostIsWhite && r.BlackReady)
+	guestReady := (hostIsWhite && r.BlackReady) || (!hostIsWhite && r.WhiteReady)
+
+	var guest *Client
+	if hostIsWhite {
+		guest = r.BlackPlayer
+	} else {
+		guest = r.WhitePlayer
+	}
+
+	if !hostReady {
+		// Host did not ready (e.g. host is offline or did not return in time).
+		// Guest is timed out and returned to idle, but the room itself stays open in waiting state!
+		log.Printf("[Room %s] Ready phase timed out: Host did not ready. Returning room to waiting state.", r.ID)
+
+		timedOutDTO := ReadyTimedOutDTO{
+			MatchID: r.ID,
+			Reason:  "host_not_ready",
+			Message: "Host did not confirm ready in time",
+		}
+
+		if guest != nil && r.isClientOnlineLocked(guest) {
+			guest.SendJSON(TypeReadyTimedOut, timedOutDTO)
+			guest.mu.Lock()
+			guest.Activity = ActivityIdle
+			guest.CurrentMatchID = ""
+			guest.mu.Unlock()
+		}
+
+		if r.RoomCode == "" {
+			// Direct friend challenge timed out without host showing up: finish and close room
+			if r.Host != nil && r.isClientOnlineLocked(r.Host) {
+				r.Host.SendJSON(TypeReadyTimedOut, timedOutDTO)
+				r.Host.mu.Lock()
+				r.Host.Activity = ActivityIdle
+				r.Host.CurrentMatchID = ""
+				r.Host.mu.Unlock()
+			}
+			r.isFinished = true
+			go r.hub.CloseRoom(r.ID)
+			return
+		}
+
+		// Return room to waiting state for Host (persists under 24h TTL)
+		r.Status = "waiting"
+		r.WhitePlayer = nil
+		r.BlackPlayer = nil
+		r.WhiteReady = false
+		r.BlackReady = false
+
+		if r.Host != nil && r.isClientOnlineLocked(r.Host) {
+			r.Host.SendJSON(TypeReadyTimedOut, timedOutDTO)
+			r.Host.mu.Lock()
+			r.Host.Activity = ActivityInWaitingRoom
+			r.Host.mu.Unlock()
+
+			r.Host.SendJSON(TypeRoomCreated, RoomCreatedDTO{
+				RoomCode:    r.RoomCode,
+				TimeControl: r.TimeControl,
+			})
+		}
+
+		// Restart 24-hour expiry timer
+		if r.expiryTimer != nil {
+			r.expiryTimer.Stop()
+		}
+		r.expiryTimer = time.AfterFunc(24*time.Hour, func() {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			if r.Status == "waiting" && !r.isFinished {
+				log.Printf("[Room %s] 24-hour TTL expired. Closing room.", r.ID)
+				if r.Host != nil {
+					r.Host.SendJSON(TypeMatchClosed, map[string]string{"reason": "room_expired"})
+				}
+				go r.hub.CloseRoom(r.ID)
+			}
+		})
+
+		if r.hub != nil {
+			go r.hub.BroadcastRoomsList()
+		}
+
+	} else if !guestReady {
+		// Guest did not ready; Host was ready!
+		log.Printf("[Room %s] Ready phase timed out: Guest did not ready", r.ID)
+
+		timedOutDTO := ReadyTimedOutDTO{
+			MatchID: r.ID,
+			Reason:  "guest_not_ready",
+			Message: "Challenger did not confirm ready in time",
+		}
+
+		if guest != nil && r.isClientOnlineLocked(guest) {
+			guest.SendJSON(TypeReadyTimedOut, timedOutDTO)
+			guest.mu.Lock()
+			guest.Activity = ActivityIdle
+			guest.CurrentMatchID = ""
+			guest.mu.Unlock()
+		}
+
+		if r.RoomCode == "" {
+			// Direct friend challenge timed out without guest readying: finish and close room
+			if r.Host != nil && r.isClientOnlineLocked(r.Host) {
+				r.Host.SendJSON(TypeReadyTimedOut, timedOutDTO)
+				r.Host.mu.Lock()
+				r.Host.Activity = ActivityIdle
+				r.Host.CurrentMatchID = ""
+				r.Host.mu.Unlock()
+			}
+			r.isFinished = true
+			go r.hub.CloseRoom(r.ID)
+			return
+		}
+
+		// Return room to waiting state for Host!
+		r.Status = "waiting"
+		r.WhitePlayer = nil
+		r.BlackPlayer = nil
+		r.WhiteReady = false
+		r.BlackReady = false
+
+		if r.Host != nil && r.isClientOnlineLocked(r.Host) {
+			r.Host.SendJSON(TypeReadyTimedOut, timedOutDTO)
+			r.Host.mu.Lock()
+			r.Host.Activity = ActivityInWaitingRoom
+			r.Host.mu.Unlock()
+
+			r.Host.SendJSON(TypeRoomCreated, RoomCreatedDTO{
+				RoomCode:    r.RoomCode,
+				TimeControl: r.TimeControl,
+			})
+		}
+
+		// Restart 24-hour expiry timer
+		if r.expiryTimer != nil {
+			r.expiryTimer.Stop()
+		}
+		r.expiryTimer = time.AfterFunc(24*time.Hour, func() {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			if r.Status == "waiting" && !r.isFinished {
+				log.Printf("[Room %s] 24-hour TTL expired. Closing room.", r.ID)
+				if r.Host != nil {
+					r.Host.SendJSON(TypeMatchClosed, map[string]string{"reason": "room_expired"})
+				}
+				go r.hub.CloseRoom(r.ID)
+			}
+		})
+
+		r.hub.BroadcastRoomsList()
+	} else {
+		// Both somehow timed out
+		r.isFinished = true
+		go r.hub.CloseRoom(r.ID)
 	}
 }
 
@@ -730,8 +1144,20 @@ func (r *Room) HandleDisconnect(playerID string) {
 	}
 
 	if r.Status == "waiting" {
+		r.HostOnline = false
 		r.mu.Unlock()
-		r.hub.CloseRoom(r.ID)
+		log.Printf("[Room %s] Host disconnected, waiting room persists (24h TTL)", r.ID)
+		r.hub.BroadcastRoomsList()
+		return
+	}
+
+	if r.Status == "ready_phase" {
+		if r.Host != nil && r.Host.UserID == playerID {
+			r.HostOnline = false
+		}
+		r.broadcastReadyStateLocked()
+		r.mu.Unlock()
+		log.Printf("[Room %s] Player %s disconnected during ready_phase", r.ID, playerID)
 		return
 	}
 
@@ -801,6 +1227,37 @@ func (r *Room) HandleDisconnect(playerID string) {
 		r.finishWithExplicitWinnerLocked(winnerID, winnerTeam, result, domain.ReasonDisconnected)
 	})
 	r.mu.Unlock()
+}
+
+func (r *Room) HandleReadyPhaseReconnect(client *Client) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.isFinished || r.Status != "ready_phase" {
+		return false
+	}
+
+	if r.Host != nil && r.Host.UserID == client.UserID {
+		r.HostOnline = true
+		r.Host = client
+	}
+
+	if r.WhitePlayer != nil && r.WhitePlayer.UserID == client.UserID {
+		r.WhitePlayer = client
+	} else if r.BlackPlayer != nil && r.BlackPlayer.UserID == client.UserID {
+		r.BlackPlayer = client
+	} else {
+		return false
+	}
+
+	client.CurrentMatchID = r.ID
+	client.mu.Lock()
+	client.Activity = ActivityInReadyPhase
+	client.mu.Unlock()
+
+	r.sendReadyPhaseStartedLocked()
+	r.broadcastReadyStateLocked()
+	return true
 }
 
 func (r *Room) HandleReconnect(client *Client) bool {

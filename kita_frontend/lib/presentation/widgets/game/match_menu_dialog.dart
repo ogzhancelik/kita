@@ -262,7 +262,7 @@ class MatchMenuDialog extends StatelessWidget {
                   if (isLocalCoop) {
                     offlineProv.toggleLocalCoopOrientation();
                   } else {
-                    gameSettings.toggleOrientation();
+                    gameSettings.toggleInGameOrientation();
                   }
                 },
               ),

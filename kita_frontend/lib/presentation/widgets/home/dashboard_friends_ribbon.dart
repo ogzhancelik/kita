@@ -69,6 +69,9 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
         if (a.isOnline != b.isOnline) {
           return a.isOnline ? -1 : 1;
         }
+        if (a.isOnline && b.isOnline && a.isAfk != b.isAfk) {
+          return a.isAfk ? 1 : -1;
+        }
         return b.lastInteractionAt.compareTo(a.lastInteractionAt);
       });
 
@@ -313,32 +316,37 @@ class _DashboardFriendsRibbonState extends State<DashboardFriendsRibbon> {
                             Positioned(
                               bottom: 0,
                               right: 0,
-                              child: Container(
-                                width: 11,
-                                height: 11,
-                                decoration: BoxDecoration(
-                                  color: friend.isOnline
-                                      ? AppColors.online
-                                      : AppColors.offline,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: isDark
-                                        ? AppColors.darkBg
-                                        : AppColors.lightBg,
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: friend.isOnline
-                                      ? [
-                                          BoxShadow(
-                                            color: AppColors.online.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                            blurRadius: 3,
-                                            spreadRadius: 0.5,
-                                          ),
-                                        ]
-                                      : null,
-                                ),
+                              child: Builder(
+                                builder: (context) {
+                                  final statusColor = !friend.isOnline
+                                      ? AppColors.offline
+                                      : (friend.isAfk ? AppColors.afk : AppColors.online);
+                                  return Container(
+                                    width: 11,
+                                    height: 11,
+                                    decoration: BoxDecoration(
+                                      color: statusColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isDark
+                                            ? AppColors.darkBg
+                                            : AppColors.lightBg,
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: friend.isOnline
+                                          ? [
+                                              BoxShadow(
+                                                color: statusColor.withValues(
+                                                  alpha: 0.5,
+                                                ),
+                                                blurRadius: 3,
+                                                spreadRadius: 0.5,
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                             if (unreadCount > 0)

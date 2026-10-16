@@ -25,11 +25,13 @@ import 'data/models/ws_message_models.dart';
 import 'core/network/api_client.dart';
 import 'presentation/screens/game/offline_match_screen.dart';
 import 'presentation/screens/game/online_match_screen.dart';
+import 'presentation/screens/game/ready_phase_screen.dart';
 import 'presentation/screens/splash_gate_screen.dart';
 import 'presentation/screens/tutorial/tutorial_screen.dart';
 import 'presentation/widgets/matchmaking/activity_conflict_dialog.dart';
 import 'presentation/widgets/matchmaking/top_match_invite_banner.dart';
 import 'data/services/deep_link_service.dart';
+import 'data/services/user_presence_service.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -77,6 +79,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
   NotificationProvider? _notifProv;
   bool _isInviteDialogShowing = false;
   bool _isMatchScreenOpen = false;
+  bool _isReadyPhaseScreenOpen = false;
   Timer? _friendsPollTimer;
 
   @override
@@ -86,6 +89,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     ApiClient.isOfflineActivityActive = () =>
         OfflineMatchScreen.isMatchScreenOpen || TutorialScreen.isTutorialOpen;
     DeepLinkService.instance.initialize();
+    UserPresenceService.instance.start();
   }
 
   @override
@@ -168,6 +172,7 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     _notifProv?.removeListener(_onNotificationsChanged);
     _notifProv?.onChatNotificationDismissed.removeListener(_onChatNotificationDismissed);
     DeepLinkService.instance.dispose();
+    UserPresenceService.instance.stop();
     _friendsPollTimer?.cancel();
     super.dispose();
   }
@@ -317,8 +322,9 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     if (event == null || !mounted) return;
     final userId = event['user_id'] as String?;
     final isOnline = event['is_online'] as bool?;
+    final status = event['status'] as String?;
     if (userId != null && isOnline != null) {
-      _friendsProv?.updateFriendPresence(userId, isOnline);
+      _friendsProv?.updateFriendPresence(userId, isOnline, status);
     }
   }
 
@@ -357,6 +363,28 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
         }
       }
     }
+    if (state == OnlineMatchState.readyPhase) {
+      if (!_isReadyPhaseScreenOpen && !ReadyPhaseScreen.isReadyPhaseScreenOpen) {
+        _isReadyPhaseScreenOpen = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || ReadyPhaseScreen.isReadyPhaseScreenOpen) {
+            _isReadyPhaseScreenOpen = false;
+            return;
+          }
+          appNavigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (_) => const ReadyPhaseScreen(),
+              settings: const RouteSettings(name: '/ready_phase'),
+            ),
+          ).then((_) {
+            _isReadyPhaseScreenOpen = false;
+          });
+        });
+      }
+      return;
+    }
+    _isReadyPhaseScreenOpen = false;
+
     if (state != OnlineMatchState.inMatch) {
       _isMatchScreenOpen = false;
       return;
@@ -474,23 +502,33 @@ class _KitaAppState extends State<KitaApp> with WidgetsBindingObserver {
     }
   }
 
+  void _onUserActivity() {
+    final isInMatch = _onlineProv?.matchState.value == OnlineMatchState.inMatch;
+    UserPresenceService.instance.recordActivity(isInMatch: isInMatch);
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
 
-    return MaterialApp(
-      navigatorKey: appNavigatorKey,
-      navigatorObservers: [appRouteObserver],
-      title: 'Kita Online',
-      debugShowCheckedModeBanner: false,
-      scaffoldMessengerKey: KitaToast.messengerKey,
-      localizationsDelegates: context.localizationDelegates,
-      supportedLocales: context.supportedLocales,
-      locale: context.locale,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeProvider.themeMode,
-      home: const SplashGateScreen(),
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _onUserActivity(),
+      onPointerMove: (_) => _onUserActivity(),
+      child: MaterialApp(
+        navigatorKey: appNavigatorKey,
+        navigatorObservers: [appRouteObserver],
+        title: 'Kita Online',
+        debugShowCheckedModeBanner: false,
+        scaffoldMessengerKey: KitaToast.messengerKey,
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeProvider.themeMode,
+        home: const SplashGateScreen(),
+      ),
     );
   }
 }

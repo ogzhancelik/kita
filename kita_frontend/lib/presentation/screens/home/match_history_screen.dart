@@ -1512,12 +1512,14 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
         ? 'game.aiBot'.tr()
         : ((rawOpponentName != null &&
                   rawOpponentName.isNotEmpty &&
+                  rawOpponentName != 'game.localCoopTitle' &&
+                  rawOpponentName != 'game.localCoop' &&
                   !isNameUuid)
               ? rawOpponentName
               : (isOpponentDeleted
                     ? '[Deleted]'
                     : (isOffline
-                          ? 'game.aiBot'.tr()
+                          ? (isCoop ? 'game.player2'.tr() : 'game.aiBot'.tr())
                           : (isWhite
                                 ? 'common.black'.tr()
                                 : 'common.white'.tr()))));
@@ -1624,7 +1626,7 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                     if (isCoop) ...[
                       Flexible(
                         child: Text(
-                          'game.localCoopTitle'.tr(),
+                          opponentName,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,

@@ -218,6 +218,8 @@ class NotificationProvider extends ChangeNotifier {
             onlineProv.acceptInvitation(
               notif.inviteId!,
               inviterId: notif.actorId,
+              inviterName: notif.senderName,
+              inviterRating: notif.senderRating,
               timeControl: notif.timeControl,
               colorPref: notif.colorPreference,
             );

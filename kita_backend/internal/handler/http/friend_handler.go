@@ -14,6 +14,7 @@ import (
 type WsNotifier interface {
 	SendToUser(userID string, msgType string, payload any)
 	IsUserOnline(userID string) bool
+	GetUserPresence(userID string) (bool, string)
 }
 
 type FriendHandler struct {
@@ -48,14 +49,23 @@ func (h *FriendHandler) GetFriends(c *gin.Context) {
 
 	if h.notifier != nil {
 		for i := range friends {
-			friends[i].IsOnline = h.notifier.IsUserOnline(friends[i].UserID)
+			isOnline, status := h.notifier.GetUserPresence(friends[i].UserID)
+			friends[i].IsOnline = isOnline
+			friends[i].PresenceStatus = status
 		}
 	}
 
-	// Sort friends: active (online) first, then by last interaction recency (match/chat)
+	// Sort friends: active (online) first, then AFK, then offline, then by last interaction recency (match/chat)
 	sort.SliceStable(friends, func(i, j int) bool {
 		if friends[i].IsOnline != friends[j].IsOnline {
 			return friends[i].IsOnline
+		}
+		if friends[i].IsOnline && friends[j].IsOnline {
+			iAfk := friends[i].PresenceStatus == "afk"
+			jAfk := friends[j].PresenceStatus == "afk"
+			if iAfk != jAfk {
+				return !iAfk // active online first
+			}
 		}
 		return friends[i].LastInteractionAt.After(friends[j].LastInteractionAt)
 	})

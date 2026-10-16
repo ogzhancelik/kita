@@ -18,7 +18,6 @@ import '../../widgets/game/kita_game_board.dart';
 import '../../widgets/game/match_bottom_bar.dart';
 import '../../widgets/game/move_history_panel.dart';
 import '../../widgets/game/player_info_bar.dart';
-import '../../widgets/game/timed_match_ready_overlay.dart';
 import '../../widgets/home/user_profile_dialog.dart';
 
 /// Online match screen (Portrait/Default) with space-efficient layout.
@@ -42,6 +41,7 @@ class OnlineMatchScreen extends StatefulWidget {
 class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     with WidgetsBindingObserver {
   OnlineGameProvider? _provider;
+  GameSettingsProvider? _gameSettings;
   bool _isGameOverDialogShowing = false;
   Timer? _gameOverDialogTimer;
   final GlobalKey _chatPanelKey = GlobalKey();
@@ -51,11 +51,17 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     super.initState();
     OnlineMatchScreen.isMatchScreenOpen = true;
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<GameSettingsProvider>().resetInGameOrientation();
+      }
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _gameSettings ??= context.read<GameSettingsProvider>();
     final prov = context.read<OnlineGameProvider>();
     if (_provider != prov) {
       _provider?.gameOverData.removeListener(_onGameOver);
@@ -73,6 +79,7 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
     OnlineMatchScreen.isMatchScreenOpen = false;
     _provider?.gameOverData.removeListener(_onGameOver);
     _provider?.matchState.removeListener(_onMatchStateChanged);
+    _gameSettings?.resetInGameOrientation();
     super.dispose();
   }
 
@@ -270,16 +277,10 @@ class _OnlineMatchScreenState extends State<OnlineMatchScreen>
                       final totalHeight = constraints.maxHeight;
                       final totalWidth = constraints.maxWidth;
 
-                      final boardWidget = Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _BoardSection(
-                            provider: provider,
-                            flipBoard: effectiveFlip,
-                            isHorizontal: isHorizontal,
-                          ),
-                          TimedMatchReadyOverlay(provider: provider),
-                        ],
+                      final boardWidget = _BoardSection(
+                        provider: provider,
+                        flipBoard: effectiveFlip,
+                        isHorizontal: isHorizontal,
                       );
 
                       // When typing, player cards are hidden to maximize board & chat visibility

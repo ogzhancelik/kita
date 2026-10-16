@@ -227,19 +227,24 @@ class _FriendPickerSheetState extends State<FriendPickerSheet> {
                                 Positioned(
                                   bottom: 0,
                                   right: 0,
-                                  child: Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: friend.isOnline
-                                          ? AppColors.online
-                                          : AppColors.offline,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: AppColors.getCard(isDark),
-                                        width: 1.5,
-                                      ),
-                                    ),
+                                  child: Builder(
+                                    builder: (context) {
+                                      final statusColor = !friend.isOnline
+                                          ? AppColors.offline
+                                          : (friend.isAfk ? AppColors.afk : AppColors.online);
+                                      return Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: statusColor,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: AppColors.getCard(isDark),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                               ],

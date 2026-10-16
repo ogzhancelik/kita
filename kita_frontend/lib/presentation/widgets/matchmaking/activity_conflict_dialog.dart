@@ -25,8 +25,9 @@ class ActivityConflictHelper {
     bool isTransitioningToNewMatch = false,
     bool allowOutgoingChallenges = false,
   }) async {
-    // 1. Active Online Match in progress
-    if (provider.matchState.value == OnlineMatchState.inMatch) {
+    // 1. Active Online Match or Ready Phase in progress
+    if (provider.matchState.value == OnlineMatchState.inMatch ||
+        provider.matchState.value == OnlineMatchState.readyPhase) {
       KitaToast.warning('online.conflictInMatchDesc'.tr());
       return false;
     }

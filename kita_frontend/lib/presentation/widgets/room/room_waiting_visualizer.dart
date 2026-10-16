@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,9 +30,6 @@ class RoomWaitingVisualizer extends StatefulWidget {
 class _RoomWaitingVisualizerState extends State<RoomWaitingVisualizer>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
-  Timer? _elapsedTimer;
-  int _secondsElapsed = 0;
-
   @override
   void initState() {
     super.initState();
@@ -41,31 +37,12 @@ class _RoomWaitingVisualizerState extends State<RoomWaitingVisualizer>
       vsync: this,
       duration: const Duration(milliseconds: 2200),
     )..repeat();
-
-    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() => _secondsElapsed++);
-      }
-    });
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
-    _elapsedTimer?.cancel();
     super.dispose();
-  }
-
-  String _formatElapsed(int totalSeconds) {
-    final m = totalSeconds ~/ 60;
-    final s = totalSeconds % 60;
-    return '${m.toString().padLeft(1, '0')}:${s.toString().padLeft(2, '0')}';
-  }
-
-  String _formatTimeControl(int ms) {
-    if (ms <= 0) return 'online.roomBadgeNoClock'.tr();
-    final minutes = ms ~/ 60000;
-    return 'online.timeMinutes'.tr(args: ['$minutes']);
   }
 
   @override
@@ -162,37 +139,7 @@ class _RoomWaitingVisualizerState extends State<RoomWaitingVisualizer>
             ),
             textAlign: TextAlign.center,
           ),
-
-          const SizedBox(height: 16),
-
-          // 3. Room Setting Chips & Live Timer Row
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              _buildBadgeChip(
-                icon: Icons.timer_outlined,
-                label: _formatTimeControl(widget.timeControl),
-                isDark: isDark,
-              ),
-              _buildBadgeChip(
-                icon: widget.isPrivate ? Icons.lock_outline_rounded : Icons.public_rounded,
-                label: widget.isPrivate
-                    ? 'online.roomBadgePrivate'.tr()
-                    : 'online.roomBadgePublic'.tr(),
-                isDark: isDark,
-              ),
-              _buildBadgeChip(
-                icon: Icons.hourglass_top_rounded,
-                label: _formatElapsed(_secondsElapsed),
-                isDark: isDark,
-                highlightColor: AppColors.primaryAmber,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
 
           // 4. Room Code Card with tap-to-copy
           InkWell(
@@ -315,39 +262,4 @@ class _RoomWaitingVisualizerState extends State<RoomWaitingVisualizer>
     );
   }
 
-  Widget _buildBadgeChip({
-    required IconData icon,
-    required String label,
-    required bool isDark,
-    Color? highlightColor,
-  }) {
-    final color = highlightColor ?? AppColors.getTextSecondary(isDark);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.getSurface(isDark),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: highlightColor != null
-              ? highlightColor.withValues(alpha: 0.3)
-              : AppColors.getBorder(isDark),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -249,12 +249,17 @@ class DmProvider extends ChangeNotifier {
     try {
       final msgs = await _apiService.getHistory(conversationId);
       final current = _history[conversationId] ?? [];
-      final apiIds = msgs.map((m) => m.id).toSet();
-      // Keep any message in current that wasn't returned by the API
-      // (e.g. pending optimistic messages m.id < 0, or older messages already loaded)
-      final extra = current.where((m) => !apiIds.contains(m.id)).toList();
-      final combined = [...msgs, ...extra]
-        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final pending = current.where((m) => m.id < 0).toList();
+      List<DmMessage> combined;
+      if (refresh) {
+        combined = [...msgs, ...pending]
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      } else {
+        final apiIds = msgs.map((m) => m.id).toSet();
+        final extra = current.where((m) => !apiIds.contains(m.id)).toList();
+        combined = [...msgs, ...extra]
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
       _history[conversationId] = combined;
       _historyLoaded.add(conversationId);
       _hasMoreHistory[conversationId] = msgs.length >= 50;
@@ -291,7 +296,9 @@ class DmProvider extends ChangeNotifier {
         offset: apiCount,
         limit: 50,
       );
-      if (older.isEmpty || older.length < 50) {
+      if (older.isEmpty ||
+          older.length < 50 ||
+          older.every((m) => current.any((c) => c.id == m.id))) {
         _hasMoreHistory[conversationId] = false;
       }
       if (older.isNotEmpty) {
@@ -469,8 +476,17 @@ class DmProvider extends ChangeNotifier {
   @visibleForTesting
   void handleWsMessageForTesting(WsMessage msg) => _onWsMessage(msg);
 
+  bool _disposed = false;
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     _wsSub?.cancel();
     onIncomingDmReceived.dispose();
     onActiveConversationDmReceived.dispose();

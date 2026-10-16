@@ -250,11 +250,11 @@ class _DashboardOpenRoomsCardState extends State<DashboardOpenRoomsCard> {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: AppColors.online,
+              color: room.hostOnline ? AppColors.online : AppColors.lossRed,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.online.withValues(alpha: 0.5),
+                  color: (room.hostOnline ? AppColors.online : AppColors.lossRed).withValues(alpha: 0.5),
                   blurRadius: 3,
                 ),
               ],

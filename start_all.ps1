@@ -110,11 +110,11 @@ function Cleanup {
     if ($RunFrontend) {
         Free-Port 3000
     }
-    if ($RunBackend -and $RunFrontend) {
-        Remove-Item -Path $RunDir -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $BackendPidFile) {
+        Remove-Item -Path $BackendPidFile -Force -ErrorAction SilentlyContinue
     }
     Set-Location $ScriptDir
-    Write-Host "All services stopped. Bye!" -ForegroundColor Green
+    Write-Host "All services stopped. (Backend logs kept at: .kita_run\backend.log)" -ForegroundColor Green
 }
 
 # Helper: Detect LAN IP
@@ -178,26 +178,32 @@ try {
         $processes.Add($backendProc)
         Set-Content -Path $BackendPidFile -Value $backendProc.Id
 
+        # Reset log file for fresh run
+        if (Test-Path $BackendLog) {
+            Remove-Item -Path $BackendLog -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType File -Path $BackendLog -Force | Out-Null
+
         # Stream output to log file asynchronously (and console if running backend only)
         if (-not $RunFrontend) {
-            Register-ObjectEvent -InputObject $backendProc -EventName OutputDataReceived -Action {
+            Register-ObjectEvent -InputObject $backendProc -EventName OutputDataReceived -MessageData $BackendLog -Action {
                 if ($EventArgs.Data) {
-                    Add-Content -Path $using:BackendLog -Value $EventArgs.Data
+                    Add-Content -Path $Event.MessageData -Value $EventArgs.Data
                     [Console]::WriteLine($EventArgs.Data)
                 }
             } | Out-Null
-            Register-ObjectEvent -InputObject $backendProc -EventName ErrorDataReceived -Action {
+            Register-ObjectEvent -InputObject $backendProc -EventName ErrorDataReceived -MessageData $BackendLog -Action {
                 if ($EventArgs.Data) {
-                    Add-Content -Path $using:BackendLog -Value $EventArgs.Data
+                    Add-Content -Path $Event.MessageData -Value $EventArgs.Data
                     [Console]::Error.WriteLine($EventArgs.Data)
                 }
             } | Out-Null
         } else {
-            Register-ObjectEvent -InputObject $backendProc -EventName OutputDataReceived -Action {
-                if ($EventArgs.Data) { Add-Content -Path $using:BackendLog -Value $EventArgs.Data }
+            Register-ObjectEvent -InputObject $backendProc -EventName OutputDataReceived -MessageData $BackendLog -Action {
+                if ($EventArgs.Data) { Add-Content -Path $Event.MessageData -Value $EventArgs.Data }
             } | Out-Null
-            Register-ObjectEvent -InputObject $backendProc -EventName ErrorDataReceived -Action {
-                if ($EventArgs.Data) { Add-Content -Path $using:BackendLog -Value $EventArgs.Data }
+            Register-ObjectEvent -InputObject $backendProc -EventName ErrorDataReceived -MessageData $BackendLog -Action {
+                if ($EventArgs.Data) { Add-Content -Path $Event.MessageData -Value $EventArgs.Data }
             } | Out-Null
         }
         $backendProc.BeginOutputReadLine()
@@ -281,6 +287,7 @@ try {
         if ($RunBackend) {
             Write-Host " [>] Backend API:     http://${LocalIP}:8080"
             Write-Host " [>] Backend Local:   http://localhost:8080"
+            Write-Host " [>] Backend Log:     .kita_run\backend.log" -ForegroundColor DarkCyan
         }
     } else {
         Write-Host " Mode:               Local Area Network (LAN)`n" -ForegroundColor Yellow
@@ -291,6 +298,7 @@ try {
         if ($RunBackend) {
             Write-Host " [>] Backend API:     http://${LocalIP}:8080"
             Write-Host " [>] Backend Local:   http://localhost:8080"
+            Write-Host " [>] Backend Log:     .kita_run\backend.log" -ForegroundColor DarkCyan
         }
         Write-Host "`n Tip: Run with -Tunnel to share globally via Cloudflare!" -ForegroundColor DarkGray
     }

@@ -1,9 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../core/navigation/app_route_observer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/services/user_api_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../screens/home/leaderboard_screen.dart';
 import '../common/avatar_picker.dart';
 import '../common/kita_card.dart';
@@ -16,20 +19,69 @@ class DashboardLeaderboardCard extends StatefulWidget {
       _DashboardLeaderboardCardState();
 }
 
-class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
+class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard>
+    with RouteAware {
   final UserApiService _apiService = UserApiService();
   String _filter = 'global'; // 'global' or 'friends'
   List<UserProfile> _topPlayers = [];
   bool _isLoading = true;
+  bool _routeSubscribed = false;
+  int? _lastRating;
+  String? _lastUserId;
 
   @override
   void initState() {
     super.initState();
+    UserApiService.leaderboardRevision.addListener(_onRevisionChanged);
     _fetchTopPlayers();
   }
 
+  void _onRevisionChanged() {
+    if (mounted) {
+      _fetchTopPlayers();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_routeSubscribed) {
+      final modalRoute = ModalRoute.of(context);
+      if (modalRoute != null) {
+        appRouteObserver.subscribe(this, modalRoute);
+        _routeSubscribed = true;
+      }
+    }
+
+    final authProv = context.watch<AuthProvider>();
+    final currentRating = authProv.currentUser?.rating;
+    final currentUserId = authProv.currentUser?.id;
+    if (_lastRating != currentRating || _lastUserId != currentUserId) {
+      _lastRating = currentRating;
+      _lastUserId = currentUserId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fetchTopPlayers();
+      });
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // When returning to dashboard from match screen, leaderboard, settings, etc., refresh immediately
+    _fetchTopPlayers();
+  }
+
+  @override
+  void dispose() {
+    if (_routeSubscribed) {
+      appRouteObserver.unsubscribe(this);
+    }
+    UserApiService.leaderboardRevision.removeListener(_onRevisionChanged);
+    super.dispose();
+  }
+
   Future<void> _fetchTopPlayers() async {
-    if (!_isLoading && mounted) {
+    if (_topPlayers.isEmpty && mounted) {
       setState(() => _isLoading = true);
     }
     try {
@@ -43,7 +95,6 @@ class _DashboardLeaderboardCardState extends State<DashboardLeaderboardCard> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _topPlayers = [];
           _isLoading = false;
         });
       }

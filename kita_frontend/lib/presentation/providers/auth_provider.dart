@@ -504,6 +504,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       _currentUser = profile;
       await _storage.saveUser(profile);
       _isServerDown = false;
+      UserApiService.notifyLeaderboardChanged();
       notifyListeners();
     } catch (e) {
       if (e is DioException && (e.type == DioExceptionType.connectionError ||
