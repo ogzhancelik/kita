@@ -1,4 +1,2 @@
-- [x] lazy pagination for dms
-- [x] leaderboard on the main menu doens't update immediately
-- [x] "rotate board" option in in-game hamburger menu should only affect the game, not change the default board orientation option
-- [x] show P2's username in match history for Local 2P Co-op games instead of the "local 2p coop" name
+- [ ] change notificion icon on top bar???
+- [x] move notification in unlimited mode.

@@ -16,6 +16,7 @@ import '../../data/models/ws_message_models.dart';
 export '../../data/models/ws_message_models.dart' show OnlineMoveRecord, ChatMessage;
 import '../../data/services/local_match_history_service.dart';
 import '../../data/services/websocket_service.dart';
+import '../../core/services/push_notification_service.dart';
 
 /// Represents the current state of the online game lifecycle.
 enum OnlineMatchState {
@@ -1105,7 +1106,15 @@ class OnlineGameProvider extends ChangeNotifier {
     matchId = data.matchId;
     myTeam = data.yourTeam;
     timeControl = data.timeControl;
-    isReconnectedMatch.value = data.isReconnect;
+    final wasFromNotification = PushNotificationService.pendingMatchNotificationId != null &&
+        (PushNotificationService.pendingMatchNotificationId!.isEmpty ||
+            PushNotificationService.pendingMatchNotificationId == data.matchId);
+    if (wasFromNotification) {
+      PushNotificationService.pendingMatchNotificationId = null;
+      isReconnectedMatch.value = false;
+    } else {
+      isReconnectedMatch.value = data.isReconnect;
+    }
     pendingOutgoingChallenges.value = [];
     pendingOutgoingChallenge.value = null;
     _savePendingChallengesToPrefs();

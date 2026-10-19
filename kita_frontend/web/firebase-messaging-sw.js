@@ -40,6 +40,8 @@ self.addEventListener('notificationclick', (event) => {
         let targetUrl = '/';
         if (data.type === 'room_joined' && data.room_code) {
           targetUrl = '/#room=' + data.room_code;
+        } else if (data.type === 'opponent_moved') {
+          targetUrl = '/';
         }
         return clients.openWindow(targetUrl);
       }

@@ -8,6 +8,8 @@ This document tracks planned features, active backlog items, and completed miles
 
 ### 🎨 UI & Design Systems
 - [ ] **Text Visibility & Overflow Resilience Audit**: Audit labels, chips, and subtitles across small screens; ensure multi-line reflow (Wrap), tooltips for truncated nicknames/rooms, and fallback ellipsis without losing essential context.
+- [x] **2P Local Coop Settings Enhancement**: Made 2P Local Coop a collapsible section in Match Settings with auto-rotate toggle and piece angle toggle (0° / 90°, default 90°).
+- [x] **Account Notifications Settings**: Added collapsible and toggleable OS system push notification preferences under Account Settings covering game challenges, rematches, opponent moves, friend requests, chat messages, and system announcements. In-app notifications remain 100% permanently active without suppression.
 
 ### 💬 Chat & In-Game Messaging
 - [x] **Direct Chat Layout Spacing**: Tighten excessive horizontal/vertical padding in direct message conversation views.
@@ -33,7 +35,7 @@ This document tracks planned features, active backlog items, and completed miles
   - [x] **AFK (Away) Inactivity Presence Pipeline**: Tracks 3-minute user idle inactivity in frontend, broadcasts real-time presence transition over WebSocket, automatically evicts idle players from matchmaking queues, and highlights friends with dedicated amber AFK badges and challenge notices.
 - [ ] **Web Tab Switch Re-render Investigation**: Analyze why switching browser tabs on web triggers a full menu re-render while game view remains unaffected.
 - [ ] **Connection Retry Resiliency**: Validate retry connection edge cases after hot restart or browser cache drops.
-- [ ] **System Push Notifications**: OS notifications for opponent moves when app is backgrounded or terminated.
+- [x] **System Push Notification for Moves**: OS notifications for opponent moves in unlimited match when app is backgrounded or terminated.
 - [ ] **In-Match Chat vs. Direct Message Architecture**: Decide whether in-match chat should mirror direct messages bidirectionally or remain strictly temporary/ephemeral per match.
 - [ ] **Password Reset & Account Recovery**: Forgot password and email-based recovery pipeline.
 - [ ] **Theme-Adaptive Last Move Indicator**: Custom indicator line/glow styling harmonized with each board theme.

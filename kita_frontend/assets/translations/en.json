@@ -237,8 +237,13 @@
     "flipWhite": "White at Bottom",
     "flipBlack": "Black at Bottom",
     "localCoopSection": "2P Local Coop",
+    "localCoopSectionDesc": "Pass & play preferences for 2-player local games",
     "localCoopAutoRotate": "Auto Rotate Pieces",
     "localCoopAutoRotateDesc": "Rotate pieces to face the active player on each turn",
+    "localCoopPieceAngle": "Piece Angle",
+    "localCoopPieceAngleDesc": "Piece rotation angle for 2P local co-op",
+    "angle0": "0°",
+    "angle90": "90°",
     "highlightLastMove": "Last Move Indicator",
     "highlightLastMoveDesc": "Visual indicator on the board for the last executed move",
     "lastMoveHighlight": "Highlight",
@@ -538,7 +543,21 @@
     "filterAll": "All",
     "filterRequests": "Requests",
     "noRequests": "No pending requests",
-    "noRequestsDesc": "Match challenges, rematch offers, and friend requests will appear here."
+    "noRequestsDesc": "Match challenges, rematch offers, and friend requests will appear here.",
+    "settingsTitle": "System Notifications",
+    "settingsSubtitle": "Manage alerts sent to your device tray when the app is in background",
+    "settingsChallenges": "Game Challenges",
+    "settingsChallengesDesc": "Device push alerts for match and room invites",
+    "settingsRematch": "Rematch Offers",
+    "settingsRematchDesc": "Device push alerts when an opponent requests a rematch",
+    "settingsTurnMoves": "Opponent Moves",
+    "settingsTurnMovesDesc": "Device push alerts when it is your turn to play",
+    "settingsFriendRequests": "Friend Requests",
+    "settingsFriendRequestsDesc": "Device push alerts for incoming friend requests and acceptances",
+    "settingsChat": "Chat Messages",
+    "settingsChatDesc": "Device push alerts for direct chat messages",
+    "settingsSystem": "News & Announcements",
+    "settingsSystemDesc": "Device push alerts for events, rating milestones and game updates"
   },
   "profile": {
     "title": "Player Profile",
@@ -595,6 +614,8 @@
     "title": "Account Settings",
     "profileIdentity": "Profile & Identity",
     "accountSecurity": "Security",
+    "notificationsGroup": "System Notifications",
+    "notificationsDesc": "Device push alerts when the app is in the background",
     "changeUsername": "Change Username",
     "changeNickname": "Change Nickname",
     "changePassword": "Change Password",
@@ -662,6 +683,10 @@
     "friend_request_title": "New Friend Request",
     "friend_request_body": "You have received a new friend request.",
     "friend_accepted_title": "Friend Request Accepted",
-    "friend_accepted_body": "Your friend request was accepted."
+    "friend_accepted_body": "Your friend request was accepted.",
+    "opponent_move_title": "Your Turn",
+    "opponent_move_body": "Opponent made a move in your match.",
+    "match_ended_title": "Match Finished",
+    "match_ended_body": "Opponent made the final move. View the result!"
   }
 }

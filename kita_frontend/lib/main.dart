@@ -23,6 +23,7 @@ import 'data/models/dm_models.dart';
 import 'data/models/friend_models.dart';
 import 'data/models/notification_model.dart';
 import 'data/models/ws_message_models.dart';
+import 'presentation/providers/os_notification_provider.dart';
 import 'core/network/api_client.dart';
 import 'presentation/screens/game/offline_match_screen.dart';
 import 'presentation/screens/game/online_match_screen.dart';
@@ -58,6 +59,7 @@ void main() async {
           ChangeNotifierProvider(create: (_) => OnlineGameProvider()),
           ChangeNotifierProvider(create: (_) => FriendsProvider()),
           ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider(create: (_) => OsNotificationProvider()),
           ChangeNotifierProvider(create: (_) => DmProvider()),
         ],
         child: const KitaApp(),

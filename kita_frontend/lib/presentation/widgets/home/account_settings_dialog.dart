@@ -10,9 +10,10 @@ import '../common/avatar_picker.dart';
 import '../common/kita_avatar.dart';
 import '../common/kita_card.dart';
 import '../../screens/auth/register_screen.dart';
+import '../../providers/os_notification_provider.dart';
 import 'settings_dialog.dart';
 
-class AccountSettingsDialog extends StatelessWidget {
+class AccountSettingsDialog extends StatefulWidget {
   final void Function(BuildContext context)? onBack;
 
   const AccountSettingsDialog({super.key, this.onBack});
@@ -26,10 +27,17 @@ class AccountSettingsDialog extends StatelessWidget {
     );
   }
 
+  @override
+  State<AccountSettingsDialog> createState() => _AccountSettingsDialogState();
+}
+
+class _AccountSettingsDialogState extends State<AccountSettingsDialog> {
+  bool _isNotificationsExpanded = false;
+
   void _handleBack(BuildContext context) {
     Navigator.of(context).pop();
-    if (onBack != null) {
-      onBack!(context);
+    if (widget.onBack != null) {
+      widget.onBack!(context);
     } else {
       SettingsDialog.show(context);
     }
@@ -39,6 +47,7 @@ class AccountSettingsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProv = context.watch<AuthProvider>();
+    final osNotifProv = context.watch<OsNotificationProvider>();
 
     return PopScope(
       canPop: false,
@@ -406,6 +415,28 @@ class AccountSettingsDialog extends StatelessWidget {
                       ),
                     ],
 
+                    const SizedBox(height: 16),
+
+                    // --- Notifications Group ---
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 6),
+                      child: Text(
+                        'account.notificationsGroup'.tr(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    _buildCollapsibleNotificationSettings(
+                      isDark: isDark,
+                      osNotifProv: osNotifProv,
+                    ),
+
                     // --- Account Actions (Logout & Delete Account) ---
                     if (authProv.isAuthenticated || authProv.isGuest) ...[
                       const SizedBox(height: 20),
@@ -522,6 +553,178 @@ class AccountSettingsDialog extends StatelessWidget {
     ),
   );
 }
+
+  Widget _buildCollapsibleNotificationSettings({
+    required bool isDark,
+    required OsNotificationProvider osNotifProv,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBg : AppColors.lightBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header (tappable to expand/collapse)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                setState(() {
+                  _isNotificationsExpanded = !_isNotificationsExpanded;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryAmber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_active_outlined,
+                        color: AppColors.primaryAmber,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'notifications.settingsTitle'.tr(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
+                        ),
+                      ),
+                    ),
+                    AnimatedRotation(
+                      turns: _isNotificationsExpanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Divider(
+                  height: 1,
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+                _buildNotificationToggleItem(
+                  isDark: isDark,
+                  icon: Icons.sports_esports_rounded,
+                  iconColor: AppColors.accentSecondary,
+                  title: 'notifications.settingsChallenges'.tr(),
+                  value: osNotifProv.challengesEnabled,
+                  onChanged: (val) => osNotifProv.setChallengesEnabled(val),
+                ),
+                _buildNotificationToggleItem(
+                  isDark: isDark,
+                  icon: Icons.person_add_rounded,
+                  iconColor: AppColors.ratingGold,
+                  title: 'notifications.settingsFriendRequests'.tr(),
+                  value: osNotifProv.friendRequestsEnabled,
+                  onChanged: (val) => osNotifProv.setFriendRequestsEnabled(val),
+                ),
+                _buildNotificationToggleItem(
+                  isDark: isDark,
+                  icon: Icons.chat_bubble_rounded,
+                  iconColor: AppColors.accent,
+                  title: 'notifications.settingsChat'.tr(),
+                  value: osNotifProv.chatEnabled,
+                  onChanged: (val) => osNotifProv.setChatEnabled(val),
+                  showDivider: false,
+                ),
+              ],
+            ),
+            crossFadeState: _isNotificationsExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationToggleItem({
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    bool showDivider = true,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
+                  ),
+                ),
+              ),
+              Switch(
+                value: value,
+                activeThumbColor: AppColors.primaryAmber,
+                activeTrackColor: AppColors.primaryAmber.withValues(alpha: 0.4),
+                onChanged: onChanged,
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            indent: 14,
+            endIndent: 14,
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+      ],
+    );
+  }
 
   Widget _buildTile({
     required bool isDark,

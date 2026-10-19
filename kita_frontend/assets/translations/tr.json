@@ -237,8 +237,13 @@
     "flipWhite": "Beyaz Aşağıda",
     "flipBlack": "Siyah Aşağıda",
     "localCoopSection": "2 Kişilik Yerel Oyun",
+    "localCoopSectionDesc": "2 kişilik yerel eşli oyun tercihleri",
     "localCoopAutoRotate": "Taşları Otomatik Döndür",
     "localCoopAutoRotateDesc": "Her turda taşları sırası gelen oyuncuya doğru çevir",
+    "localCoopPieceAngle": "Taş Açısı",
+    "localCoopPieceAngleDesc": "2 kişilik yerel eşli oyun için taş açısı",
+    "angle0": "0°",
+    "angle90": "90°",
     "highlightLastMove": "Son Hamle Göstergesi",
     "highlightLastMoveDesc": "Yapılan son hamleyi tahtada görsel olarak göster",
     "lastMoveHighlight": "Vurgu",
@@ -538,7 +543,21 @@
     "filterAll": "Tümü",
     "filterRequests": "İstekler",
     "noRequests": "Bekleyen istek yok",
-    "noRequestsDesc": "Maç davetleri, rövanş teklifleri ve arkadaşlık istekleri burada toplanacaktır."
+    "noRequestsDesc": "Maç davetleri, rövanş teklifleri ve arkadaşlık istekleri burada toplanacaktır.",
+    "settingsTitle": "Sistem Bildirimleri",
+    "settingsSubtitle": "Uygulama arka plandayken cihazınıza gönderilecek bildirimleri yönetin",
+    "settingsChallenges": "Maç Davetleri",
+    "settingsChallengesDesc": "Maç ve oda davetleri için cihaz bildirimleri",
+    "settingsRematch": "Rövanş Teklifleri",
+    "settingsRematchDesc": "Rakip rövanş istediğinde cihaz bildirimleri",
+    "settingsTurnMoves": "Rakip Hamleleri",
+    "settingsTurnMovesDesc": "Hamle sırası size geldiğinde cihaz bildirimleri",
+    "settingsFriendRequests": "Arkadaşlık İstekleri",
+    "settingsFriendRequestsDesc": "Arkadaşlık istekleri ve kabulleri için cihaz bildirimleri",
+    "settingsChat": "Sohbet Mesajları",
+    "settingsChatDesc": "Gelen özel sohbet mesajları için cihaz bildirimleri",
+    "settingsSystem": "Haberler & Duyurular",
+    "settingsSystemDesc": "Etkinlikler, seviye güncellemeleri ve önemli duyurular için cihaz bildirimleri"
   },
   "profile": {
     "title": "Oyuncu Profili",
@@ -595,6 +614,8 @@
     "title": "Hesap Ayarları",
     "profileIdentity": "Profil & Kimlik",
     "accountSecurity": "Güvenlik",
+    "notificationsGroup": "Sistem Bildirimleri",
+    "notificationsDesc": "Uygulama arka plandayken cihaz push bildirimleri",
     "changeUsername": "Kullanıcı Adını Değiştir",
     "changeNickname": "Takma Adı Değiştir",
     "changePassword": "Şifre Değiştir",
@@ -662,6 +683,10 @@
     "friend_request_title": "Yeni Arkadaşlık İsteği",
     "friend_request_body": "Yeni bir arkadaşlık isteği aldınız.",
     "friend_accepted_title": "Arkadaşlık İsteği Kabul Edildi",
-    "friend_accepted_body": "Arkadaşlık isteğiniz kabul edildi."
+    "friend_accepted_body": "Arkadaşlık isteğiniz kabul edildi.",
+    "opponent_move_title": "Sıra Sende",
+    "opponent_move_body": "Rakip maçta bir hamle yaptı.",
+    "match_ended_title": "Maç Sona Erdi",
+    "match_ended_body": "Rakip son hamleyi yaptı. Sonucu görün!"
   }
 }

@@ -760,3 +760,167 @@ func TestUntimedFriendChallenge_OfflineInviter_JoinerBecomesWhite(t *testing.T) 
 		t.Fatalf("Expected WhitePlayer to be clientAccepting, got %v", room.WhitePlayer)
 	}
 }
+
+func TestUntimedRoom_MovePushNotification_TriggeredWhenOpponentOfflineOrAfk(t *testing.T) {
+	s1, c1 := setupTestWS(t)
+	s2, c2 := setupTestWS(t)
+	_ = c1
+	_ = c2
+
+	mockService := &mockMatchService{}
+	hub := NewHub(mockService, nil, nil)
+	mockPush := &mockTestPushService{}
+	hub.SetPushService(mockPush)
+
+	clientWhite := NewClient(hub, s1, "user-white-p1", "WhiteUser", 1300)
+	clientBlack := NewClient(hub, s2, "user-black-p2", "BlackUser", 1300)
+
+	hub.clients[clientWhite.UserID] = clientWhite
+	hub.clients[clientBlack.UserID] = clientBlack
+
+	go clientWhite.WritePump()
+	go clientBlack.WritePump()
+
+	room := NewCustomRoom("match-untimed-push", "PUSHUNT", clientWhite, false, TimeControlNone, mockService, hub)
+	if err := room.Join(clientBlack); err != nil {
+		t.Fatalf("unexpected error on room.Join: %v", err)
+	}
+
+	// In untimed room with both online, status transitions to in_game
+	if room.Status != "in_game" {
+		t.Fatalf("expected room to be in_game, got %s", room.Status)
+	}
+
+	// 1. Both players active in match: White makes move -> No push notification should be sent
+	moves := room.Game.GetLegalMoves()
+	if len(moves) == 0 {
+		t.Fatalf("no legal moves found for White")
+	}
+
+	if err := room.MakeMove(clientWhite.UserID, FromGameMove(moves[0])); err != nil {
+		t.Fatalf("MakeMove failed: %v", err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	if len(mockPush.sentUserIDs) != 0 {
+		t.Fatalf("expected 0 push notifications while opponent is active in match, got %d", len(mockPush.sentUserIDs))
+	}
+
+	// 2. Black disconnects / closes app
+	hub.mu.Lock()
+	delete(hub.clients, clientBlack.UserID)
+	hub.mu.Unlock()
+
+	// Black makes move (now it's Black's turn)
+	blackMoves := room.Game.GetLegalMoves()
+	if len(blackMoves) == 0 {
+		t.Fatalf("no legal moves found for Black")
+	}
+
+	// Make move for Black
+	if err := room.MakeMove(clientBlack.UserID, FromGameMove(blackMoves[0])); err != nil {
+		t.Fatalf("Black MakeMove failed: %v", err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Now White is online, so no push to White yet
+	mockPush.sentUserIDs = nil
+	mockPush.sentPayloads = nil
+
+	// 3. White makes move -> Black is offline -> Push notification MUST be sent to Black
+	whiteMoves2 := room.Game.GetLegalMoves()
+	if len(whiteMoves2) == 0 {
+		t.Fatalf("no legal moves for White")
+	}
+	if err := room.MakeMove(clientWhite.UserID, FromGameMove(whiteMoves2[0])); err != nil {
+		t.Fatalf("White MakeMove 2 failed: %v", err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	if len(mockPush.sentUserIDs) != 1 {
+		t.Fatalf("expected 1 push notification sent to offline Black player, got %d", len(mockPush.sentUserIDs))
+	}
+	if mockPush.sentUserIDs[0] != clientBlack.UserID {
+		t.Errorf("expected push sent to %s, got %s", clientBlack.UserID, mockPush.sentUserIDs[0])
+	}
+	if mockPush.sentPayloads[0].Data["type"] != "opponent_moved" {
+		t.Errorf("expected type opponent_moved, got %s", mockPush.sentPayloads[0].Data["type"])
+	}
+	if mockPush.sentPayloads[0].Data["match_id"] != room.ID {
+		t.Errorf("expected match_id %s, got %s", room.ID, mockPush.sentPayloads[0].Data["match_id"])
+	}
+
+	// 4. Black is back online but AFK (app backgrounded)
+	mockPush.sentUserIDs = nil
+	mockPush.sentPayloads = nil
+
+	clientBlack.PresenceStatus = "afk"
+	hub.mu.Lock()
+	hub.clients[clientBlack.UserID] = clientBlack
+	hub.mu.Unlock()
+
+	blackMoves2 := room.Game.GetLegalMoves()
+	if err := room.MakeMove(clientBlack.UserID, FromGameMove(blackMoves2[0])); err != nil {
+		t.Fatalf("Black MakeMove 2 failed: %v", err)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	// Now it's White's turn, White makes move -> Black is AFK -> Push sent to Black
+	mockPush.sentUserIDs = nil
+	mockPush.sentPayloads = nil
+
+	whiteMoves3 := room.Game.GetLegalMoves()
+	if err := room.MakeMove(clientWhite.UserID, FromGameMove(whiteMoves3[0])); err != nil {
+		t.Fatalf("White MakeMove 3 failed: %v", err)
+	}
+	time.Sleep(50 * time.Millisecond)
+
+	if len(mockPush.sentUserIDs) != 1 {
+		t.Fatalf("expected push notification sent to AFK Black player, got %d", len(mockPush.sentUserIDs))
+	}
+	if mockPush.sentUserIDs[0] != clientBlack.UserID {
+		t.Errorf("expected push to %s, got %s", clientBlack.UserID, mockPush.sentUserIDs[0])
+	}
+}
+
+func TestUntimedRoom_DisconnectDoesNotForfeit(t *testing.T) {
+	s1, c1 := setupTestWS(t)
+	s2, c2 := setupTestWS(t)
+	_ = c1
+	_ = c2
+
+	mockService := &mockMatchService{}
+	hub := NewHub(mockService, nil, nil)
+
+	clientWhite := NewClient(hub, s1, "user-white-df", "WhiteUser", 1300)
+	clientBlack := NewClient(hub, s2, "user-black-df", "BlackUser", 1300)
+
+	hub.clients[clientWhite.UserID] = clientWhite
+	hub.clients[clientBlack.UserID] = clientBlack
+
+	go clientWhite.WritePump()
+	go clientBlack.WritePump()
+
+	room := NewCustomRoom("match-untimed-forfeit-test", "UNTFORF", clientWhite, false, TimeControlNone, mockService, hub)
+	if err := room.Join(clientBlack); err != nil {
+		t.Fatalf("unexpected error on room.Join: %v", err)
+	}
+
+	// White disconnects in active untimed match
+	room.HandleDisconnect(clientWhite.UserID)
+
+	// In untimed matches, disconnectTimer should NOT be started and game must remain ongoing
+	room.mu.RLock()
+	timer := room.disconnectTimer
+	isFinished := room.isFinished
+	room.mu.RUnlock()
+
+	if timer != nil {
+		t.Errorf("expected disconnectTimer to be nil for untimed match, but it was set")
+	}
+	if isFinished {
+		t.Errorf("expected untimed match not to be finished on disconnect")
+	}
+}
+

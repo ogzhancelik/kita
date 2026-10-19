@@ -76,7 +76,7 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
-  /// All notifications in chronological order (newest first).
+  /// All notifications in chronological order (newest first). In-app notifications are always on.
   List<KitaNotification> get allNotifications {
     final list = List<KitaNotification>.from(_notifications);
     list.sort((a, b) => b.timestamp.compareTo(a.timestamp));

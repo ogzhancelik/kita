@@ -7,11 +7,12 @@ import '../../providers/game_settings_provider.dart';
 import 'settings_dialog.dart';
 
 /// Bottom sheet dialog for match runtime preferences:
+/// Bottom sheet dialog for match runtime preferences:
 /// - Board Orientation (Horizontal vs Vertical segmented toggle)
 /// - Piece Rotation / Angle (Fixed 0° vs Auto segmented toggle)
 /// - Flip Viewpoint (Auto, White, Black uniform height buttons)
-/// - 2P Local Co-op (Auto Rotate Pieces on turn switch)
-class MatchSettingsDialog extends StatelessWidget {
+/// - 2P Local Co-op (Collapsible section with Auto Rotate and Piece Angle 0°/90°)
+class MatchSettingsDialog extends StatefulWidget {
   final void Function(BuildContext context)? onBack;
 
   const MatchSettingsDialog({super.key, this.onBack});
@@ -25,10 +26,17 @@ class MatchSettingsDialog extends StatelessWidget {
     );
   }
 
+  @override
+  State<MatchSettingsDialog> createState() => _MatchSettingsDialogState();
+}
+
+class _MatchSettingsDialogState extends State<MatchSettingsDialog> {
+  bool _isLocalCoopExpanded = false;
+
   void _handleBack(BuildContext context) {
     Navigator.of(context).pop();
-    if (onBack != null) {
-      onBack!(context);
+    if (widget.onBack != null) {
+      widget.onBack!(context);
     } else {
       SettingsDialog.show(context);
     }
@@ -214,23 +222,11 @@ class MatchSettingsDialog extends StatelessWidget {
                     _buildFlipSelector(context, gameSettings, isDark),
                     const SizedBox(height: 24),
 
-                    // Section 3: 2P Local Co-op
-                    _buildSectionHeader(
+                    // Section 3: 2P Local Co-op (Collapsible)
+                    _buildCollapsibleLocalCoopSection(
                       context: context,
                       isDark: isDark,
-                      title: 'settings.localCoopSection'.tr(),
-                      icon: Icons.people_outline_rounded,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildToggleTile(
-                      isDark: isDark,
-                      icon: Icons.screen_rotation_alt_rounded,
-                      iconColor: AppColors.primaryAmber,
-                      title: 'settings.localCoopAutoRotate'.tr(),
-                      subtitle: 'settings.localCoopAutoRotateDesc'.tr(),
-                      value: gameSettings.localCoopAutoRotate,
-                      onChanged: (val) =>
-                          gameSettings.setLocalCoopAutoRotate(val),
+                      gameSettings: gameSettings,
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -244,71 +240,150 @@ class MatchSettingsDialog extends StatelessWidget {
   );
 }
 
-  Widget _buildToggleTile({
+  Widget _buildCollapsibleLocalCoopSection({
+    required BuildContext context,
     required bool isDark,
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    String? subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
+    required GameSettingsProvider gameSettings,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBg : AppColors.lightBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+          // Header (tappable to expand/collapse)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                setState(() {
+                  _isLocalCoopExpanded = !_isLocalCoopExpanded;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryAmber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.people_outline_rounded,
+                        color: AppColors.primaryAmber,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'settings.localCoopSection'.tr(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
+                        ),
+                      ),
+                    ),
+                    AnimatedRotation(
+                      turns: _isLocalCoopExpanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.lightTextMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: Icon(icon, color: iconColor, size: 20),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.lightTextPrimary,
+                Divider(
+                  height: 1,
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Auto Rotate Pieces Toggle (Unboxed row)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'settings.localCoopAutoRotate'.tr(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.darkTextMuted
+                                  : AppColors.lightTextMuted,
+                            ),
+                          ),
+                          Switch.adaptive(
+                            value: gameSettings.localCoopAutoRotate,
+                            activeThumbColor: AppColors.primaryAmber,
+                            activeTrackColor: AppColors.primaryAmber.withValues(alpha: 0.4),
+                            onChanged: (val) =>
+                                gameSettings.setLocalCoopAutoRotate(val),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Piece Angle Toggle (0° vs 90°, default 90°)
+                      Text(
+                        'settings.localCoopPieceAngle'.tr(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.lightTextMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSegmentedToggle(
+                        isDark: isDark,
+                        leftLabel: 'settings.angle0'.tr(),
+                        leftIcon: Icons.crop_portrait_rounded,
+                        isLeftSelected: gameSettings.localCoopPieceAngle == 0,
+                        onSelectLeft: () =>
+                            gameSettings.setLocalCoopPieceAngle(0),
+                        rightLabel: 'settings.angle90'.tr(),
+                        rightIcon: Icons.rotate_right_rounded,
+                        isRightSelected: gameSettings.localCoopPieceAngle == 90,
+                        onSelectRight: () =>
+                            gameSettings.setLocalCoopPieceAngle(90),
+                      ),
+                    ],
                   ),
                 ),
-                if (subtitle != null && subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.lightTextMuted,
-                    ),
-                  ),
-                ],
               ],
             ),
-          ),
-          Switch(
-            value: value,
-            activeThumbColor: AppColors.primaryAmber,
-            activeTrackColor: AppColors.primaryAmber.withValues(alpha: 0.4),
-            onChanged: onChanged,
+            crossFadeState: _isLocalCoopExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
           ),
         ],
       ),

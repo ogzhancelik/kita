@@ -22,6 +22,7 @@ class GameSettingsProvider extends ChangeNotifier {
   String _pieceAngleMode = 'fixed'; // 'fixed' = Sabit 0°, 'auto' = Otomatik
   String _localCoopBoardOrientation = 'vertical'; // 'vertical' = Dikey, 'horizontal' = Yatay
   String _localCoopPieceAngleMode = 'auto'; // 'auto' = Otomatik, 'fixed' = Sabit 0°
+  int _localCoopPieceAngle = 90; // 0° or 90°, default 90° (only affects 2P local coop)
   String _flipDirection = 'auto';
   bool _soundEnabled = true;
   bool _hapticsEnabled = true;
@@ -36,6 +37,7 @@ class GameSettingsProvider extends ChangeNotifier {
   static const String _pieceAngleModeKey = 'kita_piece_angle_mode';
   static const String _localCoopBoardOrientationKey = 'kita_local_coop_board_orientation';
   static const String _localCoopPieceAngleModeKey = 'kita_local_coop_piece_angle_mode';
+  static const String _localCoopPieceAngleKey = 'kita_local_coop_piece_angle';
   static const String _flipStorageKey = 'kita_flip_direction';
   static const String _soundStorageKey = 'kita_sound_enabled';
   static const String _hapticsStorageKey = 'kita_haptics_enabled';
@@ -58,8 +60,10 @@ class GameSettingsProvider extends ChangeNotifier {
   bool get isPieceAngleAuto => _pieceAngleMode == 'auto';
   String get localCoopBoardOrientation => _localCoopBoardOrientation;
   bool get isLocalCoopBoardHorizontal => _localCoopBoardOrientation == 'horizontal';
-  String get localCoopPieceAngleMode => _localCoopPieceAngleMode;
-  bool get isLocalCoopPieceAngleAuto => _localCoopPieceAngleMode == 'auto';
+  int get localCoopPieceAngle => _localCoopPieceAngle;
+  bool get isLocalCoopPieceAngle90 => _localCoopPieceAngle == 90;
+  String get localCoopPieceAngleMode => _localCoopPieceAngle == 90 ? 'auto' : 'fixed';
+  bool get isLocalCoopPieceAngleAuto => _localCoopPieceAngle == 90;
   String get flipDirection => _flipDirection;
   bool get soundEnabled => _soundEnabled;
   bool get hapticsEnabled => _hapticsEnabled;
@@ -92,6 +96,7 @@ class GameSettingsProvider extends ChangeNotifier {
         _storage.readString(_pieceAngleModeKey),
         _storage.readString(_localCoopBoardOrientationKey),
         _storage.readString(_localCoopPieceAngleModeKey),
+        _storage.readString(_localCoopPieceAngleKey),
       ]);
 
       final savedTheme = results[0];
@@ -159,6 +164,15 @@ class GameSettingsProvider extends ChangeNotifier {
       final savedLocalCoopPieceAngleMode = results[12];
       if (savedLocalCoopPieceAngleMode != null && savedLocalCoopPieceAngleMode.isNotEmpty) {
         _localCoopPieceAngleMode = savedLocalCoopPieceAngleMode;
+      }
+
+      final savedLocalCoopPieceAngle = results[13];
+      if (savedLocalCoopPieceAngle != null && (savedLocalCoopPieceAngle == '0' || savedLocalCoopPieceAngle == '90')) {
+        _localCoopPieceAngle = int.parse(savedLocalCoopPieceAngle);
+        _localCoopPieceAngleMode = _localCoopPieceAngle == 90 ? 'auto' : 'fixed';
+      } else if (savedLocalCoopPieceAngleMode != null && savedLocalCoopPieceAngleMode.isNotEmpty) {
+        _localCoopPieceAngle = (savedLocalCoopPieceAngleMode == 'fixed' || savedLocalCoopPieceAngleMode == '0') ? 0 : 90;
+        _localCoopPieceAngleMode = _localCoopPieceAngle == 90 ? 'auto' : 'fixed';
       }
 
       notifyListeners();
@@ -243,17 +257,27 @@ class GameSettingsProvider extends ChangeNotifier {
     await _storage.writeString(_localCoopBoardOrientationKey, _localCoopBoardOrientation);
   }
 
+  Future<void> setLocalCoopPieceAngle(int angle) async {
+    if (_localCoopPieceAngle == angle) return;
+    _localCoopPieceAngle = angle;
+    _localCoopPieceAngleMode = angle == 90 ? 'auto' : 'fixed';
+    notifyListeners();
+    await _storage.writeString(_localCoopPieceAngleKey, angle.toString());
+    await _storage.writeString(_localCoopPieceAngleModeKey, _localCoopPieceAngleMode);
+  }
+
   Future<void> setLocalCoopPieceAngleMode(String mode) async {
     if (_localCoopPieceAngleMode == mode) return;
     _localCoopPieceAngleMode = mode;
+    _localCoopPieceAngle = (mode == 'fixed' || mode == '0') ? 0 : 90;
     notifyListeners();
     await _storage.writeString(_localCoopPieceAngleModeKey, mode);
+    await _storage.writeString(_localCoopPieceAngleKey, _localCoopPieceAngle.toString());
   }
 
   Future<void> toggleLocalCoopPieceAngleMode() async {
-    _localCoopPieceAngleMode = _localCoopPieceAngleMode == 'auto' ? 'fixed' : 'auto';
-    notifyListeners();
-    await _storage.writeString(_localCoopPieceAngleModeKey, _localCoopPieceAngleMode);
+    final nextAngle = _localCoopPieceAngle == 90 ? 0 : 90;
+    await setLocalCoopPieceAngle(nextAngle);
   }
 
   Future<void> setFlipDirection(String flip) async {

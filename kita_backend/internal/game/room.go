@@ -351,6 +351,101 @@ func (r *Room) notifyHostOpponentJoined(opponentName string, inReadyPhase bool) 
 	}()
 }
 
+func (r *Room) notifyOpponentMovedLocked(movedPlayerID string, isGameOver bool) {
+	if r.TimeControl != 0 || r.hub == nil {
+		return
+	}
+	pushSvc := r.hub.GetPushService()
+	if pushSvc == nil {
+		return
+	}
+
+	var recipientID string
+	var opponentName string
+
+	if isGameOver {
+		if r.WhitePlayer != nil && movedPlayerID == r.WhitePlayer.UserID {
+			if r.BlackPlayer != nil {
+				recipientID = r.BlackPlayer.UserID
+			}
+			opponentName = r.WhitePlayer.Username
+		} else if r.BlackPlayer != nil && movedPlayerID == r.BlackPlayer.UserID {
+			if r.WhitePlayer != nil {
+				recipientID = r.WhitePlayer.UserID
+			}
+			opponentName = r.BlackPlayer.Username
+		}
+	} else {
+		// Active match continues: notify the player whose turn it now is
+		if r.Game.Turn == "white" {
+			if r.WhitePlayer != nil {
+				recipientID = r.WhitePlayer.UserID
+			}
+			if r.BlackPlayer != nil {
+				opponentName = r.BlackPlayer.Username
+			}
+		} else {
+			if r.BlackPlayer != nil {
+				recipientID = r.BlackPlayer.UserID
+			}
+			if r.WhitePlayer != nil {
+				opponentName = r.WhitePlayer.Username
+			}
+		}
+	}
+
+	if recipientID == "" {
+		return
+	}
+
+	// Check if recipient is actively viewing this match right now
+	r.hub.mu.RLock()
+	recipientClient, isOnline := r.hub.clients[recipientID]
+	r.hub.mu.RUnlock()
+
+	if isOnline && recipientClient != nil {
+		recipientClient.mu.RLock()
+		isAfk := recipientClient.PresenceStatus == "afk"
+		isInThisMatch := recipientClient.CurrentMatchID == r.ID && recipientClient.Activity == ActivityInMatch
+		recipientClient.mu.RUnlock()
+
+		if isInThisMatch && !isAfk {
+			return
+		}
+	}
+
+	roomCode := r.RoomCode
+	matchID := r.ID
+
+	titleKey := "notification.opponent_move_title"
+	titleFallback := "Your Turn"
+	bodyKey := "notification.opponent_move_body"
+	bodyFallback := fmt.Sprintf("%s made a move in your match.", opponentName)
+
+	if isGameOver {
+		titleKey = "notification.match_ended_title"
+		titleFallback = "Match Finished"
+		bodyKey = "notification.match_ended_body"
+		bodyFallback = fmt.Sprintf("%s made the final move. View the result!", opponentName)
+	}
+
+	go func() {
+		_ = pushSvc.SendToUser(context.Background(), recipientID, ports.PushNotificationPayload{
+			TitleKey:      titleKey,
+			TitleFallback: titleFallback,
+			BodyKey:       bodyKey,
+			BodyFallback:  bodyFallback,
+			Tag:           "match_move_" + matchID,
+			Data: map[string]string{
+				"type":          "opponent_moved",
+				"match_id":      matchID,
+				"room_code":     roomCode,
+				"opponent_name": opponentName,
+			},
+		})
+	}()
+}
+
 func (r *Room) Start() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -953,6 +1048,7 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 			reason = domain.ReasonNormal
 		}
 		r.finishGameLocked(status, reason)
+		r.notifyOpponentMovedLocked(playerID, true)
 		return nil
 	}
 
@@ -1036,9 +1132,11 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 					reason = domain.ReasonNormal
 				}
 				rm.finishGameLocked(retaliationStatus, reason)
+				rm.notifyOpponentMovedLocked(retaliatorID, true)
 			} else {
 				rm.startTimeoutTimerLocked()
 				rm.broadcastStateLocked()
+				rm.notifyOpponentMovedLocked(retaliatorID, false)
 			}
 		}(r, *retaliationMove)
 		return nil
@@ -1047,6 +1145,7 @@ func (r *Room) MakeMove(playerID string, moveDTO MoveDTO) error {
 	// 9. Sıradaki oyuncu için timer'ı başlat, ardından tahtanın yeni halini bildir
 	r.startTimeoutTimerLocked()
 	r.broadcastStateLocked()
+	r.notifyOpponentMovedLocked(playerID, false)
 
 	return nil
 }
@@ -1215,6 +1314,26 @@ func (r *Room) HandleDisconnect(playerID string) {
 		r.broadcastReadyStateLocked()
 		r.mu.Unlock()
 		log.Printf("[Room %s] Player %s disconnected during ready_phase", r.ID, playerID)
+		return
+	}
+
+	// In unlimited matches, players can background or terminate their app without forfeit timer
+	if r.TimeControl == 0 {
+		r.disconnectPlayerID = playerID
+		log.Printf("[Room %s] Player %s disconnected in unlimited match (persisting without forfeit timer)", r.ID, playerID)
+		var opp *Client
+		if r.WhitePlayer != nil && playerID == r.WhitePlayer.UserID {
+			opp = r.BlackPlayer
+		} else if r.BlackPlayer != nil && playerID == r.BlackPlayer.UserID {
+			opp = r.WhitePlayer
+		}
+		if opp != nil {
+			opp.SendJSON("opponent_disconnected", map[string]any{
+				"player_id":     playerID,
+				"grace_seconds": 0,
+			})
+		}
+		r.mu.Unlock()
 		return
 	}
 

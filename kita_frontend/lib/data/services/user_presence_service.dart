@@ -42,6 +42,18 @@ class UserPresenceService {
     }
   }
 
+  /// Sets app backgrounded or foregrounded state immediately.
+  void setAppBackgrounded(bool isBackground) {
+    if (isBackground) {
+      _idleTimer?.cancel();
+      _setAfk(true);
+    } else {
+      _setAfk(false);
+      _lastInteraction = DateTime.now();
+      _resetTimer();
+    }
+  }
+
   /// Records user interaction (touch, pointer move, click).
   ///
   /// If [isInMatch] is true, the user is never transitioned to AFK because

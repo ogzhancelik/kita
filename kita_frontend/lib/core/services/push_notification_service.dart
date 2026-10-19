@@ -5,7 +5,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../firebase_options.dart';
+import '../../main.dart';
+import '../../presentation/providers/online_game_provider.dart';
+import '../../presentation/providers/os_notification_provider.dart';
+import '../../presentation/screens/game/online_match_screen.dart';
 import '../feedback/toast_service.dart';
 import '../network/api_client.dart';
 
@@ -18,6 +25,9 @@ class PushNotificationService {
   bool _isInitialized = false;
   String? _currentToken;
   StreamSubscription<String>? _tokenRefreshSub;
+
+  /// Stores a pending match ID if app was launched via an opponent move push notification.
+  static String? pendingMatchNotificationId;
 
   /// Initializes Firebase and configures notification stream handlers.
   Future<void> initialize() async {
@@ -41,6 +51,18 @@ class PushNotificationService {
     // 1. Foreground message handler (when app is currently open and active)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('[PushNotificationService] Foreground message received: ${message.data}');
+      final type = message.data['type'];
+      // If user is already on the match screen actively playing, skip redundant toast
+      if (type == 'opponent_moved' && OnlineMatchScreen.isMatchScreenOpen) {
+        return;
+      }
+      final navContext = appNavigatorKey.currentContext;
+      if (navContext != null && navContext.mounted && type == 'opponent_moved') {
+        try {
+          final osProv = navContext.read<OsNotificationProvider>();
+          if (!osProv.turnMovesEnabled) return;
+        } catch (_) {}
+      }
       final title = message.notification?.title ?? message.data['title'];
       final body = message.notification?.body ?? message.data['body'];
       if (title != null && title.isNotEmpty) {
@@ -159,7 +181,27 @@ class PushNotificationService {
     final type = data['type'];
     debugPrint('[PushNotificationService] Handling notification click payload: $type');
 
-    // Room join notification: opponent joined custom room while host was outside
-    // The WebSocket connection automatically transitions into ReadyPhaseScreen upon reconnect.
+    if (type == 'opponent_moved') {
+      final matchId = data['match_id']?.toString() ?? '';
+      pendingMatchNotificationId = matchId;
+      final context = appNavigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        try {
+          final onlineProv = context.read<OnlineGameProvider>();
+          onlineProv.isReconnectedMatch.value = false;
+          if (!OnlineMatchScreen.isMatchScreenOpen &&
+              onlineProv.matchState.value == OnlineMatchState.inMatch) {
+            appNavigatorKey.currentState?.push(
+              MaterialPageRoute(
+                builder: (_) => const OnlineMatchScreen(),
+                settings: const RouteSettings(name: '/online_match'),
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint('[PushNotificationService] Error opening match from notification: $e');
+        }
+      }
+    }
   }
 }

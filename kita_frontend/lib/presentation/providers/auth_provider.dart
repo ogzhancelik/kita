@@ -10,6 +10,7 @@ import '../../data/services/auth_api_service.dart';
 import '../../data/services/local_match_history_service.dart';
 import '../../data/services/user_api_service.dart';
 import '../../data/services/websocket_service.dart';
+import '../../data/services/user_presence_service.dart';
 import '../../core/services/push_notification_service.dart';
 import '../widgets/common/guest_guard_dialog.dart';
 
@@ -126,10 +127,12 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (isBg) {
       _isAppInBackground = true;
       debugPrint('[AuthProvider] App moved to background/hidden ($state)');
+      UserPresenceService.instance.setAppBackgrounded(true);
     } else if (state == AppLifecycleState.resumed) {
       final wasBg = _isAppInBackground;
       _isAppInBackground = false;
       debugPrint('[AuthProvider] App resumed to foreground');
+      UserPresenceService.instance.setAppBackgrounded(false);
       if (wasBg) {
         _handleAppResumed();
       }
