@@ -45,66 +45,132 @@
                 <data android:scheme="http" android:host="kita.app" />
             </intent-filter>
 
-            <!-- File Association: Direct .kita match replay files (Content scheme with */* mimeType) -->
+            <!-- File Association: WhatsApp Documents (.kita files shared/opened directly via WhatsApp chat) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <data android:scheme="content" />
+                <data android:host="com.whatsapp.fileprovider" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-kita" />
+            </intent-filter>
+
+            <!-- File Association: WhatsApp Business Documents -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <data android:scheme="content" />
+                <data android:host="com.whatsapp.w4b.fileprovider" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-kita" />
+            </intent-filter>
+
+            <!-- File Association: WhatsApp Media Provider Documents -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <data android:scheme="content" />
+                <data android:host="com.whatsapp.provider.media" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-kita" />
+            </intent-filter>
+
+            <!-- File Association: Content scheme with MIME types (Files by Google, Samsung My Files, Telegram, etc.) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.OPENABLE" />
                 <data android:scheme="content" />
                 <data android:host="*" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-kita" />
                 <data android:mimeType="*/*" />
+                <data android:pathSuffix=".kita" />
+                <data android:pathSuffix=".KITA" />
                 <data android:pathPattern=".*\\.kita" />
                 <data android:pathPattern=".*\\..*\\.kita" />
                 <data android:pathPattern=".*\\..*\\..*\\.kita" />
                 <data android:pathPattern=".*\\..*\\..*\\..*\\.kita" />
-                <data android:pathSuffix=".kita" />
-                <data android:pathSuffix=".KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kita" />
+                <data android:pathPattern=".*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.KITA" />
             </intent-filter>
 
-            <!-- File Association: Content scheme without mimeType -->
+            <!-- File Association: Content scheme without MIME type -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.OPENABLE" />
                 <data android:scheme="content" />
                 <data android:host="*" />
+                <data android:pathSuffix=".kita" />
+                <data android:pathSuffix=".KITA" />
                 <data android:pathPattern=".*\\.kita" />
                 <data android:pathPattern=".*\\..*\\.kita" />
                 <data android:pathPattern=".*\\..*\\..*\\.kita" />
                 <data android:pathPattern=".*\\..*\\..*\\..*\\.kita" />
-                <data android:pathSuffix=".kita" />
-                <data android:pathSuffix=".KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kita" />
+                <data android:pathPattern=".*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.KITA" />
             </intent-filter>
 
-            <!-- File Association: File scheme with */* mimeType -->
+            <!-- File Association: File scheme with MIME types (file:// has no host) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.OPENABLE" />
                 <data android:scheme="file" />
-                <data android:host="*" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-kita" />
                 <data android:mimeType="*/*" />
+                <data android:pathSuffix=".kita" />
+                <data android:pathSuffix=".KITA" />
                 <data android:pathPattern=".*\\.kita" />
                 <data android:pathPattern=".*\\..*\\.kita" />
                 <data android:pathPattern=".*\\..*\\..*\\.kita" />
                 <data android:pathPattern=".*\\..*\\..*\\..*\\.kita" />
-                <data android:pathSuffix=".kita" />
-                <data android:pathSuffix=".KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kita" />
+                <data android:pathPattern=".*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.KITA" />
             </intent-filter>
 
-            <!-- File Association: File scheme without mimeType -->
+            <!-- File Association: File scheme without MIME type (file:// has no host) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.OPENABLE" />
                 <data android:scheme="file" />
-                <data android:host="*" />
+                <data android:pathSuffix=".kita" />
+                <data android:pathSuffix=".KITA" />
                 <data android:pathPattern=".*\\.kita" />
                 <data android:pathPattern=".*\\..*\\.kita" />
                 <data android:pathPattern=".*\\..*\\..*\\.kita" />
                 <data android:pathPattern=".*\\..*\\..*\\..*\\.kita" />
-                <data android:pathSuffix=".kita" />
-                <data android:pathSuffix=".KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kita" />
+                <data android:pathPattern=".*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.KITA" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.KITA" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

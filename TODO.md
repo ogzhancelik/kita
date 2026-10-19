@@ -93,6 +93,7 @@ This document tracks planned features, active backlog items, and completed miles
 - [x] Friend invite system with color preference, real-time presence checks, and expiry timers
 - [x] Dashboard active/pending match widget with instant rejoin, cancellation, and activity guards
 - [x] Persistent custom room & friend challenge ready confirmation system (24h room TTL, offline host wait, auto-ready, 2.5s match start countdown, automatic match bypass if both players online)
+  - [x] Auto-assign White to joiner in untimed matches when ready confirmation is bypassed due to host/opponent being offline or AFK, allowing instant moves without waiting
 
 #### Matchmaking
 - [x] Real-time matchmaking queue with rating-based pairing

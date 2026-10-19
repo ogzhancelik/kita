@@ -117,6 +117,33 @@ class MainActivity : FlutterActivity() {
                         result.error("READ_FAILED", e.localizedMessage, e.toString())
                     }
                 }
+                "getFileName" -> {
+                    val uriStr = call.argument<String>("uri")
+                    if (uriStr.isNullOrEmpty()) {
+                        result.success(null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val uri = Uri.parse(uriStr)
+                        var displayName: String? = null
+                        if (uri.scheme == "content") {
+                            contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                                    if (idx != -1) {
+                                        displayName = cursor.getString(idx)
+                                    }
+                                }
+                            }
+                        }
+                        if (displayName == null) {
+                            displayName = uri.lastPathSegment
+                        }
+                        result.success(displayName)
+                    } catch (e: Exception) {
+                        result.success(null)
+                    }
+                }
                 "getInitialUri" -> {
                     val uri = initialUriString
                     initialUriString = null

@@ -90,6 +90,21 @@ class DeepLinkService {
     }
   }
 
+  /// Queries native MainActivity for the display name of a content URI.
+  Future<String?> _getFileName(String uriStr) async {
+    try {
+      if (!Platform.isAndroid) return null;
+      final String? name = await _nativeChannel.invokeMethod<String>(
+        'getFileName',
+        {'uri': uriStr},
+      );
+      return name;
+    } catch (e) {
+      debugPrint('[DeepLinkService] Native getFileName error: $e');
+      return null;
+    }
+  }
+
   /// Checks the current web browser URL hash or path on initial load.
   void _checkWebUrl() {
     if (!kIsWeb) return;
@@ -172,6 +187,16 @@ class DeepLinkService {
 
       String? content;
       if (uri.scheme == 'content') {
+        if (Platform.isAndroid) {
+          final fileName = await _getFileName(uri.toString());
+          if (fileName != null && fileName.isNotEmpty) {
+            final lower = fileName.toLowerCase();
+            if (!lower.endsWith('.kita') && !lower.endsWith('.json')) {
+              debugPrint('[DeepLinkService] Skipping non-.kita file: $fileName');
+              return;
+            }
+          }
+        }
         content = await _readContentUri(uri.toString());
       } else if (uri.scheme == 'file') {
         try {

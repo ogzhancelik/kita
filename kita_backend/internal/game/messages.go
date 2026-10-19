@@ -344,7 +344,7 @@ type AcceptInviteDTO struct {
 	InviterID     string `json:"inviter_id,omitempty"`
 	InviterName   string `json:"inviter_name,omitempty"`
 	InviterRating int    `json:"inviter_rating,omitempty"`
-	TimeControl   int64  `json:"time_control,omitempty"`
+	TimeControl   int64  `json:"time_control"`
 	ColorPref     string `json:"color_preference,omitempty"`
 }
 

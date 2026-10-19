@@ -100,10 +100,7 @@ func (r *userRepo) Search(ctx context.Context, query string, excludeUserID strin
 
 	searchPattern := "%" + strings.ToLower(trimmed) + "%"
 	var users []domain.User
-	q := r.db.WithContext(ctx).
-		Where("LOWER(username) != ?", "report").
-		Where("roles IS NULL OR roles::text NOT ILIKE ?", `%"system"%`).
-		Where("LOWER(username) LIKE ?", searchPattern)
+	q := r.db.WithContext(ctx).Where("LOWER(username) LIKE ?", searchPattern)
 	if excludeUserID != "" {
 		q = q.Where("id != ?", excludeUserID)
 	}

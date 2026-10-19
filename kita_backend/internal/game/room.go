@@ -222,18 +222,26 @@ func (r *Room) Join(client *Client) error {
 
 	client.CurrentMatchID = r.ID
 
-	if rand.Intn(2) == 0 {
-		r.WhitePlayer = r.Host
-		r.BlackPlayer = client
-	} else {
-		r.WhitePlayer = client
-		r.BlackPlayer = r.Host
-	}
-
 	isHostAfk := r.Host != nil && r.Host.IsAfk()
 	isGuestAfk := client != nil && client.IsAfk()
+	normallyRequiresReady := !r.HostOnline || isHostAfk || isGuestAfk
 
-	if !r.RequiresReadyConfirmation || (r.HostOnline && !isHostAfk && !isGuestAfk) {
+	if !r.RequiresReadyConfirmation && normallyRequiresReady {
+		// Untimed / unlimited match where ready confirmation would normally be required (e.g. host is offline or AFK).
+		// Bypass ready confirmation and automatically assign White to the joiner so they can play immediately!
+		r.WhitePlayer = client
+		r.BlackPlayer = r.Host
+	} else {
+		if rand.Intn(2) == 0 {
+			r.WhitePlayer = r.Host
+			r.BlackPlayer = client
+		} else {
+			r.WhitePlayer = client
+			r.BlackPlayer = r.Host
+		}
+	}
+
+	if !r.RequiresReadyConfirmation || !normallyRequiresReady {
 		// Both players are on the app already and active (neither is AFK) OR untimed match:
 		// Bypass ready confirmation and navigate both players straight into the match!
 		r.RequiresReadyConfirmation = false

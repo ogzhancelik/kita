@@ -629,4 +629,134 @@ func TestRoom_OpponentJoin_TriggersPushNotificationWhenHostOffline(t *testing.T)
 	}
 }
 
+func TestUntimedRoom_OfflineHost_JoinerBecomesWhite(t *testing.T) {
+	s1, c1 := setupTestWS(t)
+	s2, c2 := setupTestWS(t)
+	_ = c1
+	_ = c2
 
+	mockService := &mockMatchService{}
+	hub := NewHub(mockService, nil, nil)
+	clientHost := NewClient(hub, s1, "user-host-offline-untimed", "HostPlayer", 1200)
+	clientGuest := NewClient(hub, s2, "user-guest-joiner", "GuestPlayer", 1200)
+
+	hub.clients[clientHost.UserID] = clientHost
+	hub.clients[clientGuest.UserID] = clientGuest
+
+	go clientHost.WritePump()
+	go clientGuest.WritePump()
+
+	// 1. Host creates untimed custom room (TimeControlNone = 0)
+	room := NewCustomRoom("match-untimed-offline", "UNTIME1", clientHost, false, TimeControlNone, mockService, hub)
+	if room.RequiresReadyConfirmation {
+		t.Fatalf("Untimed room should not require ready confirmation")
+	}
+
+	// 2. Host is offline / disconnected
+	room.HostOnline = false
+
+	// 3. Guest joins
+	if err := room.Join(clientGuest); err != nil {
+		t.Fatalf("Join failed: %v", err)
+	}
+
+	// Status should be in_game immediately (bypassing ready confirmation)
+	if room.Status != "in_game" {
+		t.Fatalf("Expected status to be in_game, got %s", room.Status)
+	}
+
+	// The joiner MUST be automatically assigned White so they can move immediately!
+	if room.WhitePlayer == nil || room.WhitePlayer.UserID != clientGuest.UserID {
+		t.Fatalf("Expected WhitePlayer to be clientGuest (%s), got %v", clientGuest.UserID, room.WhitePlayer)
+	}
+	if room.BlackPlayer == nil || room.BlackPlayer.UserID != clientHost.UserID {
+		t.Fatalf("Expected BlackPlayer to be clientHost (%s), got %v", clientHost.UserID, room.BlackPlayer)
+	}
+}
+
+func TestUntimedRoom_AfkHost_JoinerBecomesWhite(t *testing.T) {
+	s1, c1 := setupTestWS(t)
+	s2, c2 := setupTestWS(t)
+	_ = c1
+	_ = c2
+
+	mockService := &mockMatchService{}
+	hub := NewHub(mockService, nil, nil)
+	clientHost := NewClient(hub, s1, "user-host-afk-untimed", "HostPlayer", 1200)
+	clientGuest := NewClient(hub, s2, "user-guest-joiner2", "GuestPlayer", 1200)
+
+	hub.clients[clientHost.UserID] = clientHost
+	hub.clients[clientGuest.UserID] = clientGuest
+
+	go clientHost.WritePump()
+	go clientGuest.WritePump()
+
+	// Host is online but AFK
+	clientHost.mu.Lock()
+	clientHost.PresenceStatus = "afk"
+	clientHost.mu.Unlock()
+
+	room := NewCustomRoom("match-untimed-afk", "UNTIME2", clientHost, false, TimeControlNone, mockService, hub)
+	if err := room.Join(clientGuest); err != nil {
+		t.Fatalf("Join failed: %v", err)
+	}
+
+	if room.Status != "in_game" {
+		t.Fatalf("Expected status to be in_game, got %s", room.Status)
+	}
+
+	// Guest should be White
+	if room.WhitePlayer == nil || room.WhitePlayer.UserID != clientGuest.UserID {
+		t.Fatalf("Expected WhitePlayer to be clientGuest, got %v", room.WhitePlayer)
+	}
+	if room.BlackPlayer == nil || room.BlackPlayer.UserID != clientHost.UserID {
+		t.Fatalf("Expected BlackPlayer to be clientHost, got %v", room.BlackPlayer)
+	}
+}
+
+func TestUntimedFriendChallenge_OfflineInviter_JoinerBecomesWhite(t *testing.T) {
+	sAccepting, cAccepting := setupTestWS(t)
+	_ = cAccepting
+
+	mockService := &mockMatchService{}
+	hub := NewHub(mockService, nil, nil)
+	clientAccepting := NewClient(hub, sAccepting, "user-accepting-untimed", "AcceptingUser", 1300)
+
+	hub.clients[clientAccepting.UserID] = clientAccepting
+	go clientAccepting.WritePump()
+
+	// Offline inviter with untimed challenge (TimeControlNone = 0)
+	acceptPayload, _ := json.Marshal(AcceptInviteDTO{
+		InviteID:      "inv-untimed-1",
+		InviterID:     "user-offline-untimed-inviter",
+		InviterName:   "OfflineInviter",
+		InviterRating: 1400,
+		TimeControl:   TimeControlNone,
+		ColorPref:     "random",
+	})
+
+	hub.handleAcceptInvite(clientAccepting, acceptPayload)
+
+	if clientAccepting.Activity != ActivityInMatch {
+		t.Fatalf("Expected accepting client activity to be ActivityInMatch, got %v", clientAccepting.Activity)
+	}
+
+	matchID := clientAccepting.CurrentMatchID
+	if matchID == "" {
+		t.Fatalf("Expected accepting client to have a CurrentMatchID")
+	}
+
+	room := hub.rooms[matchID]
+	if room == nil {
+		t.Fatalf("Expected room to exist in hub.rooms")
+	}
+
+	if room.Status != "in_game" {
+		t.Fatalf("Expected room status to be in_game, got %s", room.Status)
+	}
+
+	// The accepting client must be White!
+	if room.WhitePlayer == nil || room.WhitePlayer.UserID != clientAccepting.UserID {
+		t.Fatalf("Expected WhitePlayer to be clientAccepting, got %v", room.WhitePlayer)
+	}
+}

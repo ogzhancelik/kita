@@ -1609,6 +1609,9 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		client.SendError(errors.ErrInvalidMessage, "Invalid accept invite payload")
 		return
 	}
+	var rawMap map[string]json.RawMessage
+	_ = json.Unmarshal(rawPayload, &rawMap)
+	_, hasExplicitTC := rawMap["time_control"]
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -1644,7 +1647,7 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 	isInviterOnline := true
 	if inviter == nil {
 		// Fallback: persistent (offline) challenge — if inviter info is missing from dto, query notification service
-		if (dto.InviterID == "" || dto.TimeControl == 0) && h.notificationService != nil && dto.InviteID != "" {
+		if (dto.InviterID == "" || !hasExplicitTC) && h.notificationService != nil && dto.InviteID != "" {
 			notifs, _, err := h.notificationService.GetUserNotifications(context.Background(), client.UserID, 50, 0)
 			if err == nil {
 				targetID := "challenge_" + dto.InviteID
@@ -1658,8 +1661,9 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 						}
 						var pMap map[string]any
 						if err := json.Unmarshal([]byte(n.Payload), &pMap); err == nil {
-							if tc, ok := pMap["time_control"].(float64); ok && dto.TimeControl == 0 {
+							if tc, ok := pMap["time_control"].(float64); ok && !hasExplicitTC {
 								dto.TimeControl = int64(tc)
+								hasExplicitTC = true
 							}
 							if pref, ok := pMap["color_preference"].(string); ok && dto.ColorPref == "" {
 								dto.ColorPref = pref
@@ -1677,7 +1681,7 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		if dto.InviterID != "" {
 			if onlineInviter, ok := h.clients[dto.InviterID]; ok && onlineInviter != nil && onlineInviter.Activity != ActivityInMatch && onlineInviter.Activity != ActivityInReadyPhase {
 				inviter = onlineInviter
-				if dto.TimeControl > 0 {
+				if hasExplicitTC {
 					timeControl = dto.TimeControl
 				} else {
 					timeControl = TimeControl3Min
@@ -1698,7 +1702,7 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 				}
 				inviter = NewClient(h, nil, dto.InviterID, inviterName, dto.InviterRating)
 				inviter.isClosed = true
-				if dto.TimeControl > 0 {
+				if hasExplicitTC {
 					timeControl = dto.TimeControl
 				} else {
 					timeControl = TimeControl3Min
@@ -1707,7 +1711,7 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 				if colorPref != "white" && colorPref != "black" {
 					colorPref = "random"
 				}
-				log.Printf("[Hub] Persistent challenge accepted: inviter %s (%s) is offline. Entering ready phase.", inviter.Username, inviter.UserID)
+				log.Printf("[Hub] Persistent challenge accepted: inviter %s (%s) is offline (TC: %dms).", inviter.Username, inviter.UserID, timeControl)
 			} else {
 				client.SendError(errors.ErrMatchNotFound, "Invite no longer valid")
 				if h.notificationService != nil && dto.InviteID != "" {
@@ -1826,6 +1830,18 @@ func (h *Hub) handleAcceptInvite(client *Client, rawPayload json.RawMessage) {
 		h.rooms[matchID] = room
 
 		log.Printf("[Hub] Friend match created: %s between %s (white) and %s (black) (TC: %dms, pref: %s)", matchID, white.Username, black.Username, timeControl, colorPref)
+		go room.Start()
+	} else if timeControl == 0 {
+		// Untimed / unlimited friend challenge where ready confirmation would normally be required (inviter offline or AFK):
+		// Bypass ready confirmation and automatically assign White to the joiner (accepting client) so they can move immediately!
+		white, black = client, inviter
+		h.enterActivityLocked(client, ActivityIdle)
+		if isInviterOnline {
+			h.enterActivityLocked(inviter, ActivityIdle)
+		}
+		room := NewRoomWithTimeControl(matchID, white, black, timeControl, h.matchService, h)
+		h.rooms[matchID] = room
+		log.Printf("[Hub] Untimed friend match created: %s between %s (white) and %s (black)", matchID, white.Username, black.Username)
 		go room.Start()
 	} else {
 		// Either inviter is offline OR at least one player is AFK: start ready confirmation phase for friend challenge
